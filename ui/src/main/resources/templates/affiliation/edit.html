@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'people', subpage='phonebook')"></aside>
+
+	<section>
+		<div class="content-wrapper">
+			<h3 th:text="#{html.entity.affiliation.edit.title}"></h3>
+
+			<div class="panel panel-default">
+				<div class="panel-heading"></div>
+				<div class="panel-body">
+					<div class="row">
+						<div class="col-lg-12">
+							<form class="form-horizontal" id="person-form" th:action="@{/ui/affiliation/edit}" method="post" th:object="${affiliationEditDTO}">
+								<input th:field="*{uuid}" type="hidden"/>
+								<input th:field="*{personUuid}" type="hidden"/>
+
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.positionName}"></label>
+										<div class="col-sm-8">
+											<input th:field="*{positionName}" class="form-control" />
+											<ul th:if="${#fields.hasErrors('positionName')}" class="error">
+												<li th:each="err : ${#fields.errors('positionName')}" th:text="${err}"></li>
+											</ul>
+										</div>
+									</div>
+								</fieldset>
+
+								<fieldset>
+									<div class="row" th:if="${@sofdConfiguration.getModules().getPositionDisplayName().isEnabled()}">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.positionDisplayName}"></label>
+										<div class="col-sm-8">
+											<input th:field="*{positionDisplayName}" class="form-control masterTooltip" />
+											<ul th:if="${#fields.hasErrors('positionDisplayName')}" class="error">
+												<li th:each="err : ${#fields.errors('positionDisplayName')}" th:text="${err}"></li>
+											</ul>
+										</div>
+									</div>
+								</fieldset>
+
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.startDate}"></label>
+										<div class="col-sm-8">
+											<input th:field="*{startDate}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.stopDate}"></label>
+										<div class="col-sm-8">
+											<div class="input-group date" id="stopDatePicker">
+												<input th:field="*{stopDate}" class="form-control" />
+												<span class="input-group-addon">
+													<span class="fa fa-calendar"></span>
+												</span>
+											</div>
+											<ul th:if="${#fields.hasErrors('stopDate')}" class="error">
+												<li th:each="err : ${#fields.errors('stopDate')}" th:text="${err}"></li>
+											</ul>
+										</div>
+									</div>
+								</fieldset>
+								
+								<fieldset th:if="${#strings.equals(affiliationEditDTO.affiliationType, 'EXTERNAL')}">
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.vendor}"></label>
+										<div class="col-sm-8">
+												<input th:field="*{vendor}" class="form-control" />
+											<ul th:if="${#fields.hasErrors('vendor')}" class="error">
+												<li th:each="err : ${#fields.errors('vendor')}" th:text="${err}"></li>
+											</ul>
+										</div>
+									</div>
+								</fieldset>
+								
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.internalReference}"></label>
+										<div class="col-sm-8">
+												<input th:field="*{internalReference}" class="form-control" />
+											<ul th:if="${#fields.hasErrors('internalReference')}" class="error">
+												<li th:each="err : ${#fields.errors('internalReference')}" th:text="${err}"></li>
+											</ul>
+										</div>
+									</div>
+								</fieldset>
+
+								<fieldset>
+									<div class="row">
+										<div class="col-md-8 col-md-offset-2">
+											<button type="submit" class="btn btn-lg btn-primary">
+												<th:block th:text="#{html.control.button.save}"/>
+											</button>
+											&nbsp;
+											<a class="btn btn-lg btn-warning" th:href="@{/ui/person/view/{id}(id=${affiliationEditDTO.personUuid})}">
+												<th:block th:text="#{html.control.button.cancel}"/>
+											</a>
+											
+											&nbsp;
+											<a class="btn btn-lg btn-danger" onclick="deleteAffiliation();">
+												<th:block th:text="#{html.control.button.delete}"/>
+											</a>
+										</div>
+									</div>
+								</fieldset>
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+
+<script th:inline="javascript">
+	/*<![CDATA[*/
+	/*[+
+		var deleteAffiliationTitle = [[#{html.page.affiliation.delete.title}]];
+		var deleteAffiliationText = [[#{html.page.affiliation.delete.text}]];
+		var deleteBtn = [[#{html.button.delete}]];
+		var cancelBtn = [[#{html.button.cancel}]];
+		var deleteFailedMsg = [[#{html.page.affiliation.delete.fail}]];
+		var restUrl = [[@{/rest/affil/delete/}]];
+		var successUrl = [[@{/ui/person/view/}]];
+		var uuid = [[${affiliationEditDTO.uuid}]];
+		var personUuid = [[${affiliationEditDTO.personUuid}]];
+	+]*/
+	var token = $("meta[name='_csrf']").attr("content");
+
+	$(document).ready(function () {
+		$('#stopDatePicker').datetimepicker({
+            format: 'YYYY-MM-DD'
+		});
+	});
+
+	function deleteAffiliation() {
+		swal({
+			title : deleteAffiliationTitle,
+			text : deleteAffiliationText,
+			type : "warning",
+			showCancelButton : true,
+			confirmButtonColor : "#DD6B55",
+			confirmButtonText : deleteBtn,
+			cancelButtonText : cancelBtn,
+			closeOnConfirm : true,
+			closeOnCancel : true
+		},
+		function(isConfirm) {
+			if (isConfirm) {
+				$.ajax({
+					method : "POST",
+					url: restUrl + uuid,
+					headers: {
+						'X-CSRF-TOKEN': token
+					}
+				}).done(function (data) {
+					window.location.href = successUrl + personUuid;
+				}).fail(function (jqXHR, textStatus, errorThrown) {
+					$.notify({
+						message: deleteFailedMsg
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				});
+			}
+		});
+	}
+	
+	/*]]>*/
+</script>
+
+</body>
+</html>

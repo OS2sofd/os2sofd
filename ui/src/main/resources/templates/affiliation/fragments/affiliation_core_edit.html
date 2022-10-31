@@ -1,0 +1,36 @@
+<th:block th:fragment="affiliationCoreEdit" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+    <div class="row" th:if="${@sofdConfiguration.getModules().getPositionDisplayName().isEnabled()}">
+        <label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.positionDisplayName}"></label>
+        <div class="col-sm-9">
+            <input id="positionDisplayName" th:value="${affiliation.positionDisplayName}" class="form-control masterTooltip" />
+        </div>
+    </div>
+
+    <div class="hidden">
+        <button sec:authorize="hasRole('ROLE_USER_ADMIN')" id="saveButton" class="btn btn-lg btn-primary" style="width:auto; margin-right:10px;" onclick="saveCoreChanges()">
+            <em class="fa fa-save" aria-hidden="true"></em>&nbsp;
+            <span th:text="#{html.control.button.save}"></span>
+        </button>
+        <button sec:authorize="hasRole('ROLE_USER_ADMIN')" id="cancelButton" class="btn btn-lg btn-danger" style="width:auto" onclick="loadViewCoreFragment()">
+            <em class="fa fa-times" aria-hidden="true"></em>
+            <span th:text="#{html.control.button.cancel}"></span>
+        </button>
+    </div>
+
+    <script th:inline="javascript" type="text/javascript">
+		/*<![CDATA[*/
+
+			/*[+
+			+]*/
+
+
+			$(document).ready(function() {
+				$('#buttonsMenu').empty();
+				$('#buttonsMenu').append($('#saveButton'));
+				$('#buttonsMenu').append($('#cancelButton'));
+			});
+
+
+		/*]]>*/
+	</script>
+</th:block>

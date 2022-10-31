@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'sofdaccounts', subpage='admin')"></aside>
+
+	<section>
+		<div class="content-wrapper">
+			<h3 th:text="#{html.page.sofdaccount.list.title}"></h3>
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<a class="btn btn-primary btn-lg" th:href="@{/ui/sofdaccounts/new}">
+						<em class="fa fa-plus"></em>&nbsp;
+						<span th:text="#{html.page.sofdaccount.list.add}"></span>
+					</a>
+				</div>
+
+				<div class="panel-body">
+					<div class="table-responsive">
+						<table class="table table-striped table-hover listTable">
+							<thead>
+								<tr>
+									<th class="col-md-3" th:text="#{html.entity.sofdaccount.person}"></th>
+									<th class="col-md-8" th:text="#{html.entity.sofdaccount.userId}"></th>
+									<th class="col-md-1" th:text="#{html.control.operations}"></th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr th:each="account : ${accounts}">
+									<td th:text="${account.personName}"></td>
+									<td th:text="${account.userId}"></td>
+									<td>
+										<a th:href="@{/ui/sofdaccounts/edit/} + ${account.id}"><em class="fa fa-fw fa-pencil" th:title="#{html.mouseover.edit}"></em></a>
+										<a href="#" onclick="accountService.handleDelete(this.getAttribute('data-account-id'));" th:data-account-id="${account.id}"><em class="fa fa-fw fa-remove"></em></a>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<!-- Modal -->
+<div id="sofdAccountModal" class="modal fade" role="dialog">
+	<form class="form-horizontal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 class="modal-title" th:text="#{html.page.sofdaccount.list.modal.title}"></h4>
+				</div>
+
+				<div class="modal-body">
+					<div class="form-group">
+						<div class="col-sm-12">
+							<input th:type="hidden" id="sofdAccountId" value="0" class="form-control"/>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label th:text="#{html.entity.sofdaccount.person}" class="col-sm-3 control-label"></label>
+						<div class="col-sm-8">
+							<input id="sofdAccountPerson" class="form-control"/>
+							<input type="hidden" id="sofdAccountPersonUUID"/>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label th:text="#{html.entity.sofdaccount.userId}" class="col-sm-3 control-label"></label>
+						<div class="col-sm-8">
+							
+							<input id="sofdAccountUserId" class="form-control" />
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label th:text="#{html.entity.sofdaccount.password}" class="col-sm-3 control-label"></label>
+						<div class="col-sm-8">
+							<input id="sofdAccountPassword" class="form-control" type="password"/>
+						</div>
+					</div>
+
+					<div id="modalErrors" class="form-group">
+						<label class="col-sm-3 control-label"></label>
+						<div class="col-sm-8">
+							<span class="text-danger"></span>
+						</div>
+					</div>
+				</div>
+
+				<div class="modal-footer">
+					<div class="col-sm-12">
+						<button class="btn btn-primary" th:text="#{html.control.button.save}" onclick="accountService.submitSOFDAccount()"></button>
+						<button class="btn btn-danger" type="button" data-dismiss="modal" th:text="#{html.action.abortChanges}"></button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</form>
+</div>
+<!-- End Modal -->
+
+<style>
+	.autocomplete-suggestions { border: 1px solid #999; background: #FFF; overflow: auto; width: 500px !important; }
+	.autocomplete-suggestion { padding: 2px 5px; white-space: nowrap; overflow: hidden; }
+	.autocomplete-selected { background: #F0F0F0; }
+	.autocomplete-suggestions strong { font-weight: normal; color: #3399FF; }
+	.autocomplete-group { padding: 2px 5px; }
+	.autocomplete-group strong { display: block; border-bottom: 1px solid #000; }
+</style>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+
+<script th:replace="fragments/datatables :: datatables "></script>
+
+<script th:inline="javascript">
+	/*<![CDATA[*/
+	var token = $("meta[name='_csrf']").attr("content");
+
+	/*[+
+		var restUrl = [[@{/rest/sofdAccount}]];
+		var editErrorMsg = [[#{html.page.sofdaccount.list.modal.edit.error}]];
+		var deleteTitle = [[#{html.page.sofdaccount.delete.title}]];
+		var deleteText = [[#{html.page.sofdaccount.delete.text}]];
+		var deleteButtonConfirm = [[#{html.button.delete}]];
+		var deleteButtonCancel = [[#{html.button.cancel}]];
+		var deleteErrorMsg = [[#{html.page.sofdaccount.list.delete.error}]];
+	+]*/
+	var accountService;
+	$("document").ready(function() {
+		accountService = new AccountService();
+
+		accountService.init();
+	});
+	
+	function AccountService() {
+		this.init = function() {
+			$('#sofdAccountPerson').autocomplete({
+				serviceUrl: restUrl + "/search/person",
+				onSelect: function(suggestion) {
+					// strip markup
+					var textValue = suggestion.value;
+					var idx = textValue.indexOf("-XXXX");
+					if (idx > 0) {
+						textValue = textValue.substr(0, idx);
+	
+						idx = textValue.lastIndexOf("-");
+						if (idx > 0) {
+							textValue = textValue.substr(0, idx - 1);
+						}
+					}
+					
+					$("#sofdAccountPersonUUID").val(suggestion.data);
+					
+					$(this).val(textValue);
+				},
+				preventBadQueries: true,
+				triggerSelectOnValidInput: false
+			});
+		};
+	
+		this.editSOFDAccount = function(obj) {
+			$("#modalErrors").hide();
+			var id = $(obj).attr('data-id');
+			var person = $(obj).attr('data-person');
+			var personUUID = $(obj).attr('data-personuuid');
+			var userId = $(obj).attr('data-userId');
+	
+			$('#sofdAccountId').val(id);
+			$('#sofdAccountPerson').val(person);
+			$('#sofdAccountPerson').prop('disabled', true);
+			$('#sofdAccountPersonUUID').val(personUUID);
+			$('#sofdAccountUserId').val(userId);
+			$('#sofdAccountUserId').prop('disabled', true);
+			$('#sofdAccountPassword').val("");
+			
+			$('#sofdAccountModal').modal("show");
+		};
+	
+		this.newSOFDAccount = function() {
+			$("#modalErrors").hide();
+			$('#sofdAccountId').val("0");
+			$('#sofdAccountPerson').val("");
+			$('#sofdAccountPerson').prop('disabled', false);
+			$('#sofdAccountPersonUUID').val("");
+			$('#sofdAccountUserId').val("");
+			$('#sofdAccountUserId').prop('disabled', false);
+			$('#sofdAccountPassword').val("");
+
+			$('#sofdAccountModal').modal("show");
+		};
+	
+		this.submitSOFDAccount = function() {
+			var id = $('#sofdAccountId').val();
+			var personUUID = $('#sofdAccountPersonUUID').val();
+			var userId = $('#sofdAccountUserId').val();
+			var password = $('#sofdAccountPassword').val();
+
+			$.ajax({
+				url: restUrl + "/edit",
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				type: 'post',
+				contentType: 'application/json',
+				data: JSON.stringify({
+					'id': id,
+					'personUUID': personUUID,
+					'userId': userId,
+					'password': password
+				}),
+				success: function( data, textStatus, jQxhr ) {
+					$('#sofdAccountModal').modal("hide");
+					location.reload(true);
+				},
+				error: function( jqXhr, textStatus, errorThrown ) {
+					$("#modalErrors>div>span").html(jqXhr.responseText);
+					$("#modalErrors").show();
+				}
+			});
+		};
+		
+		this.handleDelete = function(accountId) {
+			swal({
+				html : true,
+				title : deleteTitle,
+				text : deleteText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : deleteButtonConfirm,
+				cancelButtonText : deleteButtonCancel,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						url: restUrl + "/delete",
+						headers: {
+							'X-CSRF-TOKEN': token
+						},
+						type: 'post',
+						contentType: 'application/json',
+						data: JSON.stringify({
+							'id': accountId
+						}),
+						success: function( data, textStatus, jQxhr ) {
+							location.reload(true);
+						},
+						error: function( jqXhr, textStatus, errorThrown ) {
+							$.notify({
+								message: deleteErrorMsg
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						}
+					});
+				}
+			});
+		};
+	}
+
+	/*]]>*/
+</script>
+</body>
+</html>

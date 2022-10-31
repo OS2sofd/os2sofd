@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'facets', subpage='admin')"></aside>
+
+	<section>
+		<div class="content-wrapper">
+			<h3 th:text="#{html.page.functionHierarchy.facets.list.title}"></h3>
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<a class="btn btn-primary btn-lg" href="/ui/admin/functionhierarchy/facets/new">
+						<i class="fa fa-plus"></i>
+						<span th:text="#{html.page.functionHierarchy.facets.list.add}"></span>
+					</a>
+				</div>
+
+				<div class="panel-body">
+					<div class="table-responsive">
+						<table id="listTable" class="table table-striped table-hover listTable">
+							<thead>
+							<tr>
+								<th class="col-md-2" th:text="#{html.page.functionHierarchy.labels.name}"></th>
+								<th class="col-md-2" th:text="#{html.page.functionHierarchy.labels.type}"></th>
+								<th class="col-md-6" th:text="#{html.page.functionHierarchy.labels.description}"></th>
+								<th class="col-md-2" th:text="#{html.action.label}"></th>
+							</tr>
+							</thead>
+
+							<tbody>
+							<tr th:each="facet : ${facets}">
+								<td th:text="${facet.name}"></td>
+								<td th:text="#{${facet.type.message}}"></td>
+								<td th:text="${facet.description}"></td>
+								<td>
+									<a th:href="'/ui/admin/functionhierarchy/facets/' + ${facet.id}"><em class="fa fa-fw fa-pencil" th:title="#{html.mouseover.edit}"></em></a>
+									<a onclick="facetService.deleteFacet(this);" href="#" th:attr="data-id=${facet.id}"><em class="fa fa-fw fa-remove" th:title="#{html.mouseover.delete}"></em></a>
+								</td>
+							</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+
+<script th:replace="fragments/datatables :: datatables "></script>
+
+<script th:inline="javascript">
+	/*<![CDATA[*/
+	var token = $("meta[name='_csrf']").attr("content");
+
+	/*[+
+		var restUrl = [[@{/rest/functionhierarchy/facets/}]];
+		var deleteErrorMsg = [[#{html.page.functionHierarchy.facets.delete.error}]];
+		
+		var functionDeleteTitle = [[#{html.page.functionHierarchy.facets.delete.title}]];
+		var functionDeleteText = [[#{html.page.functionHierarchy.facets.delete.text}]];
+		var functionDeleteButtonConfirm = [[#{html.page.functionHierarchy.delete.confirm}]];
+		var functionDeleteButtonCancel = [[#{html.page.functionHierarchy.delete.cancel}]];
+	+]*/
+	
+	var facetService;
+	$(document).ready(function() {
+		facetService = new FacetService();
+	});
+	
+	function FacetService() {
+		this.deleteFacet = function(obj) {
+			var id = $(obj).attr('data-id');
+			
+			swal({
+				html : true,
+				title : functionDeleteTitle,
+				text : functionDeleteText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : functionDeleteButtonConfirm,
+				cancelButtonText : functionDeleteButtonCancel,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						url: restUrl + id + "/delete",
+						headers: {
+							'X-CSRF-TOKEN': token
+						},
+						type: 'delete',
+						success: function( data, textStatus, jQxhr ){
+							location.reload(true);
+						},
+						error: function( jqXhr, textStatus, errorThrown ){
+							$.notify({
+								message: deleteErrorMsg
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						}
+					});
+				}
+			});
+		}
+		
+		
+	}
+
+	$('#functionTypeModal').on('shown.bs.modal', function () {
+    		$('#functionTypeName').focus();
+	})
+
+	function editFunctionType(obj) {
+		var id = $(obj).attr('data-id');
+		var name = $(obj).attr('data-name');
+
+		$('#functionTypeId').val(id);
+		$('#functionTypeName').val(name);
+		$('.phoneTypes').prop('checked', false);
+
+		var functionType = functionTypes.find(function(functionType) { return functionType.id == id; });
+		for(let i = 0; i < functionType.phoneTypes.length; i++) {
+			$('#' + functionType.phoneTypes[i].$name).prop('checked', true);
+		}
+
+		$('#functionTypeModal').modal("show");
+	}
+
+	function newFunctionType() {
+		$('#functionTypeId').val(0);
+		$('#functionTypeName').val("").focus();
+		$('#functionTypeModal').modal("show");
+		$('.phoneTypes').prop('checked', false);
+	}
+
+	function submitFunctionType() {
+		$('#functionTypeModal').modal("hide");
+
+		var id = $('#functionTypeId').val();
+		var name = $('#functionTypeName').val();
+
+		var phoneTypes = [];
+
+		$('.phoneTypes:checked').each(function(index, element) {
+			phoneTypes.push($(element).attr('id'));
+		});
+
+		$.ajax({
+			url: editUrl,
+			headers: {
+				'X-CSRF-TOKEN': token
+			},
+			type: 'post',
+			contentType: 'application/json',
+			data: JSON.stringify({
+				'id': id,
+				'name': name,
+				'phoneTypes': phoneTypes
+			}),
+			success: function( data, textStatus, jQxhr ){
+				location.reload(true);
+			},
+			error: function( jqXhr, textStatus, errorThrown ){
+				$.notify({
+					message: editErrorMsg
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			}
+		});
+	}
+
+	function deleteFunctionType(obj) {
+		var id = $(obj).attr('data-id');
+		var name = $(obj).attr('data-name');
+		
+		swal({
+			html : true,
+			title : functionTypeDeleteTitle,
+			text : functionTypeDeleteText,
+			type : "warning",
+			showCancelButton : true,
+			confirmButtonColor : "#DD6B55",
+			confirmButtonText : functionTypeDeleteButtonConfirm,
+			cancelButtonText : functionTypeDeleteButtonCancel,
+			closeOnConfirm : true,
+			closeOnCancel : true
+		},
+		function(isConfirm) {
+			if (isConfirm) {
+				$.ajax({
+					url: deleteUrl,
+					headers: {
+						'X-CSRF-TOKEN': token
+					},
+					type: 'delete',
+					contentType: 'application/json',
+					data: JSON.stringify({
+						'id': id,
+						'name': name
+					}),
+					success: function( data, textStatus, jQxhr ){
+						location.reload(true);
+					},
+					error: function( jqXhr, textStatus, errorThrown ){
+						$.notify({
+							message: deleteErrorMsg
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					}
+				});
+			}
+		});
+	}
+
+	/*]]>*/
+</script>
+</body>
+</html>

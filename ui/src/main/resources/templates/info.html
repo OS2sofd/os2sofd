@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'info')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<div class="panel panel-default">
+					<div class="panel-body">
+						<h3 th:text="#{html.page.info.version.header}"></h3>
+						<span th:text="#{html.page.info.version.version} + ': ' + ${releaseVersion}"></span><br/>
+						<span th:text="#{html.page.info.version.buildId} + ': ' + ${gitCommitId}"></span><br/>
+						<span th:text="#{html.page.info.version.buildTime} + ': ' + ${gitBuildTime}"></span>
+					</div>
+				</div>
+	        </div>
+	    </section>
+	</div>
+	
+	<nav th:replace="fragments/footer :: footer"></nav>
+</body>
+</html>

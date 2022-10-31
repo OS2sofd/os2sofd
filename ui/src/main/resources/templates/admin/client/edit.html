@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'clients.new', subpage = 'admin')"></aside>
+ 
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.client.edit.headline}"></h3>
+
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<div class="row">
+							<div class="col-lg-12">
+								<form class="form-horizontal" id="client-form" th:action="@{/ui/client/edit/}+${client.id}" method="post" th:object="${client}">
+									<input type="hidden" th:field="*{id}" />
+									<input type="hidden" th:field="*{fieldList}" />
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.client.name}"></label>
+										<div class="col-sm-8">
+											<input th:field="*{name}" class="form-control"/>
+											<ul th:if="${#fields.hasErrors('name')}" class="error">
+												<li th:each="err : ${#fields.errors('name')}" th:text="${err}"></li>
+											</ul>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.client.apiKey}"></label>
+										<div class="col-sm-8">
+											<input th:field="*{apiKey}" class="form-control"/>
+											<ul th:if="${#fields.hasErrors('apiKey')}" class="error">
+												<li th:each="err : ${#fields.errors('apiKey')}" th:text="${err}"></li>
+											</ul>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.client.access}"></label>
+										<div class="col-sm-8">
+											<select class="form-control m-b" th:field="*{accessRole}">
+												<option th:each="accessRole : ${accessRoles}" th:value="${accessRole}" th:text="#{${accessRole.messageId}}"></option>
+											</select>
+											<ul th:if="${#fields.hasErrors('accessRole')}" class="error">
+												<li th:each="err : ${#fields.errors('accessRole')}" th:text="${err}"></li>
+											</ul>
+										</div>
+									</div>
+									
+									<div class="form-group">
+										<div class="col-sm-offset-2 col-sm-10">
+											<button type="submit" style="margin-right: 5px;" class="btn btn-lg btn-primary col-xs-2"  th:text="#{html.control.button.save}"></button>
+											<a th:href="@{/ui/client/list}" style="margin-right: 5px;" class="btn btn-lg btn-danger col-xs-2" th:text="#{html.control.button.cancel}"></a>
+										</div>
+									</div>
+								</form>
+
+								<div id="list_field">
+									<ul class="nav nav-tabs ">
+										<li>
+											<a data-toggle="tab" id="userTab" href="#user_menu" th:text="#{html.client.list.user}"></a>
+										</li>
+										<li>
+											<a data-toggle="tab" href="#ous_menu" th:text="#{html.client.list.ous}"></a>
+										</li>
+									</ul>
+	
+									<div class="tab-content">
+										<div id="ous_menu" class="tab-pane fade in active">
+											<table class="table table-striped table-hover listTable">
+												<thead>
+													<tr>
+														<th class="col-md-1" th:text="#{html.client.list.entityfield.enabled}"></th>
+														<th class="col-md-3" th:text="#{html.client.list.entityfield.label}"></th>
+														<th class="col-md-8" th:text="#{html.client.list.entityfield.description}"></th>
+													</tr>
+												</thead>
+	
+												<tbody>
+													<tr th:each="field, stat : ${ouFields}">
+														<td>
+															<div class="checkbox c-checkbox">
+																<label>
+																	<input class="checkboxaction" th:name="${stat.index}" th:id="${field}" type="checkbox" th:value="${field}" th:disabled="${field == T(dk.digitalidentity.sofd.dao.model.enums.AccessEntityField).ORGUNIT_BASIC}" />
+																	<span class="fa fa-check"></span>
+																</label>
+															</div>
+														</td>
+														<td th:text="#{${field.messageId}}"></td>
+														<td th:text="#{${field.description}}"></td>
+													</tr>
+												</tbody>
+											</table>
+										</div>
+	
+										<div id="user_menu" class="tab-pane fade in active">
+											<table class="table table-striped table-hover listTable">
+												<thead>
+													<tr>
+														<th class="col-md-1" th:text="#{html.client.list.entityfield.enabled}"></th>
+														<th class="col-md-3" th:text="#{html.client.list.entityfield.label}"></th>
+														<th class="col-md-8" th:text="#{html.client.list.entityfield.description}"></th>
+													</tr>
+												</thead>
+	
+												<tbody>
+													<tr th:each="field, stat : ${userFields}">
+														<td>
+															<div class="checkbox c-checkbox">
+																<label>
+																	<input class="checkboxaction" th:name="${stat.index}" th:id="${field}" type="checkbox" th:value="${field}" th:disabled="${field == T(dk.digitalidentity.sofd.dao.model.enums.AccessEntityField).PERSON_BASIC}" />
+																	<span class="fa fa-check"></span>
+																</label>
+															</div>
+														</td>
+														<td th:text="#{${field.messageId}}"></td>
+														<td th:text="#{${field.description}}"></td>
+													</tr>
+												</tbody>
+											</table>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+<div th:replace="fragments/footer :: footer"></div>
+
+<script th:replace="fragments/datatables :: datatables (paging=false) "></script>
+
+<style>
+	.table .checkbox {
+		margin-left: 10px;
+		width: auto;
+	}
+</style>
+<script th:inline="javascript">
+/*<![CDATA[*/
+	/*[+
+		var fieldList = [[${client.fieldList}]];
+	+]*/
+
+	$(document).ready(function () {
+		if (fieldList != null) {
+			$(fieldList.split(";")).each(function (index, value) {
+				$("#" + value).first().prop('checked', true);
+			});
+		}
+
+		$('#accessRole').change(function() {
+			if ($(this).val() == "LIMITED_READ_ACCESS") {
+				$('#list_field').show();
+				$('#userTab').click();
+			}
+			else {
+				$('#list_field').hide();
+			}
+		});
+		
+		$('#accessRole').change();
+
+		$("#fieldList").val('');
+		
+		$("#client-form").submit(function() {
+			$(".checkboxaction").each(function() {
+				if ($(this).is(":checked")) {
+					var val = $("#fieldList").val();
+					
+					if (val.length > 0) {
+						$("#fieldList").val(val + ";" + $(this).val());
+					}
+					else {
+						$("#fieldList").val(val + $(this).val());
+					}
+				}
+			});
+
+			return true;
+		});
+	});
+	/*]]>*/
+</script>
+</body>
+</html>

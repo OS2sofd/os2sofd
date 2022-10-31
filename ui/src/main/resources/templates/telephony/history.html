@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'telephony')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'telephony.history', subpage = 'telephony')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3>
+					<span th:text="#{html.page.telephony.header}"></span>
+				</h3>
+
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<form class="form-horizontal">
+							<div class="form-group">
+								<label class="col-md-2 control-label" th:text="#{html.entity.telephony.phone.phoneNumber}"></label>
+								<div class="col-md-8">
+									<input id="query" class="form-control" autofocus="autofocus" />
+								</div>
+							</div>
+							<div class="form-group">
+								<div class="col-md-8 col-md-offset-2">
+									<button class="btn btn-block btn-primary" type="button" onclick="backendService.search()" th:text="#{html.action.search}"></button>
+								</div>
+							</div>
+							
+							<hr/>
+							<br/>
+
+							<div class="form-group">
+								<div class="col-md-offset-1 col-md-10">
+									<div class="table-responsive">
+										<table id="listTable" class="table table-striped table-hover listTable">
+											<thead>
+												<tr>
+													<th class="col-md-6" th:text="#{html.entity.telephony.history.person}"></th>
+													<th class="col-md-3" th:text="#{html.entity.telephony.history.assignedFrom}"></th>
+													<th class="col-md-3" th:text="#{html.entity.telephony.history.assignedTo}"></th>
+												</tr>
+											</thead>
+								
+											<tbody>
+											</tbody>
+										</table>
+									</div>
+								</div>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<nav th:replace="fragments/footer :: footer"></nav>
+	
+	<script th:replace="fragments/datatables :: datatables "></script>
+
+	<script th:inline="javascript">
+	/*<![CDATA[*/
+
+	/*[+
+		var restUrl = [[@{/rest/telephony}]];
+		var errorMsg = [[#{html.telephony.phone.msg.seach.failed}]];
+	+]*/
+	
+	var token = $("meta[name='_csrf']").attr("content");
+
+	var backendService;
+	$(document).ready(function() {
+		backendService = new BackendService();
+	});
+
+	function BackendService() {
+		this.search = function() {
+			var query = $('#query').val();
+	
+			if (query) {
+				var dataTable = $('#listTable').DataTable();
+				dataTable.clear().draw(false);
+	
+				$.ajax({
+					method : "POST",
+					url: restUrl + "/history",
+					headers: {
+						"content-type": "plain/text",
+						'X-CSRF-TOKEN': token
+					},
+					data: query
+				}).done(function (data) {				
+					data.forEach(p => dataTable.row.add([
+						p.person,
+						p.assignedFromAsString,
+						p.assignedToAsString
+					]).draw(false));
+	
+				}).fail(function (jqXHR, textStatus, errorThrown) {
+					$.notify({
+						message: errorMsg
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				});
+			}
+		}
+	}
+
+	/*]]>*/
+</script>
+
+</body>
+</html>

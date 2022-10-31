@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<link rel="stylesheet" th:href="@{/css/jquery.orgchart.css}" />
+<link rel="stylesheet" th:href="@{/css/jquery.orgchart.min.css}" />
+
+<body style="text-align:center">
+	<span th:each="chart,iter : ${charts}" class="chart-container" th:id="'chart-container' + ${iter.index}"></span>
+	
+<style>
+	.chart-container {
+	  text-align: center;
+	  height: inherit;
+	}
+	
+	.oci-leader {
+		display: none;
+	}
+	
+	.toggleBtn {
+		display: none;
+	}
+</style>
+
+<style th:text="${style}"></style>
+<script th:replace="fragments/footer :: footer"></script>
+<script th:src="@{/js/jquery.orgchart.min.js}"></script>
+<script th:src="@{/js/jquery.orgchart.js}"></script>
+<script th:inline="javascript">
+/*<![CDATA[*/
+
+	/*[+
+		var charts = [[${charts}]];
+		var showManager = [[${showManager}]];
+		var verticalStart = [[${verticalStart}]];
+	+]*/
+	var token = $("meta[name='_csrf']").attr("content");
+	
+	$(document).ready(function () {
+		for (let index = 0; index < charts.length; ++index) {
+		    const chart = charts[index];
+		    
+		    if (verticalStart == 0) {
+		    	var oc = $('#chart-container' + index).orgchart({
+				      'data' : chart,
+				      'nodeContent': 'manager',
+				      'pan': false,
+				      'zoom': false
+			    });
+			} else {
+				var oc = $('#chart-container' + index).orgchart({
+				      'data' : chart,
+				      'nodeContent': 'manager',
+				      'pan': false,
+				      'zoom': false,
+				      'verticalLevel': verticalStart
+			    });
+			}
+		}
+	    
+	    
+	    if (!showManager) {
+	    	$(".content").hide();
+	    	$(".orgchart .node .title").css("border-radius", "4px 4px 4px 4px");
+	    }
+	    
+	    $('.orgchart').addClass('noncollapsable');
+	    $('.inheritedManager').parent('div').addClass('inheritedManager');
+	});
+
+/*]]>*/
+</script>
+</body>
+</html>

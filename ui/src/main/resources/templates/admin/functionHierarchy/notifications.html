@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'functionhierarchyNotifications', subpage='admin')"></aside>
+
+	<section>
+		<div class="content-wrapper">
+			<h3 th:text="#{html.navbar.functionHierarchy.notification}"></h3>
+			<div class="panel panel-default">
+				<div class="panel-heading">
+				</div>
+
+				<div class="panel-body">
+					<fieldset>
+						<div class="form-group row" style="margin-bottom: inherit;">
+							<label class="col-sm-3 control-label" style="padding-top: inherit;" th:text="#{html.page.functionHierarchy.notifications.functionAssignmentEmployeeNewManager}"></label>
+							<div class="col-sm-9">
+								<span class="checkbox c-checkbox" style="display: inline;">
+									<label>
+										<input id="functionAssignmentEmployeeNewManager" class="notificationtypeCbx" type="checkbox" th:checked="${functionAssignmentEmployeeNewManager}" onchange="modifications = true;"/>
+										<span class="fa fa-check"></span>
+									</label>
+								</span>
+							</div>
+						</div>
+						<div class="form-group row" style="margin-bottom: inherit;">
+							<label class="col-sm-3 control-label" style="padding-top: inherit;" th:text="#{html.page.functionHierarchy.notifications.functionAssignmentExpires}"></label>
+							<div class="col-sm-9">
+								<span class="checkbox c-checkbox" style="display: inline;">
+									<label>
+										<input id="functionAssignmentExpires" class="notificationtypeCbx" type="checkbox" th:checked="${functionAssignmentExpires}" onchange="modifications = true;"/>
+										<span class="fa fa-check"></span>
+									</label>
+								</span>
+							</div>
+						</div>
+						<div class="form-group functionAssignmentExpires" style="margin-bottom: inherit;">
+							<label class="col-sm-3 control-label" style="padding-top: inherit; padding-left: 0px;" th:text="#{html.page.functionHierarchy.notifications.functionAssignmentExpiresDays}"></label>
+							<div class="col-sm-9">
+								<input id="daysBeforeFunctionAssignmentExpires" onchange="modifications = true;" th:value="${daysBeforeFunctionAssignmentExpires}" class="form-control" type="number"></input>
+							</div>
+						</div>
+					</fieldset>
+					
+					<fieldset>
+						<div class="form-group">
+							<div class="col-md-offset-2 col-md-8">
+								<button onclick="settingService.submitForm()" class="btn btn-primary btn-block" th:text="#{html.control.button.save}"></button>
+							</div>
+						</div>
+					</fieldset>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+
+<script th:replace="fragments/datatables :: datatables "></script>
+
+<script th:inline="javascript">
+	/*<![CDATA[*/
+	var token = $("meta[name='_csrf']").attr("content");
+
+	/*[+
+		 var successMsg = [[#{html.setting.update.msg.success}]];
+		 var failedMsg = [[#{html.setting.update.msg.failed}]];
+	
+		 var ajaxUrl = [[@{/rest/functionhierarchy/notifications/settings}]]
+	+]*/
+	
+	var modifications = false;
+	var token = $("meta[name='_csrf']").attr("content");
+	var settingService;
+	$(document).ready(function() {
+		settingService = new SettingService();
+	});
+	
+	function SettingService() {
+
+		this.submitForm = function() {
+			if (modifications) {
+				modifications = false;
+	
+				$.ajax({
+					method : "POST",
+					url: ajaxUrl,
+					headers: {
+						'X-CSRF-TOKEN': token
+					},
+					contentType: "application/json",
+					data: JSON.stringify({
+						'functionAssignmentExpires': $("#functionAssignmentExpires").prop("checked"),
+						'functionAssignmentEmployeeNewManager': $("#functionAssignmentEmployeeNewManager").prop("checked"),
+					    'daysBeforeFunctionAssignmentExpires': $("#daysBeforeFunctionAssignmentExpires").val()
+					})
+				}).done(function (data) {''
+					$.notify({
+						message: successMsg
+					},{
+						status: 'success',
+						autoHideDelay: 4000
+					});
+				}).fail(function (jqXHR, textStatus, errorThrown) {
+					$.notify({
+						message: failedMsg
+					},{
+						status: 'warning',
+						autoHideDelay: 4000
+					});
+				});
+			}
+			else {
+				$.notify({
+					message: successMsg
+				},{
+					status: 'success',
+					autoHideDelay: 4000
+				});
+			}
+		}
+	}
+
+	/*]]>*/
+</script>
+</body>
+</html>

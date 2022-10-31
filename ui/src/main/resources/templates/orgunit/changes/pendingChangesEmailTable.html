@@ -1,0 +1,24 @@
+<br/>
+<table>
+  <tr>
+	<th style="padding:8px;text-align:left;">Navn</th>
+	<th style="padding:8px;text-align:left;">Tidspunkt for ænding</th>
+	<th style="padding:8px;text-align:left;">Type af ændring</th>
+	<th style="padding:8px;text-align:left;">Før</th>
+	<th style="padding:8px;text-align:left;">Efter</th>
+	<th style="padding:8px;text-align:left;">Link</th>
+  </tr>
+  <tr th:each="change : ${pendingChanges}">
+	<td style="padding:8px;" th:text="${change.orgUnit.name}"></td>
+	<td style="padding:8px;" th:text="${change.changedTimestamp}"></td>
+	<td style="padding:8px;">
+		<span th:if="${change.changeType == T(dk.digitalidentity.sofd.dao.model.enums.OrgUnitChangeChangeType).NEW}">Ny enhed</span>
+		<span th:if="${change.changeType == T(dk.digitalidentity.sofd.dao.model.enums.OrgUnitChangeChangeType).NAME_CHANGE}">Nyt navn</span>
+		<span th:if="${change.changeType == T(dk.digitalidentity.sofd.dao.model.enums.OrgUnitChangeChangeType).NEW_PARENT}">Flyttet enhed</span>
+	</td>
+	<td style="padding:8px;" th:text="${change.oldValue != null} ? ${change.oldValue}"></td>
+	<td style="padding:8px;" th:text="${change.newValue !=null} ? ${change.newValue}"></td>
+	<td style="padding:8px;"><a th:href="${linkBaseUrl} + '/ui/orgunit/view/' + ${change.orgUnit.uuid}" th:text="${linkBaseUrl} + '/ui/orgunit/view/' + ${change.orgUnit.uuid}"></a></td>
+  </tr>
+</table>
+<br/>

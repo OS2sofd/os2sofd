@@ -1,0 +1,1 @@
+ALTER TABLE email_queue ADD COLUMN person_uuid VARCHAR(36) NULL;

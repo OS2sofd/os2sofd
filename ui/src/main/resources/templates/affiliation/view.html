@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'people', subpage='phonebook')"></aside>
+
+	<section>
+		<div class="content-wrapper">
+			<h3>
+				<th:block th:switch="${backRef}">
+					<a th:case="'person'" th:href="@{/ui/person/view/{id}(id=${affiliation.person.uuid})}" class="btn btn-default">
+						<span>
+							<i class="fa fa-arrow-left"></i>
+						</span>
+					</a>
+					<a th:case="*" th:href="@{/ui/orgunit/view/{id}(id=${affiliation.orgUnit.uuid})}" class="btn btn-default">
+						<span>
+							<i class="fa fa-arrow-left"></i>
+						</span>
+					</a>
+				</th:block>
+				<span th:text="#{html.page.affiliation.view.title}"></span>
+
+				<div id="buttonsMenu" style="position: absolute; right: 0; top: 0; margin-top:10px; margin-right: 20px;">
+				</div>
+			</h3>
+
+			<div class="panel panel-default">
+				<div class="panel-heading"></div>
+				<div class="panel-body">
+					<div class="form-horizontal">
+						<div class="row">
+							<div class="col-lg-6 col-md-12">
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.uuid}"></label>
+										<div class="col-sm-9">
+											<input th:value="${affiliation.uuid}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.positionId}"></label>
+										<div class="col-sm-9">
+											<input th:value="${affiliation.positionId}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									</div>
+
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.positionName}"></label>
+										<div class="col-sm-9">
+											<input th:value="${affiliation.positionName}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									</div>
+
+									<div id="core">
+										<div class="row" th:if="${@sofdConfiguration.getModules().getPositionDisplayName().isEnabled()}">
+											<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.positionDisplayName}"></label>
+											<div class="col-sm-9">
+												<input th:value="${affiliation.positionDisplayName}" class="form-control masterTooltip" readonly="readonly" />
+											</div>
+										</div>
+									</div>
+
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.positionTypeId}"></label>
+										<div class="col-sm-9">
+											<input th:value="${affiliation.positionTypeId}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									</div>
+
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.positionTypeName}"></label>
+										<div class="col-sm-9">
+											<input th:value="${affiliation.positionTypeName}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									</div>
+
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.orgunit}"></label>
+										<div class="col-sm-9">
+											<input th:value="${affiliation.orgUnit.name}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.person}"></label>
+										<div class="col-sm-9">
+											<input th:value="${affiliation.person.chosenName != null ? affiliation.person.chosenName : affiliation.person.firstname + ' ' + affiliation.person.surname}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.startDate}"></label>
+										<div class="col-sm-9">
+											<input th:value=" ${affiliation.startDate != null ? #dates.format(affiliation.startDate, 'yyyy-MM-dd') : ''}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									</div>
+
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.stopDate}"></label>
+										<div class="col-sm-9">
+											<input th:value="${affiliation.stopDate != null ? #dates.format(affiliation.stopDate, 'yyyy-MM-dd') : ''}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+							</div>
+							<div class="col-lg-6 col-md-12">
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.employeeId}"></label>
+										<div class="col-sm-9">
+											<input th:value="${affiliation.employeeId}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									 </div>
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.affiliationType}"></label>
+										<div class="col-sm-9">
+											<input th:value="#{__${affiliation.affiliationType.message}__}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									 </div>
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.employmentTerms}"></label>
+										<div class="col-sm-9">
+											<input th:value="${affiliation.employmentTerms}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									 </div>
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.employmentTermsText}"></label>
+										<div class="col-sm-9">
+											<input th:value="${affiliation.employmentTermsText}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.workingHours}"></label>
+										<div class="col-sm-9">
+											<input th:value="${(affiliation.workingHoursNumerator != null) ? affiliation.workingHoursNumerator : ''}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+								
+								<fieldset th:if="${#strings.equals(affiliation.affiliationType, 'EXTERNAL')}">
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.vendor}"></label>
+										<div class="col-sm-9">
+											<input th:value="${(affiliation.vendor != null) ? affiliation.vendor : ''}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.internalReference}"></label>
+										<div class="col-sm-9">
+											<input th:value="${(affiliation.internalReference != null) ? affiliation.internalReference : ''}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+							</div>
+						</div>
+					</div>
+
+					<ul class="nav nav-tabs">
+						<li class="active">
+							<a data-toggle="tab" href="#kle_performing_menu" th:text="#{html.page.person.view.kleperform}"></a>
+						</li>
+						<li>
+							<a data-toggle="tab" href="#kle_interest_menu" th:text="#{html.page.person.view.kleinterest}"></a>
+						</li>
+					</ul>
+
+					<div class="tab-content">
+						<div id="kle_performing_menu" class="tab-pane fade in active">
+							<a sec:authorize="hasRole('ROLE_USER_EDIT')" th:if="${!affiliationStopped}" onclick="editKLE('KlePrimary')" class="btn btn-lg btn-primary" style="margin-left:15px;"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i></a>
+							<div class="content">
+
+							</div>
+						</div>
+
+						<div id="kle_interest_menu" class="tab-pane fade">
+							<a sec:authorize="hasRole('ROLE_USER_EDIT')" th:if="${!affiliationStopped}" onclick="editKLE('KleSecondary')" class="btn btn-lg btn-primary" style="margin-left:15px;"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i></a>
+							<div class="content">
+
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+<script th:replace="fragments/datatables :: datatables(autoLoad=false) "></script>
+
+<style>
+	.row {
+		margin-bottom: 5px;
+	}
+	
+	.control-label {
+		margin-top: 5px;
+		text-align: right;
+	}
+</style>
+
+<script th:inline="javascript">
+	/*<![CDATA[*/
+	/*[+
+		var url = [[@{/ui/affil/}]];
+		var restUrl = [[@{/rest/affil/}]];
+		var uuid = [[${affiliation.uuid}]];
+		var fieldUpdatedMsg = [[#{html.page.orgunit.edit.kle.update.success}]];
+		var fieldNotUpdatedMsg = [[#{html.page.orgunit.edit.kle.update.failure}]];
+		var allKles = [[${allKles}]];
+		var successMsg = [[#{html.setting.update.msg.success}]];
+		var failMsg = [[#{html.setting.update.msg.failed}]];
+
+		var tooltipTxt = [[#{html.entity.person.master}]];
+		var master = [[${affiliation.master}]];
+	+]*/
+	var token = $("meta[name='_csrf']").attr("content");
+
+	// polyfill for IE
+	if (!String.prototype.startsWith) {
+		String.prototype.startsWith = function(searchString, position) {
+			position = position || 0;
+			return this.substr(position, searchString.length) === searchString;
+		};
+	}
+
+	$("document").ready(function() {
+		$("#kle_performing_menu .content").load(url + "viewKLE/" + uuid + "/KlePrimary");
+		$("#kle_interest_menu .content").load(url + "viewKLE/" + uuid + "/KleSecondary");
+
+		loadViewCoreFragment();
+
+		addTooltips('masterTooltip', master);
+	});
+
+	function addTooltips(id, master) {
+		$('.' + id).tooltip({title: tooltipTxt + ": " + master});
+	}
+
+	function editKLE(type){
+		if(type == "KlePrimary"){
+			$("#kle_performing_menu a").hide();
+			$("#kle_performing_menu .content").load(url + "editKLE/" + uuid + "/KlePrimary");
+		}
+		if(type == "KleSecondary"){
+			$("#kle_interest_menu a").hide();
+			$("#kle_interest_menu .content").load(url + "editKLE/" + uuid + "/KleSecondary");
+		}
+	}
+
+	function saveChanges(id) {
+		var codes = $('#' + id).jstree('get_top_selected')
+
+		$.ajax({
+			contentType: 'application/json',
+			url: restUrl + "update/kle",
+			method : "POST",
+			headers: {
+				"uuid": uuid,
+				"type": id,
+				'X-CSRF-TOKEN': token
+			},
+			error: function(response) {
+				$.notify({
+					message: fieldNotUpdatedMsg
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			},
+			success: function(response) {
+				$.notify({
+					message: fieldUpdatedMsg
+				}, {
+					status: 'success',
+					autoHideDelay: 2000
+				});
+				$('#' + id).parent().parent().find("a").show();
+				$('#' + id).parent().parent().find(".content").load(url + "viewKLE/" + uuid + "/"+ id);
+			},
+			data: JSON.stringify(codes)
+		});
+	}
+
+	function abortChanges(id) {
+		$('#' + id).parent().parent().find("a").show();
+		$('#' + id).parent().parent().find(".content").load(url + "viewKLE/" + uuid + "/"+ id);
+	}
+
+	//Core view/edit
+	function loadEditCoreFragment() {
+		$("#core").load(url + "core/" + uuid + "/edit");
+	}
+
+	function loadViewCoreFragment() {
+		$('#core').load(url + "core/" + uuid + "/view");
+	}
+
+	function saveCoreChanges() {
+		var displayName = $("#positionDisplayName").val();
+		if (displayName.length > 255) {
+			$.notify({
+				message: failMsg
+			}, {
+				status: 'danger',
+				autoHideDelay: 4000
+			});
+
+			return false;
+		}
+
+		$.ajax({
+			contentType: 'application/json',
+			url: restUrl + "core/edit/" + uuid,
+			method : "POST",
+			data: displayName,
+			headers: {
+				'X-CSRF-TOKEN': token
+			},
+			error: function(response) {
+
+				$.notify({
+					message: failMsg
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			},
+			success: function(response) {
+				$.notify({
+					message: successMsg
+				}, {
+					status: 'success',
+					autoHideDelay: 2000
+				});
+
+				loadViewCoreFragment();
+			}
+		});
+	}
+
+	/*]]>*/
+</script>
+</body>
+</html>

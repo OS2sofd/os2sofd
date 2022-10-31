@@ -1,0 +1,1 @@
+ALTER TABLE chart ADD COLUMN hide_inherited_managers BOOLEAN NOT NULL DEFAULT FALSE;

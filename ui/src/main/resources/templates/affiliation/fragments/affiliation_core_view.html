@@ -1,0 +1,21 @@
+<th:block th:fragment="affiliationCoreView" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+    <div class="row" th:if="${@sofdConfiguration.getModules().getPositionDisplayName().isEnabled()}">
+        <label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.positionDisplayName}"></label>
+        <div class="col-sm-9">
+            <input th:value="${affiliation.positionDisplayName}" class="form-control masterTooltip" readonly="readonly" />
+        </div>
+    </div>
+    <div class="hidden">
+        <button sec:authorize="hasRole('ROLE_USER_ADMIN')" th:if="${@sofdConfiguration.getModules().getPositionDisplayName().isEnabled()}" id="editButton" class="btn btn-lg btn-primary" style="width:auto" onclick="loadEditCoreFragment()">
+            <em class="fa fa-pencil" aria-hidden="true"></em>&nbsp;
+            <span>Rediger</span>
+        </button>
+    </div>
+
+    <script type="text/javascript">
+		$(document).ready(function() {
+			$('#buttonsMenu').empty();
+			$('#buttonsMenu').append($('#editButton'));
+		});
+	</script>
+</th:block>

@@ -1,0 +1,1 @@
+ALTER TABLE client_aud ADD COLUMN tls_version VARCHAR(64) NULL;

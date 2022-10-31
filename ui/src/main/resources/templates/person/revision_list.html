@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'persons', subpage='phonebook')"></aside>
+
+	<section>
+		<div class="content-wrapper">
+			<h3>
+				<a th:href="@{/ui/person/view/}+${uuid}" class="btn btn-default">
+					<span><i class="fa fa-arrow-left"></i></span>
+				</a>
+
+				<span th:text="#{html.page.person.view.revision.title}"></span>
+			</h3>
+
+			<div class="panel panel-default">
+				<div class="panel-heading"></div>
+				<div class="panel-body">
+					<div class="table-responsive">
+						<table class="listTable table table-striped">
+							<thead>
+								<th class="col-lg-11" th:text="#{html.constant.date}"></th>
+								<th class="col-lg-1" th:text="#{html.control.operations}"></th>
+							</thead>
+							<tbody>
+								<th:block th:if="${revisions}">
+									<tr th:each="rev : ${revisions}">
+										<td th:text="${#dates.format(rev.lastChanged, 'yyyy-MM-dd  HH:mm:ss')}"></td>
+										<td>
+											<a th:href="@{/ui/person/revision/download/{uuid}/{revId}(uuid=${uuid},revId=${rev.rev})}"><em class="fa fa-download" aria-hidden="true"></em></a>
+										</td>
+									</tr>
+								</th:block>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+<script th:replace="fragments/datatables :: datatables "></script>
+
+</body>
+</html>

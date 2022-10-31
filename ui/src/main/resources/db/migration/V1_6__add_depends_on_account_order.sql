@@ -1,0 +1,2 @@
+ALTER TABLE account_orders ADD depends_on BIGINT DEFAULT NULL;
+ALTER TABLE account_orders ADD CONSTRAINT fk_account_orders_depends_on FOREIGN KEY (depends_on) REFERENCES account_orders(id) ON DELETE CASCADE;

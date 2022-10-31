@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'persons', subpage='phonebook')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.persons.list.headline}"></h3>
+				<div class="panel panel-default">
+					<div class="panel-heading">
+						<div class="btn-group">
+						  <button type="button" style="width: auto !important;" class="btn btn-primary btn-lg dropdown-toggle" data-toggle="dropdown">
+						    <em class="fa fa-fw fa-cog"></em>
+						  </button>
+						  
+						  <ul class="dropdown-menu" role="menu" id="dataTableDropdown">
+						    <li><a href="#" data-cid="0" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.person.name}"></span></a></li>
+						    <li><a href="#" data-cid="1" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.person.affiliations}"></span></a></li>
+							<li><a href="#" data-cid="2" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.user.ad_accounts}"></span></a></li>
+						    <li><a href="#" data-cid="3" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.phone.phoneNumber}"></span></a></li>
+						  </ul>
+						</div>
+
+						<a sec:authorize="hasRole('ROLE_USER_PERSON_CREATER') || hasRole('ROLE_USER_EDIT')" th:href="@{/ui/person/new}">
+							<div class="btn btn-lg btn-primary" style="width:200px">
+								<i class="fa fa-user-plus" aria-hidden="true"></i> &nbsp; <span th:text="#{html.page.person.tree.createNew}"></span>
+							</div>
+						</a>
+
+						<div class="form-group form-check inline" style="margin-left:60px; position: relative; top: 15px;">
+							<div class="c-radio">
+								<label>
+									<input type="radio" name="showDeleted" value="false" checked="checked" />
+									<span class="fa fa-circle"></span>
+									<th:block th:text="#{html.page.person.filter.show.active}"/>
+								</label>
+							</div>
+
+							<div class="c-radio">
+								<label>
+									<input type="radio" name="showDeleted" value="true" />
+									<span class="fa fa-circle"></span>
+									<th:block th:text="#{html.page.person.filter.show.inactive}"/>
+								</label>
+							</div>
+						</div>
+					</div>
+
+					<div class="panel-body">
+						<div class="table-responsive">
+							<table id="listTable" class="table table-striped table-hover listTable">
+								<thead>
+									<tr>
+										<th class="col-md-3" th:text="#{html.entity.person.name}"></th>
+										<th class="col-md-4" th:text="#{html.entity.person.affiliations}"></th>
+										<th class="col-md-2" th:text="#{html.entity.user.ad_accounts}"></th>
+										<th class="col-md-2" th:text="#{html.entity.phone.phoneNumber}"></th>
+										<th class="col-md-1" th:text="#{html.control.operations}"></th>
+									</tr>
+								</thead>
+
+								<tbody>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<nav th:replace="fragments/footer :: footer"></nav>
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+			var searchTxt = [[#{html.datatables.search}]];
+			var dropdownTxt = [[#{html.datatables.dropdown}]];
+			var infoDefaultTxt = [[#{html.datatables.info.default}]];
+			var infoEmptyTxt = [[#{html.datatables.info.empty}]];
+			var infoFilteredTxt = [[#{html.datatables.info.filtered}]];
+			var prevTxt = [[#{html.datatables.prev}]];
+			var nextTxt = [[#{html.datatables.next}]];
+			var leave_message = [[#{html.entity.person.leave}]];
+			var forceStop_message = [[#{html.entity.person.forceStop}]];
+			var disableAccountOrders_message = [[#{html.entity.person.disableAccountOrders}]];
+			var fakeCpr_message = [[#{html.entity.person.fakeCpr}]];
+			var url = [[@{/ui/person}]];
+			var ajaxUrl = [[@{/rest/person/list}]]
+			var ouUrl = [[@{/ui/orgunit/view/}]];
+		+]*/
+
+		var token = $("meta[name='_csrf']").attr("content");
+
+		var currentTable;
+		function loadDataTables(showInactive) {
+			currentTable = $('.listTable').DataTable({
+				destroy: true,
+				'ajax': {
+					'contentType': 'application/json',
+					'url': ajaxUrl,
+					'type': 'POST',
+					headers: {
+						'X-CSRF-TOKEN': token,
+						'show-inactive': showInactive
+					},
+					'data': function(d) {
+					 	return JSON.stringify(d);
+					}
+				},
+				'serverSide' : true,
+				columns : [{
+					data : 'name',
+					render: function (data, type, row, meta) {
+						var result = data;
+						if (row.leave == true) {
+							result += '&nbsp;<span class="badge badge-warning">' + leave_message + '</span>';
+						}
+						if (row.forceStop == true) {
+							result += '&nbsp;<span class="badge badge-alert">' + forceStop_message + '</span>';
+						}
+						if (row.disableAccountOrders == true) {
+							result += '&nbsp;<span class="badge badge-warning">' + disableAccountOrders_message + '</span>';
+						}
+						if (row.fictiveCpr == true) {
+							result += '&nbsp;<span class="badge badge-warning">' + fakeCpr_message + '</span>';
+						}
+						
+						return result;
+					}
+				}, {
+					data : 'affiliation',
+					render: function (data, type, row, meta) {
+						if (data == null) {
+							return '';
+						}
+						if (row.orgunitUuid != null){
+							return '<span>' + data + '</span><a href=' + ouUrl + row.orgunitUuid + ' title="Gå til enhed">&nbsp<em class="fa fa-fw fa-external-link" /></a>';
+						} else {
+							return '<span>' + data + '</span>';
+						}
+						
+					}
+				}, {
+					data : 'userIds',
+					render: function (data, type, row, meta) {
+						if (data != null && data != '') {
+							var userIdSplit = data.split(",");
+							var result = '<ul style="list-style-type:none; padding: 0px; margin: 0px;">';
+								for (let i = 0; i < userIdSplit.length; i++) {
+									if (i == 0) {
+										result += '<li style="font-weight: bold;">' + userIdSplit[i] + '</li>';
+									} else {
+										result += '<li>' + userIdSplit[i] + '</li>';
+									}
+								}
+							result += '</ul>';
+							return result;
+						}
+						return '';
+					}
+				}, {
+					data : 'phoneNumber'
+				}, {
+					data : 'uuid',
+					orderable: false,
+					searchable: false,
+					render: function (data, type, row, meta) {
+							return '<a href=' + url + '/view/' + data + '><em class="fa fa-fw fa-search" /></a>';
+					}
+				}],
+				'paging':    true,
+				'ordering':  true,
+				'stateSave': true,
+				'info':      true,
+				'pageLength': 25,
+				'language': {
+					"search":       searchTxt,
+					"lengthMenu":   dropdownTxt,
+					"info":         infoDefaultTxt,
+					"zeroRecords":  infoEmptyTxt,
+					"infoEmpty":    "",
+					"infoFiltered": infoFilteredTxt,
+					"paginate": {
+						"next": nextTxt,
+						"previous": prevTxt
+					}
+				}
+			});
+		}
+		
+		function dataTablesToggleColumn(elem) {
+			if (!currentTable) {
+				return false;
+			}
+			
+			var cId = $(elem).data("cid");
+
+			currentTable.column(cId).visible(!currentTable.column(cId).visible());
+			
+			var dropDownElem = $(elem).parent();
+			dataTablesRefreshIcons(dropDownElem);
+
+			return false;
+		}
+
+		function dataTablesRefreshIcons() {
+			if (!currentTable) {
+				return false;
+			}
+			
+			$("#dataTableDropdown").find("a").each(function() {
+				var cId = $(this).data("cid");
+			
+				if (currentTable.column(cId).visible()) {
+					$(this).find("em").addClass("fa-check");
+					$(this).find("em").removeClass("fa-minus");
+				}
+				else {
+					$(this).find("em").addClass("fa-minus");
+					$(this).find("em").removeClass("fa-check");
+				}
+			});
+		}
+
+		$(document).ready(function() {
+			loadDataTables(false);
+			dataTablesRefreshIcons();
+
+			$('input[type=radio][name=showDeleted]').change(function() {
+				if (this.value == 'true') {
+					loadDataTables(true);
+				}
+				else {
+					loadDataTables(false);
+				}
+			});
+		});
+		/*]]>*/
+	</script>
+</body>
+</html>

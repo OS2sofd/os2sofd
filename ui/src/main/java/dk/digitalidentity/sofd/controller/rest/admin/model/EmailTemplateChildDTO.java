@@ -1,0 +1,54 @@
+package dk.digitalidentity.sofd.controller.rest.admin.model;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+public class EmailTemplateChildDTO {
+	private long id;
+	private long templateId;
+	private String title;
+	private String message;
+	private boolean enabled;
+	private long minutesDelay;
+	private String recipients;
+	private String recipientsCC;
+	private String recipientsBCC;
+	private boolean sendToSubstitute;
+	private List<AttachmentDTO> attachments;
+	private long daysBeforeEvent;
+	private String domainFilter;
+	private List<String> orgUnitUuids = new ArrayList<>();
+	private boolean adRequired;
+	
+	// read-only
+	private List<String> orgUnitNames = new ArrayList<>();
+	
+	public EmailTemplateChildDTO(EmailTemplateChild child) {
+		this.id = child.getId();
+		this.templateId = child.getEmailTemplate().getId();
+		this.title = child.getTitle();
+		this.message = child.getMessage();
+		this.enabled = child.isEnabled();
+		this.minutesDelay = child.getMinutesDelay();
+		this.recipients = child.getRecipients();
+		this.recipientsCC = child.getRecipientsCC();
+		this.recipientsBCC = child.getRecipientsBCC();
+		this.sendToSubstitute = child.isSendToSubstitute();
+		this.daysBeforeEvent = child.getDaysBeforeEvent();
+		this.domainFilter = child.getDomainFilter();
+		this.orgUnitUuids = child.getExcludedOrgUnitMappings().stream().map(o -> o.getOrgUnit()).map(o -> o.getUuid()).collect(Collectors.toList());
+		this.orgUnitNames = child.getExcludedOrgUnitMappings().stream().map(o -> o.getOrgUnit()).map(o -> o.getName()).collect(Collectors.toList());
+		this.adRequired = child.isAdRequired();
+	}
+}

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<body>
+	<div th:fragment="footer">
+		<script th:src="@{/webjars/modernizr/2.8.3/modernizr.min.js}"></script>
+		<script th:src="@{/webjars/jquery/2.2.4/jquery.min.js}"></script>
+		<script th:src="@{/webjars/bootstrap/3.3.7/js/bootstrap.min.js}"></script>
+		<script th:src="@{/webjars/angle/3.7.5/js/jquery.storageapi.js}"></script>
+		<script th:src="@{/webjars/jquery-easing/1.3/jquery.easing.min.js}"></script>
+		<script th:src="@{/webjars/angle/3.7.5/js/animo.js}"></script>
+		<script th:src="@{/webjars/screenfull/3.0.2/dist/screenfull.js}"></script>
+		<script th:src="@{/webjars/angle/3.7.5/js/jquery.dataTables.min.js}"></script>
+		<script th:src="@{/webjars/angle/3.7.5/js/dataTables.bootstrap.js}"></script>
+		<script th:src="@{/webjars/sweetalert/1.1.3/dist/sweetalert.min.js}"></script>
+		<script th:src="@{/webjars/jstree/3.3.7/jstree.min.js}"></script>
+		<script th:src="@{/webjars/angle/3.7.5/js/app.js}"></script>
+		<script th:src="@{/js/bootstrap-select.min.js}"></script>
+		<script th:src="@{/js/dataTables.select.min.js}"></script>
+		<script th:src="@{/webjars/momentjs/2.10.3/min/moment-with-locales.min.js}"></script>
+		<script th:src="@{/webjars/summernote/0.8.10/summernote.js}"></script>
+		<script th:src="@{/webjars/codemirror/5.62.2/lib/codemirror.js}"></script>
+		<script th:src="@{/webjars/codemirror/5.62.2/mode/css/css.js}"></script>
+
+		<script>
+			// has to happen before datepicker script is loaded
+			moment.locale('da');
+		</script>
+		
+		<script th:src="@{/webjars/jQuery-Autocomplete/1.4.10/jquery.autocomplete.min.js}"></script>
+		<script th:src="@{/webjars/Eonasdan-bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.js}"></script>
+
+		<script th:inline="javascript"
+				sec:authorize="hasRole('ROLE_USER_LOS_ADMIN')"
+			    th:if="${#strings.contains(#httpServletRequest.requestURI, 'orgunit') and
+			    	     @sofdConfiguration.getModules().getLos().isFutureOrgsEnabled() == true}">
+		/*<![CDATA[*/
+
+			/*[+
+				var futureDateRestUrl = [[@{/rest/orgunit/changes}]];
+				var futureDateNotUpdatedMsg = [[#{html.footer.futuredatenotupdated.msg}]];
+				var futureDatepickerDateStr = [[${session.SESSION_FUTURE_DATE}]];
+			+]*/
+			var footerToken = $("meta[name='_csrf']").attr("content");
+
+			function initializeFutureDatepicker() {
+
+				// Get Current date, but ignore hours/mins/seconds
+				var timestamp = new Date();
+				var currentDate = new Date(timestamp.getFullYear(), timestamp.getMonth(), timestamp.getDate());
+
+				// Initialize datepicker
+				if (futureDatepickerDateStr == null || futureDatepickerDateStr == "") {
+					$('#futureDatePicker').datetimepicker({
+						format: 'YYYY-MM-DD',
+						minDate: currentDate
+					});
+				}
+				else {
+					$('#futureDatePicker').datetimepicker({
+						format: 'YYYY-MM-DD',
+						minDate: currentDate,
+						date: futureDatepickerDateStr
+					});
+				}
+
+				// Set onChange Handler
+				$('#futureDatePicker').datetimepicker().on('dp.change', function (event) {
+					// Ignore first trigger and any non-changes
+					if (event.oldDate == null) { return; }
+					if (event.date.isSame(event.oldDate, 'day')) { return; }
+
+					// Get Selected date
+					var selectedDate = new Date($('#futureDatePicker').datetimepicker('viewDate').format());
+					var actualSelectedDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+
+					var payload = null;
+					if (actualSelectedDate > currentDate) {
+						payload = JSON.stringify(actualSelectedDate);
+					}
+
+					$.ajax({
+						contentType: 'application/json',
+						url: futureDateRestUrl + "/date",
+						method : "POST",
+						headers: {
+							'X-CSRF-TOKEN': footerToken
+						},
+						data: payload,
+						error: function(response) {
+							$.notify({
+								message: futureDateNotUpdatedMsg
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						},
+						success: function(response) {
+							location.reload(true);
+						}
+					});
+				});
+			}
+
+			$(document).ready(function() {
+				initializeFutureDatepicker();
+			});
+		/*]]>*/
+		</script>
+	</div>
+</body>
+</html>

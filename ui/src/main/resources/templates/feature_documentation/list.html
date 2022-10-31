@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'features', subpage='admin')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3 th:utext="#{html.page.featureDocumentation.title}"></h3>
+				<div class="panel panel-default">
+					<div class="panel-body">
+						<div class="table-responsive">
+							<table id="listTable" class="table table-striped table-hover listTable">
+								<thead>
+									<tr>
+										<th class="col-md-1" th:text="#{html.page.featureDocumentation.list.enabled}"></th>
+										<th class="col-md-3" th:text="#{html.page.featureDocumentation.list.name}"></th>
+										<th class="col-md-8" th:text="#{html.page.featureDocumentation.list.description}"></th>
+									</tr>
+								</thead>
+					
+								<tbody>
+									<tr th:each="feature : ${features}">
+										<td style="text-align: center;">
+											<em th:if="${feature.enabled}" class="fa fa-check"></em>
+										</td>
+										<td th:text="${feature.name}"></td>
+										<td th:text="${feature.description}"></td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<script th:replace="fragments/datatables :: datatables(paging=false) "></script>
+	<nav th:replace="fragments/footer :: footer"></nav>
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+		+]*/
+
+		var token = $("meta[name='_csrf']").attr("content");
+
+		$(document).ready(function() {
+
+		});
+		/*]]>*/
+	</script>
+</body>
+</html>
