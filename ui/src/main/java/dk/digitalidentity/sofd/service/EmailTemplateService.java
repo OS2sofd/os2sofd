@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import dk.digitalidentity.sofd.dao.model.OrgUnit;
+import dk.digitalidentity.sofd.dao.model.SubstituteOrgUnitAssignment;
+import dk.digitalidentity.sofd.dao.model.enums.EmployeeFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -15,30 +18,16 @@ import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.SubstituteAssignment;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplateType;
+import dk.digitalidentity.sofd.dao.model.enums.SendTo;
 
 @Service
 public class EmailTemplateService {
-	public static final String EMPLOYEE_PLACEHOLDER = "{medarbejder}";
-	public static final String AFFILIATIONUUID_PLACEHOLDER = "{tilhørsforholduuid}";
-	public static final String ORGUNIT_PLACEHOLDER = "{orgenhed}";
-	public static final String ACCOUNT_PLACEHOLDER = "{kontonavn}";
-	public static final String RECEIVER_PLACEHOLDER = "{modtager}";
-	public static final String TIMESTAMP_PLACEHOLDER = "{tidspunkt}";
-	public static final String CHANGES_PLACEHOLDER = "{ændringer}";
-	public static final String EXCHANGE_ACCOUNT_PLACEHOLDER = "{exchange}";
-	public static final String VENDOR_PLACEHOLDER = "{leverandør}";
-	public static final String INTERNAL_REFERENCE_PLACEHOLDER = "{intern reference}";
-	public static final String MANAGER_PLACEHOLDER = "{leder}";
-	public static final String SUBSTITUTE_PLACEHOLDER = "{stedfortræder}";
-	public static final String SUBSTITUTE_CONTEXT_PLACEHOLDER = "{kontekst}";
-	public static final String DAYS_BEFORE_EVENT = "{dage}";
-	public static final String POSITION_NAME_PLACEHOLDER = "{stilling}";
-	public static final String EMPLOYEE_NUMBER_PLACEHOLDER = "{medarbejdernummer}";
-	public static final String FUNCTION_NAME = "{funktion}";
-	public static final String FUNCTION_LIST = "{funktionsliste}";
 
 	@Autowired
 	private EmailTemplateDao emailTemplateDao;
+
+	@Autowired
+	private OrgUnitService orgUnitService;
 
 	public List<EmailTemplate> findAll() {
 		List<EmailTemplate> result = new ArrayList<>();
@@ -59,6 +48,10 @@ public class EmailTemplateService {
 			case AD_CREATE_EMPLOYEE:
 				title = "Brugerkonto oprettet";
 				message = "Kære {modtager}\n<br/>\n<br/>\nDer er blevet oprettet en brugerkonto til dig med brugernavn\n<br/>\n<br/>\n{kontonavn}";
+				break;
+			case AD_CREATE_SUBSTITUTE:
+				title = "Vikarkonto tildelt";
+				message = "Kære {modtager}\n<br/>\n<br/>Der er blevet tildelt en vikarkonto til dig med brugernavn\n<br/>\n<br/>\n{kontonavn}";
 				break;
 			case AD_CREATE_FAILED:
 				title = "Oprettelse af brugerkonto fejlet";
@@ -108,15 +101,15 @@ public class EmailTemplateService {
 				break;
 			case NEW_MANAGER:
 				title = "Mail: Enhed har fået ny leder";
-				message = "Hej,\n<br/>En enhed har fået ny leder.\n<br/>Enhed: {orgenhed}\n<br/>Leder: {medarbejder}";
+				message = "Kære {modtager},\n<br/>\n<br/>En enhed har fået ny leder.\n<br/>Enhed: {orgenhed}\n<br/>Leder: {medarbejder}\n<br/>Stedfortrædere:\n<br/>{stedfortrædere}";
 				break;
 			case MANAGER_STOPS:
 				title = "Mail: Medarbejder med lederansvar påført ophørsdato";
-				message = "Hej,\n<br/>Medarbejder med lederansvar påført ophørsdato.\n<br/>Enhed: {orgenhed}\n<br/>Medarbejder: {medarbejder}";
+				message = "Kære {modtager},\n<br/>\n<br/>Medarbejder med lederansvar påført ophørsdato.\n<br/>Enhed: {orgenhed}\n<br/>Medarbejder: {medarbejder}";
 				break;
 			case MANAGER_REMOVED:
 				title = "Mail: Enhed har fået fjernet leder";
-				message = "Hej,\n<br/>En enhed har fået fjernet leder.\n<br/>Enhed: {orgenhed}\n<br/>Tidligere leder: {medarbejder}";
+				message = "Kære {modtager},\n<br/>\n<br/>En enhed har fået fjernet leder.\n<br/>Enhed: {orgenhed}\n<br/>Tidligere leder: {medarbejder}";
 				break;
 			case AFFILIATION_EXPIRE_REMINDER:
 				title = "Snarligt udløb af tilhørsforhold";
@@ -134,7 +127,17 @@ public class EmailTemplateService {
 				break;
 			case FUNCTION_ASSIGNMENT_EXPIRES:
 				title = "Medarbejderfunktion udløber";
-				message = "Kære {modtager}\n<br/>\n<br/>Din medarbejder {medarbejder} har medarbejderfunktionen {funktion}, der stopper om {dage} dage.";
+				message = "Kære {modtager}\n<br/>\n<br/>Medarbejderen {medarbejder} har medarbejderfunktionen {funktion}, der stopper om {dage} dage.";
+				break;
+			case FUNCTION_ASSIGNMENT_FOLLOW_UP:
+				title = "Opfølgning på medarbejderfunktion";
+				message = "Kære {modtager}\n<br/>\n<br/>Medarbejderen {medarbejder} har medarbejderfunktionen {funktion}, der skal laves opfølgning på.";
+				break;
+			case ORDER_PENDING_APPOVAL:
+				title = "Oprettelse af brugerkonto kræver godkendelse";
+				message = "Kære {modtager}\n<br/>\n<br/>Der er blevet bestilt en brugerkonto til {medarbejder}, som afventer din godkendelse. Brugerkontoen vil først blive oprettet når du har godkendt bestillingen.";
+				break;
+			default:
 				break;
 		}
 		
@@ -145,7 +148,7 @@ public class EmailTemplateService {
 		child.setEmailTemplate(template);
 		child.setDaysBeforeEvent(daysBeforeEvent);
 		child.setExcludedOrgUnitMappings(new ArrayList<>());
-
+		child.setEmployeeFilter(EmployeeFilter.ALL);
 		return child;
 	}
 
@@ -171,23 +174,23 @@ public class EmailTemplateService {
 	}
 	
 	// depending on EmailTemplateChild settings, this will either return the manager or all (relevant) substitutes (email addresses that is)
-	public List<String> getManagerOrSubstitutes(EmailTemplateChild child, Person manager, String orgUnitUuid) {
-		List<String> emailRecipients = new ArrayList<>();
+	public List<Person> getManagerOrSubstitutes(EmailTemplateChild child, Person manager, String orgUnitUuid) {
+		List<Person> recipients = new ArrayList<>();
 
-		if (child.isSendToSubstitute()) {
+		if (child.getSendTo().equals(SendTo.SEND_TO_MANAGER_OR_SUBSTITUTES) || child.getSendTo().equals(SendTo.SEND_TO_MANAGER_AND_SUBSTITUTES)) {
 			for (SubstituteAssignment assignment : manager.getSubstitutes()) {
-				String email = PersonService.getEmail(assignment.getSubstitute());
-				if (!StringUtils.hasLength(email)) {
+				Person recipient = assignment.getSubstitute();
+				if (!StringUtils.hasLength(PersonService.getEmail(recipient))) {
 					continue;
 				}
 				
 				switch (assignment.getContext().getIdentifier()) {
 					case "GLOBAL":
-						emailRecipients.add(email);
+						recipients.add(recipient);
 						break;
 					case "SOFD":
 						if (orgUnitUuid == null || CollectionUtils.isEmpty(assignment.getConstraintMappings()) || assignment.getConstraintMappings().stream().anyMatch(soum -> Objects.equals(orgUnitUuid, soum.getOrgUnit().getUuid()))) {
-							emailRecipients.add(email);
+							recipients.add(recipient);
 						}
 						break;
 					default:
@@ -195,16 +198,42 @@ public class EmailTemplateService {
 						break;
 				}
 			}
-		}
 
-		if (emailRecipients.isEmpty()) {
+			OrgUnit ou = orgUnitService.getByUuid(orgUnitUuid);
+			if (ou != null) {
+				for (SubstituteOrgUnitAssignment assignment : ou.getSubstitutes()) {
+					Person recipient = assignment.getSubstitute();
+					if (!StringUtils.hasLength(PersonService.getEmail(recipient))) {
+						continue;
+					}
+
+					switch (assignment.getContext().getIdentifier()) {
+						case "GLOBAL","SOFD":
+							recipients.add(recipient);
+							break;
+						default:
+							// not relevant for SOFD
+							break;
+					}
+				}
+			}
+
+			if ((recipients.isEmpty() && child.getSendTo().equals(SendTo.SEND_TO_MANAGER_OR_SUBSTITUTES)) || child.getSendTo().equals(SendTo.SEND_TO_MANAGER_AND_SUBSTITUTES)) {
+				String email = PersonService.getEmail(manager);
+
+				if (StringUtils.hasLength(email)) {
+					recipients.add(manager);
+				}
+			}
+		} else if (child.getSendTo().equals(SendTo.SEND_TO_MANAGER)) {
 			String email = PersonService.getEmail(manager);
 
 			if (StringUtils.hasLength(email)) {
-				emailRecipients.add(email);
+				recipients.add(manager);
 			}
 		}
+		
 
-		return emailRecipients;
+		return recipients;
 	}
 }

@@ -35,4 +35,10 @@ public class SubstituteContext {
 
 	@Column
 	private boolean canBeDeleted = true;
+
+	@Column
+	private boolean assignableToOrgUnit;
+
+	@Column
+	private boolean inheritOrgUnitAssignments;
 }

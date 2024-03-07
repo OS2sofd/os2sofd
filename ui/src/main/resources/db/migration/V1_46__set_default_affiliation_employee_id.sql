@@ -1,0 +1,1 @@
+update affiliations set employee_id = uuid where employee_id is null or employee_id = '';

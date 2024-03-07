@@ -43,7 +43,7 @@ public class ChartController {
 		}
 		
 		// convert orgUnits to chart dtos. Every ChartDTO in the charts list is a diagram in the ui
-		List<OrgUnit> allOus = orgUnitService.getAllActive();
+		List<OrgUnit> allOus = orgUnitService.getAllActiveCached();
 		OrgUnit rootOU = allOus.stream().filter(o -> o.getParent() == null).findFirst().orElse(null);
 		List<ChartDTO> charts = new ArrayList<>();
 		List<String> uuidsInChart = new ArrayList<>();

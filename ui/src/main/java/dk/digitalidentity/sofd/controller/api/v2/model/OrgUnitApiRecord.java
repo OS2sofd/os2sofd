@@ -12,8 +12,10 @@ import javax.validation.constraints.Pattern;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
-import dk.digitalidentity.sofd.dao.model.*;
-import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitEmailMapping;
+import dk.digitalidentity.sofd.dao.model.OrgUnit;
+import dk.digitalidentity.sofd.dao.model.OrgUnitTag;
+import dk.digitalidentity.sofd.dao.model.Phone;
+import dk.digitalidentity.sofd.dao.model.Post;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPhoneMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPostMapping;
 import dk.digitalidentity.sofd.service.OrgUnitService;
@@ -36,16 +38,16 @@ public class OrgUnitApiRecord extends BaseRecord {
 
 	@NotNull
 	private String master;
-	
+
 	@NotNull
 	private String masterId;
-	
+
 	@NotNull
 	private String shortname;
-	
+
 	@NotNull
 	private String name;
-	
+
 	private String displayName;
 	private Long cvr;
 	private String cvrName;
@@ -58,30 +60,29 @@ public class OrgUnitApiRecord extends BaseRecord {
 	private String parentUuid;
 	private Map<String, Object> localExtensions;
 	private Boolean deleted;
+	private String email;
+	private String urlAddress;
 
 	@Valid
 	private Set<PostApiRecord> postAddresses;
-	
+
 	@Valid
 	private Set<PhoneApiRecord> phones;
-	
-	@Valid
-	private Set<EmailApiRecord> emails;	
-	
+
 	// readonly
 
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
 	private LocalDateTime created;
-	
+
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
 	private LocalDateTime lastChanged;
 
 	private ManagerApiRecord manager;
 
 	private Set<OrgUnitTagApiRecord> tags;
-	
+
 	private long id;
-	
+
 	public OrgUnitApiRecord(OrgUnit orgUnit) {
 		this.uuid = orgUnit.getUuid();
 		this.master = orgUnit.getMaster();
@@ -103,16 +104,16 @@ public class OrgUnitApiRecord extends BaseRecord {
 		this.localExtensions = stringToMap(orgUnit.getLocalExtensions());
 		this.parentUuid = (orgUnit.getParent() != null) ? orgUnit.getParent().getUuid() : null;
 		this.id = orgUnit.getId();
-		
+		this.email = orgUnit.getEmail();
+		this.urlAddress = orgUnit.getUrlAddress();
+
 		if (orgUnit.getManager() != null) {
 			this.manager = new ManagerApiRecord();
 			this.manager.setName(orgUnit.getManager().getName());
-			
-			// TODO: might want to extract the uuid to the manager table, so we do not need a full lookup on the person here...
-			this.manager.setUuid(orgUnit.getManager().getManager().getUuid());
+			this.manager.setUuid(orgUnit.getManager().getManagerUuid());
 			this.manager.setInherited(orgUnit.getManager().isInherited());
 		}
-		
+
 		if (orgUnit.getPhones() != null) {
 			this.phones = new HashSet<PhoneApiRecord>();
 
@@ -120,20 +121,12 @@ public class OrgUnitApiRecord extends BaseRecord {
 				this.phones.add(new PhoneApiRecord(phone));
 			}
 		}
-		
+
 		if (orgUnit.getPostAddresses() != null) {
 			this.postAddresses = new HashSet<PostApiRecord>();
 
 			for (Post post : OrgUnitService.getPosts(orgUnit)) {
 				this.postAddresses.add(new PostApiRecord(post));
-			}
-		}
-		
-		if (orgUnit.getEmails() != null) {
-			this.emails = new HashSet<EmailApiRecord>();
-
-			for (Email email : OrgUnitService.getEmails(orgUnit)) {
-				this.emails.add(new EmailApiRecord(email));
 			}
 		}
 
@@ -153,7 +146,7 @@ public class OrgUnitApiRecord extends BaseRecord {
 		if (actualOrgUnit == null) {
 			actualOrgUnit = orgUnit;
 		}
-		
+
 		orgUnit.setLocalExtensions(mapToString(localExtensions));
 		orgUnit.setMaster(master);
 		orgUnit.setMasterId(masterId);
@@ -170,6 +163,8 @@ public class OrgUnitApiRecord extends BaseRecord {
 		orgUnit.setDisplayName(displayName);
 		orgUnit.setUuid(uuid);
 		orgUnit.setDeleted((deleted != null) ? deleted : false);
+		orgUnit.setEmail(email);
+		orgUnit.setUrlAddress(urlAddress);
 
 		if (parentUuid != null) {
 			OrgUnit ou = OrgUnitService.getInstance().getByUuid(parentUuid);
@@ -185,11 +180,11 @@ public class OrgUnitApiRecord extends BaseRecord {
 				OrgUnitPostMapping mapping = new OrgUnitPostMapping();
 				mapping.setPost(postRecord.toPost());
 				mapping.setOrgUnit(actualOrgUnit);
-				
+
 				orgUnit.getPostAddresses().add(mapping);
 			}
 		}
-		
+
 		if (phones != null) {
 			orgUnit.setPhones(new ArrayList<>());
 
@@ -199,18 +194,6 @@ public class OrgUnitApiRecord extends BaseRecord {
 				mapping.setOrgUnit(actualOrgUnit);
 
 				orgUnit.getPhones().add(mapping);
-			}
-		}
-
-		if (emails != null) {
-			orgUnit.setEmails(new ArrayList<>());
-
-			for (EmailApiRecord emailRecord : emails) {
-				OrgUnitEmailMapping mapping = new OrgUnitEmailMapping();
-				mapping.setEmail(emailRecord.toEmail());
-				mapping.setOrgUnit(actualOrgUnit);
-				
-				orgUnit.getEmails().add(mapping);
 			}
 		}
 

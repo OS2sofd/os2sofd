@@ -16,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class BaseRecord {
 	private static ObjectMapper mapper = new ObjectMapper();
-
+	
 	protected LocalDate toLocalDate(Date date) {
 		if (date == null) {
 			return null;
@@ -35,6 +35,14 @@ public abstract class BaseRecord {
 		return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
 	}
 
+	protected Date toDateEndOfDay(LocalDate localDate) {
+		if (localDate == null) {
+			return null;
+		}
+
+		return Date.from(localDate.atTime(23, 50, 0).atZone(ZoneId.systemDefault()).toInstant());
+	}
+	
 	protected Date toDate(LocalDate localDate) {
 		if (localDate == null) {
 			return null;

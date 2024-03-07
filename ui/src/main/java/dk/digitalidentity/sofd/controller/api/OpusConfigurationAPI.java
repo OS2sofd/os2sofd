@@ -28,7 +28,9 @@ public class OpusConfigurationAPI {
 		opusFilterRulesDTO.setEnabled(configuration.getIntegrations().getOpus().isEnableFiltering());
 		opusFilterRulesDTO.setLosIds(configuration.getIntegrations().getOpus().getLosIds());
 		opusFilterRulesDTO.setPositionIds(configuration.getIntegrations().getOpus().getPositionIds());
+		opusFilterRulesDTO.setPositionNames(configuration.getIntegrations().getOpus().getPositionNames());
 		opusFilterRulesDTO.setOrgUnitInfix(configuration.getIntegrations().getOpus().getOrgUnitInfix());
+		opusFilterRulesDTO.setInvalidPositionNames(configuration.getIntegrations().getOpus().getInvalidPositionNames());
 		
 		return new ResponseEntity<>(opusFilterRulesDTO, HttpStatus.OK);
 	}

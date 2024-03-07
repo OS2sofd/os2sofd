@@ -6,5 +6,7 @@ import lombok.Setter;
 @Setter
 @Getter
 public class Cpr {
-	private String url = "http://cprservice.digital-identity.dk";
+	private String url = "http://cprservice5.digital-identity.dk";
+	private boolean useAddressName = false;
+	private boolean addressEnabled = true;
 }

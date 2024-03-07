@@ -18,12 +18,13 @@
 							<form class="form-horizontal" id="person-form" th:action="@{/ui/affiliation/edit}" method="post" th:object="${affiliationEditDTO}">
 								<input th:field="*{uuid}" type="hidden"/>
 								<input th:field="*{personUuid}" type="hidden"/>
+								<input id="doNotTransferToFKOrg" th:field="*{doNotTransferToFKOrg}" type="hidden"/>
 
 								<fieldset>
 									<div class="row">
 										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.positionName}"></label>
 										<div class="col-sm-8">
-											<input th:field="*{positionName}" class="form-control" />
+											<input th:field="*{positionName}" class="form-control" th:readonly="!${fromSofd}"/>
 											<ul th:if="${#fields.hasErrors('positionName')}" class="error">
 												<li th:each="err : ${#fields.errors('positionName')}" th:text="${err}"></li>
 											</ul>
@@ -35,7 +36,7 @@
 									<div class="row" th:if="${@sofdConfiguration.getModules().getPositionDisplayName().isEnabled()}">
 										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.positionDisplayName}"></label>
 										<div class="col-sm-8">
-											<input th:field="*{positionDisplayName}" class="form-control masterTooltip" />
+											<input th:field="*{positionDisplayName}" class="form-control masterTooltip" th:readonly="!${fromSofd}"/>
 											<ul th:if="${#fields.hasErrors('positionDisplayName')}" class="error">
 												<li th:each="err : ${#fields.errors('positionDisplayName')}" th:text="${err}"></li>
 											</ul>
@@ -57,7 +58,7 @@
 										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.stopDate}"></label>
 										<div class="col-sm-8">
 											<div class="input-group date" id="stopDatePicker">
-												<input th:field="*{stopDate}" class="form-control" />
+												<input th:field="*{stopDate}" class="form-control" th:readonly="!${fromSofd}"/>
 												<span class="input-group-addon">
 													<span class="fa fa-calendar"></span>
 												</span>
@@ -73,7 +74,7 @@
 									<div class="row">
 										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.vendor}"></label>
 										<div class="col-sm-8">
-												<input th:field="*{vendor}" class="form-control" />
+												<input th:field="*{vendor}" class="form-control" th:readonly="!${fromSofd}"/>
 											<ul th:if="${#fields.hasErrors('vendor')}" class="error">
 												<li th:each="err : ${#fields.errors('vendor')}" th:text="${err}"></li>
 											</ul>
@@ -85,9 +86,26 @@
 									<div class="row">
 										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.internalReference}"></label>
 										<div class="col-sm-8">
-												<input th:field="*{internalReference}" class="form-control" />
+												<input th:field="*{internalReference}" class="form-control" th:readonly="!${fromSofd}"/>
 											<ul th:if="${#fields.hasErrors('internalReference')}" class="error">
 												<li th:each="err : ${#fields.errors('internalReference')}" th:text="${err}"></li>
+											</ul>
+										</div>
+									</div>
+								</fieldset>
+								
+								<fieldset>
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.doNotTransferToFKOrg}"></label>
+										<div class="col-sm-8">
+											<div class="checkbox c-checkbox">
+												<label>
+													<input id="doNotTransferToFKOrgCheckbox" type="checkbox" th:checked="${affiliationEditDTO.doNotTransferToFKOrg}"/>
+													<span class="fa fa-check"></span>
+												</label>
+											</div>
+											<ul th:if="${#fields.hasErrors('doNotTransferToFKOrg')}" class="error">
+												<li th:each="err : ${#fields.errors('doNotTransferToFKOrg')}" th:text="${err}"></li>
 											</ul>
 										</div>
 									</div>
@@ -105,7 +123,7 @@
 											</a>
 											
 											&nbsp;
-											<a class="btn btn-lg btn-danger" onclick="deleteAffiliation();">
+											<a class="btn btn-lg btn-danger" onclick="deleteAffiliation();" th:if="${fromSofd}">
 												<th:block th:text="#{html.control.button.delete}"/>
 											</a>
 										</div>
@@ -140,6 +158,10 @@
 	$(document).ready(function () {
 		$('#stopDatePicker').datetimepicker({
             format: 'YYYY-MM-DD'
+		});
+		
+		$("#doNotTransferToFKOrgCheckbox").change(function() {
+			$("#doNotTransferToFKOrg").val($(this).is(':checked'));
 		});
 	});
 

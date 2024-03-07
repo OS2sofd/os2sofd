@@ -60,7 +60,7 @@
 														<tr th:each="recipient : ${log.recipients}">
 															<td th:text="${recipient.name}"></td>
 															<td th:text="${recipient.phone}"></td>
-															<td th:text="#{__${T(dk.digitalidentity.sofd.controller.mvc.dto.RecipientType).valueOf(recipient.type).message}__}"></td>
+															<td th:text="#{__${recipient.type.message}__}"></td>
 														</tr>
 													</tbody>
 												</table>

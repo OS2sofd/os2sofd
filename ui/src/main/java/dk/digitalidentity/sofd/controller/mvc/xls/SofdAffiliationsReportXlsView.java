@@ -43,10 +43,10 @@ public class SofdAffiliationsReportXlsView extends AbstractXlsView {
 			courseRow.createCell(0).setCellValue(row.getName());
 			courseRow.createCell(1).setCellValue(row.getCpr());
 			courseRow.createCell(2).setCellValue(row.getAffiliationName());
-			courseRow.createCell(3).setCellValue(row.getAffilliationOrgUnitName());
-			courseRow.createCell(4).setCellValue(row.getAffilliationVendor());
-			courseRow.createCell(5).setCellValue(row.getAffilliationStartDate());
-			courseRow.createCell(6).setCellValue(row.getAffilliationStopDate());
+			courseRow.createCell(3).setCellValue(row.getAffiliationOrgUnitName());
+			courseRow.createCell(4).setCellValue(row.getAffiliationVendor());
+			courseRow.createCell(5).setCellValue(row.getAffiliationStartDate());
+			courseRow.createCell(6).setCellValue(row.getAffiliationStopDate());
 		}
 
 		format(sheet);

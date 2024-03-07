@@ -155,7 +155,8 @@
 						contentType: 'application/json',
 						data: '',
 						success: function(data, textStatus, jQxhr) {
-							loadDataTables(status);
+							var selectedValue = $("#notificationTypeSelect").val();
+							loadDataTables(status, selectedValue);
 						},
 						error: function(jqXhr, textStatus, errorThrown) {
 							$.notify({
@@ -171,7 +172,7 @@
 		}
 				
 		var currentTable;
-		function loadDataTables(showInactive) {
+		function loadDataTables(showInactive, selectedValue) {
 			currentTable = $('.listTable').DataTable({
 				'destroy': true,
 				'stateSave': true,
@@ -251,7 +252,7 @@
 				initComplete: function () {
 					this.api().columns([3]).every(function() {
 						var column = this;
-						var select = $('<select class="ui-state-default"><option value="">Vis alle</option></select>')
+						var select = $('<select class="ui-state-default" id="notificationTypeSelect"><option value="">Vis alle</option></select>')
 							.appendTo($(column.footer()).empty())
 							.on('change', function() {
 								column.search($(this).val(), false, true).draw();
@@ -260,6 +261,10 @@
 
 						for (var key in typesMap) {
 							select.append('<option value="' + key + '">' + typesMap[key] + '</option>');
+						}
+
+						if (selectedValue != null) {
+							$("#notificationTypeSelect").val(selectedValue);
 						}
 					});
 				}
@@ -292,7 +297,8 @@
 						contentType: 'application/json',
 						data: '',
 						success: function(data, textStatus, jQxhr) {
-							loadDataTables(status);
+							var selectedValue = $("#notificationTypeSelect").val();
+							loadDataTables(status, selectedValue);
 						},
 						error: function(jqXhr, textStatus, errorThrown) {
 							$.notify({
@@ -308,14 +314,24 @@
 		}
 
 		$(document).ready(function() {
-			loadDataTables(false);
+
+			// find potential saved search
+			var datatableState = localStorage.getItem('DataTables_listTable_/ui/report/notifications');
+			if (datatableState == null) {
+				loadDataTables(false, "");
+			} else {
+				var asObject = JSON.parse(datatableState);
+				var searchFor = asObject.columns[3].search.search;
+				loadDataTables(false, searchFor);
+			}
 
 			$('input[type=radio][name=showInactive]').change(function() {
+				var selectedValue = $("#notificationTypeSelect").val();
 				if (this.value == 'true') {
-					loadDataTables(true);
+					loadDataTables(true, selectedValue);
 				}
 				else {
-					loadDataTables(false);
+					loadDataTables(false, selectedValue);
 				}
 			});
 		});

@@ -23,18 +23,22 @@ public class JdbcTemplateConfiguration {
 
 	@Bean(name = "OS2syncTemplate")
 	public JdbcTemplate os2syncTemplate() {
-		HikariConfig config = new HikariConfig();
-		config.setConnectionTestQuery("SELECT 1");
-		config.setDriverClassName("com.mysql.cj.jdbc.Driver");
-		config.setMinimumIdle(1);
-		config.setMaximumPoolSize(5);
-		config.setJdbcUrl(configuration.getIntegrations().getOs2sync().getDatasourceUrl());
-		config.setPassword(configuration.getIntegrations().getOs2sync().getDatasourcePassword());
-		config.setUsername(configuration.getIntegrations().getOs2sync().getDatasourceUsername());
-		config.setConnectionTimeout(5 * 1000);
-
-		HikariDataSource dataSource = new HikariDataSource(config);
-
-		return new JdbcTemplate(dataSource);
+		if (configuration.getScheduled().isEnabled() && configuration.getIntegrations().getOs2sync().isEnabled()) {
+			HikariConfig config = new HikariConfig();
+			config.setConnectionTestQuery("SELECT 1");
+			config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+			config.setMinimumIdle(1);
+			config.setMaximumPoolSize(5);
+			config.setJdbcUrl(configuration.getIntegrations().getOs2sync().getDatasourceUrl());
+			config.setPassword(configuration.getIntegrations().getOs2sync().getDatasourcePassword());
+			config.setUsername(configuration.getIntegrations().getOs2sync().getDatasourceUsername());
+			config.setConnectionTimeout(5 * 1000);
+	
+			HikariDataSource dataSource = new HikariDataSource(config);
+	
+			return new JdbcTemplate(dataSource);
+		}
+		
+		return null;
 	}
 }

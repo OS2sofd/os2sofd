@@ -7,7 +7,9 @@ import lombok.Setter;
 @Getter
 @Setter
 public class SubstituteConfiguration {
+	
 	@FeatureDocumentation(name = "Vikarer", description = "Integration til OS2vikar")
 	private boolean enabled = false;
+	
 	private String masterId = "OS2vikar";
 }

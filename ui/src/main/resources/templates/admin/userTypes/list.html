@@ -57,7 +57,9 @@
 											data-infixvalue=${userType.usernameInfixValue},
 											data-suffix=${userType.usernameSuffix},
 											data-singleusermode=${userType.singleUserMode},
-											data-suffixvalue=${userType.usernameSuffixValue}">
+											data-suffixvalue=${userType.usernameSuffixValue},
+											data-prefixexternalvalue=${userType.usernamePrefixExternalValue},
+											data-suffixexternalvalue=${userType.usernameSuffixExternalValue}">
 											
 											<em class="fa fa-fw fa-pencil" th:title="#{html.mouseover.edit}"></em>
 										</a>
@@ -206,18 +208,25 @@
 							</div>
 						</div>
 						
-						<div class="form-group" id="prefixStrategyValueBlock">
+						<div class="form-group prefixStrategyValueBlock">
 							<label th:utext="#{html.setting.usertype.prefixValue}" class="col-sm-4 control-label"></label>
 							<div class="col-sm-7">
 								<input id="prefixStrategyValue" class="form-control" />
 							</div>
 						</div>
-						
+
+						<div class="form-group prefixStrategyValueBlock">
+							<label th:utext="#{html.setting.usertype.prefixExternalValue}" class="col-sm-4 control-label"></label>
+							<div class="col-sm-7">
+								<input id="prefixExternalValue" class="form-control" />
+							</div>
+						</div>
+
 						<div class="form-group">
 							<label th:utext="#{html.setting.usertype.infix}" class="col-sm-4 control-label"></label>
 							<div class="col-sm-7">
 								<select id="infixStrategy" class="form-control">
-									<option th:each="infix : ${T(dk.digitalidentity.sofd.dao.model.enums.UsernameInfixType).values()}"
+									<option th:each="infix : ${T(dk.digitalidentity.sofd.dao.model.enums.UsernameInfixType).filteredList(@sofdConfiguration.getModules().getAccountCreation().isReservationEnabled())}"
 											th:value="${infix}"
 											th:text="#{__${infix.message}__}"></option>
 								</select>
@@ -253,10 +262,17 @@
 							</div>
 						</div>
 						
-						<div class="form-group" id="suffixStrategyValueBlock">
+						<div class="form-group suffixStrategyValueBlock">
 							<label th:utext="#{html.setting.usertype.suffixValue}" class="col-sm-4 control-label"></label>
 							<div class="col-sm-7">
 								<input id="suffixStrategyValue" class="form-control" />
+							</div>
+						</div>
+
+						<div class="form-group suffixStrategyValueBlock">
+							<label th:utext="#{html.setting.usertype.suffixExternalValue}" class="col-sm-4 control-label"></label>
+							<div class="col-sm-7">
+								<input id="suffixExternalValue" class="form-control" />
 							</div>
 						</div>
 					</th:block>
@@ -322,10 +338,10 @@
 			var strategy = $('#prefixStrategy').val();
 			
 			if (strategy == 'VALUE') {
-				$("#prefixStrategyValueBlock").show();
+				$(".prefixStrategyValueBlock").show();
 			}
 			else {
-				$("#prefixStrategyValueBlock").hide();
+				$(".prefixStrategyValueBlock").hide();
 			}
 		});
 		
@@ -336,7 +352,7 @@
 				$("#infixStrategyUserTypeBlock").show();
 				$("#infixStrategyValueBlock").hide();
 			}
-			else if (strategy == 'RANDOM' || strategy == 'FROM_NAME') {
+			else if (strategy == 'RANDOM' || strategy == 'FROM_NAME' || strategy == 'NUMBER' ) {
 				$("#infixStrategyUserTypeBlock").hide();
 				$("#infixStrategyValueBlock").show();
 			}
@@ -350,10 +366,10 @@
 			var strategy = $('#suffixStrategy').val();
 			
 			if (strategy == 'VALUE') {
-				$("#suffixStrategyValueBlock").show();
+				$(".suffixStrategyValueBlock").show();
 			}
 			else {
-				$("#suffixStrategyValueBlock").hide();
+				$(".suffixStrategyValueBlock").hide();
 			}
 		});
 	});
@@ -376,6 +392,8 @@
 		var infixValue = elem.attr('data-infixvalue');
 		var suffix = elem.attr('data-suffix');
 		var suffixValue = elem.attr('data-suffixvalue');
+		var prefixExternalValue = elem.attr('data-prefixexternalvalue');
+		var suffixExternalValue = elem.attr('data-suffixexternalvalue');
 		
 		$('#userTypeId').val(id);
 		$('#userTypeName').val(name);
@@ -399,8 +417,10 @@
 		
 		$('#prefixStrategy').val(prefix).change();
 		$('#prefixStrategyValue').val(prefixValue);
+		$('#prefixExternalValue').val(prefixExternalValue);
 		$('#suffixStrategy').val(suffix).change();
 		$('#suffixStrategyValue').val(suffixValue);
+		$('#suffixExternalValue').val(suffixExternalValue);
 		
 		$('#infixStrategy').val(infix).change();
 		if (infix == 'SAME_AS_OTHER') {
@@ -415,7 +435,7 @@
 			
 			$('#infixStrategyUserType').val(infixValue);
 		}
-		else if (infix == 'RANDOM' || infix == 'FROM_NAME' || infix == 'FROM_NAME_LONG') {
+		else if (infix == 'RANDOM' || infix == 'FROM_NAME' || infix == 'FROM_NAME_LONG' || infix == 'FROM_NAME_FULL' || infix == 'NUMBER' ) {
 			$("#infixStrategyValue").val(infixValue);
 		}
 		else {
@@ -438,8 +458,10 @@
 		$('#userTypeDependsOnDelay').val("0");
 		$('#prefixStrategy').val("NONE").change();
 		$('#prefixStrategyValue').val("");
+		$('#prefixExternalValue').val('');
 		$('#suffixStrategy').val("NONE").change();
-		$('#suffixStrategyValue').val("");		
+		$('#suffixStrategyValue').val("");
+		$('#suffixExternalValue').val('');
 		$('#infixStrategy').val("RANDOM").change();
 		$("#infixStrategyValue").val("5");
 		
@@ -462,15 +484,18 @@
 
 		var prefix = $('#prefixStrategy').val();
 		var prefixValue = $('#prefixStrategyValue').val();
+		var prefixExternalValue = $('#prefixExternalValue').val();
 		var suffix = $('#suffixStrategy').val();
-		var suffixValue = $('#suffixStrategyValue').val();		
+		var suffixValue = $('#suffixStrategyValue').val();
+		var suffixExternalValue = $('#suffixExternalValue').val();
 		var infix = $('#infixStrategy').val();
+		
 
 		var infixValue = '';
-		if (infix == 'SAME_AS_OTHER') {			
+		if (infix == 'SAME_AS_OTHER') {
 			infixValue = $('#infixStrategyUserType').val();
 		}
-		else if (infix == 'RANDOM' || infix == 'FROM_NAME' || infix == 'FROM_NAME_LONG') {
+		else if (infix == 'RANDOM' || infix == 'FROM_NAME' || infix == 'FROM_NAME_LONG' || infix == 'FROM_NAME_FULL' || infix == 'NUMBER') {
 			infixValue = $("#infixStrategyValue").val();
 		}
 
@@ -494,10 +519,12 @@
 				'dependsOnDelay': dependsOnDelay,
 				'prefix': prefix,
 				'prefixValue': prefixValue,
+				'prefixExternalValue': prefixExternalValue,
 				'infix': infix,
 				'infixValue': infixValue,
 				'suffix': suffix,
-				'suffixValue': suffixValue
+				'suffixValue': suffixValue,
+				'suffixExternalValue': suffixExternalValue
 			}),
 			success: function(data, textStatus, jQxhr) {
 				location.reload(true);

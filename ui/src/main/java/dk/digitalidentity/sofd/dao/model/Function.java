@@ -2,14 +2,13 @@ package dk.digitalidentity.sofd.dao.model;
 
 import java.util.List;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
-import javax.persistence.ManyToMany;
+import javax.persistence.OneToMany;
 import javax.validation.constraints.NotNull;
 
 import lombok.Getter;
@@ -29,13 +28,15 @@ public class Function {
 	private String name;
 	
 	@Column
+	private String category;
+	
+	@Column
 	private String description;
 	
 	@Column(name = "sort_key")
 	private int sortKey;
 	
-	@ManyToMany
-	@JoinTable(name = "fh_function_facet", joinColumns = @JoinColumn(name = "function_id"), inverseJoinColumns = @JoinColumn(name = "facet_id"))
-	private List<Facet> facets;
+	@OneToMany(mappedBy="function", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<FunctionFacetAssignment> facetAssignments;
 	
 }

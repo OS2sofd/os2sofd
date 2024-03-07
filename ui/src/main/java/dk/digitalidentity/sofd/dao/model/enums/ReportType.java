@@ -12,7 +12,8 @@ public enum ReportType {
 	PERSONS_STOPPED("html.report.persons_stopped"),
 	PERSONS_DISABLE_ACCOUNT_ORDERS("html.report.persons_disable_account_orders"),
 	PERSONS_WITH_MULTIPLE_AFFILIATIONS("html.report.persons_multiple_affiliations"),
-	PERSONS_WITH_SOFD_AFFILIATIONS("html.report.persons_with_sofd_affiliations");
+	PERSONS_WITH_SOFD_AFFILIATIONS("html.report.persons_with_sofd_affiliations"),
+	PERSONS_WITH_ACTIVE_SOFD_AFFILIATIONS("html.report.persons_with_active_sofd_affiliations");
 
 	private String title;
 

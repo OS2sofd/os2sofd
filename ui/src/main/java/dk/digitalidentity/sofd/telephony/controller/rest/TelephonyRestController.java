@@ -149,7 +149,7 @@ public class TelephonyRestController {
 
 			Optional<Affiliation> primeAffiliation = person.getAffiliations().stream().filter(a -> a.isPrime()).findFirst();
 			if (primeAffiliation.isPresent()) {
-				builder.append(" (" + primeAffiliation.get().getOrgUnit().getName() + ")");
+				builder.append(" (" + primeAffiliation.get().getCalculatedOrgUnit().getName() + ")"); // TODO: ok
 			}
 			
 			ValueData vd = new ValueData();

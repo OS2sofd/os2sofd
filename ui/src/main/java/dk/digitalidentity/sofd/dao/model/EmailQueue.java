@@ -46,10 +46,16 @@ public class EmailQueue {
 	private String personUuid;
 	
 	@Column
+	private boolean performEmailCheck;
+	
+	@Column
 	@Temporal(TemporalType.TIMESTAMP)
 	private Date deliveryTts;
 	
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "email_template_child_id")
 	private EmailTemplateChild emailTemplateChild;
+
+	@Column
+	private String recipient;
 }

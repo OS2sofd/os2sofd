@@ -4,4 +4,5 @@ AS
     id
     ,name
     ,description
+    ,category
 FROM fh_function;

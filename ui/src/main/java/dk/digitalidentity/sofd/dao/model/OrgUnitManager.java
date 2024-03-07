@@ -10,10 +10,10 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
 import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
 
+import org.hibernate.annotations.Formula;
 import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -21,11 +21,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.Objects;
-
 @Entity(name = "orgunits_manager")
 @Getter
-@Setter
 @Audited
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class OrgUnitManager {
@@ -34,19 +31,28 @@ public class OrgUnitManager {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private long id;
 
-	@Column
-	@NotNull
-	@Size(max = 255)
+	// this was initially a real database value copied from person, but is now replaced with a formula for data integrity reasons
+	// the formula performs better than looking up each manager name from the referenced manager when doing full table loads.
+	@Formula("(select ifnull(p.chosen_name,concat(p.firstname,' ',p.surname)) from persons p where p.uuid = manager_uuid)")
+	@NotAudited
 	private String name;
+
+	// manager_uuid field exposed directly so we don't have to fetch the entire manager entity if we only need the uuid.
+	@Formula("manager_uuid")
+	@NotAudited
+	private String managerUuid;
 
 	@Valid
 	@ManyToOne(fetch = FetchType.LAZY)
+	@Setter
 	private Person manager;
 
 	@Column
+	@Setter
 	private boolean inherited;
 
 	@OneToOne
+	@Setter
 	@JoinColumn(name = "orgunit_uuid")
 	@JsonBackReference
 	private OrgUnit orgUnit;
@@ -57,7 +63,6 @@ public class OrgUnitManager {
 		this.inherited = inherited;
 		this.manager = person;
 		this.orgUnit = orgUnit;
-		this.name = person.getChosenName() != null ? person.getChosenName() : person.getFirstname() + " " + person.getSurname();
 	}
 
 	// TODO: nope, do not use a custom equals, instead make some specific method for this,
@@ -92,10 +97,6 @@ public class OrgUnitManager {
 		}
 
 		if (orgUnitManager.isInherited() != isInherited()) {
-			return false;
-		}
-
-		if (!Objects.equals(orgUnitManager.getName(),getName())) {
 			return false;
 		}
 

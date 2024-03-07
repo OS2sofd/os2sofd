@@ -27,8 +27,10 @@ import dk.digitalidentity.sofd.controller.rest.model.OrgUnitCoreInfo;
 import dk.digitalidentity.sofd.dao.OrgUnitFutureChangesDao;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.OrgUnitFutureChange;
+import dk.digitalidentity.sofd.dao.model.OrgUnitManager;
 import dk.digitalidentity.sofd.dao.model.OrgUnitType;
 import dk.digitalidentity.sofd.dao.model.Organisation;
+import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.enums.AppliedStatus;
 import dk.digitalidentity.sofd.dao.model.enums.OrgUnitAttribute;
 import dk.digitalidentity.sofd.dao.model.enums.OrgUnitChangeType;
@@ -43,6 +45,9 @@ public class OrgUnitFutureChangesService {
 
 	@Autowired
 	private OrgUnitService orgUnitService;
+
+	@Autowired
+	private PersonService personService;
 
 	@Autowired
 	private OrgUnitFutureChangesDao futureChangesDao;
@@ -300,10 +305,20 @@ public class OrgUnitFutureChangesService {
 					}
 					break;
 				case DISPLAY_NAME:
-					if (!java.util.Objects.equals(orgUnit.getDisplayName(), orgUnitCoreInfo.getDisplayName())) {
+					if (StringUtils.hasLength(orgUnitCoreInfo.getDisplayName()) && !java.util.Objects.equals(orgUnit.getDisplayName(), orgUnitCoreInfo.getDisplayName())) {
 						newChange = new OrgUnitFutureChange(uuid, name, OrgUnitAttribute.DISPLAY_NAME, orgUnitCoreInfo.getDisplayName(), date);
 					}
 					break;
+				case MANAGER:
+					if ((StringUtils.hasLength(orgUnitCoreInfo.getManager()) && orgUnit.getManager() == null) ||
+						(!StringUtils.hasLength(orgUnitCoreInfo.getManager()) && orgUnit.getManager() != null) ||
+						(orgUnit.getManager() != null && !java.util.Objects.equals(orgUnit.getManager().getManager().getUuid(), orgUnitCoreInfo.getManager()))) {
+						
+						newChange = new OrgUnitFutureChange(uuid, name, OrgUnitAttribute.MANAGER, orgUnitCoreInfo.getManager(), date);
+					}
+					break;
+			default:
+				break;
 					
 					// Do not make a default case, we will allow our IDE to help us add new attributes in the future
 			}
@@ -360,8 +375,13 @@ public class OrgUnitFutureChangesService {
 					map.put(OrgUnitAttribute.TYPE, orgUnitCoreInfo.getOrgUnitType());
 					break;
 				case DISPLAY_NAME:
-						map.put(OrgUnitAttribute.DISPLAY_NAME, orgUnitCoreInfo.getDisplayName());
+					map.put(OrgUnitAttribute.DISPLAY_NAME, orgUnitCoreInfo.getDisplayName());
 					break;
+				case MANAGER:
+					map.put(OrgUnitAttribute.MANAGER, orgUnitCoreInfo.getManager());
+					break;
+			default:
+				break;
 					
 				// TODO: no default case so adding new fields will be automatically detected by IDE
 			}
@@ -418,9 +438,15 @@ public class OrgUnitFutureChangesService {
 		orgUnit.getChildren().size();
 		orgUnit.getPostAddresses().stream().forEach(m -> m.getPost().getCity());
 		orgUnit.getPhones().stream().forEach(m -> m.getPhone().getPhoneNumber());
-		orgUnit.getEmails().stream().forEach(m -> m.getEmail().getEmail());
 		orgUnit.getAffiliations().size();
 		orgUnit.getTags().stream().forEach(m -> m.getTag().getValue());
+		orgUnit.getSubstitutes().stream().forEach(m -> {
+			m.getContext().getName();
+			m.getId();
+			m.getSubstitute().getFirstname();
+			m.getSubstitute().getSurname();
+			m.getSubstitute().getChosenName();
+		});
 	}
 
 	private List<OrgUnit> applyChanges(List<OrgUnit> orgUnits, List<OrgUnitFutureChange> orgUnitFutureChanges) {
@@ -484,6 +510,17 @@ public class OrgUnitFutureChangesService {
 					orgUnit.setMasterId(UUID.randomUUID().toString());
 					orgUnit.setType(orgUnitService.getDepartmentType());
 					orgUnit.setDisplayName(change.getDisplayName());
+					
+					String futureManagerUuid = coreInfoMap.get(OrgUnitAttribute.MANAGER);
+					if (StringUtils.hasLength(futureManagerUuid)) {
+						Person futureManager = personService.getByUuid(futureManagerUuid);
+						if (futureManager != null) {
+							OrgUnitManager futureManagerMapping = new OrgUnitManager(orgUnit, futureManager, false);
+							orgUnit.setManager(futureManagerMapping);
+						} else {
+							log.warn("Unable to find future Manager with uuid" + futureManagerUuid + " when applying changes to OrgUnit (CREATE scenario)");
+						}
+					}
 
 					// collections needed for the UI has to be initialized
 					orgUnit.setTags(new ArrayList<>());
@@ -535,6 +572,17 @@ public class OrgUnitFutureChangesService {
 					case DISPLAY_NAME:
 						orgUnit.setDisplayName(change.getAttributeValue());
 						break;
+					case MANAGER:
+						Person futureManager = personService.getByUuid(change.getAttributeValue());
+						if (futureManager != null) {
+							OrgUnitManager futureManagerMapping = new OrgUnitManager(orgUnit, futureManager, false);
+							orgUnit.setManager(futureManagerMapping);
+						} else {
+							log.warn("Unable to find future Manager with uuid" + change.getAttributeValue() + " when applying changes to OrgUnit (UPDATE scenario)");
+						}
+						break;
+				default:
+					break;
 						
 
 					// do not make a default case - if new attributes are added in the future, our IDE

@@ -11,4 +11,6 @@ public class SubstituteContextDTO {
 	private String identifier;
 	private boolean supportsConstraints;
 	private boolean canBeDeleted;
+	private boolean assignableToOrgunit;
+	private boolean inherit;
 }

@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.service.xls.HistoricalReportsOnOrgUnitsService;
@@ -22,7 +21,6 @@ public class HistoricalReportsOnOrgUnitsTask {
 	private HistoricalReportsOnOrgUnitsService historicalReportsOnOrgUnitsService;
 
 	@Scheduled(cron = "${cron.historicalreportsonorgunits.task:0 0 0 1 * ?}")
-	@Transactional(rollbackFor = Exception.class)
 	public void generateOrgunitReport() {
 		if (!configuration.getScheduled().isEnabled()) {
 			log.debug("Scheduled jobs are disabled on this instance");
@@ -33,7 +31,7 @@ public class HistoricalReportsOnOrgUnitsTask {
 			log.debug("History on orgUnits is disabled");
 			return;
 		}
+		
 		historicalReportsOnOrgUnitsService.generateOrgunitReport();
 	}
-
 }

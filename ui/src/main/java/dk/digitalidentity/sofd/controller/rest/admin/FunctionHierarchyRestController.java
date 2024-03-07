@@ -10,19 +10,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import dk.digitalidentity.sofd.config.SofdConfiguration;
-import dk.digitalidentity.sofd.controller.rest.admin.model.FunctionHierarchyNotificationDTO;
 import dk.digitalidentity.sofd.dao.model.Facet;
 import dk.digitalidentity.sofd.dao.model.Function;
 import dk.digitalidentity.sofd.security.RequireAdminAccess;
 import dk.digitalidentity.sofd.service.FacetService;
 import dk.digitalidentity.sofd.service.FunctionService;
-import dk.digitalidentity.sofd.service.SettingService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -35,27 +30,7 @@ public class FunctionHierarchyRestController {
 	
 	@Autowired
     private FacetService facetService;
-	
-	@Autowired
-	private SettingService settingService;
-	
-	@Autowired
-	private SofdConfiguration configuration;
-	
-	@ResponseBody
-	@PostMapping("/rest/functionhierarchy/notifications/settings")
-	public ResponseEntity<String> setNotifications(@RequestBody FunctionHierarchyNotificationDTO dto) {
-		if (!configuration.getModules().getFunctionHierarchy().isEnabled()) {
-			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-		}
 		
-		settingService.setDaysBeforeFunctionAssignmentExpires(dto.getDaysBeforeFunctionAssignmentExpires());
-		settingService.setValueForKey(SettingService.FUNCTION_ASSIGNMENT_EMPLOYEE_NEW_MANAGER, dto.isFunctionAssignmentEmployeeNewManager());
-		settingService.setValueForKey(SettingService.FUNCTION_ASSIGNMENT_EXPIRES, dto.isFunctionAssignmentExpires());
-
-		return new ResponseEntity<>(HttpStatus.OK);
-	}
-	
 	@DeleteMapping("/rest/functionhierarchy/functions/{id}/delete")
 	public ResponseEntity<String> deleteFunction(@PathVariable long id) {
 		Function function = functionService.getById(id);

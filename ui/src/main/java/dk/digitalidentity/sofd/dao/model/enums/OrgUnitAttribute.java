@@ -11,7 +11,8 @@ public enum OrgUnitAttribute {
     COST_BEARER("html.entity.orgunit.costbearer"),
     PARENT("html.entity.orgunit.parent"),
     BELONGS_TO("html.entity.orgunit.belongsto"),
-	DISPLAY_NAME("html.entity.orgunit.displayName");
+    DISPLAY_NAME("html.entity.orgunit.displayName"),
+    MANAGER("html.entity.orgunit.manager");
 
     private String message;
 

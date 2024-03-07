@@ -14,9 +14,10 @@
 				<div class="panel-body">
 					<div class="row">
 						<div class="col-lg-12">
-							<form class="form-horizontal" id="function-form" th:action="@{/ui/admin/functionhierarchy/functions/update}" method="post" th:object="${form}">
+							<form class="form-horizontal" id="function-form" th:action="@{/ui/admin/functionhierarchy/functions/update}" method="post" th:object="${functionDTO}">
 								<input type="hidden" th:field="*{id}" />
 								<input type="hidden" th:field="*{facetIds}" />
+								<input type="hidden" id="facetSortKeys" name="facetSortKeys" />
 
 								<div class="form-group">
 									<label class="col-sm-2 control-label" th:text="#{html.page.functionHierarchy.labels.name}"></label>
@@ -24,6 +25,16 @@
 										<input th:field="*{name}" class="form-control" autofocus="autofocus" />
 										<ul th:if="${#fields.hasErrors('name')}" class="error">
 											<li th:each="err : ${#fields.errors('name')}" th:text="${err}"></li>
+										</ul>
+									</div>
+								</div>
+								
+								<div class="form-group">
+									<label class="col-sm-2 control-label" th:text="#{html.page.functionHierarchy.labels.category}"></label>
+									<div class="col-sm-8">
+										<input th:field="*{category}" class="form-control"/>
+										<ul th:if="${#fields.hasErrors('category')}" class="error">
+											<li th:each="err : ${#fields.errors('category')}" th:text="${err}"></li>
 										</ul>
 									</div>
 								</div>
@@ -42,8 +53,9 @@
 											<thead>
 											<tr>
 												<th class="col-md-1" th:text="#{html.page.functionHierarchy.labels.chosen}"></th>
+												<th class="col-md-1" th:text="#{html.page.functionHierarchy.labels.sortKey}" th:title="#{html.page.functionHierarchy.labels.sortKey.explanation}"></th>
 												<th class="col-md-3" th:text="#{html.page.functionHierarchy.labels.name}"></th>
-												<th class="col-md-3" th:text="#{html.page.functionHierarchy.labels.type}"></th>
+												<th class="col-md-2" th:text="#{html.page.functionHierarchy.labels.type}"></th>
 												<th class="col-md-5" th:text="#{html.page.functionHierarchy.labels.description}"></th>
 											</tr>
 											</thead>
@@ -58,6 +70,7 @@
 														</label>
 													</div>
 												</td>
+												<td><input class="form-control sortKeyFields" type="number" th:value="${facet.sortKey}" min="1" style="width: 120px;" th:attr="data-facetid=${facet.id}"></td>
 												<td th:text="${facet.name}"></td>
 												<td th:text="#{${facet.type.message}}"></td>
 												<td th:text="${facet.description}"></td>
@@ -98,7 +111,7 @@
 	var token = $("meta[name='_csrf']").attr("content");
 
 	/*[+
-		var facetIdList = [[${form.facetIds}]];
+		var facetIdList = [[${functionDTO.facetIds}]];
 	+]*/
 	
 	var functionService;
@@ -129,6 +142,19 @@
 				});
 				
 				$("#facetIds").val(facetIds);
+
+				var facetSortKeys = "";
+				$(".sortKeyFields").each(function(index) {
+					console.log($(this).val());
+					if ($(this).val() != "") {
+						if (facetSortKeys.length == 0) {
+							facetSortKeys += $(this).data("facetid") + ":" + $(this).val();
+						} else {
+							facetSortKeys += "," + $(this).data("facetid") + ":" + $(this).val();
+						}
+					}
+				});
+				$("#facetSortKeys").val(facetSortKeys);
 
 				return true;
 			});

@@ -51,7 +51,7 @@ public class GenericReportXlsView extends AbstractXlsView {
 
 			Affiliation affiliation = person.getPrimeAffiliation();
 			if (affiliation != null) {
-				courseRow.createCell(2).setCellValue(AffiliationService.getPositionName(affiliation) + " i " + affiliation.getOrgUnit().getName());
+				courseRow.createCell(2).setCellValue(AffiliationService.getPositionName(affiliation) + " i " + affiliation.getCalculatedOrgUnit().getName());
 			}
 			else {
 				courseRow.createCell(2).setCellValue("");
@@ -60,8 +60,11 @@ public class GenericReportXlsView extends AbstractXlsView {
 			switch (reportType) {
 				case PERSONS_WITH_MULTIPLE_AFFILIATIONS:
 				case PERSONS_WITH_SOFD_AFFILIATIONS:
+				case PERSONS_WITH_ACTIVE_SOFD_AFFILIATIONS:
 					throw new RuntimeException("Wrong Xls View used");
 				case PERSONS_STOPPED:
+					courseRow.createCell(3).setCellValue(person.getStopReason());
+					break;
 				case PERSONS_DISABLE_ACCOUNT_ORDERS:
 				case DUPLICATE_AFFILIATION:
 					break;
@@ -106,8 +109,11 @@ public class GenericReportXlsView extends AbstractXlsView {
 		switch (reportType) {
 			case PERSONS_WITH_MULTIPLE_AFFILIATIONS:
 			case PERSONS_WITH_SOFD_AFFILIATIONS:
+			case PERSONS_WITH_ACTIVE_SOFD_AFFILIATIONS:
 				throw new RuntimeException("Wrong Xls View used");
 			case PERSONS_STOPPED:
+				header4 = messageSource.getMessage("xls.genericreport.person.stopReason", null, locale);
+				break;
 			case PERSONS_DISABLE_ACCOUNT_ORDERS:
 			case DUPLICATE_AFFILIATION:
 				break;
@@ -125,6 +131,8 @@ public class GenericReportXlsView extends AbstractXlsView {
 				header6 = messageSource.getMessage("xls.genericreport.person.leaveStartDate", null, locale);
 				header7 = messageSource.getMessage("xls.genericreport.person.leaveStopDate", null, locale);
 				break;
+		default:
+			break;
 		}
 
 		Font headerFont = workbook.createFont();

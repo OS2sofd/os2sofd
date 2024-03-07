@@ -22,4 +22,5 @@ public class AffiliationEditDTO {
 	private String internalReference;
 	private AffiliationType affiliationType;
 	private String positionDisplayName;
+	private boolean doNotTransferToFKOrg;
 }

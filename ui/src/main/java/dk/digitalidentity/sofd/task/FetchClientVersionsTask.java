@@ -25,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @Slf4j
 public class FetchClientVersionsTask {
+	
 	@Autowired
 	private SofdConfiguration configuration;
 
@@ -58,10 +59,12 @@ public class FetchClientVersionsTask {
 		
 		List<Client> dbClients = clientService.findAll().stream().filter(c -> !StringUtils.isBlank(c.getApplicationIdentifier())).collect(Collectors.toList());
 		for (Client client : dbClients) {
-			//Find matching client in api call
+			
+			// find matching client in api call
 			ApplicationApiDTO clientDTO = extClients.stream().filter(c -> Objects.equals(c.getIdentifier(), client.getApplicationIdentifier())).findAny().orElse(null);
+
 			if (clientDTO != null) {
-				//Update client
+				// update client
 				client.setNewestVersion(clientDTO.getNewestVersion());
 				client.setMinimumVersion(clientDTO.getMinimumVersion());
 
@@ -76,20 +79,22 @@ public class FetchClientVersionsTask {
 
 						if (currentVersion.equals(newestVersion)) {
 							client.setVersionStatus(VersionStatus.NEWEST);
-						} else if (currentVersion.compareTo(minimumVersion) < 0) {
+						}
+						else if (currentVersion.compareTo(minimumVersion) < 0) {
 							client.setVersionStatus(VersionStatus.OUTDATED);
 							log.warn("Client with id " + client.getId() + " and name " + client.getName() + " is running an outdated version of " + client.getApplicationIdentifier());
-						} else {
+						}
+						else {
 							client.setVersionStatus(VersionStatus.UPDATABLE);
 						}
 					}
 				}
 				
 				clientService.save(client);
-			} else {
-				log.error("Client id: " + client.getId() + " name: " + client.getName() + " has ApplicationIdentifier " + client.getApplicationIdentifier() + " but identifier was not found in API call to AppManager.");
 			}
-			
+			else {
+				log.error("Client id: " + client.getId() + " name: " + client.getName() + " has ApplicationIdentifier " + client.getApplicationIdentifier() + " but identifier was not found in API call to AppManager.");
+			}			
 		}
 	}
 }

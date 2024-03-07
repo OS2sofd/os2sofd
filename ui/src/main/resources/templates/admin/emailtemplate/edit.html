@@ -62,8 +62,8 @@
 								<form th:each="child : ${template.children}" class="form-horizontal childForm" th:id="'child' + ${child.id}" style="display: none;">
 									<input type="hidden" name="id" th:value="${child.id}"/>
 									<input type="hidden" name="enabled" th:value="${child.enabled}"/>
-									<input type="hidden" name="sendToSubstitute" th:value="${child.sendToSubstitute}"/>
 									<input type="hidden" name="adRequired" th:value="${child.adRequired}"/>
+									<input type="hidden" name="onlyManualRecipients" th:value="${child.onlyManualRecipients}"/>
 									
 									<div class="form-group">
 										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.enabled}"></label>
@@ -132,18 +132,37 @@
 										</div>
 									</div>
 									
-									<div class="form-group" th:id="'sendToSubstitute' + ${child.id}" th:if="${template.emailTemplateType.sendToManager}">
-										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.send_to_substitute}"></label>
+									<div class="form-group" th:id="'sendTo' + ${child.id}" th:if="${template.emailTemplateType.sendToManager}">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.send_to}"></label>
+										<div class="col-sm-8">
+											<select name="sendTo" class="form-control">
+													<option th:each="option : ${T(dk.digitalidentity.sofd.dao.model.enums.SendTo).values()}" th:text="#{${option.title}}" th:value="${option}" th:selected="${option == child.sendTo}">
+											</select>
+										</div>
+									</div>
+									
+									<div class="form-group" th:id="'employeeFilter' + ${child.id}" th:if="${template.emailTemplateType.showEmployeeFilter}">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.employeeFilter}"></label>
+										<div class="col-sm-8">
+											<select name="employeeFilter" class="form-control">
+													<option th:each="option : ${T(dk.digitalidentity.sofd.dao.model.enums.EmployeeFilter).values()}" th:text="#{${option.message}}" th:value="${option}" th:selected="${option == child.employeeFilter}">
+											</select>
+										</div>
+									</div>
+
+									<div class="form-group" th:id="'onlyManualRecipients' + ${child.id}" th:if="${template.emailTemplateType.onlyManualRecipients}">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.only_manual_recipients}"></label>
 										<div class="col-sm-8">
 											<div class="checkbox c-checkbox">
 												<label>
-													<input class="checkboxSendToSubstitute" th:checked="${child.sendToSubstitute}" type="checkbox" />
+													<input class="checkboxOnlyManualRecipients" th:checked="${child.onlyManualRecipients}" type="checkbox" />
 													<span class="fa fa-check"></span>
 												</label>
 											</div>
 										</div>
 									</div>
-									
+
+
 									<div class="form-group" th:id="'recipients' + ${child.id}" th:if="${template.emailTemplateType.showTO}">
 										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.recipients}"></label>
 										<div class="col-sm-8">
@@ -168,7 +187,7 @@
 									<div class="form-group">
 										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.name}"></label>
 										<div class="col-sm-8">
-											<input name="title" th:value="${child.title}" th:maxlength="50" class="form-control" />
+											<input name="title" th:value="${child.title}" th:maxlength="${template.emailTemplateType.eboks ? 50 : 255}" class="form-control" />
 										</div>
 									</div>
 
@@ -202,13 +221,29 @@
 											<button type="button" style="margin-right: 5px;" class="btn btn-lg btn-warning col-xs-2 buttonTest" th:text="#{html.page.email_template.test}"></button>
 										</div>
 									</div>
+									
+									<div class="form-group">
+										<div class="col-sm-offset-2 col-sm-8">
+											<h4 th:text="#{html.entity.email_template.placeholders}"></h4>
+											<p th:text="#{html.entity.email_template.placeholders.intro}"></p>
+											<table class="table">
+					                            <thead>
+						                            <tr>
+						                                <th th:text="#{html.entity.email_template.placeholders.placeholder}" style="width: 250px;"/>
+						                                <th th:text="#{html.entity.email_template.placeholders.description}"/>
+						                            </tr>
+					                            </thead>
+					                            <tbody>
+						                            <tr th:each="placeholder : ${template.emailTemplateType.emailTemplatePlaceholders}">
+						                                <td th:text="${placeholder.placeholder}"/>
+						                                <td th:text="#{${placeholder.description}}"/>
+						                            </tr>
+					                            </tbody>
+					                        </table>
+										</div>
+									</div>
+									
 								</form>
-							</div>
-						</div>
-						
-						<div class="row">
-							<div class="col-lg-offset-2 col-lg-8">
-								<em th:utext="#{html.page.email_template.footer}"></em>
 							</div>
 						</div>
 					</div>
@@ -345,13 +380,6 @@
 				
 				oForm.find("input[name=enabled]")[0].value = checkboxValue;
 			});
-
-			$('.checkboxSendToSubstitute').change(function() {
-				var oForm = $('#child' + $("#childDropdown" + $("#templateDropdown").val()).val());
-				var checkboxValue = oForm.find('.checkboxSendToSubstitute')[0].checked;
-				
-				oForm.find("input[name=sendToSubstitute]")[0].value = checkboxValue;
-			});
 			
 			$('.checkboxADRequired').change(function() {
 				var oForm = $('#child' + $("#childDropdown" + $("#templateDropdown").val()).val());
@@ -359,7 +387,15 @@
 				
 				oForm.find("input[name=adRequired]")[0].value = checkboxValue;
 			});
-			
+
+			$('.checkboxOnlyManualRecipients').change(function() {
+				var oForm = $('#child' + $("#childDropdown" + $("#templateDropdown").val()).val());
+				var checkboxValue = oForm.find('.checkboxOnlyManualRecipients')[0].checked;
+
+				oForm.find("input[name=onlyManualRecipients]")[0].value = checkboxValue;
+			});
+
+
 			// display currently chosen template
 			$('#template' + $("#templateDropdown").val()).show();
 			

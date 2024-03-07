@@ -1,11 +1,4 @@
-CREATE OR REPLACE VIEW subview_callcenter_orgunit_prime_email AS
-(
-	SELECT
-		oue.orgunit_uuid
-        ,e.email
-	FROM orgunits_emails oue
-	INNER JOIN emails e ON e.id = oue.email_id and e.prime = 1
-);
+DROP VIEW IF EXISTS subview_callcenter_orgunit_prime_email;
 
 CREATE OR REPLACE VIEW subview_callcenter_prime_ad_user AS
 (
@@ -118,7 +111,7 @@ CREATE OR REPLACE VIEW subview_callcenter_employees AS
 			AND af.deleted = 0
 			AND (af.start_date IS NULL OR CAST(af.start_date AS DATE) <= CAST(CURRENT_TIMESTAMP AS DATE))
 			AND (af.stop_date IS NULL OR CAST(af.stop_date AS DATE) >= CAST(CURRENT_TIMESTAMP AS DATE))
-		INNER JOIN orgunits ou ON ou.uuid = af.orgunit_uuid and ou.deleted = 0
+		INNER JOIN orgunits ou ON ou.uuid = COALESCE(af.`alt_orgunit_uuid`, af.`orgunit_uuid`) and ou.deleted = 0
         LEFT JOIN subview_callcenter_prime_orgunit_phone pop ON pop.orgunit_uuid = ou.uuid
 		LEFT JOIN subview_callcenter_orgunit_prime_post oupp ON oupp.orgunit_uuid = ou.uuid
 		LEFT JOIN subview_callcenter_prime_ad_user padu ON padu.person_uuid = p.uuid
@@ -142,7 +135,7 @@ CREATE OR REPLACE VIEW subview_callcenter_orgunits AS
         ou.opening_hours	AS 'opening_hours',
 		pop.phone_number	AS 'phone',
 		oupn.phone_numbers  AS 'phone_numbers',
-		oupe.email			AS 'email',
+		ou.email			AS 'email',
 		oupp.address        AS 'address',
 		NULL				AS 'position_name',
 		ou.notes            AS 'notes',
@@ -152,7 +145,6 @@ CREATE OR REPLACE VIEW subview_callcenter_orgunits AS
 	FROM
 		orgunits ou
         LEFT JOIN subview_callcenter_prime_orgunit_phone pop ON pop.orgunit_uuid = ou.uuid
-        LEFT JOIN subview_callcenter_orgunit_prime_email oupe ON oupe.orgunit_uuid = ou.uuid
         LEFT JOIN subview_callcenter_orgunit_prime_post oupp ON oupp.orgunit_uuid = ou.uuid
         LEFT JOIN subview_callcenter_orgunit_phone_numbers oupn ON oupn.orgunit_uuid = ou.uuid
         LEFT JOIN orgunits_manager ouman ON ouman.orgunit_uuid = ou.uuid

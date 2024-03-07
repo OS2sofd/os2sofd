@@ -36,6 +36,7 @@ import dk.digitalidentity.sofd.controller.mvc.dto.AffiliationDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.EmployeeDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.EmployeeWithUsersDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.KleDTO;
+import dk.digitalidentity.sofd.controller.mvc.dto.SubstituteOrgUnitAssignmentDTO;
 import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderRulesXlsDto;
 import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderRulesXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.EmployeesInformationXlsView;
@@ -44,9 +45,12 @@ import dk.digitalidentity.sofd.controller.rest.model.PhoneDTO;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.OrgUnitAccountOrder;
+import dk.digitalidentity.sofd.dao.model.OrgUnitManager;
 import dk.digitalidentity.sofd.dao.model.OrgUnitTag;
 import dk.digitalidentity.sofd.dao.model.OrgUnitType;
 import dk.digitalidentity.sofd.dao.model.Person;
+import dk.digitalidentity.sofd.dao.model.SubstituteContext;
+import dk.digitalidentity.sofd.dao.model.SubstituteOrgUnitAssignment;
 import dk.digitalidentity.sofd.dao.model.SupportedUserType;
 import dk.digitalidentity.sofd.dao.model.Tag;
 import dk.digitalidentity.sofd.dao.model.User;
@@ -66,6 +70,8 @@ import dk.digitalidentity.sofd.service.OrgUnitFutureChangesService;
 import dk.digitalidentity.sofd.service.OrgUnitService;
 import dk.digitalidentity.sofd.service.OrganisationService;
 import dk.digitalidentity.sofd.service.PersonService;
+import dk.digitalidentity.sofd.service.PersonService.ManagerFromPersonResponse;
+import dk.digitalidentity.sofd.service.SubstituteContextService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
 import dk.digitalidentity.sofd.service.TagsService;
 import dk.digitalidentity.sofd.service.model.KleAssignmentDto;
@@ -87,16 +93,16 @@ public class OrgUnitController {
 
 	@Autowired
 	private AffiliationService affiliationService;
-	
+
 	@Autowired
 	private FunctionTypeService functionTypeService;
 
 	@Autowired
 	private AccountOrderService accountOrderService;
-	
+
 	@Autowired
 	private SupportedUserTypeService supportedUserTypeService;
-	
+
 	@Autowired
 	private MessageSource messageSource;
 
@@ -105,40 +111,57 @@ public class OrgUnitController {
 
 	@Autowired
 	private TagsService tagsService;
-	
+
 	@Autowired
 	private PersonService personService;
-	
+
 	@Autowired
 	private AuditLogger auditLogger;
 
 	@Autowired
 	private OrganisationService organisationService;
 
+	@Autowired
+	private SubstituteContextService substituteContextService;
+
+	record TagAssignmentDTO(String uuid, String value, String shortValue) {}
 	@GetMapping("/ui/orgunit")
 	public String list(Model model) {
 		List<OUTreeFormWithTags> allTreeWithTags = orgUnitService.getAllTreeWithTags();
 		model.addAttribute("orgUnits", allTreeWithTags);
 		model.addAttribute("tags", tagsService.findAll());
-		
-		Map<Long, List<String>> tags = new HashMap<Long, List<String>>();
+
+		Map<Long, List<TagAssignmentDTO>> tags = new HashMap<>();
 		for (OUTreeFormWithTags ou : allTreeWithTags) {
 			for (Long tagId : ou.getTagIds()) {
 				if (!tags.containsKey(tagId)) {
-					tags.put(tagId, new ArrayList<String>());
-					tags.get(tagId).add(ou.getId());
+					tags.put(tagId, new ArrayList<>());
+					String value = ou.getTagValueMap().get(tagId);
+					tags.get(tagId).add(new TagAssignmentDTO(ou.getId(), value, getShortValue(value)));
 				}
 				else {
-					tags.get(tagId).add(ou.getId());
+					String value = ou.getTagValueMap().get(tagId);
+					tags.get(tagId).add(new TagAssignmentDTO(ou.getId(), value, getShortValue(value)));
 				}
 			}
 		}
-		
+
 		model.addAttribute("tagsmap", tags);
-		
+
 		return "orgunit/tree";
 	}
-	
+
+	private String getShortValue(String value) {
+		if (value != null) {
+			if (value.length() > 20) {
+				return value.substring(0, 20) + "...";
+			} else {
+				return value;
+			}
+		}
+		return "";
+	}
+
 	@GetMapping("/ui/orgunit/downloadrules")
 	public ModelAndView downloadRules(HttpServletResponse response, Locale loc) {
 		AccountOrderRulesXlsDto dto = new AccountOrderRulesXlsDto();
@@ -165,7 +188,7 @@ public class OrgUnitController {
 		List<OrgUnit> orgUnits = (orgId == null || organisationService.getById(orgId) == null)
 				? orgUnitService.getAllActive()
 				: orgUnitService.getAllActive(organisationService.getById(orgId));
-		
+
 		Map<String, Object> model = new HashMap<>();
 		model.put("orgUnits", orgUnits);
 		model.put("messagesBundle", messageSource);
@@ -190,7 +213,7 @@ public class OrgUnitController {
 		for (Tag tag : tagsService.findAll()) {
 			Optional<OrgUnitTag> selectedTag = orgUnit.getTags().stream().filter(t -> t.getTag().equals(tag)).findFirst();
 			TagDTO tagDTO = new TagDTO(tag);
-			
+
 			if (selectedTag.isPresent()) {
 				tagDTO.setSelected(true);
 				tagDTO.setCustomValue(selectedTag.get().getCustomValue());
@@ -198,15 +221,21 @@ public class OrgUnitController {
 
 			tags.add(tagDTO);
 		}
-		
+
 		model.addAttribute("allKles", kleDTOs);
 		model.addAttribute("tags", tags);
 		model.addAttribute("orgUnit", orgUnit);
+		model.addAttribute("inheritedEan", "1234567890");
 		model.addAttribute("postAddresses", OrgUnitService.getPosts(orgUnit));
 		model.addAttribute("phones", OrgUnitService.getPhones(orgUnit).stream().map(p -> new PhoneDTO(p)).collect(Collectors.toList()));
 		model.addAttribute("employees", getEmployees(orgUnit));
 		model.addAttribute("functionTypes", functionTypeService.findAllAsDTO());
 		model.addAttribute("futureChanges", orgUnitFutureChangesService.getAllByOrgUnitAndNotApplied(orgUnit));
+		model.addAttribute("substituteContexts", substituteContextService.getAll().stream().filter(SubstituteContext::isAssignableToOrgUnit).toList());
+
+		List<SubstituteOrgUnitAssignmentDTO> substitutes = orgUnit.getSubstitutes().stream().map(s -> new SubstituteOrgUnitAssignmentDTO(s)).collect(Collectors.toList());
+		findInheritedSubstitutes(orgUnit.getParent(), substitutes);
+		model.addAttribute("substitutes", substitutes);
 
 		// TODO: these we only need to load for admins when the account creation module is enabled....
 		OrgUnitAccountOrder accountOrders = accountOrderService.getAccountOrderSettings(orgUnit, true);
@@ -216,7 +245,21 @@ public class OrgUnitController {
 
 		return "orgunit/view";
 	}
-	
+
+	private void findInheritedSubstitutes(OrgUnit parent, List<SubstituteOrgUnitAssignmentDTO> substitutes) {
+		if (parent == null) {
+			return;
+		}
+
+		for (SubstituteOrgUnitAssignment substituteOrgUnitAssignment : parent.getSubstitutes()) {
+			if (substituteOrgUnitAssignment.getContext().isInheritOrgUnitAssignments()) {
+				substitutes.add(new SubstituteOrgUnitAssignmentDTO(substituteOrgUnitAssignment, true, parent.getName()));
+			}
+		}
+
+		findInheritedSubstitutes(parent.getParent(), substitutes);
+	}
+
 	@GetMapping(value = "/ui/orgunit/view/download/employees/{uuid}")
 	public ModelAndView downloadEmployeesInformation(HttpServletResponse response, Locale loc, @PathVariable("uuid") String uuid) {
 		OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
@@ -256,7 +299,7 @@ public class OrgUnitController {
 
 		return new ModelAndView(new EmployeesInformationXlsView(), model);
 	}
-	
+
 	@RequireControllerWriteAccess
 	@GetMapping("/ui/orgunit/view/{uuid}/addemployee")
 	public String addEmployee(Model model, @PathVariable("uuid") String uuid) throws Exception {
@@ -267,10 +310,10 @@ public class OrgUnitController {
 		}
 
 		model.addAttribute("orgUnit", orgUnit);
-		
+
 		return "orgunit/add_employee";
 	}
-	
+
 	@RequireControllerWriteAccess
 	@GetMapping("/ui/orgunit/affiliation/{orgUnitUuid}/{personUuid}")
 	public String newAffiliation(Model model, @PathVariable("orgUnitUuid") String orgUnitUuid, @PathVariable("personUuid") String personUuid) {
@@ -282,14 +325,14 @@ public class OrgUnitController {
 
 		AffiliationDTO affiliationDTO = new AffiliationDTO();
 		affiliationDTO.setAffiliationType(AffiliationType.EMPLOYEE);
-		
+
 		model.addAttribute("affiliationDTO", affiliationDTO);
 		model.addAttribute("personUUID", personUuid);
 		model.addAttribute("orgUnit", orgUnit);
 
 		return "orgunit/new_affiliation";
 	}
-	
+
 	@RequireControllerWriteAccess
 	@PostMapping("/ui/orgunit/affiliation")
 	public String createNewAffiliation(Model model, @ModelAttribute("personUUID") String personUUID, @Valid @ModelAttribute("affiliationDTO") AffiliationDTO affiliationDTO, BindingResult bindingResult) {
@@ -306,26 +349,26 @@ public class OrgUnitController {
 			model.addAttribute("personUUID", personUUID);
 			model.addAttribute("orgUnit", ou);
 
-			return "orgunit/new_affiliation";			
+			return "orgunit/new_affiliation";
 		}
-		
+
 		Person person = personService.getByUuid(personUUID);
 		if (person == null) {
 			log.warn("Could not find person with uuid " + personUUID + " while assigning new affiliation");
 
 			return "redirect:/ui/orgunit/view/" + affiliationDTO.getOrgUnitUuid() + "/addemployee";
 		}
-		
+
 		addAffiliationFromDTO(affiliationDTO, person, ou);
 
 		personService.save(person);
-		
-		String message = "Der er oprettet et nyt tilhørsforhold med stillingsbetegnelsen " + affiliationDTO.getPositionName() + " i enheden " + ou.getName(); 
+
+		String message = "Der er oprettet et nyt tilhørsforhold med stillingsbetegnelsen " + affiliationDTO.getPositionName() + " i enheden " + ou.getName();
 		auditLogger.log(person.getUuid(), EntityType.PERSON, EventType.AFFILIATION_CREATED, PersonService.getName(person), message);
 
 		return "redirect:/ui/orgunit/view/" + affiliationDTO.getOrgUnitUuid();
 	}
-	
+
 	@GetMapping("/ui/orgunit/view/{uuid}/addemployees")
 	public String addEmployees(Model model, @PathVariable("uuid") String uuid) throws Exception {
 		OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
@@ -334,19 +377,19 @@ public class OrgUnitController {
 
 			return "redirect:/ui/orgunit";
 		}
-		
+
 		model.addAttribute("orgUnits", orgUnitService.getAllTree());
 		model.addAttribute("orgUnit", orgUnit);
-		
+
 		return "orgunit/add_employees";
 	}
-	
+
 	@RequireControllerWriteAccess
 	@GetMapping("/ui/orgunit/affiliations/{toOrgUnitUuid}/{fromOrgUnitUuid}")
 	public String newAffiliations(Model model, @PathVariable("toOrgUnitUuid") String toOrgUnitUuid, @PathVariable("fromOrgUnitUuid") String fromOrgUnitUuid) {
 		AffiliationDTO affiliationDTO = new AffiliationDTO();
 		affiliationDTO.setAffiliationType(AffiliationType.EMPLOYEE);
-		
+
 		OrgUnit toOrgUnit = orgUnitService.getByUuid(toOrgUnitUuid);
 		if (toOrgUnit == null) {
 			log.warn("No OrgUnit with uuid " + toOrgUnitUuid);
@@ -358,14 +401,14 @@ public class OrgUnitController {
 			log.warn("No OrgUnit with uuid " + fromOrgUnitUuid);
 			return "redirect:/ui/orgunit";
 		}
-		
+
 		model.addAttribute("affiliationDTO", affiliationDTO);
 		model.addAttribute("toOrgUnit", toOrgUnit);
 		model.addAttribute("fromOrgUnit", fromOrgUnit);
 
 		return "orgunit/new_affiliations";
 	}
-	
+
 	@RequireControllerWriteAccess
 	@PostMapping("/ui/orgunit/affiliations")
 	public String createNewAffiliations(Model model, @Valid @ModelAttribute("affiliationDTO") AffiliationDTO affiliationDTO, BindingResult bindingResult) {
@@ -388,7 +431,7 @@ public class OrgUnitController {
 			model.addAttribute("fromOrgUnit", fromOu);
 			model.addAttribute("toOrgUnit", ou);
 
-			return "orgunit/new_affiliations";			
+			return "orgunit/new_affiliations";
 		}
 
 		for (EmployeeDTO person : getEmployees(fromOu)) {
@@ -397,11 +440,11 @@ public class OrgUnitController {
 				log.warn("Could not find person with uuid " + person.getUuid() + " while assigning new affiliation");
 				continue;
 			}
-			
+
 			addAffiliationFromDTO(affiliationDTO, realPerson, ou);
 			personService.save(realPerson);
-			
-			String message = "Der er oprettet et nyt tilhørsforhold med stillingsbetegnelsen " + affiliationDTO.getPositionName() + " i enheden " + ou.getName(); 
+
+			String message = "Der er oprettet et nyt tilhørsforhold med stillingsbetegnelsen " + affiliationDTO.getPositionName() + " i enheden " + ou.getName();
 			auditLogger.log(person.getUuid(), EntityType.PERSON, EventType.AFFILIATION_CREATED, PersonService.getName(realPerson), message);
 		}
 
@@ -454,7 +497,7 @@ public class OrgUnitController {
 				log.error("Invalid kle type: " + type);
 				break;
 		}
-		
+
 		model.addAttribute("kles", kles);
 
 		return "fragments/viewKLE :: content";
@@ -494,7 +537,7 @@ public class OrgUnitController {
 		SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
 		List<EmployeeDTO> employees = new ArrayList<>();
 
-		for (Affiliation affiliation : affiliationService.findByOrgUnitAndActive(orgUnit)) {
+		for (Affiliation affiliation : affiliationService.findByCalculatedOrgUnitAndActive(orgUnit)) {
 			EmployeeDTO employeeDTO = new EmployeeDTO();
 			Person person = affiliation.getPerson();
 
@@ -526,7 +569,7 @@ public class OrgUnitController {
 
 		return employees;
 	}
-	
+
 	private List<EmployeeWithUsersDTO> getEmployeesWithUsers(OrgUnit orgUnit) {
 		SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
 		List<EmployeeWithUsersDTO> employees = new ArrayList<>();
@@ -542,10 +585,11 @@ public class OrgUnitController {
 			employeeDTO.setStartDate(affiliation.getStartDate() != null ? formatter.format(affiliation.getStartDate()) : null);
 			employeeDTO.setStopDate(affiliation.getStopDate() != null ? formatter.format(affiliation.getStopDate()) : null);
 			employeeDTO.setOrgUnitName(orgUnit.getName());
-			employeeDTO.setManager(orgUnit.getManager() != null ? orgUnit.getManager().getName() : null);
+			String managerName = getManagerName(orgUnit, affiliation, person);
+			employeeDTO.setManager(managerName);
 			employeeDTO.setOrgUnitUuid(orgUnit.getUuid());
 			employeeDTO.setEmploymentTerms(affiliation.getEmploymentTermsText());
-			
+
 			for (User user : PersonService.getUsers(person)) {
 				SupportedUserType userType = supportedUserTypeService.findByKey(user.getUserType());
 				if (userType == null) {
@@ -561,7 +605,26 @@ public class OrgUnitController {
 
 		return employees;
 	}
-	
+
+	private String getManagerName(OrgUnit orgUnit, Affiliation affiliation, Person person) {
+		OrgUnitManager orgUnitManager = orgUnit.getManager();
+		String managerName = "";
+		
+		if (orgUnitManager != null) {
+			if (person == orgUnitManager.getManager()) {
+				ManagerFromPersonResponse differentManager = PersonService.getManagerDifferentFromPerson(person, affiliation.getEmployeeId());
+				if (differentManager != null) {
+					managerName = differentManager.manager().getName();
+				}
+			}
+			else {
+				managerName = orgUnitManager.getName();
+			}
+		}
+		
+		return managerName;
+	}
+
 	private List<EmployeeWithUsersDTO> getEmployeesWithUsersRecursive(OrgUnit ou) {
 		List<EmployeeWithUsersDTO> allEmployees = new ArrayList<>();
 
@@ -606,6 +669,7 @@ public class OrgUnitController {
 			log.warn("No OrgUnit with uuid: " + uuid);
 		}
 		else {
+			model.addAttribute("contactAddress", orgUnit.getContactAddress());
 			model.addAttribute("openingHours", orgUnit.getOpeningHours());
 			model.addAttribute("openingHoursPhone", orgUnit.getOpeningHoursPhone());
 			model.addAttribute("keyWords", orgUnit.getKeyWords());
@@ -613,6 +677,7 @@ public class OrgUnitController {
 			model.addAttribute("emailNotes", orgUnit.getEmailNotes());
 			model.addAttribute("location", orgUnit.getLocation());
 			model.addAttribute("urlAddress", orgUnit.getUrlAddress());
+			model.addAttribute("email", orgUnit.getEmail());
 		}
 
 		if (type.equals("edit")) {
@@ -621,7 +686,7 @@ public class OrgUnitController {
 
 		return "orgunit/fragments/viewContactInfoTab :: contactInfoTab";
 	}
-	
+
 	@GetMapping("/ui/orgunit/orderAccounts/{uuid}/{type}")
 	public String getOrderAccountsTab(Model model, @PathVariable("uuid") String uuid, @PathVariable("type") String type) {
 		OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
@@ -658,13 +723,15 @@ public class OrgUnitController {
 			List<OrgUnitType> orgUnitTypes = orgUnitService.getTypes();
 
 			boolean canEditAll = SecurityUtil.getUserRoles().contains(RoleConstants.USER_ROLE_LOS_ADMIN) && "SOFD".equals(orgUnit.getMaster());
-			
+
 			model.addAttribute("canEditAll", canEditAll);
 			model.addAttribute("orgUnits", orgUnits);
 			model.addAttribute("orgUnitTypes", orgUnitTypes);
 
 			return "orgunit/fragments/orgunits_core_edit :: orgUnitsCoreEdit";
 		}
+
+		model.addAttribute("deletable", orgUnitService.isDeletable(orgUnit));
 
 		return "orgunit/fragments/orgunits_core_view :: orgUnitsCoreView";
 	}
@@ -674,7 +741,7 @@ public class OrgUnitController {
 		OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
 		if (orgUnit == null) {
 			log.warn("No OrgUnit with uuid: " + uuid);
-			
+
 			model.addAttribute("postAddresses", new ArrayList<>());
 		}
 		else {
@@ -683,7 +750,7 @@ public class OrgUnitController {
 
 		return "orgunit/fragments/viewPostsTab :: postsTab";
 	}
-	
+
 	@GetMapping("/ui/orgunit/{uuid}/fragments/managedtitles")
 	public String getExtraTitlesFragment(Model model, @PathVariable("uuid") String uuid) {
 		OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
@@ -696,7 +763,7 @@ public class OrgUnitController {
 
 		return "orgunit/fragments/managedTitlesTab :: managedTitlesTab";
 	}
-	
+
 	private Affiliation addAffiliationFromDTO(AffiliationDTO affiliationDTO, Person person, OrgUnit ou) {
 		Affiliation affiliation = new Affiliation();
 		affiliation.setUuid(UUID.randomUUID().toString());
@@ -707,7 +774,7 @@ public class OrgUnitController {
 		affiliation.setStartDate(getToday());
 		affiliation.setPositionName(affiliationDTO.getPositionName());
 		affiliation.setAffiliationType(affiliationDTO.getAffiliationType());
-		
+
 		if (affiliationDTO.getAffiliationType().equals(AffiliationType.EXTERNAL)) {
 			affiliation.setInheritPrivileges(affiliationDTO.isInheritPrivilegesFromOU());
 		}
@@ -723,22 +790,22 @@ public class OrgUnitController {
 				log.warn("Failed to parse: " + affiliationDTO.getStopDate());
 			}
 		}
-		
+
 		if (person.getAffiliations() == null) {
 			person.setAffiliations(new ArrayList<>());
 		}
 		person.getAffiliations().add(affiliation);
-		
+
 		return affiliation;
 	}
-	
+
 	private static Date getToday() {
 		Calendar cal = Calendar.getInstance();
 		cal.set(Calendar.MINUTE, 0);
 		cal.set(Calendar.SECOND, 0);
 		cal.set(Calendar.MILLISECOND, 0);
 		cal.set(Calendar.HOUR_OF_DAY, 0);
-		
+
 		return cal.getTime();
 	}
 }

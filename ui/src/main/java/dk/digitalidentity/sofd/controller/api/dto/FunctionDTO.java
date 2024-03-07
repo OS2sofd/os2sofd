@@ -13,6 +13,7 @@ public class FunctionDTO {
 	private long id;
 	private int sortKey;
 	private String name;
+	private String category;
 	private String description;
 	private List<FacetDTO> facets;
 }

@@ -51,7 +51,7 @@ public class LocalLoginController {
 		SOFDAccount user = sofdAccountService.findByUserId(loginForm.getUsername());
 		if (user != null) {
 			if (passwordEncoder.matches(loginForm.getPassword(), user.getPassword())) {
-				SecurityUtil.loginPerson(user.getPerson());
+				SecurityUtil.loginPerson(user.getPerson(), user.getUserId());
 
 				auditLogger.log(user.getPerson(), EventType.LOGIN, null);
 				return "redirect:/ui/sms/message";

@@ -38,6 +38,10 @@ public class OrganisationRestController {
 		Organisation organisation = null;
 
 		if (organisationDTO.getId() == 0) {
+			if (organisationService.getByShortName(organisationDTO.getShortName()) != null) {
+				return new ResponseEntity<>("Organisation med kortnavn " + organisationDTO.getShortName() + " eksisterer i forvejen", HttpStatus.BAD_REQUEST);
+			}
+
 			organisation = new Organisation();
 			organisation.setShortName(organisationDTO.getShortName());
 		}
@@ -55,15 +59,17 @@ public class OrganisationRestController {
 
 		organisation = organisationService.save(organisation);
 
-		OrgUnit orgUnit = new OrgUnit();
-		orgUnit.setBelongsTo(organisation);
-		orgUnit.setMaster("SOFD");
-		orgUnit.setMasterId(UUID.randomUUID().toString());
-		orgUnit.setSourceName(organisation.getName());
-		orgUnit.setShortname(organisation.getShortName());
-		orgUnit.setType(orgUnitService.getDepartmentType());
-		orgUnit.setUuid(UUID.randomUUID().toString());
-		orgUnitService.save(orgUnit);
+		if (organisationDTO.getId() == 0) {
+			OrgUnit orgUnit = new OrgUnit();
+			orgUnit.setBelongsTo(organisation);
+			orgUnit.setMaster("SOFD");
+			orgUnit.setMasterId(UUID.randomUUID().toString());
+			orgUnit.setSourceName(organisation.getName());
+			orgUnit.setShortname(organisation.getShortName());
+			orgUnit.setType(orgUnitService.getDepartmentType());
+			orgUnit.setUuid(UUID.randomUUID().toString());
+			orgUnitService.save(orgUnit);
+		}
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}

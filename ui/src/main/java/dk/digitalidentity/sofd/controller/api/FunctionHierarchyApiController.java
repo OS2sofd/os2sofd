@@ -1,14 +1,15 @@
 package dk.digitalidentity.sofd.controller.api;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
+import dk.digitalidentity.sofd.dao.model.FunctionFacetAssignment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -73,14 +74,16 @@ public class FunctionHierarchyApiController {
 					   .id(f.getId())
 					   .sortKey(f.getSortKey())
 	                   .name(f.getName())
+	                   .category(f.getCategory())
 	                   .description(f.getDescription())
-	                   .facets(f.getFacets().stream().map(fa -> FacetDTO.builder()
-	                		   											.id(fa.getId())
-	                    		                                        .name(fa.getName())
-	                    		                                        .description(fa.getDescription())
-	                    		                                        .type(fa.getType())
-	                    		                                        .pattern(fa.getPattern())
-	                    		                                        .listItems(fa.getListItems().stream().map(l -> l.getText()).collect(Collectors.toList()))
+	                   .facets(f.getFacetAssignments().stream().map(fa -> FacetDTO.builder()
+	                		   											.id(fa.getFacet().getId())
+	                    		                                        .name(fa.getFacet().getName())
+	                    		                                        .description(fa.getFacet().getDescription())
+	                    		                                        .type(fa.getFacet().getType())
+	                    		                                        .pattern(fa.getFacet().getPattern())
+							   											.sortKey(fa.getSortKey() == null ? Long.MAX_VALUE : fa.getSortKey())
+	                    		                                        .listItems(fa.getFacet().getListItems().stream().map(l -> l.getText()).collect(Collectors.toList()))
 	                    		                                        .build()).collect(Collectors.toList()))
 	                   .build()).collect(Collectors.toList());
 		
@@ -93,14 +96,15 @@ public class FunctionHierarchyApiController {
 	@GetMapping("/api/functionhierarchy/functionassignments")
 	public ResponseEntity<?> getFunctionAssignments(@RequestParam(required = false) String ous) {
 		List<FunctionAssignmentDTO> result = new ArrayList<>();
+		List<FunctionAssignment> allAssignments = functionAssignmentService.getAll();
 		List<FunctionAssignment> assignments = new ArrayList<>();
 		if (ous == null) {
 			List<String> allUuids = orgUnitService.getAll().stream().map(o -> o.getUuid()).collect(Collectors.toList());
-			assignments = functionAssignmentService.getAll().stream().filter(f -> allUuids.contains(f.getAffiliation().getOrgUnit().getUuid())).collect(Collectors.toList());
+			assignments = allAssignments.stream().filter(f -> allUuids.contains(f.getAffiliation().getCalculatedOrgUnit().getUuid())).collect(Collectors.toList());
 		} else {
 			List<String> ouUuids = Arrays.asList(ous.split(","));
 			List<String> uuidsIncludingChildren = orgUnitService.getAllWithChildren(ouUuids).stream().map(o -> o.getUuid()).collect(Collectors.toList());
-			assignments = functionAssignmentService.getAll().stream().filter(f -> uuidsIncludingChildren.contains(f.getAffiliation().getOrgUnit().getUuid())).collect(Collectors.toList());
+			assignments = allAssignments.stream().filter(f -> uuidsIncludingChildren.contains(f.getAffiliation().getCalculatedOrgUnit().getUuid())).collect(Collectors.toList());
 		}
 		
 		for (FunctionAssignment assignment : assignments) {
@@ -113,12 +117,15 @@ public class FunctionHierarchyApiController {
 			functionAssignmentDTO.setAffiliationPersonUserId(assignment.getAffiliation().getPerson().getPrimeADAccount());
 			
 			functionAssignmentDTO.setFacetValues(new ArrayList<>());
-			for (Facet facet : assignment.getFunction().getFacets()) {
+			for (FunctionFacetAssignment facetAssignment : assignment.getFunction().getFacetAssignments()) {
+				Facet facet = facetAssignment.getFacet();
+				long sortKey = facetAssignment.getSortKey() == null ? Long.MAX_VALUE : facetAssignment.getSortKey();
 				FacetValue match = assignment.getFacetValues().stream().filter(f -> f.getFacet().getId() == facet.getId()).findAny().orElse(null);
 				if (match == null) {
 					FacetValueDTO dto = FacetValueDTO.builder()
 							.facetId(facet.getId())
 							.facetName(facet.getName())
+							.sortKey(sortKey)
 							.build();
 					functionAssignmentDTO.getFacetValues().add(dto);
 				} else {
@@ -131,6 +138,8 @@ public class FunctionHierarchyApiController {
 							.facetValueOrgunitNames(match.getOrgUnits().stream().map(o -> o.getName()).collect(Collectors.joining(", ")))
 							.facetValueAffiliationUuid(match.getAffiliation() != null ? match.getAffiliation().getUuid() : null)
 							.facetValueAffiliationPersonName(match.getAffiliation() != null ? PersonService.getName(match.getAffiliation().getPerson()) : null)
+							.date(match.getDate())
+							.sortKey(sortKey)
 							.build();
 					functionAssignmentDTO.getFacetValues().add(dto);
 				}
@@ -140,17 +149,26 @@ public class FunctionHierarchyApiController {
 					   .id(assignment.getFunction().getId())
 					   .sortKey(assignment.getFunction().getSortKey())
 	                   .name(assignment.getFunction().getName())
+	                   .category(assignment.getFunction().getCategory())
 	                   .description(assignment.getFunction().getDescription())
-	                   .facets(assignment.getFunction().getFacets().stream().map(fa -> FacetDTO.builder()
-	                		   											.id(fa.getId())
-	                    		                                        .name(fa.getName())
-	                    		                                        .description(fa.getDescription())
-	                    		                                        .type(fa.getType())
-	                    		                                        .pattern(fa.getPattern())
-	                    		                                        .listItems(fa.getListItems().stream().map(l -> l.getText()).collect(Collectors.toList()))
+	                   .facets(assignment.getFunction().getFacetAssignments().stream().map(fa -> FacetDTO.builder()
+	                		   											.id(fa.getFacet().getId())
+	                    		                                        .name(fa.getFacet().getName())
+	                    		                                        .description(fa.getFacet().getDescription())
+	                    		                                        .type(fa.getFacet().getType())
+	                    		                                        .pattern(fa.getFacet().getPattern())
+	                    		                                        .listItems(fa.getFacet().getListItems().stream().map(l -> l.getText()).collect(Collectors.toList()))
 	                    		                                        .build()).collect(Collectors.toList()))
 	                   .build());
-			
+
+			// inlcude the names of other assignments given to the same affiliation in the same category
+			functionAssignmentDTO.setOtherAssignments(
+					allAssignments.stream().filter(aa ->
+									aa.getId() != functionAssignmentDTO.getId()
+									&& aa.getFunction().getCategory().equalsIgnoreCase(functionAssignmentDTO.getFunction().getCategory())
+									&& aa.getAffiliation().getUuid().equalsIgnoreCase(functionAssignmentDTO.getAffiliationUuid()))
+							.map(a -> a.getFunction().getName()).distinct().sorted().collect(Collectors.joining(", ")));
+
 			result.add(functionAssignmentDTO);
 		}
 		
@@ -162,11 +180,11 @@ public class FunctionHierarchyApiController {
 	
 	@PostMapping("/api/functionhierarchy/functionassignments/create")
 	public ResponseEntity<?> createFunctionAssignment(@RequestBody FunctionAssignmentCreateDTO dto) {
-		if (dto.getStartDate() == null || dto.getStopDate() == null || !StringUtils.hasLength(dto.getAffiliationUuid()) || dto.getFunctionId() == 0) {
+		if (!StringUtils.hasLength(dto.getAffiliationUuid()) || dto.getFunctionId() == 0) {
 			return new ResponseEntity<>("Et eller flere krævede felter mangler.", HttpStatus.BAD_REQUEST);
 		}
 		
-		if (dto.getStartDate().after(dto.getStopDate())) {
+		if (dto.getStartDate() != null && dto.getStopDate() != null && dto.getStartDate().isAfter(dto.getStopDate())) {
 			return new ResponseEntity<>("Startdatoen skal være før stopdatoen.", HttpStatus.BAD_REQUEST);
 		}
 		
@@ -187,7 +205,6 @@ public class FunctionHierarchyApiController {
 		functionAssignment.setStopDate(dto.getStopDate());
 		functionAssignment.setFacetValues(new ArrayList<>());
 		
-		// TODO: maybe return bad request instead of just logging a warn
 		for (FacetValueDTO facetValueDTO : dto.getFacetValues()) {
 			FacetValue facetValue = new FacetValue();
 			Facet facet = facetService.getById(facetValueDTO.getFacetId());
@@ -228,6 +245,8 @@ public class FunctionHierarchyApiController {
 					log.warn("Unknown affiliation " + facetValueDTO.getFacetValueAffiliationUuid() + " for facet with id " + facet.getId() + " when creating facetValue for new functionAssignment. Will set affiliation facet value to null.");
 				}
 				facetValue.setAffiliation(facetAffiliation);
+			} else if (facet.getType().equals(FacetType.FOLLOW_UP_DATE)) {
+				facetValue.setDate(facetValueDTO.getDate());
 			} else {
 				log.warn("Unknown facet type " + facet.getType() + " on facet with id " + facet.getId() + " when creating facetValue for new functionAssignment. Will not create this facetValue.");
 				continue;
@@ -246,29 +265,23 @@ public class FunctionHierarchyApiController {
 	
 	@PostMapping("/api/functionhierarchy/functionassignments/{id}/edit")
 	public ResponseEntity<?> editFunctionAssignment(@RequestBody FunctionAssignmentEditDTO dto, @PathVariable long id) {
-		if (dto.getStartDate() == null || dto.getStopDate() == null) {
-			return new ResponseEntity<>("Et eller flere krævede felter mangler.", HttpStatus.BAD_REQUEST);
-		}
-		
 		FunctionAssignment functionAssignment = functionAssignmentService.getById(id);
 		if (functionAssignment == null) {
 			return new ResponseEntity<>("Funktionstildeling med id " + id + " findes ikke.", HttpStatus.NOT_FOUND);
 		}
-		
-		if (dto.getStartDate().after(dto.getStopDate())) {
+
+		if (dto.getStartDate() != null && dto.getStopDate() != null && dto.getStartDate().isAfter(dto.getStopDate())) {
 			return new ResponseEntity<>("Startdatoen skal være før stopdatoen.", HttpStatus.BAD_REQUEST);
 		}
-		
+
 		boolean changes = false;
 		
-		// need to format the date before equals, because for some reason the dates are in two different formats
-		SimpleDateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
-		if (!formatter.format(functionAssignment.getStartDate()).equals(formatter.format(dto.getStartDate()))) {
+		if (!Objects.equals(functionAssignment.getStartDate(),dto.getStartDate())) {
 			changes = true;
 			functionAssignment.setStartDate(dto.getStartDate());
 		}
 		
-		if (!formatter.format(functionAssignment.getStopDate()).equals(formatter.format(dto.getStopDate()))) {
+		if (!Objects.equals(functionAssignment.getStopDate(),dto.getStopDate())) {
 			changes = true;
 			functionAssignment.setStopDate(dto.getStopDate());
 		}
@@ -313,7 +326,10 @@ public class FunctionHierarchyApiController {
 					}
 					
 					facetValue.setAffiliation(facetAffiliation);
-				} else {
+				} else if (facet.getType().equals(FacetType.FOLLOW_UP_DATE)) {
+					facetValue.setDate(facetValueDTO.getDate());
+				}
+				else {
 					log.warn("Unknown facet type " + facet.getType() + " on facet with id " + facet.getId() + " when adding facetValue for functionAssignment with id " + functionAssignment.getId() + ". Will not create this facetValue.");
 					continue;
 				}
@@ -347,6 +363,7 @@ public class FunctionHierarchyApiController {
 							continue;
 						}
 						facetValueToUpdate.setFacetListItem(item);
+						changes = true;
 					}
 				} else if (facet.getType().equals(FacetType.ORG)) {
 					List<String> existingOUs = facetValueToUpdate.getOrgUnits().stream().map(o -> o.getUuid()).collect(Collectors.toList());
@@ -384,7 +401,11 @@ public class FunctionHierarchyApiController {
 						facetValueToUpdate.setAffiliation(facetAffiliation);
 						changes = true;
 					}
-					
+				} else if (facet.getType().equals(FacetType.FOLLOW_UP_DATE)) {
+					if (!Objects.equals(facetValueToUpdate.getDate(),facetValueDTO.getDate())) {
+						facetValueToUpdate.setDate(facetValueDTO.getDate());
+						changes = true;
+					}
 				} else {
 					log.warn("Unknown facet type " + facet.getType() + " on facet with id " + facet.getId() + " when editing facetValue for functionAssignment with id " + functionAssignment.getId() + ". Will not edit this facetValue.");
 					continue;
@@ -431,10 +452,10 @@ public class FunctionHierarchyApiController {
 	public ResponseEntity<?> searchPerson(@RequestParam("query") String term, @RequestParam String ous) {
 		List<String> ouUuids = Arrays.asList(ous.split(","));
 		List<OrgUnit> orgUnitsIncludingChildren = orgUnitService.getAllWithChildren(ouUuids);
-		
-		
+
+
 		// TODO: det her virker, men der kan måske laves noget fancy sql
-		
+
 		List<Affiliation> affiliations = new ArrayList<>();
 		List<List<Affiliation>> affiliationsLists = orgUnitsIncludingChildren.stream().map(o -> o.getAffiliations()).collect(Collectors.toList());
 		for (List<Affiliation> affiliationsList : affiliationsLists) {
@@ -449,7 +470,7 @@ public class FunctionHierarchyApiController {
 			StringBuilder builder = new StringBuilder();
 			builder.append(PersonService.getName(affiliation.getPerson()));
 
-			builder.append(" (" + AffiliationService.getPositionName(affiliation) + " i " + affiliation.getOrgUnit().getName() + ")");
+			builder.append(" (" + AffiliationService.getPositionName(affiliation) + " i " + affiliation.getCalculatedOrgUnit().getName() + ")");
 
 			ValueData vd = new ValueData();
 			vd.setValue(builder.toString());
@@ -481,7 +502,7 @@ public class FunctionHierarchyApiController {
 			StringBuilder builder = new StringBuilder();
 			builder.append(PersonService.getName(affiliation.getPerson()));
 
-			builder.append(" (" + AffiliationService.getPositionName(affiliation) + " i " + affiliation.getOrgUnit().getName() + ")");
+			builder.append(" (" + AffiliationService.getPositionName(affiliation) + " i " + affiliation.getCalculatedOrgUnit().getName() + ")");
 
 			ValueData vd = new ValueData();
 			vd.setValue(builder.toString());

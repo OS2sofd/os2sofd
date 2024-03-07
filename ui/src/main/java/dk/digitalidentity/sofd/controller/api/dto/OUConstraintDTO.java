@@ -10,4 +10,5 @@ import lombok.Setter;
 public class OUConstraintDTO {
 	private String uuid;
 	private String name;
+	private long assignmentId;
 }

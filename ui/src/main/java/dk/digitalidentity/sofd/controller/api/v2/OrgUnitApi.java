@@ -27,14 +27,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import dk.digitalidentity.sofd.controller.api.v2.model.OrgUnitApiRecord;
 import dk.digitalidentity.sofd.controller.api.v2.model.OrgUnitResult;
-import dk.digitalidentity.sofd.dao.model.Email;
 import dk.digitalidentity.sofd.dao.model.MasteredEntity;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Phone;
 import dk.digitalidentity.sofd.dao.model.Post;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplateType;
 import dk.digitalidentity.sofd.dao.model.mapping.MappedEntity;
-import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitEmailMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPhoneMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPostMapping;
 import dk.digitalidentity.sofd.security.RequireApiWriteAccess;
@@ -222,6 +220,11 @@ public class OrgUnitApi {
 			changes = true;
 		}
 
+		if (record.getEmail() != null && !Objects.equals(record.getEmail(), orgUnit.getEmail())) {
+			orgUnit.setEmail(record.getEmail());
+			changes = true;
+		}
+
 		// TODO: it is not possible to set a new root using PATCH... we need to do this manually when it
 		//       happens, or implement some PUT procedure for this
 		if (record.getParent() != null) {
@@ -239,13 +242,7 @@ public class OrgUnitApi {
 		
 		// due to the way patching works, it is not possible "null" a collection using the PATCH operation,
 		// an empty collection must be supplied to "empty" it.
-		
-		if (record.getEmails() != null) {
-			if (this.<OrgUnitEmailMapping>patchCollection(orgUnit, record, OrgUnit.class.getMethod("getEmails"), OrgUnit.class.getMethod("setEmails", List.class))) {
-				changes = true;
-			}
-		}
-		
+
 		if (record.getPostAddresses() != null) {
 			if (this.<OrgUnitPostMapping>patchCollection(orgUnit, record, OrgUnit.class.getMethod("getPostAddresses"), OrgUnit.class.getMethod("setPostAddresses", List.class))) {
 				changes = true;
@@ -260,7 +257,7 @@ public class OrgUnitApi {
 
 		if (record.getManager() != null && !Objects.equals(record.getManager(), orgUnit.getManager())) {
 			if (StringUtils.hasLength(record.getManager().getName())) {
-				managerService.sendMail(orgUnit, EmailTemplateType.NEW_MANAGER, orgUnit.getManager().getName());
+				managerService.sendMail(orgUnit, EmailTemplateType.NEW_MANAGER, record.getManager().getName());
 			}
 
 			orgUnit.setManager(record.getManager());
@@ -334,11 +331,6 @@ public class OrgUnitApi {
 									changes = true;
 								}
 							}
-							else if (orgUnitMasteredEntity instanceof Email) {
-								if (patchEmailEntityFields((Email) orgUnitMasteredEntity, (Email) recordMasteredEntity)) {
-									changes = true;
-								}
-							}
 
 							found = true;
 							break;
@@ -376,19 +368,6 @@ public class OrgUnitApi {
 					}
 				}
 			}
-		}
-
-		return changes;
-	}
-	
-	private boolean patchEmailEntityFields(Email orgUnitEntry, Email recordEntry) {
-		boolean changes = false;
-
-		// note that patching cannot be used for null'ing fields, only setting or updating them
-
-		if (recordEntry.getEmail() != null && !Objects.equals(orgUnitEntry.getEmail(), recordEntry.getEmail())) {
-			orgUnitEntry.setEmail(recordEntry.getEmail());
-			changes = true;
 		}
 
 		return changes;

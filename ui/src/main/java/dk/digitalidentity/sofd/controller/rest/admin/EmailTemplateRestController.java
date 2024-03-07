@@ -194,7 +194,7 @@ public class EmailTemplateRestController {
 			templateChild.setEnabled(emailTemplateChildDTO.isEnabled());
 
 			if (templateChild.getEmailTemplate().getTemplateType().isSendToManager()) {
-				templateChild.setSendToSubstitute(emailTemplateChildDTO.isSendToSubstitute());
+				templateChild.setSendTo(emailTemplateChildDTO.getSendTo());
 			}
 
 			if (templateChild.getEmailTemplate().getTemplateType().isShowTO()) {
@@ -208,6 +208,10 @@ public class EmailTemplateRestController {
 			
 			if (templateChild.getEmailTemplate().getTemplateType().isAllowDaysBeforeEvent()) {
 				templateChild.setDaysBeforeEvent(emailTemplateChildDTO.getDaysBeforeEvent());
+			}
+
+			if (templateChild.getEmailTemplate().getTemplateType().isShowEmployeeFilter()) {
+				templateChild.setEmployeeFilter(emailTemplateChildDTO.getEmployeeFilter());
 			}
 
 			if (templateChild.getEmailTemplate().getTemplateType().isShowDomainFilter() && configuration.getEmailTemplate().isDomainFilterEnabled()) {
@@ -231,7 +235,10 @@ public class EmailTemplateRestController {
 			if (templateChild.getEmailTemplate().getTemplateType().isShowADUserFilter() && configuration.getEmailTemplate().isAdUserFilterEnabled()) {
 				templateChild.setAdRequired(emailTemplateChildDTO.isAdRequired());
 			}
-			
+
+			if (templateChild.getEmailTemplate().getTemplateType().isOnlyManualRecipients()) {
+				templateChild.setOnlyManualRecipients(emailTemplateChildDTO.isOnlyManualRecipients());
+			}
 
 			emailTemplateChildService.save(templateChild);
 		}

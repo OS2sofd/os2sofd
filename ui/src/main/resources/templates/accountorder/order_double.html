@@ -26,8 +26,8 @@
 									<div class="form-group">
 										<h4 class="col-sm-12" style="margin-left: 15px;" th:text="${adPrettyName}"></h4>
 									</div>
-									
-									<div class="form-group" th:if="${not #lists.isEmpty(affiliations)}">
+
+									<div class="form-group" th:if="${not #lists.isEmpty(adAffiliations)}">
 										<label class="col-sm-3 control-label" th:text="#{html.entity.person.order.it.user.positionName}"></label>
 										<div class="col-sm-8">
 											<select th:field="*{adAffiliationUuid}" class="form-control">

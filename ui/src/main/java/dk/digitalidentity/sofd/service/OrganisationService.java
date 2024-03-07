@@ -26,6 +26,10 @@ public class OrganisationService {
         return organisationDao.findById(id);
     }
 
+    public Organisation getByShortName(String shortName) {
+        return organisationDao.findByShortName(shortName);
+    }
+
     public Organisation save(Organisation organisation) {
         return organisationDao.save(organisation);
     }

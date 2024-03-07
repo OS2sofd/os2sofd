@@ -2,6 +2,7 @@ package dk.digitalidentity.sofd.security;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -15,6 +16,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import dk.digitalidentity.samlmodule.model.SamlGrantedAuthority;
 import dk.digitalidentity.samlmodule.model.SamlGrantedAuthority.Constraint;
+import dk.digitalidentity.samlmodule.model.TokenUser;
 import dk.digitalidentity.sofd.config.RoleConstants;
 import dk.digitalidentity.sofd.dao.model.Client;
 import dk.digitalidentity.sofd.dao.model.Person;
@@ -51,19 +53,25 @@ public class SecurityUtil {
 		SecurityContextHolder.getContext().setAuthentication(authentication);
 	}
 
-	public static void loginPerson(Person person) {
-		ArrayList<GrantedAuthority> authorities = new ArrayList<>();
+	public static void loginPerson(Person person, String userId) {
+		ArrayList<SamlGrantedAuthority> authorities = new ArrayList<>();
 		authorities.add(new SamlGrantedAuthority(RoleConstants.USER_ROLE_SMS, null, null));
 		authorities.add(new SamlGrantedAuthority(RoleConstants.USER_ROLE_READ, null, null));
 		authorities.add(new SamlGrantedAuthority(RoleConstants.MODULE_ROLE_SMS_GATEWAY, null, null));
 
 		UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(PersonService.getName(person), null, authorities);
+		token.setDetails(TokenUser.builder().username(userId).attributes(new HashMap<>()).authorities(authorities).build());
 
 		SecurityContextHolder.getContext().setAuthentication(token);
 	}
 
 	public static String getUser() {
 		String name = null;
+
+		// if a client is logged in, a user is NOT logged in
+		if (getClient() != null) {
+			return null;
+		}
 
 		if (isUserLoggedIn()) {
 			name = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();

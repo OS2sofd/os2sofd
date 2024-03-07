@@ -1,6 +1,6 @@
 package dk.digitalidentity.sofd.dao.model;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 import javax.persistence.CascadeType;
@@ -12,8 +12,6 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -28,11 +26,10 @@ public class FunctionAssignment {
 	private long id;
 	
 	@Column
-	private Date startDate;
+	private LocalDate startDate;
 
 	@Column
-	@Temporal(TemporalType.DATE)
-	private Date stopDate;
+	private LocalDate stopDate;
 	
 	@ManyToOne
 	@JoinColumn(name = "affiliation_id", nullable = false)

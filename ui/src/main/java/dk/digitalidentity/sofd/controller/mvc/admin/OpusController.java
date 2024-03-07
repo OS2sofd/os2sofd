@@ -37,8 +37,9 @@ public class OpusController {
 	public String opusFilter(Model model) {
 		model.addAttribute("losIds", configuration.getIntegrations().getOpus().getLosIds());
 		model.addAttribute("positionIds", configuration.getIntegrations().getOpus().getPositionIds());
+		model.addAttribute("positionNames", configuration.getIntegrations().getOpus().getPositionNames());
+		model.addAttribute("invalidPositionNames", configuration.getIntegrations().getOpus().getInvalidPositionNames());
 		model.addAttribute("orgUnitInfix", configuration.getIntegrations().getOpus().getOrgUnitInfix());
-		model.addAttribute("filterEfterindtaegt", configuration.getIntegrations().getOpus().isFilterEfterindtaegt());
 
 		return "admin/opus/filter";
 	}	

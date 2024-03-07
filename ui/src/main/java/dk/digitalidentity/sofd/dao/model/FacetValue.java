@@ -1,5 +1,6 @@
 package dk.digitalidentity.sofd.dao.model;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import javax.persistence.Column;
@@ -26,6 +27,9 @@ public class FacetValue {
 	
 	@Column
 	private String text;
+
+	@Column
+	LocalDate date;
 	
 	@ManyToOne
 	@JoinColumn(name = "list_item_id", nullable = true)

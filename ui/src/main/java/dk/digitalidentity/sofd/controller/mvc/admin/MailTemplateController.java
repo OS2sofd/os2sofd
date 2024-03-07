@@ -50,6 +50,18 @@ public class MailTemplateController {
 					.filter(t -> !t.getTemplateType().isRequireAccountCreation())
 					.collect(Collectors.toList());
 		}
+		
+		if (!configuration.getModules().getAccountCreation().isAccountOrderApprove()) {
+			templates = templates.stream()
+					.filter(t -> !t.getTemplateType().isRequireAccountCreationApproval())
+					.collect(Collectors.toList());			
+		}
+
+		if (!configuration.getModules().getSubstitute().isEnabled()) {
+			templates = templates.stream()
+					.filter(t -> !t.getTemplateType().isRequireSubstitute())
+					.collect(Collectors.toList());
+		}
 
 		if (!configuration.getModules().getFunctionHierarchy().isEnabled()) {
 			templates = templates.stream()

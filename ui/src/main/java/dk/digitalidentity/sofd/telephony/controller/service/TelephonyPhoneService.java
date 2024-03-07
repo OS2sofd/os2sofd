@@ -114,6 +114,19 @@ public class TelephonyPhoneService {
 						count++;
 					}
 				}
+				else {
+					// delete this phoneNumber from any person in SOFD
+					var personsWithPhone = personService.getByPhoneMasterAndMasterId(telephonyPhone.getMaster(), telephonyPhone.getMasterId());
+					var updated = false;
+					for( var personWithPhone : personsWithPhone ) {
+						personWithPhone.getPhones().removeIf(p -> p.getPhone().getMaster().equalsIgnoreCase(telephonyPhone.getMaster()) && p.getPhone().getMasterId().equalsIgnoreCase(telephonyPhone.getMasterId()));
+						personService.save(personWithPhone);
+						updated = true;
+					}
+					if( updated ) {
+						count++;
+					}
+				}
 			}
 			
 			// update setting

@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -27,8 +28,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
+import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.ContactPlace;
-import dk.digitalidentity.sofd.dao.model.Email;
+import dk.digitalidentity.sofd.dao.model.FkOrgUuid;
 import dk.digitalidentity.sofd.dao.model.Kle;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Person;
@@ -48,10 +50,10 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 public class OS2SyncService {
-	private static final String updateUserSQL = "INSERT INTO queue_users (uuid, user_id, phone_number, email, racfid, name, cpr, landline, cvr, operation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'UPDATE');";
+	private static final String updateUserSQL = "INSERT INTO queue_users (uuid, user_id, phone_number, email, racfid, name, cpr, landline, cvr, priority, operation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'UPDATE');";
 	private static final String deleteUserSQL = "INSERT INTO queue_users (uuid, cvr, operation) VALUES (?, ?, 'DELETE');";
 	private static final String updatePositionSQL = "INSERT INTO queue_user_positions (user_id, name, orgunit_uuid, start_date, stop_date) VALUES (?, ?, ?, ?, ?);";
-	private static final String updateOrgUnitSQL = "INSERT INTO queue_orgunits (uuid, name, parent_ou_uuid, los_shortname, phone_number, email, ean, post_address, orgunit_type, contact_open_hours, landline, cvr, operation, location, url, email_remarks, post_return, phone_open_hours) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'UPDATE', ?, ?, ?, ?, ?);";
+	private static final String updateOrgUnitSQL = "INSERT INTO queue_orgunits (uuid, name, manager_uuid, parent_ou_uuid, los_shortname, phone_number, email, ean, post_address, orgunit_type, contact_open_hours, contact, landline, cvr, operation, location, url, email_remarks, post_return, phone_open_hours, losid, pnr) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'UPDATE', ?, ?, ?, ?, ?, ?, ?);";
 	private static final String deleteOrgUnitSQL = "INSERT INTO queue_orgunits (uuid, cvr, operation) VALUES (?, ?, 'DELETE');";
 	private static final String updateOrgUnitTaskSQL = "INSERT INTO queue_orgunits_tasks (unit_id, task) VALUES (?, ?);";
 	private static final String updateOrgUnitTagSQL = "INSERT INTO queue_orgunits_it_systems (unit_id, it_system_uuid) VALUES (?, ?);";
@@ -62,11 +64,14 @@ public class OS2SyncService {
 	private SofdConfiguration configuration;
 
 	@Autowired
+	private FkOrgUuidService fkOrgUuidService;
+
+	@Autowired
 	private KleService kleService;
 
 	@Autowired
 	private OrgUnitService orgUnitService;
-	
+
 	@Autowired
 	private PersonService personService;
 
@@ -75,17 +80,17 @@ public class OS2SyncService {
 
 	@Autowired
 	private SyncService syncService;
-	
+
 	@Autowired
 	private SettingService settingService;
-	
+
 	@Autowired
 	private FkOrganisationService fkOrganisationService;
-	
+
 	@Qualifier("OS2syncTemplate")
-	@Autowired
+	@Autowired(required = false)
 	private JdbcTemplate jdbcTemplate;
-	
+
 	@Transactional
 	public void synchronizeHierarchy() {
 		if (!configuration.getScheduled().isEnabled() || !configuration.getIntegrations().getOs2sync().isEnabled()) {
@@ -110,7 +115,7 @@ public class OS2SyncService {
 
 		// read contactPlaces
 		List<ContactPlace> allContactPlaces = (configuration.getModules().getContactPlaces().isEnabled()) ? contactPlaceService.findAll() : null;
-		
+
 		// find all OrgUnits (in SOFD) that are not currently in FK Organisation and trigger a sync on those through OS2sync
 		for (OrgUnit orgUnit : sofdOrgUnits) {
 			if (fkOrgUnits.stream().noneMatch(fkou -> Objects.equals(fkou.getUuid(), orgUnit.getUuid()))) {
@@ -130,10 +135,10 @@ public class OS2SyncService {
 				deleteOrgUnit(fkou.getUuid());
 			}
 		}
-		
+
 		log.info("Cleanup completed");
 	}
-	
+
 	@Transactional
 	public void fullUpdate() {
 		Long head = syncService.getMaxOffset();
@@ -156,10 +161,10 @@ public class OS2SyncService {
 		List<Person> persons = personService.getAll();
 		for (Person person : persons) {
 			if (person.isDeleted()) {
-				deleteUser(person.getUuid());
+				deletePerson(person);
 			}
 			else {
-				updateUser(person);
+				updatePerson(person);
 			}
 		}
 
@@ -186,7 +191,7 @@ public class OS2SyncService {
 			}
 			else {
 				updateOrgUnit(orgUnit, allContactPlaces);
-				
+
 				// if the orgunit has inherit KLE flagged, we ALSO need to sync all children (and childrens children)
 				if (orgUnit.isInheritKle()) {
 					updateChildren(orgUnit, uuids, allContactPlaces);
@@ -203,12 +208,15 @@ public class OS2SyncService {
 
 		for (String uuid : uuids) {
 			Person person = personService.getByUuid(uuid);
+			if (person == null) {
+				continue;
+			}
 
 			if (person.isDeleted()) {
-				deleteUser(uuid);
+				deletePerson(person);
 			}
 			else {
-				updateUser(person);
+				updatePerson(person);
 			}
 		}
 
@@ -229,29 +237,29 @@ public class OS2SyncService {
 
 				for (ContactPlace contactPlace : contactPlaces) {
 					mapContactPlaces.put(contactPlace.getContactPlace().getUuid(), contactPlace.getContactPlace());
-					
+
 					for (ContactPlaceOrgUnitMapping mapping : contactPlace.getUsers()) {
 						mapUsers.put(mapping.getOrgUnit().getUuid(), mapping.getOrgUnit());
 					}
 				}
-				
+
 				if (allContactPlaces == null) {
 					allContactPlaces = contactPlaceService.findAll();
 				}
-		
+
 				// now send update to OS2sync (contactPlaces first, so we are sure they are created before we send "users")
 				for (OrgUnit orgUnit : mapContactPlaces.values()) {
 					if (!orgUnit.isDeleted()) {
 						updateOrgUnit(orgUnit, allContactPlaces);
 					}
 				}
-				
+
 				for (OrgUnit orgUnit : mapUsers.values()) {
 					if (!orgUnit.isDeleted()) {
 						updateOrgUnit(orgUnit, allContactPlaces);
 					}
 				}
-		
+
 				// cleanup in database
 				for (ContactPlace contactPlace : contactPlaces) {
 					if (contactPlace.isDeleted()) {
@@ -259,15 +267,15 @@ public class OS2SyncService {
 					}
 					else {
 						contactPlace.setSynchronizedToOrganisation(true);
-						
+
 						for (Iterator<ContactPlaceOrgUnitMapping> iterator = contactPlace.getUsers().iterator(); iterator.hasNext();) {
 							ContactPlaceOrgUnitMapping mapping = iterator.next();
-							
+
 							if (mapping.isDeleted()) {
 								iterator.remove();
 							}
 						}
-						
+
 						contactPlaceService.save(contactPlace);
 					}
 				}
@@ -279,7 +287,7 @@ public class OS2SyncService {
 		if (orgUnit.getChildren() == null) {
 			return;
 		}
-		
+
 		for (OrgUnit child : orgUnit.getChildren()) {
 			if (child.isDeleted()) {
 				continue;
@@ -294,20 +302,32 @@ public class OS2SyncService {
 		}
 	}
 
-	public void deleteOrgUnit(String uuid) {
-		jdbcTemplate.update(deleteOrgUnitSQL, new Object[] { uuid, configuration.getCustomer().getCvr() });
-	}
-	
-	public void deleteUser(String uuid) {
-		jdbcTemplate.update(deleteUserSQL, new Object[] { uuid, configuration.getCustomer().getCvr() });
+	public void deletePerson(Person person) {
+		List<FkOrgUuid> entries = fkOrgUuidService.getByPersonUuid(person.getUuid());
+
+		for (FkOrgUuid entry : entries) {
+			deleteUser(entry.getKombitUuid());
+
+			fkOrgUuidService.delete(entry);
+		}
 	}
 
-	public void updateUser(Person person) {
+	public void updatePerson(Person person) {
+
+		List<Affiliation> activeAffiliations = AffiliationService.notStoppedAffiliations(person.getAffiliations()).stream()
+			.filter(a -> a.isDoNotTransferToFkOrg() == false)
+			.collect(Collectors.toList());
+
+		// no active affiliations, just map it to a delete event instead
+		if (activeAffiliations.size() == 0) {
+			deletePerson(person);
+			return;
+		}
 
 		// find mobile phone number
 		Optional<Phone> phone = PersonService.getPhones(person).stream().filter(p -> p.isTypePrime() && p.getPhoneType().equals(PhoneType.MOBILE)).findFirst();
 		final String phoneValue = phone.isPresent() ? phone.get().getPhoneNumber() : null;
-		
+
 		// find landline phone number
 		Optional<Phone> landline = PersonService.getPhones(person).stream().filter(p -> p.isTypePrime() && p.getPhoneType().equals(PhoneType.LANDLINE)).findFirst();
 		String landlineValueTemp = null;
@@ -334,10 +354,6 @@ public class OS2SyncService {
 		}
 		final String landlineValue = landlineValueTemp;
 
-		// find prime email
-		Optional<User> emailUser = PersonService.getUsers(person).stream().filter(u -> SupportedUserTypeService.isExchange(u.getUserType()) && u.isPrime()).findFirst();
-		final String emailValue = (emailUser.isPresent()) ? emailUser.get().getUserId() : null;
-
 		// find prime kspCics
 		Optional<User> kspCicsUser = PersonService.getUsers(person).stream().filter(u -> SupportedUserTypeService.isKspCics(u.getUserType()) && u.isPrime()).findFirst();
 		final String kspCicsValue = (kspCicsUser.isPresent()) ? kspCicsUser.get().getUserId() : null;
@@ -345,49 +361,159 @@ public class OS2SyncService {
 		// find name
 		final String nameValue = (person.getChosenName() != null) ? person.getChosenName() : (person.getFirstname() + " " + person.getSurname());
 
-		// find cpr number
-		final String cprValue = (configuration.getIntegrations().getOs2sync().isCprEnabled()) ? person.getCpr() : null;
+		List<User> adUsers = PersonService.getUsers(person)
+				.stream()
+				.filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType())
+					|| (configuration.getIntegrations().getOs2sync().isSchoolEnabled() && SupportedUserTypeService.isActiveDirectorySchool(u.getUserType())))
+				.collect(Collectors.toList());
 
-		// find user_id
-		Optional<User> adUser = PersonService.getUsers(person).stream().filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType()) && u.isPrime()).findFirst();
-		final String userId = (adUser.isPresent()) ? adUser.get().getUserId() : null;
-
-		if (userId == null) {
-			log.debug("Could not synchronize person without Active Directory account: " + person.getUuid());
-			return;
-		}
-
-		if (person.getAffiliations().size() == 0) {
-			log.debug("Could not synchronize person without Affiliation: " + person.getUuid());
-			return;
-		}
-
-		GeneratedKeyHolder holder = new GeneratedKeyHolder();
-		jdbcTemplate.update(new PreparedStatementCreator() {
-
-			@Override
-			public PreparedStatement createPreparedStatement(Connection con) throws SQLException {
-				PreparedStatement statement = con.prepareStatement(updateUserSQL, Statement.RETURN_GENERATED_KEYS);
-				statement.setString(1, person.getUuid());
-				statement.setString(2, userId);
-				statement.setString(3, phoneValue);
-				statement.setString(4, emailValue);
-				statement.setString(5, kspCicsValue);
-				statement.setString(6, nameValue);
-				statement.setString(7, cprValue);
-				statement.setString(8, landlineValue);
-				statement.setString(9, configuration.getCustomer().getCvr());
-
-				return statement;
+		// filter out affiliations that are linked to a single user account
+		List<Affiliation> unlinkedAffiliations = new ArrayList<>(activeAffiliations);
+		for (User adUser : adUsers) {
+			if (StringUtils.hasLength(adUser.getEmployeeId())) {
+				unlinkedAffiliations.removeIf(a -> Objects.equals(a.getEmployeeId(), adUser.getEmployeeId()));
 			}
-		}, holder);
+		}
 
-		final Long primaryKey = holder.getKey().longValue();
+		// list of users that we have already synchronized to FK Organisation (for later cleanup and tracking)
+		List<FkOrgUuid> entries = fkOrgUuidService.getByPersonUuid(person.getUuid());
 
-		AffiliationService.notStoppedAffiliations(person.getAffiliations()).stream()
-				.forEach(a -> jdbcTemplate.update(updatePositionSQL, new Object[] { primaryKey, a.getPositionName(), a.getOrgUnit().getUuid(), formatDate(a.getStartDate()), formatDate(a.getStopDate()) }));
+		for (User adUser : adUsers) {
+			// what set of affiliations are we going to use for this specific AD account?
+			List<Affiliation> filteredAffiliations;
+			if (StringUtils.hasLength(adUser.getEmployeeId())) {
+				// use directly mapped affiliation
+				filteredAffiliations = activeAffiliations.stream()
+						.filter(a -> Objects.equals(a.getEmployeeId(), adUser.getEmployeeId()))
+						.collect(Collectors.toList());
+			}
+			else if(SupportedUserTypeService.isActiveDirectorySchool(adUser.getUserType())) {
+				// it's a school AD account - use any active affiliation
+				filteredAffiliations = activeAffiliations;
+			}
+			else {
+				// use affiliations not linked to another user
+				filteredAffiliations = unlinkedAffiliations;
+			}
+
+			if (filteredAffiliations.size() == 0) {
+				log.warn("Skipping synchronization on " + adUser.getUserId() + " because no affiliations are available for this account");
+				continue;
+			}
+
+			String emailValue = null;
+			if (SupportedUserTypeService.isActiveDirectory(adUser.getUserType())) {
+				Optional<User> emailUser = PersonService.getUsers(person).stream()
+						.filter(u -> SupportedUserTypeService.isExchange(u.getUserType()) && Objects.equals(u.getMasterId(), adUser.getUserId()))
+						.findFirst();
+
+				emailValue = (emailUser.isPresent()) ? emailUser.get().getUserId() : null;
+			}
+			else if( SupportedUserTypeService.isActiveDirectorySchool(adUser.getUserType())) {
+				Optional<User> emailUser = PersonService.getUsers(person).stream()
+						.filter(u -> SupportedUserTypeService.isSchoolEmail(u.getUserType()) && Objects.equals(u.getMasterId(), adUser.getUserId()))
+						.findFirst();
+
+				emailValue = (emailUser.isPresent()) ? emailUser.get().getUserId() : null;
+			}
+
+			boolean blankCpr = false;
+			if (!configuration.getIntegrations().getOs2sync().isCprEnabled()) {
+				blankCpr = true;
+			}
+			else if (configuration.getIntegrations().getOs2sync().isDoNotSendCprForSubstitutes()) {
+				if (UserService.isSubstituteADUser(adUser)) {
+					blankCpr = true;
+				}
+			}
+			// temporary - because Nexus does not support multiple accounts with same cpr
+			else if (adUser.isPrime() == false) {
+				blankCpr = true;
+			}
+
+			final String cprValue = (!blankCpr) ? person.getCpr() : null;
+
+			// because the "adUser" might be a STIL user, we need to allow the person.uuid to be used here (though that introduces a bunch of issues
+			// at a later point, should that school-employee switch to being an administrative employee *sigh*
+			final String finalUuid = (adUser.getActiveDirectoryDetails() != null && StringUtils.hasLength(adUser.getActiveDirectoryDetails().getKombitUuid())) ? adUser.getActiveDirectoryDetails().getKombitUuid() : person.getUuid();
+			final String finalEmailValue = emailValue;
+			final String finalUserId = adUser.getUserId();
+
+			// we want to fasttrack sync of substitute users (vikXXXX)
+			final long priority = (UserService.isSubstituteADUser(adUser)) ? 8 : 10;
+
+			if (adUser.isDisabled()) {
+				deleteUser(finalUuid);
+
+				FkOrgUuid entry = entries.stream().filter(e -> Objects.equals(finalUuid, e.getKombitUuid())).findFirst().orElse(null);
+				if (entry != null) {
+					entries.remove(entry);
+					fkOrgUuidService.delete(entry);
+				}
+			}
+			else {
+				GeneratedKeyHolder holder = new GeneratedKeyHolder();
+				jdbcTemplate.update(new PreparedStatementCreator() {
+
+					@Override
+					public PreparedStatement createPreparedStatement(Connection con) throws SQLException {
+						PreparedStatement statement = con.prepareStatement(updateUserSQL, Statement.RETURN_GENERATED_KEYS);
+						statement.setString(1, finalUuid);
+						statement.setString(2, finalUserId);
+						statement.setString(3, phoneValue);
+						statement.setString(4, finalEmailValue);
+						statement.setString(5, kspCicsValue);
+						statement.setString(6, nameValue);
+						statement.setString(7, cprValue);
+						statement.setString(8, landlineValue);
+						statement.setString(9, configuration.getCustomer().getCvr());
+						statement.setLong(10, priority);
+
+						return statement;
+					}
+				}, holder);
+
+				final Long primaryKey = holder.getKey().longValue();
+
+				filteredAffiliations.forEach(a -> jdbcTemplate.update(updatePositionSQL, new Object[] {
+					primaryKey,
+					AffiliationService.getPositionName(a),
+					a.getCalculatedOrgUnit().getUuid(),
+					formatDate(a.getStartDate(), false),
+					formatDate(a.getStopDate(), true)
+				}));
+
+				FkOrgUuid entry = entries.stream().filter(e -> Objects.equals(finalUuid, e.getKombitUuid())).findFirst().orElse(null);
+				if (entry == null) {
+					entry = new FkOrgUuid();
+					entry.setKombitUuid(finalUuid);
+					entry.setPersonUuid(person.getUuid());
+					entry.setUserId(finalUserId);
+
+					entry = fkOrgUuidService.save(entry);
+					entries.add(entry);
+				}
+			}
+		}
+
+		for (FkOrgUuid entry : entries) {
+			boolean found = false;
+
+			for (User adUser : adUsers) {
+				// match on userId to avoid issue with ActiveDirectoryDetails being null on STIL users
+				if (Objects.equals(adUser.getUserId(), entry.getUserId())) {
+					found = true;
+					break;
+				}
+			}
+
+			if (!found) {
+				deleteUser(entry.getKombitUuid());
+				fkOrgUuidService.delete(entry);
+			}
+		}
 	}
-	
+
 	private void updateOrgUnit(OrgUnit orgUnit, List<ContactPlace> contactPlaces) {
 
 		// find name
@@ -395,9 +521,6 @@ public class OS2SyncService {
 
 		// find parent
 		final String parentUuid = (orgUnit.getParent() != null) ? orgUnit.getParent().getUuid() : null;
-
-		// find LOS shortkey
-		final String losValue = orgUnit.getShortname();
 
 		// find mobile phone number
 		Optional<Phone> phone = OrgUnitService.getPhones(orgUnit).stream().filter(p -> p.isTypePrime() && p.getPhoneType().equals(PhoneType.MOBILE)).findFirst();
@@ -416,7 +539,7 @@ public class OS2SyncService {
 			phoneValueTemp = phone.get().getPhoneNumber();
 		}
 		final String phoneValue = phoneValueTemp;
-		
+
 		// find landline phone number
 		Optional<Phone> landline = OrgUnitService.getPhones(orgUnit).stream().filter(p -> p.isTypePrime() && p.getPhoneType().equals(PhoneType.LANDLINE)).findFirst();
 		String landlineValueTemp = null;
@@ -442,10 +565,6 @@ public class OS2SyncService {
 		}
 		final String landlineValue = landlineValueTemp;
 
-		// find prime email
-		Optional<Email> email = OrgUnitService.getEmails(orgUnit).stream().filter(m -> m.isPrime()).findFirst();
-		final String emailValue = email.isPresent() ? email.get().getEmail() : null;
-
 		// find EAN
 		final String eanValue = (orgUnit.getEan() != null) ? Long.toString(orgUnit.getEan()) : null;
 
@@ -453,7 +572,11 @@ public class OS2SyncService {
 		List<String> tasks = new ArrayList<>();
 		for (String code : orgUnitService.getKleCodesIncludingInherited(orgUnit)) {
 			Kle kle = kleService.getByCode(code);
-			if (kle != null && StringUtils.hasLength(kle.getUuid())) {
+
+			// TODO: KMD has started blocking updates if any KLE is inactive, and we have raised a change request
+			//       on that, but for now we need to filter the inactive KLE out during updates
+			if (kle != null && StringUtils.hasLength(kle.getUuid()) && kle.isActive()) {
+//			if (kle != null && StringUtils.hasLength(kle.getUuid())) {
 				tasks.add(kle.getUuid());
 			}
 		}
@@ -474,7 +597,7 @@ public class OS2SyncService {
 		else {
 			orgUnitType = "DEPARTMENT";
 		}
-		
+
 		// open hours for this orgUnit
 		final String contactOpenHours;
 		if (StringUtils.hasLength(orgUnit.getOpeningHours())) {
@@ -495,7 +618,7 @@ public class OS2SyncService {
 		final String url = orgUnit.getUrlAddress();
 		// find email notes
 		final String emailNotes = orgUnit.getEmailNotes();
-		
+
 		// find return address
 		Optional<Post> returnPost = OrgUnitService.getPosts(orgUnit).stream().filter(p -> p.isReturnAddress()).findFirst();
 		String tempReturnPost = null;
@@ -508,6 +631,63 @@ public class OS2SyncService {
 		// find phone opening hours
 		final String openingHoursPhone = orgUnit.getOpeningHoursPhone();
 
+		// find "Henvendelsessted"
+		final String contact = (StringUtils.hasLength(orgUnit.getContactAddress()) ? orgUnit.getContactAddress() : null);
+		
+		// for OPUS owned units, supply the losid and shortname as well
+		String losId = null;
+		String losValue = null;
+		if( Objects.equals(orgUnit.getMaster(), "OPUS") ) {
+			losId = orgUnit.getMasterId();
+			losValue = orgUnit.getShortname();
+		}
+		else
+		{
+			// check if the OrgUnits are tagged with losId or losValue and use those tag values (ie. Odsherred)
+			var losIdTag = orgUnit.getTags().stream().filter(t -> t.getTag().getTagType() == TagType.LOSID).findFirst().orElse(null);
+			losId = losIdTag == null ? null : losIdTag.getCustomValue();
+
+			var losValueTag = orgUnit.getTags().stream().filter(t -> t.getTag().getTagType() == TagType.LOSVALUE).findFirst().orElse(null);
+			losValue = losValueTag == null ? null : losValueTag.getCustomValue();
+		}
+
+		final String finalLosId = losId;
+		final String finalLosValue = losValue;
+
+		final String pnr = (orgUnit.getPnr() != null && orgUnit.getPnr() != 0) ? (Long.toString(orgUnit.getPnr())) : null;
+
+		// find manager
+		String tManagerUuid = null;
+		if (orgUnit.getManager() != null && orgUnit.getManager().getManager() != null) {
+			List<User> users = PersonService.getUsers(orgUnit.getManager().getManager()).stream().filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType())).toList();
+
+			User managerUser = null;
+			// check if a user is mapped to an affiliation in the current OrgUnit
+			for( var user : users ) {
+				if( StringUtils.hasLength(user.getEmployeeId())) {
+					for( var affiliation : orgUnit.getManager().getManager().getAffiliations() ) {
+						if( affiliation.getEmployeeId().equalsIgnoreCase(user.getEmployeeId()) && affiliation.getOrgUnit().getUuid().equalsIgnoreCase(orgUnit.getUuid())) {
+							managerUser = user;
+							break;
+						}
+					}
+					if( managerUser != null ) {
+						break;
+					}
+				}
+			}
+
+			if( managerUser == null ) {
+				// fallback to using the prime user
+				managerUser = users.stream().filter(u -> u.isPrime()).findFirst().orElse(null);
+			}
+
+			if (managerUser != null && managerUser.getActiveDirectoryDetails() != null) {
+				tManagerUuid = managerUser.getActiveDirectoryDetails().getKombitUuid();
+			}
+		}
+		final String managerUuid = tManagerUuid;
+
 		GeneratedKeyHolder holder = new GeneratedKeyHolder();
 		jdbcTemplate.update(new PreparedStatementCreator() {
 
@@ -516,28 +696,32 @@ public class OS2SyncService {
 				PreparedStatement statement = con.prepareStatement(updateOrgUnitSQL, Statement.RETURN_GENERATED_KEYS);
 				statement.setString(1, orgUnit.getUuid());
 				statement.setString(2, nameValue);
-				statement.setString(3, parentUuid);
-				statement.setString(4, losValue);
-				statement.setString(5, phoneValue);
-				statement.setString(6, emailValue);
-				statement.setString(7, eanValue);
-				statement.setString(8, postValue);
-				statement.setString(9, orgUnitType);
-				statement.setString(10, contactOpenHours);
-				statement.setString(11, landlineValue);
-				statement.setString(12, configuration.getCustomer().getCvr());
-				statement.setString(13, location);
-				statement.setString(14, url);
-				statement.setString(15, emailNotes);
-				statement.setString(16, returnAddress);
-				statement.setString(17, openingHoursPhone);
+				statement.setString(3, managerUuid);
+				statement.setString(4, parentUuid);
+				statement.setString(5, finalLosValue);
+				statement.setString(6, phoneValue);
+				statement.setString(7, orgUnit.getEmail());
+				statement.setString(8, eanValue);
+				statement.setString(9, postValue);
+				statement.setString(10, orgUnitType);
+				statement.setString(11, contactOpenHours);
+				statement.setString(12, contact);
+				statement.setString(13, landlineValue);
+				statement.setString(14, configuration.getCustomer().getCvr());
+				statement.setString(15, location);
+				statement.setString(16, url);
+				statement.setString(17, emailNotes);
+				statement.setString(18, returnAddress);
+				statement.setString(19, openingHoursPhone);
+				statement.setString(20, finalLosId);
+				statement.setString(21, pnr);
 
 				return statement;
 			}
 		}, holder);
 
 		final Long primaryKey = holder.getKey().longValue();
-		
+
 		// insert Tasks
 		if (tasks.size() > 0) {
 			tasks.stream().forEach(t -> jdbcTemplate.update(updateOrgUnitTaskSQL, new Object[] { primaryKey, t }));
@@ -549,14 +733,14 @@ public class OS2SyncService {
 				.filter(tag -> tag.getTag().getTagType() == TagType.IT_SYSTEM)
 				.forEach(tag -> jdbcTemplate.update(updateOrgUnitTagSQL, new Object[] { primaryKey, tag.getTag().getItSystemUuid() }));
 		}
-		
+
 		if (configuration.getModules().getContactPlaces().isEnabled() && contactPlaces != null) {
 			for (ContactPlace contactPlace : contactPlaces) {
 				// we skip deleted or empty (taskwise) contactPlaces - those are present only to force a sync of the OrgUnits
 				if (contactPlace.isDeleted() || contactPlace.getTasks().size() == 0) {
 					continue;
 				}
-	
+
 				if (contactPlace.getContactPlace().getUuid().equals(orgUnit.getUuid())) {
 					contactPlace.getTasks().stream()
 						.forEach(task -> jdbcTemplate.update(updateOrgUnitContactPlaceSQL, new Object[] { primaryKey, task.getKle().getUuid() }));
@@ -568,14 +752,33 @@ public class OS2SyncService {
 		}
 	}
 
-	private String formatDate(Date date) {
+	private void deleteOrgUnit(String uuid) {
+		jdbcTemplate.update(deleteOrgUnitSQL, new Object[] { uuid, configuration.getCustomer().getCvr() });
+	}
+
+	private void deleteUser(String uuid) {
+		jdbcTemplate.update(deleteUserSQL, new Object[] { uuid, configuration.getCustomer().getCvr() });
+	}
+
+	private String formatDate(Date date, boolean stopDate) {
 		if (date == null) {
 			return null;
 		}
 
+		if (stopDate) {
+			Calendar c = Calendar.getInstance();
+			c.setTime(date);
+
+			// we run into issues with 9999-12-31 + 1 day :)
+			if (c.get(Calendar.YEAR) < 9999) {
+				c.add(Calendar.DATE, 1);
+				date = c.getTime();
+			}
+		}
+
 		return new SimpleDateFormat("yyyy-MM-dd").format(date);
 	}
-	
+
 	private void updateLatestSTSSyncRun(Long lastRun) {
 		Setting setting = settingService.getByKey(CustomerSetting.LAST_STSSYNC_RUN);
 		setting.setValue(Long.toString(lastRun));

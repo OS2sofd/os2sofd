@@ -14,7 +14,7 @@
 				<div class="panel-body">
 					<div class="row">
 						<div class="col-lg-12">
-							<form class="form-horizontal" id="facet-form" th:action="@{/ui/admin/functionhierarchy/facets/update}" method="post" th:object="${form}">
+							<form class="form-horizontal" id="facet-form" th:action="@{/ui/admin/functionhierarchy/facets/update}" method="post" th:object="${facetDTO}">
 								<input type="hidden" th:field="*{id}" />
 								<input type="hidden" th:field="*{listItems}" />
 
@@ -100,7 +100,7 @@
 	var token = $("meta[name='_csrf']").attr("content");
 
 	/*[+
-		var listItemList = [[${form.listItems}]];
+		var listItemList = [[${facetDTO.listItems}]];
 	    var duplicateListItem = [[#{html.page.functionHierarchy.facets.listitem.duplicate}]];
 	+]*/
 	
@@ -151,6 +151,10 @@
 			} else if (val == "LIST") {
 				$("#patternGroup").hide();
 				$("#addListItemGroup").show();
+				$("#pattern").val("");
+			} else if (val == "FOLLOW_UP_DATE") {
+				$("#patternGroup").hide();
+				$("#addListItemGroup").hide();
 				$("#pattern").val("");
 			}
 		}

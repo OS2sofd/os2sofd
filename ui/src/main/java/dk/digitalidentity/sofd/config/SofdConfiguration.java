@@ -19,8 +19,8 @@ import lombok.Setter;
 @Setter
 @ConfigurationProperties(prefix = "sofd")
 public class SofdConfiguration {
-	private String version = "2022 r1";
-	private String latestVersion = "2022 r1";
+	private String version = "2023 r3";
+	private String latestVersion = "2023 r3";
 	
 	private Modules modules = new Modules();
 	private Customer customer = new Customer();
@@ -28,7 +28,11 @@ public class SofdConfiguration {
 	private Scheduled scheduled = new Scheduled();
 	private AmazonS3Details s3 = new AmazonS3Details();
 	private EmailTemplateConfiguration emailTemplate = new EmailTemplateConfiguration();
+	
 	private boolean hidePersonAddresses = false; // TODO: burde den ikke defaulte til true?
+
+	@FeatureDocumentation(name = "Funktionsoverblik", description = "Vis tillidsfunktioner indlæst fra OPUS")
+	private boolean showOpusFunctionsOnPersonPage = false;
 
 	public boolean checkVersion() {
 		return Objects.equals(version, latestVersion);

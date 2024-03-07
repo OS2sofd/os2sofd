@@ -28,7 +28,7 @@ import lombok.Setter;
 public class ContactPlace {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private long id;
 
 	@OneToOne

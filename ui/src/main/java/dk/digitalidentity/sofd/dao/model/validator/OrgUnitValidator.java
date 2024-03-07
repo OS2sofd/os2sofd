@@ -6,7 +6,6 @@ import java.util.stream.Collectors;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 
-import dk.digitalidentity.sofd.dao.model.Email;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Phone;
 import dk.digitalidentity.sofd.dao.model.Post;
@@ -34,20 +33,6 @@ public class OrgUnitValidator implements Validator {
 			}
 			catch (Exception ex) {
 				errors.rejectValue("uuid", "validation.orgunit.uuid.format");
-			}
-
-			if (orgUnit.getEmails() != null && orgUnit.getEmails().size() > 0) {
-				int primes = 0;
-				
-				for (Email email : OrgUnitService.getEmails(orgUnit)) {
-					if (email.isPrime()) {
-						primes++;
-					}
-				}
-				
-				if (primes != 1) {
-					errors.rejectValue("emails", "validation.orgunit.emails.prime");
-				}
 			}
 
 			if (orgUnit.getPhones() != null && orgUnit.getPhones().size() > 0) {

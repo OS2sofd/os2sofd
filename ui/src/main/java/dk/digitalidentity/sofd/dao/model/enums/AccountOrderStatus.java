@@ -8,7 +8,8 @@ public enum AccountOrderStatus {
 	DELETED("html.enum.accountOrderStatus.deleted"),
 	FAILED("html.enum.accountOrderStatus.failed"),
 	EXPIRED("html.enum.accountOrderStatus.expired"),
-	BLOCKED("html.enum.accountOrderStatus.blocked");
+	BLOCKED("html.enum.accountOrderStatus.blocked"),
+	PENDING_APPROVAL("html.enum.accountOrderStatus.pending_approval");
 
 	private String messageId;
 

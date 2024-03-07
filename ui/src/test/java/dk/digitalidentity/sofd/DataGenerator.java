@@ -14,20 +14,17 @@ import dk.digitalidentity.sofd.dao.OrgUnitDao;
 import dk.digitalidentity.sofd.dao.PersonDao;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.Client;
-import dk.digitalidentity.sofd.dao.model.Email;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Phone;
 import dk.digitalidentity.sofd.dao.model.Post;
 import dk.digitalidentity.sofd.dao.model.User;
 import dk.digitalidentity.sofd.dao.model.enums.AccessRole;
-import dk.digitalidentity.sofd.dao.model.enums.AffiliationFunction;
 import dk.digitalidentity.sofd.dao.model.enums.AffiliationType;
 import dk.digitalidentity.sofd.dao.model.enums.PhoneType;
 import dk.digitalidentity.sofd.dao.model.enums.VersionStatus;
 import dk.digitalidentity.sofd.dao.model.mapping.AffiliationFunctionMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.AffiliationManagerMapping;
-import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitEmailMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPhoneMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPostMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.PersonPhoneMapping;
@@ -103,18 +100,7 @@ public class DataGenerator {
 		OrgUnit kommune = new OrgUnit();
 		kommune.setCvr(12345678L);
 		kommune.setEan(12345678900L);
-		
-		Email email = Email.builder().email("email@email.dk").master("TEST").masterId("TEST").prime(true).build();
-		OrgUnitEmailMapping ouEmailMapping = new OrgUnitEmailMapping();
-		ouEmailMapping.setEmail(email);
-		ouEmailMapping.setOrgUnit(kommune);
-		kommune.getEmails().add(ouEmailMapping);
-
-		email = Email.builder().email("email2@email.dk").master("TEST").masterId("TEST").prime(false).build();
-		ouEmailMapping = new OrgUnitEmailMapping();
-		ouEmailMapping.setEmail(email);
-		ouEmailMapping.setOrgUnit(kommune);
-		kommune.getEmails().add(ouEmailMapping);
+		kommune.setEmail("email@email.dk");
 		
 		Phone phone = Phone.builder().phoneNumber("12341234").master("TEST").masterId("TEST").prime(true).phoneType(PhoneType.LANDLINE).build();
 		OrgUnitPhoneMapping phoneMapping = new OrgUnitPhoneMapping();
@@ -160,12 +146,7 @@ public class DataGenerator {
 		hr.setOrgTypeId(50L);
 		hr.setMaster("TEST");
 		hr.setMasterId(hr.getUuid());
-		
-		email = Email.builder().email("email_hr@email.dk").master("TEST").masterId("TEST").prime(true).build();
-		ouEmailMapping = new OrgUnitEmailMapping();
-		ouEmailMapping.setEmail(email);
-		ouEmailMapping.setOrgUnit(hr);
-		hr.getEmails().add(ouEmailMapping);
+		hr.setEmail("email_hr@email.dk");
 		units.add(hr);
 
 		OrgUnit sundhedOgOmsorg = new OrgUnit();
@@ -188,12 +169,7 @@ public class DataGenerator {
 		sundhedOgOmsorg.setOrgTypeId(50L);
 		sundhedOgOmsorg.setMaster("TEST");
 		sundhedOgOmsorg.setMasterId(sundhedOgOmsorg.getUuid());
-		
-		email = Email.builder().email("email_soo@email.dk").master("TEST").masterId("TEST").prime(true).build();
-		ouEmailMapping = new OrgUnitEmailMapping();
-		ouEmailMapping.setEmail(email);
-		ouEmailMapping.setOrgUnit(sundhedOgOmsorg);
-		sundhedOgOmsorg.getEmails().add(ouEmailMapping);
+		sundhedOgOmsorg.setEmail("email_soo@email.dk");
 
 		units.add(sundhedOgOmsorg);
 
@@ -210,12 +186,7 @@ public class DataGenerator {
 		sundhed.setOrgTypeId(50L);
 		sundhed.setMaster("TEST");
 		sundhed.setMasterId(sundhed.getUuid());
-		
-		email = Email.builder().email("email_s@email.dk").master("TEST").masterId("TEST").prime(true).build();
-		ouEmailMapping = new OrgUnitEmailMapping();
-		ouEmailMapping.setEmail(email);
-		ouEmailMapping.setOrgUnit(sundhed);
-		sundhed.getEmails().add(ouEmailMapping);
+		sundhed.setEmail("email_s@email.dk");
 
 		units.add(sundhed);
 
@@ -232,12 +203,7 @@ public class DataGenerator {
 		omsorg.setOrgTypeId(50L);
 		omsorg.setMaster("TEST");
 		omsorg.setMasterId(omsorg.getUuid());
-		
-		email = Email.builder().email("email_om@email.dk").master("TEST").masterId("TEST").prime(true).build();
-		ouEmailMapping = new OrgUnitEmailMapping();
-		ouEmailMapping.setEmail(email);
-		ouEmailMapping.setOrgUnit(omsorg);
-		omsorg.getEmails().add(ouEmailMapping);
+		omsorg.setEmail("email_om@email.dk");
 
 		units.add(omsorg);
 
@@ -376,7 +342,7 @@ public class DataGenerator {
 				position.setFunctions(new ArrayList<>());
 				AffiliationFunctionMapping function = new AffiliationFunctionMapping();
 				function.setAffiliation(position);
-				function.setFunction(AffiliationFunction.MED_UDVALG);
+				function.setFunction("MED_UDVALG");
 				position.getFunctions().add(function);
 
 				position.setOrgUnit(positionOU1);
@@ -413,7 +379,7 @@ public class DataGenerator {
 				position.setFunctions(new ArrayList<>());
 				AffiliationFunctionMapping function = new AffiliationFunctionMapping();
 				function.setAffiliation(position);
-				function.setFunction(AffiliationFunction.MED_UDVALG);
+				function.setFunction("MED_UDVALG");
 				position.getFunctions().add(function);				
 				position.setOrgUnit(positionOU2);
 				position.setPayGrade("33");

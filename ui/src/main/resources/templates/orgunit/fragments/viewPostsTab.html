@@ -4,7 +4,7 @@
 			<button type="button" style="width: auto !important;" class="btn btn-primary btn-lg dropdown-toggle" data-toggle="dropdown">
 				<em class="fa fa-fw fa-cog"></em>
 			</button>
-	
+
 			<ul class="dropdown-menu" role="menu" id="dataTableUserDropdown">
 				<li><a href="#" data-cid="0" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.page.orgunit.view.post.address}"></span></a></li>
 				<li><a href="#" data-cid="1" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.page.orgunit.view.post.city}"></span></a></li>
@@ -50,7 +50,7 @@
 			</td>
 			<td>
 				<a href="#" onclick="openPostDeleteModal(this);" th:attr="data-id=${post.id}"> <em class="fa fa-fw fa-times"></em></a>
-				<a th:if="${post.master} != 'CVR'" href="#" onclick="openPostEditModal(this);" th:attr="data-id=${post.id},data-street=${post.street},data-localname=${post.localname},data-postalCode=${post.postalCode},data-city=${post.city},data-country=${post.country},data-returnAddress=${post.returnAddress},data-prime=${post.prime}"> <em class="fa fa-fw fa-pencil"></em></a>
+				<a th:if="${post.master} != 'CVR'" href="#" onclick="openPostEditModal(this);" th:attr="data-id=${post.id},data-street=${post.street},data-localname=${post.localname},data-postalCode=${post.postalCode},data-city=${post.city},data-country=${post.country},data-returnAddress=${post.returnAddress},data-prime=${post.prime},data-master=${post.master}"> <em class="fa fa-fw fa-pencil"></em></a>
 			</td>
 		</tr>
 		</tbody>
@@ -64,13 +64,14 @@
 			var postDeleteText = [[#{html.fragment.post.msg.delete.Text}]];
 			var postDeleteButtonConfirm = [[#{html.control.button.delete}]];
 			var postDeleteButtonCancel = [[#{html.control.button.cancel}]];
-			
+
 			var msgPosteDeleteFail = [[#{html.fragment.post.msg.delete.Fail}]];
 			var msgEditPostFail = [[#{html.fragment.post.msg.edit.Fail}]];
-			
+
 		+]*/
-		
+
 		function openPostEditModal(obj) {
+			enableInputFields();
 			var id = $(obj).attr('data-id');
 			var street = $(obj).attr('data-street');
 			var localname = $(obj).attr('data-localname');
@@ -79,6 +80,11 @@
 			var country = $(obj).attr('data-country');
 			var returnAddress = $(obj).data('returnaddress');
  			var prime = $(obj).data('prime');
+			var master = $(obj).attr('data-master');
+
+			if (master != "SOFD") {
+				disableInputFields();
+			}
 
 			$('#postId').val(id);
 			$('#street').val(street).focus();
@@ -92,6 +98,7 @@
 		}
 
 		function openPostNewModal() {
+			enableInputFields();
 			$('#postId').val("");
 			$('#street').val("").focus();
 			$('#localname').val("");
@@ -102,7 +109,25 @@
 			$('#prime').prop("checked", false);
 			$('#modal-edit-post').modal("show");
 		}
-	
+
+		function disableInputFields() {
+			$('#searchBox').prop( "disabled", true );
+			$('#street').prop( "disabled", true );
+			$('#localname').prop( "disabled", true );
+			$('#postalCode').prop( "disabled", true );
+			$('#city').prop( "disabled", true );
+			$('#country').prop( "disabled", true );
+		}
+
+		function enableInputFields() {
+			$('#searchBox').prop( "disabled", false );
+			$('#street').prop( "disabled", false );
+			$('#localname').prop( "disabled", false );
+			$('#postalCode').prop( "disabled", false );
+			$('#city').prop( "disabled", false );
+			$('#country').prop( "disabled", false );
+		}
+
 		function editOrCreatePost() {
 			$('.validationMessage').hide();
 
@@ -115,7 +140,7 @@
 			var addressProtected = $('#addressProtected').prop('checked');
 			var returnAddress = $('#returnAddress').prop('checked');
  			var prime = $('#prime').prop('checked');
-	
+
 			$.ajax({
 				url: restUrl + "/editOrCreatePost",
 				headers: {
@@ -156,14 +181,14 @@
 				}
 			});
 		}
-		
+
 		function setPostValidationMessages(errors) {
 			for (var i = 0; i < errors.length; i++) {
 				$('#' + errors[i].field + "-postValidationMessage").show();
 				$('#' + errors[i].field + "-postValidationMessage").text(errors[i].defaultMessage);
 			}
 		}
-	
+
 		function openPostDeleteModal(obj) {
 			var id = $(obj).attr('data-id');
 			swal({
@@ -204,7 +229,7 @@
 				}
 			});
 		}
-		
+
 		/*]]>*/
 	</script>
 </th:block>
@@ -220,7 +245,7 @@
 				<div class="modal-body">
 					<form id="newPostForm" class="form-horizontal">
 						<input id="postId" style="display: none;" class="form-control"/>
-						
+
 						<fieldset>
 							<div class="form-group">
 								<label class="col-sm-2 control-label" th:text="#{html.action.search}"></label>
@@ -244,7 +269,7 @@
 								</div>
 							</div>
 						</fieldset>
-						
+
 						<div class="form-group">
 							<label class="col-sm-2 control-label" th:text="#{html.entity.post.street}"></label>
 							<div class="col-sm-10">
@@ -252,7 +277,7 @@
 								<span class="validationMessage" id="street-postValidationMessage" style="color: red; display: none;"></span>
 							</div>
 						</div>
-						
+
 						<div class="form-group">
 							<label class="col-sm-2 control-label" th:text="#{html.entity.post.localname}"></label>
 							<div class="col-sm-10">
@@ -284,7 +309,7 @@
 								<span class="validationMessage" id="country-postValidationMessage" style="color: red; display: none;"></span>
 							</div>
 						</div>
-						
+
 						<hr/>
 
 						<div class="form-group">
@@ -318,7 +343,7 @@
  						</div>
 					</form>
 				</div>
-				
+
 
 				<div class="modal-footer">
 					<button class="btn btn-primary" type="button" th:text="#{html.control.button.save}" onclick="editOrCreatePost()"></button>
@@ -332,31 +357,31 @@
 	<script th:inline="javascript">
 		/*<![CDATA[*/
 		/*[+
-			
+
 		+]*/
-		
+
 		$('document').ready(function() {
 			$('#searchBox').on('input', function() {
 				executeQuery();
 			});
-			
+
 			var rows = $(".postRow");
-			
+
 			for (i=0; i < rows.length; i++) {
 				var master = $(rows[i]).attr('data-master');
 				var id = $(rows[i]).attr('data-id') + "row";
 				addPostTooltips(id, master);
 			}
 		});
-		
+
 		function addPostTooltips(id, master) {
 			$('#' + id).tooltip({title: tooltipTxt + ": " + master});
 		}
-		
+
 		function updateDropdown(resultSet) {
 			if (resultSet && resultSet.length > 0) {
 				$("#searchResultDropDownMenu").empty();
-				
+
 				for (var i = 0; i < resultSet.length; i++) {
 					var etage = "";
 					var dør = "";
@@ -366,33 +391,33 @@
 					if (resultSet[i].dør != null) {
 						dør = resultSet[i].dør;
 					}
-					
+
 					var guiValue = resultSet[i].vejnavn + " " + resultSet[i].husnr + " " + etage + dør + ", " + resultSet[i].postnr + " " + resultSet[i].bynavn;
-					
+
 					$("#searchResultDropDownMenu").append("<a href='#' style='color: black;' onclick=\"select('" + guiValue + "')\"><li>" + guiValue + "</li></a>");
 				}
-				
+
 				$("#dropdownResult").addClass("open");
 			}
 			else {
 				$("#dropdownResult").removeClass("open");
 			}
 		}
-		
+
 		function executeQuery() {
 			$('#inputAddon').show();
 			var value = $('#searchBox').val();
 
-			if (value.length >= 3) {					
+			if (value.length >= 3) {
 				var tokens = value.split(" ");
 				var query = "https://dawa.aws.dk/adresser?per_side=50&struktur=mini&q=";
 				for (var i = 0; i < tokens.length; i++) {
 					if (i > 0) {
-						query = query + "%20";	
+						query = query + "%20";
 					}
-					query = query + tokens[i] + "*";					
+					query = query + tokens[i] + "*";
 				}
-				
+
 				$.ajax({
 					url: query,
 					method: "GET",
@@ -413,7 +438,7 @@
 								resultSet.push(hit);
 							}
 						}
-						
+
 						updateDropdown(resultSet);
 					}
 				});
@@ -422,21 +447,21 @@
 				updateDropdown(null);
 			}
 		}
-		
+
 		function select(query) {
 			splits = query.split(",");
 			secondSplit = splits[1].split(" ");
-			
-			$("#street").val(splits[0]);
+
+			$("#street").val(splits[0].trim());
 			$("#postalCode").val(secondSplit[1]);
 			$("#city").val(secondSplit[2]);
-			
+
 			$('#searchBox').val('');
 			$('#inputAddon').hide();
 			$("#dropdownResult").removeClass("open");
 		}
-		
-		
+
+
 		/*]]>*/
 	</script>
 </th:block>

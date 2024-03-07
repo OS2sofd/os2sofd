@@ -13,6 +13,7 @@ import dk.digitalidentity.sofd.dao.model.EmailTemplate;
 import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
 import dk.digitalidentity.sofd.dao.model.EntityChangeQueueDetail;
 import dk.digitalidentity.sofd.dao.model.Person;
+import dk.digitalidentity.sofd.dao.model.enums.EmailTemplatePlaceholder;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplateType;
 import dk.digitalidentity.sofd.listener.EntityListenerService.ChangeType;
 import dk.digitalidentity.sofd.service.EmailQueueService;
@@ -78,7 +79,7 @@ public class NewStopDateForManagerListener implements ListenerAdapter {
 			
 			if (configuration.getEmailTemplate().isOrgFilterEnabled() && template.getTemplateType().isShowOrgFilter()) {
 				List<String> excludedOUUuids = child.getExcludedOrgUnitMappings().stream().map(o -> o.getOrgUnit()).map(o -> o.getUuid()).collect(Collectors.toList());
-				if (excludedOUUuids.contains(oAffiliation.getOrgUnit().getUuid())) {
+				if (excludedOUUuids.contains(oAffiliation.getCalculatedOrgUnit().getUuid())) {
 					log.info("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + oAffiliation.getUuid() + ". The affiliation OU was in the excluded ous list");
 					continue;
 				}
@@ -86,16 +87,16 @@ public class NewStopDateForManagerListener implements ListenerAdapter {
 
 			for (String recipient : recipients) {
 				String message = child.getMessage();
-				message = message.replace(EmailTemplateService.RECEIVER_PLACEHOLDER, recipient);
-				message = message.replace(EmailTemplateService.ORGUNIT_PLACEHOLDER, oAffiliation.getOrgUnit().getName());
-				message = message.replace(EmailTemplateService.EMPLOYEE_PLACEHOLDER, PersonService.getName(person));
+				message = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
+				message = message.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), oAffiliation.getCalculatedOrgUnit().getName());
+				message = message.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
 				
 				String title = child.getTitle();
-				title = title.replace(EmailTemplateService.RECEIVER_PLACEHOLDER, recipient);
-				title = title.replace(EmailTemplateService.ORGUNIT_PLACEHOLDER, oAffiliation.getOrgUnit().getName());
-				title = title.replace(EmailTemplateService.EMPLOYEE_PLACEHOLDER, PersonService.getName(person));
-				
-				emailQueueService.queueEmail(recipient, title, message, 0, child);
+				title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
+				title = title.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), oAffiliation.getCalculatedOrgUnit().getName());
+				title = title.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
+
+				emailQueueService.queueEmailToSystemMailbox(recipient, title, message, 0, child);
 			}
 		}
 	}

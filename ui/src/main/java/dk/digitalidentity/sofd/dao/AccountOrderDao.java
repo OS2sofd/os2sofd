@@ -41,4 +41,8 @@ public interface AccountOrderDao extends CrudRepository<AccountOrder, Long> {
 	AccountOrder findByDependsOn(AccountOrder dependsOn);
 
 	List<AccountOrder> findByUserType(String userType);
+
+	long countByUserTypeAndOrderTypeAndRequestedUserId(String userType, AccountOrderType orderType, String userId);
+
+    List<AccountOrder> findByUserTypeAndOrderTypeAndStatusAndActualUserId(String userType, AccountOrderType orderType, AccountOrderStatus status, String actualUserId);
 }

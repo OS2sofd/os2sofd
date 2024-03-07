@@ -1,5 +1,6 @@
 package dk.digitalidentity.sofd.controller.api.dto;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import lombok.AllArgsConstructor;
@@ -23,5 +24,7 @@ public class FacetValueDTO {
 	private String facetValueOrgunitNames;
 	private String facetValueAffiliationUuid;
 	private String facetValueAffiliationPersonName;
+	private LocalDate date;
+	private long sortKey;
 	
 }

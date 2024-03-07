@@ -1,5 +1,6 @@
 <th:block th:fragment="orgUnitsCoreView" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
-	<div class="col-lg-6">
+
+<div class="col-lg-6">
 		<fieldset>
 			<div class="row">
 				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.sourceName}"></label>
@@ -7,14 +8,14 @@
 					<input th:value="${orgUnit.sourceName}" class="form-control masterTooltip" readonly="readonly" />
 				</div>
 			</div>
-	
+
 			<div class="row">
 				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.parent}"></label>
 				<div class="col-sm-9">
 					<input th:value="${orgUnit.parent != null ? orgUnit.parent.name : ''}" class="form-control" readonly="readonly" />
 				</div>
 			</div>
-	
+
 			<div class="row">
 				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.shortname}"></label>
 				<div class="col-sm-9">
@@ -36,16 +37,16 @@
 				</div>
 			</div>
 		</fieldset>
-	
+
 		<fieldset>
 			<div class="row">
 				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.manager}"></label>
 				<div class="col-sm-9">
 					<input th:value="${orgUnit.manager != null ? orgUnit.manager.name : ''}" class="form-control" readonly="readonly"/>
 				</div>
-			</div>			
+			</div>
 		</fieldset>
-	
+
 		<fieldset>
 			<div class="row">
 				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.orgtype}"></label>
@@ -55,37 +56,42 @@
 			</div>
 		</fieldset>
 	</div>
-	
+
 	<div class="col-lg-6">
 		<fieldset>
 			<div class="row">
-				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.ean}"></label>
+				<label class="col-sm-3 control-label">
+					<th:block th:text="#{html.entity.orgunit.ean}" />
+					<div th:if="${orgUnit.ean} == null and not ${#strings.isEmpty(orgUnit.inheritedEan)}" class="footnote">Nedarvet</div>
+				</label>
+
 				<div class="col-sm-9">
-					<input th:value="${orgUnit.ean}" class="form-control masterTooltip" readonly="readonly" />
+					<input th:if="${orgUnit.ean} != null" th:value="${orgUnit.ean}" class="form-control masterTooltip" readonly="readonly" />
+					<input th:if="${orgUnit.ean} == null" th:value="${orgUnit.inheritedEan}" class="form-control masterTooltip" readonly="readonly" />
 				</div>
 			</div>
-	
+
 			<div class="row">
 				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.cvr}"></label>
 				<div class="col-sm-9">
 					<input th:value="${orgUnit.cvr}" class="form-control masterTooltip" readonly="readonly" />
 				</div>
 			</div>
-	
+
 			<div class="row">
 				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.senr}"></label>
 				<div class="col-sm-9">
 					<input th:value="${orgUnit.senr}" class="form-control masterTooltip" readonly="readonly" />
 				</div>
 			</div>
-	
+
 			<div class="row">
 				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.pnr}"></label>
 				<div class="col-sm-9">
 					<input th:value="${orgUnit.pnr}" class="form-control masterTooltip" readonly="readonly" />
 				</div>
 			</div>
-	
+
 			<div class="row">
 				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.costbearer}"></label>
 				<div class="col-sm-9">
@@ -93,7 +99,7 @@
 				</div>
 			</div>
 		</fieldset>
-	
+
 		<fieldset>
 			<div class="row">
 				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.created}"></label>
@@ -101,7 +107,7 @@
 					<input th:value="${#dates.format(orgUnit.created, 'yyyy-MM-dd  HH:mm')}" class="form-control masterTooltip" readonly="readonly" />
 				</div>
 			</div>
-	
+
 			<div class="row">
 				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.lastchanged}"></label>
 				<div class="col-sm-9">
@@ -110,19 +116,27 @@
 			</div>
 		</fieldset>
 	</div>
-	
+
+	<div class="hidden" th:if="${deletable}">
+		<button id="deleteButton" class="btn btn-lg btn-danger" style="width:auto;margin-right: 10px;" onclick="deleteOrgUnit()">
+			<em class="fa fa-trash" aria-hidden="true"></em>&nbsp;
+			<span th:text="#{html.button.delete}"></span>
+		</button>
+	</div>
+
 	<div class="hidden">
 		<button id="editButton" class="btn btn-lg btn-primary" style="width:auto" onclick="loadEditCoreFragment()">
 			<em class="fa fa-pencil" aria-hidden="true"></em>&nbsp;
 			<span th:text="#{html.button.edit}"></span>
 		</button>
 	</div>
-	
+
 	<script type="text/javascript">
 		$(document).ready(function() {
 			$('#buttonsMenu button').remove();
+			$('#buttonsMenu').append($('#deleteButton'));
 			$('#buttonsMenu').append($('#editButton'));
-			
+
 			addTooltips('masterTooltip', orgUnitMaster);
 		});
 	</script>

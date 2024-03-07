@@ -43,7 +43,7 @@ public class MultipleAffiliationsReportXlsView extends AbstractXlsView {
 			courseRow.createCell(0).setCellValue(row.getName());
 			courseRow.createCell(1).setCellValue(row.getCpr());
 			courseRow.createCell(2).setCellValue(row.getAffiliationName());
-			courseRow.createCell(3).setCellValue(row.getAffilliationOrgUnitName());
+			courseRow.createCell(3).setCellValue(row.getAffiliationOrgUnitName());
 			courseRow.createCell(4).setCellValue(row.isPrimeAffiliation() ? "Ja" : "Nej");
 			courseRow.createCell(5).setCellValue(row.getAffiliationTerms());
 			courseRow.createCell(6).setCellValue(row.getEmployeeId());

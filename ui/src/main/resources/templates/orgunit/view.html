@@ -23,7 +23,6 @@
 					<div class="panel-heading"></div>
 					<div class="panel-body">
 						<div id="core" class="row"></div>
-
 						<th:block th:if="${session.SESSION_FUTURE_DATE} == null">
                             <ul class="nav nav-tabs">
                                 <li class="active">
@@ -54,6 +53,9 @@
                                 <li>
                                     <a data-toggle="tab" href="#managed_titles_menu" th:text="#{html.page.orgunit.view.managedtitles.title}"></a>
                                 </li>
+								<li th:if="${@sofdConfiguration.getModules().getOrgUnitSubstitute().isEnabled()}">
+									<a data-toggle="tab" href="#substitutes_menu" th:text="#{html.page.orgunit.view.substitute.title}"></a>
+								</li>
                             </ul>
 
                             <div class="tab-content">
@@ -73,7 +75,7 @@
                                         <li><a href="#" data-cid="6" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.employmentTerms}"></span></a></li>
                                       </ul>
                                     </div>
-                                    
+
                                     <div class="btn-group" sec:authorize="hasRole('ROLE_USER_EDIT')">
 							  			<button class="btn btn-primary btn-lg dropdown-toggle" type="button" data-toggle="dropdown" style="width: 200px;">
 								  			<span>
@@ -157,7 +159,7 @@
                                         </tbody>
                                     </table>
                                 </div>
-                                
+
                                 <div id="kle_menu" class="tab-pane fade">
 	                                <div sec:authorize="hasRole('ROLE_USER_EDIT')" style="padding-bottom: 80px;">
 										<div class="col-sm-1" style="width: 40px !important;">
@@ -189,7 +191,7 @@
 
 		                                    <div class="content"></div>
 	                               		</div>
-	
+
 	                                	<div id="kle_interest_menu" class="tab-pane fade">
 	                                    	<a sec:authorize="hasRole('ROLE_USER_EDIT')" onclick="editKLE('KleSecondary')" class="btn btn-lg btn-primary" style="margin-left:15px;"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i></a>
 
@@ -213,7 +215,7 @@
                                 </div>
 
                                 <div id="contactInfo_menu" class="tab-pane fade">
-									<div th:replace="orgunit/fragments/viewContactInfoTab :: contactInfoTab (openingHours = ${orgUnit.openingHours}, keyWords = ${orgUnit.keyWords}, notes = ${orgUnit.notes}, openingHoursPhone = ${orgUnit.openingHoursPhone}, emailNotes = ${orgUnit.emailNotes}, location = ${orgUnit.location}, urlAddress = ${orgUnit.urlAddress})"></div>
+									<div th:replace="orgunit/fragments/viewContactInfoTab :: contactInfoTab (openingHours = ${orgUnit.openingHours}, keyWords = ${orgUnit.keyWords}, notes = ${orgUnit.notes}, openingHoursPhone = ${orgUnit.openingHoursPhone}, email = ${orgUnit.email}, emailNotes = ${orgUnit.emailNotes}, location = ${orgUnit.location}, urlAddress = ${orgUnit.urlAddress})"></div>
                                 </div>
                                 <div id="ouFutureChanges" class="tab-pane fade">
                                     <th:block th:replace="fragments/ouFutureChangesList :: ouFutureChangesList (changes = ${futureChanges})" />
@@ -226,10 +228,14 @@
                                 <div id="order_accounts_menu" class="tab-pane fade">
                                     <div th:replace="orgunit/fragments/viewAccountOrdersTab :: accountOrdersTab (orgUnitAccountOrder = ${orgUnitAccountOrder})"></div>
                                 </div>
-                                
+
                                 <div id="managed_titles_menu" class="tab-pane fade">
 	                                <div id="managedTitlesPlaceholder"></div>
                                 </div>
+
+								<div id="substitutes_menu" class="tab-pane fade">
+									<div th:replace="orgunit/fragments/substitutesTab :: substitutesTab (substitutes = ${substitutes})"></div>
+								</div>
                             </div>
 						</th:block>
 					</div>
@@ -252,9 +258,12 @@
 
 	<!-- Delete future changes modal -->
 	<th:block th:replace="fragments/ouFutureChangesList :: ouFutureChangesModal" />
-	
+
 	<!-- create managed title modal -->
 	<div th:replace="orgunit/fragments/managedTitlesTab :: managedTitlesCreateModal"></div>
+
+	<!-- create substitute modal -->
+	<div th:replace="orgunit/fragments/substitutesTab :: substitutesCreateModal"></div>
 
 	<nav th:replace="fragments/footer :: footer"></nav>
 
@@ -301,32 +310,47 @@
 			var allKles = [[${allKles}]];
 
 			var allTags = [[${allTags}]];
-			
+
 			var fieldUpdatedMsg = [[#{html.page.orgunit.edit.kle.update.success}]];
 			var fieldNotUpdatedMsg = [[#{html.page.orgunit.edit.kle.update.failure}]];
-			
+
 			var inheritUpdatedMsg = [[#{html.page.orgunit.edit.kle.inherit.update.success}]];
 			var inheritNotUpdatedMsg = [[#{html.page.orgunit.edit.kle.inherit.update.failure}]];
-			
+
 			var msgUpdateFail = [[#{html.page.orgunit.update.failure}]];
 			var msgFieldUpdated = [[#{html.page.orgunit.update.success}]];
 
 			var tooltipTxt = [[#{html.entity.person.master}]];
-			
+
 			var confirmRulesTitleTxt = [[#{html.page.orgunit.edit.rules.title}]]
 			var yesButtonTxt = [[#{html.button.yes}]];
 			var noButtonTxt = [[#{html.button.no}]];
 
 			var orgId = [[${orgUnit.belongsTo.id}]];
 			var orgUnitSourceName = [[${orgUnit.sourceName}]];
-			
+
 			var managedTitleError = [[#{html.page.orgunit.view.managedtitles.create.error}]];
 			var swalDeleteTitleTitle = [[#{html.page.orgunit.view.managedtitles.delete}]];
 			var swalDeleteTitleText = [[#{html.page.orgunit.view.managedtitles.delete.text}]];
 			var managedTitleDeleteError = [[#{html.page.orgunit.view.managedtitles.delete.error}]];
+
+			var orgUnitSubstituteEnabled = [[${@sofdConfiguration.getModules().getOrgUnitSubstitute().isEnabled()}]];
+			var substituteRestUrl = [[@{/rest/substituteOrgUnitAssignment}]];
+			var substituteAutocompleteRestUrl = [[@{/rest/substituteAssignment}]];
+			var removeSubstituteAssignmentTitle = [[#{html.page.person.substitute.msg.delete.Title}]];
+			var removeSubstituteAssignmentText = [[#{html.page.person.substitute.msg.delete.Text}]];
+			var removeSubstituteAssignmentFail = [[#{html.page.person.substitute.msg.delete.Fail}]];
+			var btnCancel = [[#{html.button.cancel}]];
+			var btnDelete = [[#{html.button.delete}]];
+			var msgSubstituteAddFail = [[#{html.page.person.view.substitute.failure}]];
+
+			var orgDeleteTitle = [[#{html.page.orgunit.delete.title}]];
+			var orgDeleteMessage = [[#{html.page.orgunit.delete.message}]];
+			var orgDeleteFailure = [[#{html.page.orgunit.delete.failure}]];
+
 		+]*/
 		var token = $("meta[name='_csrf']").attr("content");
-		
+
 		// polyfill for IE
 		if (!String.prototype.startsWith) {
 			String.prototype.startsWith = function(searchString, position) {
@@ -335,18 +359,23 @@
 			};
 		}
 
-		var managedTitleService;
+		var managedTitleService, substituteService;
 		$("document").ready(function() {
 			managedTitleService = new ManagedTitleService();
 			managedTitleService.init();
-			
+
+			if (orgUnitSubstituteEnabled) {
+				substituteService = new SubstituteService();
+				substituteService.init();
+			}
+
 			loadViewCoreFragment();
 			$("#kle_performing_menu .content").load(url + "/viewKLE/" + uuid + "/KlePrimary");
 			$("#kle_interest_menu .content").load(url + "/viewKLE/" + uuid + "/KleSecondary");
 			$("#kle_tertiary_menu .content").load(url + "/viewKLE/" + uuid + "/KleTertiary");
-			
+
 			$("#isInherit").prop('checked',inherit);
-			
+
 			addTooltips('masterTooltip', orgUnitMaster);
 
 			// on active click/show of tab, initalize
@@ -388,9 +417,49 @@
 		function toggleModal(id) {
 			$('#' + id).modal("toggle");
 		}
-		
+
+		// Delete orgUnit
+
+		function deleteOrgUnit() {
+			swal({
+						html : true,
+						title : orgDeleteTitle,
+						text : orgDeleteMessage,
+						type : "warning",
+						showCancelButton : true,
+						confirmButtonColor : "#DD6B55",
+						confirmButtonText : yesButtonTxt,
+						cancelButtonText : noButtonTxt,
+						closeOnConfirm : true,
+						closeOnCancel : true
+					},
+					function(isConfirm) {
+						if (isConfirm) {
+							$.ajax({
+							url: restUrl + "/" + uuid,
+							method : "DELETE",
+							headers: {
+								'X-CSRF-TOKEN': token
+							},
+							error: function(response) {
+								$.notify({
+									message: orgDeleteFailure
+								}, {
+									status: 'danger',
+									autoHideDelay: 4000
+								});
+							},
+							success: function(response) {
+								location.replace(url);
+							}
+						});
+
+						}
+					});
+		}
+
 		//Core view/edit
-		
+
 		function loadEditCoreFragment() {
 			$("#core").load(url + "/core/" + uuid + "/edit");
 		}
@@ -422,7 +491,7 @@
 						}else{
 							swal({
 								title: "Navnedublikering",
-								text : "Der findes allerede en enhed med navnet " + name + " i SOFD Core. Er du sikker på du vil gemme?",
+								text : "Der findes allerede en enhed med navnet " + name + " i OS2sofd. Er du sikker på du vil gemme?",
 								type : "warning",
 								showCancelButton : true,
 								confirmButtonColor : "#DD6B55",
@@ -442,27 +511,27 @@
 			} else {
 				ajaxSave();
 			}
-			
+
 		}
-		
+
 		function ajaxSave() {
 			var fields = $('#core input[id]');
 			var data = {};
 			fields.map(function(index, value) {
 				data[value.id] = value.value;
 			});
-			
+
 			// deal with root in a sane way
 			if (data.parent == '') {
 				data.parent = null;
 			}
-			
+
 			// don't allow non-integer values for these
 			data.senr = parseInt(data.senr);
 			data.pnr = parseInt(data.pnr);
 			data.cvr = parseInt(data.cvr);
 			data.ean = parseInt(data.ean);
-			
+
 			// deal with type
 			data.orgUnitType = $("#orgUnitType").val();
 
@@ -478,7 +547,7 @@
 				},
 				error: function(response) {
 					setValidationMessages(response.responseJSON);
-					
+
 					$.notify({
 						message: msgUpdateFail
 					}, {
@@ -503,7 +572,7 @@
 				}
 			});
 		}
-		
+
 		function setValidationMessages(errors) {
 			for (var i = 0; i < errors.length; i++) {
 				$('#' + errors[i].field + "-validationMessage").show();
@@ -520,14 +589,14 @@
 		function loadViewAccountOrderTab() {
 			$('#order_accounts_menu').load(url + "/orderAccounts/" + uuid + "/view");
 		}
-		
+
 		function saveAccountOrder() {
 			var payload = { "orgunitUuid": uuid, "types": [] };
 
 			$('#accountOrderTable').find("> tbody > tr").each(function() {
 				var row = $(this);
 				var usertype = row.data('usertype');
-				
+
 				var payloadElem = { "userType": usertype, "rule": "", "positions": [] };
 
 				// each() only returns one element, everything is okay ;)
@@ -539,16 +608,16 @@
 					$(this).find("> td > select").each(function() {
 						var positionname = $(this).data('positionname');
 						var rule = $(this).val();
-						
+
 						var positionRuleElem = { "positionName": positionname, "rule": rule };
-						
+
 						payloadElem.positions.push(positionRuleElem);
 					});
 				});
 
 				payload.types.push(payloadElem);
 			});
-			
+
 			$.ajax({
 				method : "POST",
 				url: restUrl + "/" + uuid + "/update/accountOrderRules/try",
@@ -563,11 +632,11 @@
 				var alertMsg = '<ul style="list-style: none; padding-left: 0px;">';
 				for (var key in data.result) {
 					keys++;
-					
+
 					alertMsg += '<li>' + data.result[key] + ' ' + key + '</li>';
 				}
 				alertMsg += "</ul>";
-				
+
 				if (keys > 0) {
 					swal({
 						html : true,
@@ -602,7 +671,7 @@
 				});
 			});
 		}
-		
+
 		function saveRules(payload) {
 			$.ajax({
 				method : "POST",
@@ -641,8 +710,9 @@
 		function loadViewContactInfoTab() {
 			$('#contactInfo_menu').load(url + "/contactInfo/" + uuid + "/view");
 		}
-		
+
 		function saveContactInfo() {
+			var contactAddress = $('#contactAddress').val();
 			var openinghours = $('#openinghours').val();
 			var openinghoursphone = $('#openinghoursphone').val();
 			var keywords = $('#keywords').val();
@@ -650,6 +720,7 @@
 			var emailNotes = $('#emailNotes').val();
 			var location = $('#location').val();
 			var urlAddress = $('#urlAddress').val();
+			var email = $('#email').val();
 
 			$.ajax({
 				method : "POST",
@@ -658,14 +729,16 @@
 					"uuid": uuid,
 					'X-CSRF-TOKEN': token
 				},
-				data: JSON.stringify({ 
+				data: JSON.stringify({
+					contactAddress: contactAddress,
 					openingHours: openinghours,
 					openingHoursPhone: openinghoursphone,
 					keywords: keywords,
 					notes: notes,
 					emailNotes: emailNotes,
 					location: location,
-					urlAddress: urlAddress
+					urlAddress: urlAddress,
+					email: email
 				}),
 				dataType: "json",
 				contentType: "application/json; charset=utf-8"
@@ -689,7 +762,7 @@
 
 
 		//KLE Tab
-		
+
 		function setInheritKLE(){
 			$.ajax({
 				contentType: 'application/json',
@@ -733,7 +806,7 @@
 				$("#kle_tertiary_menu .content").load(url + "/editKLE/" + uuid + "/KleTertiary");
 			}
 		}
-		
+
 		function saveChanges(id) {
 			var codes = $('#' + id).jstree('get_top_selected')
 			$.ajax({
@@ -789,24 +862,24 @@
 			enableCheckboxes: true,
 			disableState: true
 		};
-		
+
 		function ManagedTitleService() {
 			this.init = function() {
 				managedTitleService.loadFragment();
 			}
-			
+
 			this.loadFragment = function() {
 				$("#managedTitlesPlaceholder").load(url + "/" + uuid + "/fragments/managedtitles");
 			}
-			
+
 			this.startCreate = function() {
 				$("#managedTitleName").val("");
 				$("#modal-create-managed-title").modal("show");
 			}
-			
+
 			this.create = function() {
 				var titleName = $("#managedTitleName").val();
-				
+
 				$.ajax({
 					contentType: 'application/json',
 					url: restUrl + "/" + uuid + "/managedtitles/create",
@@ -839,10 +912,10 @@
 					}
 				});
 			}
-			
+
 			this.deleteTitle = function(elem) {
 				var id = $(elem).data("id");
-				
+
 				swal({
 					html : true,
 					title : swalDeleteTitleTitle,
@@ -879,6 +952,132 @@
 					}
 					else {
 						return;
+					}
+				});
+			}
+		}
+
+		function SubstituteService() {
+			this.init = function() {
+				$("#addSubstituteSelectedContext").on("change", function() {
+					substituteService.handleSubstituteContextChange();
+				});
+				$("#addSubstituteBtn").on("click", function() {
+					substituteService.showAddSubstituteModal();
+				});
+				$("#addAssignmentBtn").on("click", function() {
+					substituteService.addSubstituteAssignment();
+				});
+
+				//Substitute autocomplete
+				$('#addSubstituteAutocompletePerson').autocomplete({
+					serviceUrl: substituteAutocompleteRestUrl + "/search/person/" + uuid,
+					onSelect: function(suggestion) {
+						// strip markup
+						var textValue = suggestion.value;
+						var idx = textValue.indexOf("-XXXX");
+						if (idx > 0) {
+							textValue = textValue.substr(0, idx);
+
+							idx = textValue.lastIndexOf("-");
+							if (idx > 0) {
+								textValue = textValue.substr(0, idx - 1);
+							}
+						}
+
+						$("#realPersonField").val(suggestion.data);
+
+						$(this).val(textValue);
+					},
+					preventBadQueries: true,
+					triggerSelectOnValidInput: false
+				});
+			}
+
+			this.showAddSubstituteModal = function() {
+				$("#realPersonField").val("");
+				$("#addSubstituteAutocompletePerson").val("");
+				$("#addSubstituteSelectedContext option:selected").prop("selected", false);
+				$("#addSubstituteSelectedContext option:first").attr('selected', true);
+				substituteService.handleSubstituteContextChange();
+				$('#modal-add-substitute').modal("show");
+			}
+
+			this.handleSubstituteContextChange = function() {
+				var supportsConstraints = $("#addSubstituteSelectedContext").find(':selected').data("supportsconstraints");
+				$('#chbxSubstituteContextConstraints').prop('checked', false);
+				$('#chbxSubstituteContextConstraints').prop('disabled', !supportsConstraints);
+				$("#subConstraintOrgUnitsTable").hide();
+			}
+
+			this.removeSubstituteAssignment = function(elem) {
+				var assignmentId = $(elem).data('assignmentid');
+
+				swal({
+					html : true,
+					title : removeSubstituteAssignmentTitle,
+					text : removeSubstituteAssignmentText,
+					type : "warning",
+					showCancelButton : true,
+					confirmButtonColor : "#DD6B55",
+					confirmButtonText : btnDelete,
+					cancelButtonText : btnCancel,
+					closeOnConfirm : true,
+					closeOnCancel : true
+				},
+				function(isConfirm) {
+					if (isConfirm) {
+						$.ajax({
+							method : "DELETE",
+							url: substituteRestUrl + "/delete/" + assignmentId,
+							headers: {
+								'X-CSRF-TOKEN': token
+							}
+						}).done(function (data) {
+							location.reload(true);
+						}).fail(function (jqXHR, textStatus, errorThrown) {
+							$.notify({
+								message: removeSubstituteAssignmentFail
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						});
+					}
+				});
+			}
+
+			this.addSubstituteAssignment = function() {
+				payload = {
+					context : $("#addSubstituteSelectedContext option:selected").val(),
+					substitute : $("#realPersonField").val(),
+					orgUnit : uuid
+				};
+
+				$.ajax({
+					contentType: 'application/json',
+					url: substituteRestUrl + "/add",
+					method : "POST",
+					data: JSON.stringify(payload),
+					headers: {
+						'X-CSRF-TOKEN': token
+					},
+					error: function(jqXHR, textStatus, errorThrown) {
+						if (jqXHR.status == 404) {
+							$('#addSubstitutePersonError').show();
+							$('#addSubstitutePersonError').html("");
+							$('#addSubstitutePersonError').append('<li>Der skal vælges en stedfortræder</li>');
+						} else {
+							$.notify({
+								message: msgSubstituteAddFail
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						}
+					},
+					success: function(response) {
+						location.reload(true);
 					}
 				});
 			}

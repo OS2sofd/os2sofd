@@ -1,24 +1,58 @@
 package dk.digitalidentity.sofd.service;
 
-import dk.digitalidentity.sofd.dao.model.enums.NotificationType;
+import java.util.Objects;
+
+import javax.transaction.Transactional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import dk.digitalidentity.sofd.dao.SettingDao;
 import dk.digitalidentity.sofd.dao.model.Setting;
 import dk.digitalidentity.sofd.dao.model.enums.CustomerSetting;
+import dk.digitalidentity.sofd.dao.model.enums.NotificationType;
 import dk.digitalidentity.sofd.service.model.PersonDeletePeriod;
 
 @Service
 public class SettingService {
 	private static final String SETTING_PERSON_DELETE_PERIOD = "PersonDeletePeriod";
-	public static final String SETTING_DAYS_BEFORE_FUNCTION_ASSIGNMENT_EXPIRES = "DaysBeforeFunctionAssignmentExpires";
-	public static final String FUNCTION_ASSIGNMENT_EMPLOYEE_NEW_MANAGER = "FunctionAssignmentEmployeeNewManager";
-	public static final String FUNCTION_ASSIGNMENT_EXPIRES = "FunctionAssignmentExpires";
+	private static final String SETTING_SCHEDULED_TASKS_RUNNING = "ScheduledTasksRunning";
 
 	@Autowired
 	private SettingDao settingDao;
 
+	@Transactional
+	public void setScheduledTasksRunning() {
+		Setting setting = settingDao.findByKey(SETTING_SCHEDULED_TASKS_RUNNING);
+		if (setting == null) {
+			setting = new Setting();
+			setting.setKey(SETTING_SCHEDULED_TASKS_RUNNING);
+		}
+		
+		setting.setValue("true");
+		settingDao.save(setting);
+	}
+
+	public boolean isScheduledTasksRunning() {
+		Setting setting = settingDao.findByKey(SETTING_SCHEDULED_TASKS_RUNNING);
+		if (setting != null && Objects.equals("true", setting.getValue())) {
+			return true;
+		}
+		
+		return false;
+	}
+
+	public void clearScheduledTasksRunning() {
+		Setting setting = settingDao.findByKey(SETTING_SCHEDULED_TASKS_RUNNING);
+		if (setting == null) {
+			setting = new Setting();
+			setting.setKey(SETTING_SCHEDULED_TASKS_RUNNING);
+		}
+		
+		setting.setValue("false");
+		settingDao.save(setting);
+	}
+	
 	public PersonDeletePeriod getPersonDeletePeriod() {
 		String value = getKeyWithDefault(SETTING_PERSON_DELETE_PERIOD, PersonDeletePeriod.NEVER.toString());
 		
@@ -37,7 +71,7 @@ public class SettingService {
 	}
 
 	public boolean isNotificationTypeEnabled(NotificationType notificationType) {
-		return getBooleanWithDefault(notificationType.toString(), true);
+		return getBooleanWithDefault(notificationType.toString(), notificationType.isDefaultEnabled());
 	}
 
 	public void setNotificationTypeEnabled(NotificationType notificationType, boolean enabled) {
@@ -48,6 +82,26 @@ public class SettingService {
 		}
 
 		setting.setValue(Boolean.toString(enabled));
+		settingDao.save(setting);
+	}
+
+	public long getLastUserNameNumberUsed(String userType)
+	{
+		var key = "LAST_USERNAME_NUMBER_USED:" + userType;
+		Setting setting = settingDao.findByKey(key);
+		return setting != null ? Long.parseLong(setting.getValue()) : 0;
+	}
+
+	public void setLastUserNameNumberUsed(String userType, long number)
+	{
+		var key = "LAST_USERNAME_NUMBER_USED:" + userType;
+		Setting setting = settingDao.findByKey(key);
+		if (setting == null) {
+			setting = new Setting();
+			setting.setKey(key);
+		}
+
+		setting.setValue(String.valueOf(number));
 		settingDao.save(setting);
 	}
 
@@ -122,14 +176,6 @@ public class SettingService {
 		return setting;
 	}
 	
-	public boolean getFunctionAssignmentEmployeeNewManager() {
-		return getBooleanWithDefault(FUNCTION_ASSIGNMENT_EMPLOYEE_NEW_MANAGER, true);
-	}
-	
-	public boolean getFunctionAssignmentExpires() {
-		return getBooleanWithDefault(FUNCTION_ASSIGNMENT_EXPIRES, true);
-	}
-	
 	public void setValueForKey(String key, boolean enabled) {
 		Setting setting = settingDao.findByKey(key);
 		if (setting == null) {
@@ -138,21 +184,6 @@ public class SettingService {
 		}
 
 		setting.setValue(Boolean.toString(enabled));
-		settingDao.save(setting);
-	}
-	
-	public String getDaysBeforeFunctionAssignmentExpires() {
-		return getKeyWithDefault(SETTING_DAYS_BEFORE_FUNCTION_ASSIGNMENT_EXPIRES, "3");
-	}
-	
-	public void setDaysBeforeFunctionAssignmentExpires(long days) {
-		Setting setting = settingDao.findByKey(SETTING_DAYS_BEFORE_FUNCTION_ASSIGNMENT_EXPIRES);
-		if (setting == null) {
-			setting = new Setting();
-			setting.setKey(SETTING_DAYS_BEFORE_FUNCTION_ASSIGNMENT_EXPIRES);
-		}
-
-		setting.setValue("" + days);
 		settingDao.save(setting);
 	}
 }

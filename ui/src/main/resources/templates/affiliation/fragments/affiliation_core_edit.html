@@ -15,7 +15,18 @@
             <em class="fa fa-times" aria-hidden="true"></em>
             <span th:text="#{html.control.button.cancel}"></span>
         </button>
+
+        <div class="row" th:if="${@sofdConfiguration.getModules().getAffiliation().isAlternativeOUAssignable()}" id="altOURow">
+            <label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.altorgunit}"></label>
+            <div class="col-sm-9">
+                <input id="alternativeOrgUnitUuid" type="hidden" th:field="${affiliation.alternativeOrgUnit.uuid}"/>
+                <input id="alternativeOrgUnit" th:field="${affiliation.alternativeOrgUnit.name}" class="form-control" style="background-color: #fff;" readonly="readonly" onfocus="chooseOU()"/>
+                <!-- <input th:unless="${affiliation.alternativeOrgUnit != null}" id="alternativeOrgUnit" class="form-control" style="background-color: #fff;" readonly="readonly" onfocus="chooseOU()"/> -->
+            </div>
+        </div>
     </div>
+
+
 
     <script th:inline="javascript" type="text/javascript">
 		/*<![CDATA[*/
@@ -23,11 +34,14 @@
 			/*[+
 			+]*/
 
-
+            // core-alt-ou
 			$(document).ready(function() {
 				$('#buttonsMenu').empty();
 				$('#buttonsMenu').append($('#saveButton'));
 				$('#buttonsMenu').append($('#cancelButton'));
+
+                $('#core-alt-ou').empty();
+				$('#core-alt-ou').append($('#altOURow'));
 			});
 
 

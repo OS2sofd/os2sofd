@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import dk.digitalidentity.sofd.config.SofdConfiguration;
+import dk.digitalidentity.sofd.dao.model.SubstituteOrgUnitAssignment;
+import dk.digitalidentity.sofd.service.SubstituteOrgUnitAssignmentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
@@ -50,14 +53,44 @@ public class SubstituteRestController {
 	@Autowired
 	private OrgUnitService orgUnitService;
 
+	@Autowired
+	private SofdConfiguration configuration;
+
+	@Autowired
+	private SubstituteOrgUnitAssignmentService substituteOrgUnitAssignmentService;
+
 	@RequireAdminAccess
 	@ResponseBody
-	@PostMapping(value = "/rest/substituteContext/create")
+	@PostMapping(value = "/rest/substituteContext/update")
 	public HttpEntity<?> createSubstituteContext(@RequestBody SubstituteContextDTO dto) {
-		SubstituteContext subContext = new SubstituteContext();
-		subContext.setName(dto.getName());
-		subContext.setIdentifier(dto.getIdentifier());
-		subContext.setSupportsConstraints(dto.isSupportsConstraints());
+		SubstituteContext subContext;
+
+		if (dto.getId() == 0) {
+			subContext = new SubstituteContext();
+			subContext.setName(dto.getName());
+			subContext.setIdentifier(dto.getIdentifier());
+			subContext.setSupportsConstraints(dto.isSupportsConstraints());
+		}
+		else {
+
+			// editing is only allowed when orgUnitSubstitute is enabled
+			if (!configuration.getModules().getOrgUnitSubstitute().isEnabled()) {
+				return ResponseEntity.badRequest().build();
+			}
+
+			subContext = substituteContextService.getById(dto.getId());
+			if (subContext == null) {
+				return ResponseEntity.badRequest().build();
+			}
+
+			// if we go from assignableToOrgUnit to not assignableToOrgUnit we delete all substituteOrgUnitAssignments with this context
+			if (subContext.isAssignableToOrgUnit() && !dto.isAssignableToOrgUnit()) {
+				substituteOrgUnitAssignmentService.deleteAllByContext(subContext);
+			}
+		}
+
+		subContext.setAssignableToOrgUnit(dto.isAssignableToOrgUnit());
+		subContext.setInheritOrgUnitAssignments(dto.isInherit());
 
 		substituteContextService.save(subContext);
 
@@ -79,6 +112,22 @@ public class SubstituteRestController {
 	}
 
 	@ResponseBody
+	@DeleteMapping(value = "/rest/substituteOrgUnitAssignment/delete/{id}")
+	public HttpEntity<?> deleteSubstituteOrgUnitAssignemnt(@PathVariable("id") Long id) {
+		if (!configuration.getModules().getOrgUnitSubstitute().isEnabled()) {
+			return ResponseEntity.badRequest().build();
+		}
+		SubstituteOrgUnitAssignment subAssignment = substituteOrgUnitAssignmentService.getById(id);
+		if (subAssignment == null) {
+			return ResponseEntity.badRequest().build();
+		}
+
+		substituteOrgUnitAssignmentService.delete(subAssignment);
+
+		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
+	@ResponseBody
 	@DeleteMapping(value = "/rest/substituteAssignment/delete/{id}")
 	public HttpEntity<?> deleteSubstituteAssignemnt(@PathVariable("id") Long id) {
 		SubstituteAssignment subAssignment = substituteAssignmentService.getById(id);
@@ -93,8 +142,8 @@ public class SubstituteRestController {
 
 	@ResponseBody
 	@GetMapping(value = "/rest/substituteAssignment/search/person/{uuid}")
-	public ResponseEntity<?> searchPerson(@RequestParam("query") String term, @PathVariable("uuid") String uuid) {
-		AutoCompleteResult result = personService.substituteSearchPerson(term, uuid);
+	public ResponseEntity<?> searchPerson(@PathVariable("uuid") String uuid, @RequestParam("query") String term) {
+		AutoCompleteResult result = personService.substituteSearchPerson(term, uuid, null);
 		return new ResponseEntity<>(result, HttpStatus.OK);
 	}
 
@@ -141,6 +190,42 @@ public class SubstituteRestController {
 		ass.setSubstitute(substitute);
 
 		substituteAssignmentService.save(ass);
+
+		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
+	record SubstituteOrgUnitAssignmentAddDTO(String substitute, String orgUnit, long context) {}
+	@ResponseBody
+	@PostMapping(value = "/rest/substituteOrgUnitAssignment/add")
+	public HttpEntity<?> createSubstituteOrgUnitAssignment(@RequestBody SubstituteOrgUnitAssignmentAddDTO dto) {
+		if (!configuration.getModules().getOrgUnitSubstitute().isEnabled()) {
+			return ResponseEntity.badRequest().build();
+		}
+
+		OrgUnit ou = orgUnitService.getByUuid(dto.orgUnit());
+		if (ou == null) {
+			log.warn("OrgUnit not found for uuid: " + dto.orgUnit());
+			return ResponseEntity.badRequest().build();
+		}
+
+		Person substitute = personService.getByUuid(dto.substitute());
+		if (substitute == null) {
+			log.warn("Person(Substitute) not found for uuid: " + dto.substitute());
+			return ResponseEntity.notFound().build();
+		}
+
+		SubstituteContext selectedContext = substituteContextService.getById(dto.context());
+		if (selectedContext == null) {
+			log.warn("SubstituteContext not found for id: " + dto.context());
+			return ResponseEntity.badRequest().build();
+		}
+
+		SubstituteOrgUnitAssignment substituteOrgUnitAssignment = new SubstituteOrgUnitAssignment();
+		substituteOrgUnitAssignment.setContext(selectedContext);
+		substituteOrgUnitAssignment.setOrgUnit(ou);
+		substituteOrgUnitAssignment.setSubstitute(substitute);
+
+		substituteOrgUnitAssignmentService.save(substituteOrgUnitAssignment);
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}

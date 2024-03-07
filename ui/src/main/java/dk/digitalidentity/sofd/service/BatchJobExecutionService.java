@@ -27,9 +27,29 @@ public class BatchJobExecutionService {
 		BatchJobExecution batchJobExecution = batchJobExecutionDao.findByJobName(name);
 		
 		if (batchJobExecution != null) {
+			batchJobExecution.setErrorCount(0);;
 			batchJobExecution.setLastExecutionTime(executionTime);
 			save(batchJobExecution);
 		}
 	}
 
+	public long getErrorCount(String name) {
+		BatchJobExecution batchJobExecution = batchJobExecutionDao.findByJobName(name);
+		
+		if (batchJobExecution != null) {
+			return batchJobExecution.getErrorCount();
+		}
+		return 0;
+	}
+
+	public void setErrorCount(String name, long errorCount, Date lastErrorTime) {
+		BatchJobExecution batchJobExecution = batchJobExecutionDao.findByJobName(name);
+		
+		if (batchJobExecution != null) {
+			batchJobExecution.setErrorCount(errorCount);
+			batchJobExecution.setLastErrorTime(lastErrorTime);
+			save(batchJobExecution);
+		}
+	}
+	
 }

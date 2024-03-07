@@ -4,7 +4,7 @@ DROP VIEW IF EXISTS persons_deleted_grid;
 CREATE OR REPLACE VIEW subview_datatables_affiliations AS SELECT
      CASE WHEN TRIM(IFNULL(position_display_name,'')) <> '' THEN position_display_name ELSE position_name END AS position_name,
      person_uuid,
-     orgunit_uuid
+     CASE WHEN TRIM(IFNULL(alt_orgunit_uuid,'')) <> '' THEN alt_orgunit_uuid ELSE orgunit_uuid END AS orgunit_uuid
    FROM affiliations
    WHERE prime = 1;
 
@@ -14,11 +14,14 @@ CREATE OR REPLACE VIEW view_datatables_persons AS SELECT
     CONCAT(a.position_name, ' i ', o.name) AS affiliation,
     o.uuid AS orgunit_uuid,
     phs.phone_number,
+    p.cpr,
     IF (l.start_date IS NOT NULL AND l.start_date < CURRENT_TIMESTAMP, 1, 0) AS `leave`,
     p.force_stop,
     p.disable_account_orders,
     GROUP_CONCAT(usrs.user_id ORDER BY usrs.prime DESC, usrs.user_id) AS user_ids,
-    STR_TO_DATE(LEFT(p.cpr, 6), '%d%m%y') IS NULL AS fictive_cpr
+    STR_TO_DATE(LEFT(p.cpr, 6), '%d%m%y') IS NULL AS fictive_cpr,
+    p.dead AS dead,
+    p.disenfranchised AS disenfranchised
   FROM persons p
   LEFT JOIN (
     SELECT pu.person_uuid, u.user_id, u.prime
@@ -42,10 +45,19 @@ CREATE OR REPLACE VIEW view_datatables_persons_deleted AS SELECT
     NULL AS affiliation,
     NULL AS orgunit_uuid,
     NULL AS phone_number,
+    p.cpr,
     0 AS `leave`,
     0 AS force_stop,
     0 AS disable_account_orders,
-    NULL AS user_ids,
-    0 AS fictive_cpr
+    GROUP_CONCAT(usrs.user_id ORDER BY usrs.prime DESC, usrs.user_id) AS user_ids,
+    0 AS fictive_cpr,
+    p.dead AS dead,
+    p.disenfranchised AS disenfranchised
   FROM persons p
-  WHERE p.deleted = 1;
+  LEFT JOIN (
+    SELECT pu.person_uuid, u.user_id, u.prime
+      FROM persons_users pu
+      INNER JOIN users u ON u.id = pu.user_id AND u.user_type = 'ACTIVE_DIRECTORY'
+    ) usrs ON usrs.person_uuid = p.uuid
+  WHERE p.deleted = 1
+  GROUP BY p.uuid;

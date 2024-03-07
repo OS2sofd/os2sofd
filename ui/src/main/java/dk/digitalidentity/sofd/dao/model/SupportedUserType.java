@@ -79,4 +79,10 @@ public class SupportedUserType {
 	
 	@Column
 	private String usernameSuffixValue;
+
+	@Column
+	private String usernamePrefixExternalValue;
+
+	@Column
+	private String usernameSuffixExternalValue;
 }

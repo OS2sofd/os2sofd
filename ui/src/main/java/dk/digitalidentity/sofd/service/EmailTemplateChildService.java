@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import dk.digitalidentity.sofd.dao.EmailTemplateChildDao;
 import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 @Service
@@ -34,11 +35,15 @@ public class EmailTemplateChildService {
 	
 	public List<String> getRecipientsList(String templateRecipients) {
 		List<String> recipients = new ArrayList<String>();
-		
-		for (String recipient : templateRecipients.split(";")) {
-			recipients.add(recipient.trim());
+		if( templateRecipients != null )
+		{
+			for (String recipient : templateRecipients.split(";")) {
+				if(StringUtils.hasLength(recipient)) {
+					recipients.add(recipient.trim());
+				}
+			}
 		}
-		
+
 		return recipients;
 	}
 

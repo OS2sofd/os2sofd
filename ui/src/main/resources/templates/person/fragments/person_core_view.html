@@ -24,7 +24,7 @@
 		</fieldset>
 	
 	<div class="hidden">
-		<a id="historyBtn" sec:authorize="hasRole('ROLE_USER_EDIT')" class="btn btn-lg btn-primary" style="width:auto; margin-right:10px" th:href="@{/ui/person/revision/list/} + ${person.uuid}">
+		<a id="historyBtn" sec:authorize="hasRole('ROLE_USER_EDIT')" class="btn btn-lg btn-primary" style="width:auto; margin-right:10px;" th:href="@{/ui/person/revision/list/} + ${person.uuid}">
 			<i class="fa fa-history" aria-hidden="true"></i>&nbsp;
 			<span th:text="#{html.page.person.view.revision.list}"></span>
 		</a>
@@ -33,13 +33,18 @@
 			<i class="fa fa-refresh" aria-hidden="true"></i>&nbsp;
 			<span th:text="#{html.page.person.view.cprsync}"></span>
 		</button>
-		
-		<a id="stopBtn" style="width:auto; margin-right:10px" class="btn btn-lg" th:classappend="${person.forceStop == true} ? 'btn-danger' : 'btn-primary'" sec:authorize="hasRole('ROLE_USER_EDIT') and hasRole('ROLE_MODULE_ACCOUNT_CREATION')" onclick="flagService.changeStopFlag();">
+
+		<button sec:authorize="hasRole('ROLE_USER_EDIT')" id="pokeButton" class="btn btn-lg btn-primary" style="width:auto; margin-right:10px;" onclick="pokePerson()">
+			<em class="fa fa-exchange" aria-hidden="true"></em>&nbsp;
+			<span th:text="#{html.button.poke}"></span>
+		</button>
+
+		<a id="stopBtn" style="width:auto; margin-right:10px;" class="btn btn-lg" th:classappend="${person.forceStop == true} ? 'btn-danger' : 'btn-primary'" sec:authorize="hasRole('ROLE_USER_EDIT') and hasRole('ROLE_MODULE_ACCOUNT_CREATION')" onclick="flagService.changeStopFlag();">
 			<i class="fa fa-fw fa-ban" aria-hidden="true"></i>&nbsp;
 			<span th:text="${person.forceStop == true} ? #{html.entity.person.stop.remove} : #{html.entity.person.stop.add}"></span>
 		</a>
 		
-		<button sec:authorize="hasRole('ROLE_USER_EDIT') and hasRole('ROLE_MODULE_PROFILE')" id="editButton" class="btn btn-lg btn-primary" style="width:auto" onclick="loadEditCoreFragment()">
+		<button sec:authorize="hasRole('ROLE_USER_EDIT')" id="editButton" class="btn btn-lg btn-primary" style="width:auto" onclick="loadEditCoreFragment()">
 			<em class="fa fa-pencil" aria-hidden="true"></em>&nbsp;
 			<span th:text="#{html.button.edit}"></span>
 		</button>
@@ -50,6 +55,7 @@
 			$('#buttonsMenu').empty();
 			$('#buttonsMenu').append($('#historyBtn'));
 			$('#buttonsMenu').append($('#stopBtn'));
+			$('#buttonsMenu').append($('#pokeButton'));
 			$('#buttonsMenu').append($('#fetchFromCprBtn'));
 			$('#buttonsMenu').append($('#editButton'));
 		});

@@ -20,6 +20,7 @@ import dk.digitalidentity.sofd.dao.model.Notification;
 import dk.digitalidentity.sofd.dao.model.NotificationView;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.User;
+import dk.digitalidentity.sofd.dao.model.enums.NotificationType;
 import dk.digitalidentity.sofd.security.RequireReadAccess;
 import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.NotificationService;
@@ -84,8 +85,15 @@ public class NotificationRestController {
 			}
 		}
 		
-		adminTask.setActive(active);
-		notificationService.save(adminTask);
+		// BSG: The check below is a bit of a hack, but until we get context-awareness in notifications, we need
+		// to delete these to avoid them blocking newer notifications of the same type on the same orgUnit
+		if (active == false && (adminTask.getNotificationType().equals(NotificationType.ORGUNIT_WITH_MISSING_RULES) || adminTask.getNotificationType().equals(NotificationType.ORGUNIT_WITH_MISSING_RULES_TITLES))) {
+			notificationService.delete(adminTask);
+		}
+		else {
+			adminTask.setActive(active);
+			notificationService.save(adminTask);
+		}
 
 		return ResponseEntity.ok("");
 	}

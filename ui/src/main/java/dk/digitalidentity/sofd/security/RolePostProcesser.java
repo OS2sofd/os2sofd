@@ -17,7 +17,13 @@ import dk.digitalidentity.samlmodule.model.TokenUser;
 import dk.digitalidentity.sofd.config.RoleConstants;
 import dk.digitalidentity.sofd.config.SessionConstants;
 import dk.digitalidentity.sofd.config.SofdConfiguration;
+import dk.digitalidentity.sofd.dao.model.Person;
+import dk.digitalidentity.sofd.dao.model.User;
 import dk.digitalidentity.sofd.service.NotificationService;
+import dk.digitalidentity.sofd.service.OrgUnitService;
+import dk.digitalidentity.sofd.service.PersonService;
+import dk.digitalidentity.sofd.service.SupportedUserTypeService;
+import dk.digitalidentity.sofd.service.UserService;
 
 @Component
 public class RolePostProcesser implements SamlLoginPostProcessor {
@@ -27,6 +33,15 @@ public class RolePostProcesser implements SamlLoginPostProcessor {
 	
 	@Autowired
 	private NotificationService adminTaskService;
+
+	@Autowired
+	private PersonService personService;
+
+	@Autowired
+	private UserService userService;
+	
+	@Autowired
+	private OrgUnitService orgUnitService;
 	
 	@Override
 	public void process(TokenUser tokenUser) {
@@ -57,6 +72,28 @@ public class RolePostProcesser implements SamlLoginPostProcessor {
 		}
 
 		boolean canSeeNotifications = false;
+		if (configuration.getModules().getAccountCreation().isAccountOrderApprove()) {
+			User user = userService.findByUserIdAndUserType(tokenUser.getUsername(), SupportedUserTypeService.getActiveDirectoryUserType());
+
+			if (user != null) {
+				Person loggedInPerson = personService.findByUser(user);
+				
+				if (loggedInPerson != null) {
+			        boolean isManager = (orgUnitService.getAllWhereManagerIs(loggedInPerson).size() > 0);
+
+			        // if not a manager, perhaps they are a substitute?
+			        if (!isManager) {
+			        	isManager = personService.isSubstituteInSofd(loggedInPerson);
+			        }
+			        
+			        if (isManager) {
+						newAuthorities.add(new SamlGrantedAuthority(RoleConstants.DATA_ROLE_MANAGER, null, null));
+						canSeeNotifications = true;
+					}
+				}
+			}
+		}
+
 		for (Iterator<SamlGrantedAuthority> iterator = tokenUser.getAuthorities().iterator(); iterator.hasNext();) {
 			SamlGrantedAuthority grantedAuthority = iterator.next();
 			

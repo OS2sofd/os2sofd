@@ -77,6 +77,7 @@ public class PwdReminderTask {
 		log.info("Running PwdReminderTask");
 		
 		String emailTxt = pwdReminderService.getPwdReminderEmailTxt();
+		String emailSubject = pwdReminderService.getPwdReminderEmailSubject();
 		String smsTxt = pwdReminderService.getPwdReminderSmsTxt();
 		
 		Set<String> ouFilter = pwdReminderService.getPwdReminderOrgUnitFilter();
@@ -115,20 +116,20 @@ public class PwdReminderTask {
 							notifySms(person, user, smsTxt, day);
 							break;
 						case EMAIL_ONLY:
-							notifyEmail(person, user, emailTxt, day);
+							notifyEmail(person, user, emailTxt, emailSubject, day);
 							break;
 						case SMS_AND_EMAIL:
 							notifySms(person, user, smsTxt, day);
-							notifyEmail(person, user, emailTxt, day);
+							notifyEmail(person, user, emailTxt, emailSubject, day);
 							break;
 						case EMAIL_FIRST_OTHERWISE_SMS:
-							if (!notifyEmail(person, user, emailTxt, day)) {
+							if (!notifyEmail(person, user, emailTxt, emailSubject, day)) {
 								notifySms(person, user, smsTxt, day);
 							}
 							break;
 						case SMS_FIRST_OTHERWISE_EMAIL:
 							if (!notifySms(person, user, emailTxt, day)) {
-								notifyEmail(person, user, smsTxt, day);
+								notifyEmail(person, user, smsTxt, emailSubject, day);
 							}
 							break;
 					}
@@ -140,7 +141,8 @@ public class PwdReminderTask {
 	private boolean isFiltered(Person person, Set<String> ouFilter) {
 		if (ouFilter.size() > 0) {
 			Set<String> orgUnitUuids = person.getAffiliations().stream().map(a -> a.getOrgUnit().getUuid()).collect(Collectors.toSet());
-			
+			orgUnitUuids.addAll(person.getAffiliations().stream().filter(a -> a.getAlternativeOrgUnit() != null).map(a -> a.getAlternativeOrgUnit().getUuid()).collect(Collectors.toSet()));
+
 			// find intersection between ouFilter-set and the orgunits that the user is in
 			orgUnitUuids.retainAll(ouFilter);
 			
@@ -152,7 +154,7 @@ public class PwdReminderTask {
 		return false;
 	}
 
-	private boolean notifyEmail(Person person, User user, String emailTxt, long days) {
+	private boolean notifyEmail(Person person, User user, String emailTxt, String subject, long days) {
 		Optional<User> emailUser = PersonService.getUsers(person).stream().filter(u -> SupportedUserTypeService.isExchange(u.getUserType()) && u.isPrime()).findAny();
 		
 		if (emailUser.isPresent()) {
@@ -162,7 +164,7 @@ public class PwdReminderTask {
 							   .replace("{DAGE}", ((days > 1) ? (days + " dage") : "1 dag"))
 							   .replace("{KONTO}", user.getUserId());
 
-			emailService.sendMessage(emailAddress, "Påmindelse om kodeordsskifte", emailTxt, null, null, null);
+			emailService.sendMessage(emailAddress, subject, emailTxt, null, null, null);
 			
 			return true;
 		}

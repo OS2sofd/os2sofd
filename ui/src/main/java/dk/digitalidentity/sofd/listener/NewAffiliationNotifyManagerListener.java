@@ -13,7 +13,9 @@ import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.EmailTemplate;
 import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
 import dk.digitalidentity.sofd.dao.model.EntityChangeQueueDetail;
+import dk.digitalidentity.sofd.dao.model.OrgUnitManager;
 import dk.digitalidentity.sofd.dao.model.Person;
+import dk.digitalidentity.sofd.dao.model.enums.EmailTemplatePlaceholder;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplateType;
 import dk.digitalidentity.sofd.listener.EntityListenerService.ChangeType;
 import dk.digitalidentity.sofd.service.AffiliationService;
@@ -110,41 +112,44 @@ public class NewAffiliationNotifyManagerListener implements ListenerAdapter {
 			for (Affiliation affiliation : affiliations) {
 				if (configuration.getEmailTemplate().isOrgFilterEnabled() && template.getTemplateType().isShowOrgFilter()) {
 					List<String> excludedOUUuids = child.getExcludedOrgUnitMappings().stream().map(o -> o.getOrgUnit()).map(o -> o.getUuid()).collect(Collectors.toList());
-					if (excludedOUUuids.contains(affiliation.getOrgUnit().getUuid())) {
+					if (excludedOUUuids.contains(affiliation.getCalculatedOrgUnit().getUuid())) {
 						log.info("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + affiliation.getUuid() + ". The affiliation OU was in the excluded ous list");
 						continue;
 					}
 				}
-				
-				Person manager = PersonService.getManager(affiliation.getPerson(), affiliation.getEmployeeId());
-				if (manager == null) {
+
+				var managerResponse = PersonService.getManagerDifferentFromPerson(affiliation.getPerson(), affiliation.getEmployeeId());
+				if (managerResponse == null) {
 					log.warn("Unable to find manager for " + PersonService.getName(affiliation.getPerson()) + " / " + affiliation.getPerson().getUuid());
 					continue;
 				}
 
-				List<String> emailRecipients = emailTemplateService.getManagerOrSubstitutes(child, manager, affiliation.getOrgUnit().getUuid());
-				for (String email : emailRecipients) {
-					sendNewAffiliationEmail(child, simpleDateFormat, affiliation, manager, email);
+				Person manager = managerResponse.manager().getManager();
+				List<Person> recipients = emailTemplateService.getManagerOrSubstitutes(child, manager, affiliation.getCalculatedOrgUnit().getUuid());
+				for (Person recipient : recipients) {
+					sendNewAffiliationEmail(child, simpleDateFormat, affiliation, manager, recipient, managerResponse.manager());
 				}
 			}
 		}
 	}
 
-	private void sendNewAffiliationEmail(EmailTemplateChild child, SimpleDateFormat simpleDateFormat, Affiliation affiliation, Person manager, String email) {
+	private void sendNewAffiliationEmail(EmailTemplateChild child, SimpleDateFormat simpleDateFormat, Affiliation affiliation, Person manager, Person recipient, OrgUnitManager orgUnitManager) {
 		String message = child.getMessage();
-		message = message.replace(EmailTemplateService.EMPLOYEE_PLACEHOLDER, PersonService.getName(affiliation.getPerson()));
-		message = message.replace(EmailTemplateService.AFFILIATIONUUID_PLACEHOLDER, affiliation.getUuid());
-		message = message.replace(EmailTemplateService.ORGUNIT_PLACEHOLDER, affiliation.getOrgUnit().getName());
-		message = message.replace(EmailTemplateService.RECEIVER_PLACEHOLDER, PersonService.getName(manager));
-		message = message.replace(EmailTemplateService.TIMESTAMP_PLACEHOLDER, simpleDateFormat.format(affiliation.getStartDate()));
+		message = message.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(affiliation.getPerson()));
+		message = message.replace(EmailTemplatePlaceholder.AFFILIATIONUUID_PLACEHOLDER.getPlaceholder(), affiliation.getUuid());
+		message = message.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), affiliation.getCalculatedOrgUnit().getName());
+		message = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(manager));
+		message = message.replace(EmailTemplatePlaceholder.TIMESTAMP_PLACEHOLDER.getPlaceholder(), simpleDateFormat.format(affiliation.getStartDate()));
+		message = message.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnitManager.getOrgUnit().getName());
 
 		String title = child.getTitle();
-		title = title.replace(EmailTemplateService.EMPLOYEE_PLACEHOLDER, PersonService.getName(affiliation.getPerson()));
-		title = title.replace(EmailTemplateService.AFFILIATIONUUID_PLACEHOLDER, affiliation.getUuid());
-		title = title.replace(EmailTemplateService.ORGUNIT_PLACEHOLDER, affiliation.getOrgUnit().getName());
-		title = title.replace(EmailTemplateService.RECEIVER_PLACEHOLDER, PersonService.getName(manager));
-		title = title.replace(EmailTemplateService.TIMESTAMP_PLACEHOLDER, simpleDateFormat.format(affiliation.getStartDate()));
-		
-		emailQueueService.queueEmail(email, title, message, child.getMinutesDelay(), child);
+		title = title.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(affiliation.getPerson()));
+		title = title.replace(EmailTemplatePlaceholder.AFFILIATIONUUID_PLACEHOLDER.getPlaceholder(), affiliation.getUuid());
+		title = title.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), affiliation.getCalculatedOrgUnit().getName());
+		title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(manager));
+		title = title.replace(EmailTemplatePlaceholder.TIMESTAMP_PLACEHOLDER.getPlaceholder(), simpleDateFormat.format(affiliation.getStartDate()));
+		title = title.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnitManager.getOrgUnit().getName());
+
+		emailQueueService.queueEmail(recipient, title, message, child.getMinutesDelay(), child);
 	}
 }

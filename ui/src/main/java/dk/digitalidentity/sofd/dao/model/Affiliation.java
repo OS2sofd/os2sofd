@@ -16,8 +16,6 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
@@ -72,7 +70,6 @@ public class Affiliation extends MasteredEntity implements Serializable {
 	private Date startDate;
 
 	@Column
-	@Temporal(TemporalType.DATE)
 	private Date stopDate;
 
 	// TODO: this should be removed from the datamodel at some point (need to update agents to support this change)
@@ -100,6 +97,11 @@ public class Affiliation extends MasteredEntity implements Serializable {
 	@JoinColumn(name = "orgunit_uuid")
 	@NotNull
 	private OrgUnit orgUnit;
+
+	@BatchSize(size = 50)
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "alt_orgunit_uuid")
+	private OrgUnit alternativeOrgUnit;
 
 	@BatchSize(size = 50)
 	@ManyToOne(fetch = FetchType.LAZY)
@@ -165,6 +167,13 @@ public class Affiliation extends MasteredEntity implements Serializable {
 	@Column
 	@Size(max = 255)
 	private String positionDisplayName;
+	
+	@Column
+	private boolean doNotTransferToFkOrg;
+
+	// this can be sat to true when creating an affiliation in the future. When the affiliation becomes active it will be primary and this field will be false
+	@Column
+	private boolean useAsPrimaryWhenActive;
 
 	@BatchSize(size = 100)
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, mappedBy = "affiliation")
@@ -192,6 +201,10 @@ public class Affiliation extends MasteredEntity implements Serializable {
 
 	public void setPositionDisplayName(String positionDisplayName) {
 		this.positionDisplayName = StringUtils.isBlank(positionDisplayName) ? null : positionDisplayName;
+	}
+
+	public OrgUnit getCalculatedOrgUnit() {
+		return this.alternativeOrgUnit != null ? alternativeOrgUnit : orgUnit;
 	}
 
 }

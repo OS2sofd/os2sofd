@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.api.dto.AccountOrderDTO;
 import dk.digitalidentity.sofd.controller.api.dto.AccountOrderResponseDTO;
 import dk.digitalidentity.sofd.controller.api.dto.CreateAccountOrderDTO;
@@ -60,8 +61,11 @@ public class AccountOrderApiController {
 	@Autowired
 	private UsernameGeneratorService usernameGeneratorService;
 
+	@Autowired
+	private SofdConfiguration configuration;
+	
 	@PostMapping("/api/account/fullSync")
-	public ResponseEntity<?> triggerFullSync() {
+	public ResponseEntity<?> triggerFullSync() {		
 		log.info("Full nightly update triggered through API");
 
 		accountOrderService.nightlyJob();
@@ -121,12 +125,15 @@ public class AccountOrderApiController {
 		AccountOrder accountOrder = accountOrderService.createAccountOrder(
 				person,
 				supportedUserType,
+				order.getChosenUserId(),
 				order.getUserId(),
 				employeeId,
 				new Date(),
-				(SupportedUserTypeService.getActiveDirectoryUserType().equals(supportedUserType.getKey()) ? order.getUserEndDate() : EndDate.NO));
-
-		accountOrder.setRequestedUserId(order.getChosenUserId());
+				(SupportedUserTypeService.getActiveDirectoryUserType().equals(supportedUserType.getKey()) ? order.getUserEndDate() : EndDate.NO),
+				null,
+				false,
+				configuration.getModules().getAccountCreation().isForceSetEmployeeId(),				
+				true);
 
 		AccountOrder result = accountOrderService.save(accountOrder);
 		return new ResponseEntity<AccountOrder>(result, HttpStatus.OK);
@@ -225,7 +232,7 @@ public class AccountOrderApiController {
 					notification.setAffectedEntityName(PersonService.getName(person));
 					notification.setAffectedEntityType(EntityType.PERSON);
 					notification.setAffectedEntityUuid(accountOrder.getPersonUuid());
-					notification.setMessage(prettyName + ": " + dto.getMessage());
+					notification.setMessage(prettyName + " (" + accountOrder.getId()  + ") : " + dto.getMessage());
 					notification.setNotificationType(NotificationType.ACCOUNT_ORDER_FAILURE);
 					notification.setCreated(new Date());
 

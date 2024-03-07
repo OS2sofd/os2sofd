@@ -87,6 +87,16 @@
 										</div>
 									</div>
 
+									<div id="core-alt-ou"> 
+										<div class="row" th:if="${@sofdConfiguration.getModules().getAffiliation().isAlternativeOUAssignable()}" id="altOURow">
+											<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.altorgunit}"></label>
+											<div class="col-sm-9">
+												<input th:if="${affiliation.alternativeOrgUnit != null}" th:value="${affiliation.alternativeOrgUnit.name}" class="form-control" readonly="readonly" />
+												<input th:unless="${affiliation.alternativeOrgUnit != null}" class="form-control" readonly="readonly" />
+											</div>
+										</div>
+									</div>
+
 									<div class="row">
 										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.person}"></label>
 										<div class="col-sm-9">
@@ -198,7 +208,32 @@
 	</section>
 </div>
 
+<div class="modal fade bd-example-modal-lg" id="modal-ou" role="dialog">
+	<div class="modal-dialog modal-lg">
+
+		<!-- Modal content-->
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal">&times;</button>
+				<h4 th:text="#{html.page.person.new.affiliation.orgunit.choose}"></h4>
+			</div>
+
+			<div class="modal-body">
+				<th:block th:replace="orgunit/fragments/orgunit_tree :: orgUnitTree(namespace='alternative')"></th:block>
+			</div>
+
+			<div class="modal-footer">
+				<button type="button" id="save" class="btn btn-primary" onclick="saveOu()" th:text="#{html.control.button.select}"></button>
+				<button type="button" class="btn btn-danger" onclick="saveRemoveOu()" th:text="#{html.control.button.clear}"></button>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+
 <nav th:replace="fragments/footer :: footer"></nav>
+<script th:replace="orgunit/fragments/orgunit_tree :: orgUnitTreeScript(configObj='ouJSTreeConfig')"></script>
 <script th:replace="fragments/datatables :: datatables(autoLoad=false) "></script>
 
 <style>
@@ -223,11 +258,13 @@
 		var allKles = [[${allKles}]];
 		var successMsg = [[#{html.setting.update.msg.success}]];
 		var failMsg = [[#{html.setting.update.msg.failed}]];
+		var allOus = [[${ous}]];
 
 		var tooltipTxt = [[#{html.entity.person.master}]];
 		var master = [[${affiliation.master}]];
 	+]*/
 	var token = $("meta[name='_csrf']").attr("content");
+	var selectedOU;
 
 	// polyfill for IE
 	if (!String.prototype.startsWith) {
@@ -311,6 +348,7 @@
 
 	function saveCoreChanges() {
 		var displayName = $("#positionDisplayName").val();
+		var alternativeOrgUnit = $('#alternativeOrgUnitUuid').val();
 		if (displayName.length > 255) {
 			$.notify({
 				message: failMsg
@@ -326,7 +364,10 @@
 			contentType: 'application/json',
 			url: restUrl + "core/edit/" + uuid,
 			method : "POST",
-			data: displayName,
+			data: JSON.stringify({
+				'positionDisplayName': displayName,
+				'alternativeOrgUnit': alternativeOrgUnit
+			}),
 			headers: {
 				'X-CSRF-TOKEN': token
 			},
@@ -351,6 +392,44 @@
 			}
 		});
 	}
+
+	function chooseOU() {
+		$('#modal-ou').modal('show');
+	}
+
+	function saveOu() {
+		if (selectedOU != null) {
+			$('#alternativeOrgUnitUuid').val(selectedOU.id);
+			$('#alternativeOrgUnit').val(selectedOU.text);
+			$('#modal-ou').modal('hide');
+		}
+	}
+
+	function saveRemoveOu() {
+		$('#alternativeOrgUnitUuid').val("");
+		$('#alternativeOrgUnit').val("");
+		$('#modal-ou').modal('hide');
+	}
+	
+
+	var ouJSTreeConfig = {
+		namespace: 'alternative',
+		refreshCallback: function () {
+			$("#alternativeorgUnitTreeHierarchy").on("select_node.jstree", function(e, data) {
+				selectedOU = data.node;
+			});
+		},
+		staticOrg: null
+	}
+
+	$('#modal-ou').on('shown.bs.modal', function () {
+		if ($('#alternativeOrgUnitUuid').val()) {
+			$("#alternativeorgUnitTreeHierarchy").jstree(true).deselect_all();
+			$('#alternativeorgUnitTreeHierarchy').jstree(true).select_node($('#alternativeOrgUnitUuid').val());
+		}
+		
+		$('#alternativeorgUnitTreeSearchField').focus();
+	})
 
 	/*]]>*/
 </script>

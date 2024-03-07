@@ -16,4 +16,8 @@ public class ProfileDTO {
 	
 	@Size(min = 1)
 	private String chosenName;
+
+	private String firstname;
+
+	private String surname;
 }

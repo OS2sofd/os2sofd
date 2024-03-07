@@ -23,6 +23,7 @@ import javax.validation.constraints.Size;
 import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -30,6 +31,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
+import dk.digitalidentity.sofd.dao.model.mapping.PersonAuthorizationCodeMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.PersonPhoneMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.PersonUserMapping;
 import dk.digitalidentity.sofd.log.Loggable;
@@ -59,6 +61,8 @@ public class Person implements Loggable {
 	@Column(updatable = false)
 	private Date created;
 
+	// not audited because we have revinfo table for this information
+	@NotAudited
 	@Temporal(TemporalType.TIMESTAMP)
 	@Column
 	private Date lastChanged;
@@ -85,9 +89,11 @@ public class Person implements Loggable {
 	@Size(max = 255)
 	private String chosenName;
 
+	@NotAudited
 	@Column
 	private String keyWords;
-	
+
+	@NotAudited
 	@Column
 	private String notes;
 
@@ -99,6 +105,10 @@ public class Person implements Loggable {
 	@Column
 	private Date anniversaryDate;
 
+	@NotAudited
+	@Column
+	private String stopReason;
+
 	@Column
 	private boolean taxedPhone;
 	
@@ -109,7 +119,13 @@ public class Person implements Loggable {
 	private boolean disableAccountOrders;
 	
 	@Column
-	private String authorizationCode;
+	private boolean dead;
+	
+	@Column
+	private boolean disenfranchised;
+
+	@Column
+	private boolean hasUpdatedAuthorizationCode;
 
 	@OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
 	@JoinColumn(name = "leave_id")
@@ -150,8 +166,12 @@ public class Person implements Loggable {
 
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "parent", orphanRemoval = true)
 	@Valid
-	@JsonIgnore // TODO: jsonignore can be removed when SDR is removed
 	private List<Child> children;
+
+	@BatchSize(size = 100)
+	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, mappedBy = "person")
+	@Valid
+	private List<PersonAuthorizationCodeMapping> authorizationCodes;
 
 	@Column
 	@JsonSerialize(using = LocalExtensionsSerializer.class)
@@ -266,5 +286,10 @@ public class Person implements Loggable {
 	@JsonIgnore
 	public boolean hasFictionalCpr() {
 		return PersonService.isFictionalCpr(this.cpr);
+	}
+
+	@JsonIgnore
+	public boolean hasName() {
+		return this.firstname != null && !this.firstname.equalsIgnoreCase("Ukendt");
 	}
 }

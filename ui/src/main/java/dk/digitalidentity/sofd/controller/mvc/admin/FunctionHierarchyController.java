@@ -1,35 +1,40 @@
 package dk.digitalidentity.sofd.controller.mvc.admin;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import javax.validation.Valid;
-
+import dk.digitalidentity.sofd.config.SofdConfiguration;
+import dk.digitalidentity.sofd.controller.mvc.admin.dto.FacetDTO;
+import dk.digitalidentity.sofd.controller.mvc.admin.dto.FunctionDTO;
+import dk.digitalidentity.sofd.controller.validation.FacetDTOValidator;
+import dk.digitalidentity.sofd.controller.validation.FunctionDTOValidator;
+import dk.digitalidentity.sofd.dao.model.Facet;
+import dk.digitalidentity.sofd.dao.model.FacetListItem;
+import dk.digitalidentity.sofd.dao.model.Function;
+import dk.digitalidentity.sofd.dao.model.FunctionFacetAssignment;
+import dk.digitalidentity.sofd.dao.model.enums.FacetType;
+import dk.digitalidentity.sofd.service.FacetService;
+import dk.digitalidentity.sofd.service.FunctionService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import dk.digitalidentity.sofd.config.SofdConfiguration;
-import dk.digitalidentity.sofd.controller.mvc.admin.dto.FacetDTO;
-import dk.digitalidentity.sofd.controller.mvc.admin.dto.FunctionDTO;
-import dk.digitalidentity.sofd.dao.model.Facet;
-import dk.digitalidentity.sofd.dao.model.FacetListItem;
-import dk.digitalidentity.sofd.dao.model.Function;
-import dk.digitalidentity.sofd.dao.model.enums.FacetType;
-import dk.digitalidentity.sofd.service.FacetService;
-import dk.digitalidentity.sofd.service.FunctionService;
-import dk.digitalidentity.sofd.service.SettingService;
-import lombok.extern.slf4j.Slf4j;
+import javax.validation.Valid;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Controller
@@ -45,7 +50,20 @@ public class FunctionHierarchyController {
 	private SofdConfiguration config;
 	
 	@Autowired
-	private SettingService settingService;
+	private FunctionDTOValidator functionDTOValidator;
+	
+	@Autowired
+	private FacetDTOValidator facetDTOValidator;
+	
+	@InitBinder("functionDTO")
+    public void initFunctionBinder(WebDataBinder binder) {
+        binder.setValidator(functionDTOValidator);
+    }
+	
+	@InitBinder("facetDTO")
+    public void initFacetBinder(WebDataBinder binder) {
+        binder.setValidator(facetDTOValidator);
+    }
 	
     @GetMapping("/ui/admin/functionhierarchy/functions")
     public String listFunctions(Model model) {
@@ -68,32 +86,21 @@ public class FunctionHierarchyController {
 
         return "admin/functionHierarchy/facets/list";
     }
-    
-    @GetMapping("/ui/admin/functionhierarchy/notifications")
-    public String notifications(Model model) {
-    	if (!config.getModules().getFunctionHierarchy().isEnabled()) {
-    		return "error";
-    	}
-    	
-    	model.addAttribute("functionAssignmentEmployeeNewManager", settingService.getFunctionAssignmentEmployeeNewManager());
-    	model.addAttribute("functionAssignmentExpires", settingService.getFunctionAssignmentExpires());
-    	model.addAttribute("daysBeforeFunctionAssignmentExpires", settingService.getDaysBeforeFunctionAssignmentExpires());
 
-        return "admin/functionHierarchy/notifications";
-    }
-    
+
     @GetMapping("/ui/admin/functionhierarchy/functions/new")
     public String createFunction(Model model) {
     	if (!config.getModules().getFunctionHierarchy().isEnabled()) {
     		return "error";
     	}
     	
-        model.addAttribute("form", new FunctionDTO());
-        model.addAttribute("facets", facetService.getAll());
+        model.addAttribute("functionDTO", new FunctionDTO());
+        model.addAttribute("facets", getFacetListDTOS(null));
 
         return "admin/functionHierarchy/functions/update";
     }
-    
+
+	record facetListDTO(long id, Long sortKey, String name, FacetType type, String description, boolean checked) {}
     @GetMapping("/ui/admin/functionhierarchy/functions/{id}")
     public String editFunction(Model model, @PathVariable long id) {
     	Function function = functionService.getById(id);
@@ -105,21 +112,37 @@ public class FunctionHierarchyController {
     	form.setId(id);
     	form.setDescription(function.getDescription());
     	form.setName(function.getName());
-    	form.setFacetIds(StringUtils.join(function.getFacets().stream().map(f -> f.getId()).collect(Collectors.toList()), ","));
-    	
-        model.addAttribute("form", form);
-        model.addAttribute("facets", facetService.getAll());
+    	form.setCategory(function.getCategory());
+		form.setFacetIds(StringUtils.join(function.getFacetAssignments().stream().map(f -> f.getFacet().getId()).collect(Collectors.toList()), ","));
+
+		model.addAttribute("functionDTO", form);
+        model.addAttribute("facets", getFacetListDTOS(function));
         model.addAttribute("edit", true);
 
         return "admin/functionHierarchy/functions/update";
     }
-    
-    @PostMapping("/ui/admin/functionhierarchy/functions/update")
-	public String updateFunctionPost(Model model, @Valid @ModelAttribute FunctionDTO functionDTO, BindingResult bindingResult) {
-    	if (bindingResult.hasErrors()) {
-			model.addAttribute(bindingResult.getAllErrors());
-			model.addAttribute("form", functionDTO);
 
+	private List<facetListDTO> getFacetListDTOS(Function function) {
+		List<facetListDTO> facets = new ArrayList<>();
+		for (Facet facet : facetService.getAll()) {
+			FunctionFacetAssignment assignment = null;
+			if (function != null) {
+				assignment = function.getFacetAssignments().stream().filter(f -> f.getFacet().getId() == facet.getId()).findAny().orElse(null);
+			}
+			facets.add(new facetListDTO(facet.getId(), assignment != null ? assignment.getSortKey() : null, facet.getName(), facet.getType(), facet.getDescription(), assignment != null));
+		}
+		return facets;
+	}
+
+	@PostMapping("/ui/admin/functionhierarchy/functions/update")
+	public String updateFunctionPost(Model model, @Valid @ModelAttribute("functionDTO") FunctionDTO functionDTO, @RequestParam String facetSortKeys, BindingResult bindingResult) {
+		if (bindingResult.hasErrors()) {
+			model.addAttribute(bindingResult.getAllErrors());
+			model.addAttribute("functionDTO", functionDTO);
+
+			Function errorFunction = functionService.getById(functionDTO.getId());
+			model.addAttribute("facets", getFacetListDTOS(errorFunction));
+			
 			return "admin/functionHierarchy/functions/update";
 		}
     	
@@ -140,9 +163,11 @@ public class FunctionHierarchyController {
     	}
     	
 		function.setName(functionDTO.getName());
+		function.setCategory(functionDTO.getCategory());
 		function.setDescription(functionDTO.getDescription());
 		
-		List<Facet> facets = new ArrayList<>();
+		Map<Long, Long> facetSortKeyMap = buildFacetSortKeyMap(facetSortKeys);
+		List<FunctionFacetAssignment> facets = new ArrayList<>();
 		if (functionDTO.getFacetIds() != null && !functionDTO.getFacetIds().trim().isEmpty()) {
 			for (String facetId : Arrays.asList(functionDTO.getFacetIds().split(","))) {
 				Facet facet = facetService.getById(Long.parseLong(facetId));
@@ -150,36 +175,57 @@ public class FunctionHierarchyController {
 					log.warn("Tried to add facet with id " + facetId + " to new function, but facet does not exist.");
 					continue;
 				}
-				facets.add(facet);
+
+				FunctionFacetAssignment functionFacetAssignment = new FunctionFacetAssignment();
+				functionFacetAssignment.setFunction(function);
+				functionFacetAssignment.setFacet(facet);
+				if (facetSortKeyMap.containsKey(facet.getId())) {
+					functionFacetAssignment.setSortKey(facetSortKeyMap.get(facet.getId()));
+				}
+				facets.add(functionFacetAssignment);
 			}
 		}
 		
-		if (function.getFacets() == null) {
-			function.setFacets(facets);
+		if (function.getFacetAssignments() == null) {
+			function.setFacetAssignments(facets);
 		} else {
-			function.getFacets().clear();
-			function.getFacets().addAll(facets);
+			function.getFacetAssignments().clear();
+			function.getFacetAssignments().addAll(facets);
 		}
 		
 		functionService.save(function);
 
 		return "redirect:/ui/admin/functionhierarchy/functions";
 	}
-    
-    @GetMapping("/ui/admin/functionhierarchy/facets/new")
+
+	private Map<Long,Long> buildFacetSortKeyMap(String facetSortKeys) {
+		Map<Long,Long> map = new HashMap<>();
+		if (StringUtils.isNotBlank(facetSortKeys)) {
+			List<String> pairs = Arrays.asList(facetSortKeys.split(","));
+			for (String pair : pairs) {
+				String[] split = pair.split(":");
+				Long facetId = Long.parseLong(split[0]);
+				Long sortKey = Long.parseLong(split[1]);
+				map.put(facetId, sortKey);
+			}
+		}
+		return map;
+	}
+
+	@GetMapping("/ui/admin/functionhierarchy/facets/new")
     public String createFacet(Model model) {
     	if (!config.getModules().getFunctionHierarchy().isEnabled()) {
     		return "error";
     	}
     	
-        model.addAttribute("form", new FacetDTO());
+        model.addAttribute("facetDTO", new FacetDTO());
         model.addAttribute("facetTypes", FacetType.values());
 
         return "admin/functionHierarchy/facets/update";
     }
     
     @GetMapping("/ui/admin/functionhierarchy/facets/{id}")
-    public String createFacet(Model model, @PathVariable long id) {
+    public String updateFacet(Model model, @PathVariable long id) {
     	Facet facet = facetService.getById(id);
     	if (!config.getModules().getFunctionHierarchy().isEnabled() || facet == null) {
     		return "error";
@@ -193,7 +239,7 @@ public class FunctionHierarchyController {
     	form.setType(facet.getType());
     	form.setListItems(StringUtils.join(facet.getListItems().stream().map(l -> l.getText()).collect(Collectors.toList()), ","));
     	
-        model.addAttribute("form", form);
+        model.addAttribute("facetDTO", form);
         model.addAttribute("facetTypes", FacetType.values());
         model.addAttribute("edit", true);
 
@@ -201,10 +247,10 @@ public class FunctionHierarchyController {
     }
     
     @PostMapping("/ui/admin/functionhierarchy/facets/update")
-	public String updateFacetPost(Model model, @Valid @ModelAttribute FacetDTO facetDTO, BindingResult bindingResult) {
+	public String updateFacetPost(Model model, @Valid @ModelAttribute("facetDTO") FacetDTO facetDTO, BindingResult bindingResult) {
 		if (bindingResult.hasErrors()) {
 			model.addAttribute(bindingResult.getAllErrors());
-			model.addAttribute("form", facetDTO);
+			model.addAttribute("facetDTO", facetDTO);
 			model.addAttribute("facetTypes", FacetType.values());
 
 			return "admin/functionHierarchy/facets/update";

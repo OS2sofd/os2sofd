@@ -12,8 +12,8 @@ public class SofdAffiliationsReportDTO {
 	private String name;
 	private String cpr;
 	private String affiliationName;
-	private String affilliationOrgUnitName;
-	private String affilliationVendor;
-	private String affilliationStartDate;
-	private String affilliationStopDate;
+	private String affiliationOrgUnitName;
+	private String affiliationVendor;
+	private String affiliationStartDate;
+	private String affiliationStopDate;
 }

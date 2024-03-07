@@ -1,8 +1,8 @@
 package dk.digitalidentity.sofd.controller.api.v2.model;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -17,6 +17,7 @@ import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Phone;
 import dk.digitalidentity.sofd.dao.model.User;
+import dk.digitalidentity.sofd.dao.model.mapping.PersonAuthorizationCodeMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.PersonPhoneMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.PersonUserMapping;
 import dk.digitalidentity.sofd.service.PersonService;
@@ -62,10 +63,10 @@ public class PersonApiRecord extends BaseRecord {
 	private Set<AffiliationApiRecord> affiliations;
 
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-	private Date firstEmploymentDate;
+	private LocalDate firstEmploymentDate;
 	
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-	private Date anniversaryDate;
+	private LocalDate anniversaryDate;
 
 	private String chosenName;
 	private Map<String, Object> localExtensions;
@@ -77,10 +78,12 @@ public class PersonApiRecord extends BaseRecord {
 	
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
 	private LocalDateTime lastChanged;
-	
+
+	private Set<AuthorizationCodeApiRecord> authorizationCodes;
 	private boolean deleted;
 	private String uuid;
 	private String authorizationCode;
+	private String keyWords;
 
 	public PersonApiRecord(Person person) {
 		this.cpr = person.getCpr();
@@ -92,12 +95,12 @@ public class PersonApiRecord extends BaseRecord {
 		this.firstname = person.getFirstname();
 		this.surname = person.getSurname();
 		this.chosenName = person.getChosenName();
-		this.firstEmploymentDate = person.getFirstEmploymentDate();
-		this.anniversaryDate = person.getAnniversaryDate();
+		this.firstEmploymentDate = (person.getFirstEmploymentDate() != null) ? toLocalDate(person.getFirstEmploymentDate()) : null;
+		this.anniversaryDate = (person.getAnniversaryDate() != null) ? toLocalDate(person.getAnniversaryDate()) : null;
 		this.registeredPostAddress = (person.getRegisteredPostAddress() != null) ? new PostApiRecord(person.getRegisteredPostAddress()) : null;
 		this.residencePostAddress = (person.getResidencePostAddress() != null) ? new PostApiRecord(person.getResidencePostAddress()) : null;
 		this.localExtensions = stringToMap(person.getLocalExtensions());
-		this.authorizationCode = person.getAuthorizationCode();
+		this.keyWords = person.getKeyWords();
 
 		if (person.getPhones() != null) {
 			this.phones = new HashSet<PhoneApiRecord>();
@@ -122,6 +125,15 @@ public class PersonApiRecord extends BaseRecord {
 				this.affiliations.add(new AffiliationApiRecord(affiliation));
 			}
 		}
+
+		if (person.getAuthorizationCodes() != null) {
+			this.authorizationCode = person.getAuthorizationCodes().stream().filter(a -> a.getAuthorizationCode().isPrime()).map(a -> a.getAuthorizationCode().getCode()).findAny().orElse(null);
+			this.authorizationCodes = new HashSet<AuthorizationCodeApiRecord>();
+
+			for (PersonAuthorizationCodeMapping authorizationCodeMapping : person.getAuthorizationCodes()) {
+				this.authorizationCodes.add(new AuthorizationCodeApiRecord(authorizationCodeMapping.getAuthorizationCode()));
+			}
+		}
 	}
 
 	public Person toPerson(Person actualPerson) {
@@ -132,17 +144,16 @@ public class PersonApiRecord extends BaseRecord {
 		}
 
 		person.setUuid(uuid);
-		person.setAnniversaryDate(anniversaryDate);
+		person.setAnniversaryDate(toDate(anniversaryDate));
 		person.setChosenName(chosenName);
 		person.setCpr(cpr);
-		person.setFirstEmploymentDate(firstEmploymentDate);
+		person.setFirstEmploymentDate(toDate(firstEmploymentDate));
 		person.setFirstname(firstname);
 		person.setLocalExtensions(mapToString(localExtensions));
 		person.setMaster(master);
 		person.setRegisteredPostAddress((registeredPostAddress != null) ? registeredPostAddress.toPost() : null);
 		person.setResidencePostAddress((residencePostAddress != null) ? residencePostAddress.toPost() : null);
 		person.setSurname(surname);
-		person.setAuthorizationCode(authorizationCode);
 
 		if (affiliations != null) {
 			person.setAffiliations(new ArrayList<>());
@@ -173,6 +184,18 @@ public class PersonApiRecord extends BaseRecord {
 				mapping.setUser(userRecord.toUser());
 				
 				person.getUsers().add(mapping);
+			}
+		}
+
+		if (authorizationCodes != null) {
+			person.setAuthorizationCodes(new ArrayList<>());
+
+			for (AuthorizationCodeApiRecord authCodeRecord : authorizationCodes) {
+				PersonAuthorizationCodeMapping mapping = new PersonAuthorizationCodeMapping();
+				mapping.setPerson(actualPerson);
+				mapping.setAuthorizationCode(authCodeRecord.toAuthorizationCode());
+
+				person.getAuthorizationCodes().add(mapping);
 			}
 		}
 

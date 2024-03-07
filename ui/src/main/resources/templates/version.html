@@ -12,10 +12,10 @@
 				<div class="panel panel-default">
 					<div class="panel-body">
 						<p th:if="${@sofdConfiguration.checkVersion()}">
-								I anvender allerede den nyeste udgave af SOFD Core.
+								I anvender allerede den nyeste udgave af OS2sofd.
 						</p>
 						<p th:unless="${@sofdConfiguration.checkVersion()}">
-								I anvender version <b th:text="${@sofdConfiguration.version}"></b> af SOFD Core, og den nyeste udgave af SOFD Core er <b th:text="${@sofdConfiguration.latestVersion}"></b>.
+								I anvender version <b th:text="${@sofdConfiguration.version}"></b> af OS2sofd, og den nyeste udgave af OS2sofd er <b th:text="${@sofdConfiguration.latestVersion}"></b>.
 								I kan med fordel få opdateret til den nyeste udgave, ved at kontakte <a href="mailto:kontakt@digital-identity.dk">Digital Identity</a> og bede dem opdatere jer til nyeste udgave.
 						</p>
 					</div>

@@ -11,6 +11,8 @@ public class SubstituteAssignmentDTO {
 	private long id;
 	private long substituteContextId;
 	private String substituteContextName;
+	private ManagerSubstitutePersonDTO manager;
+	private ManagerSubstitutePersonDTO substitute;
 	private List<OUConstraintDTO> constraintOrgUnits;
-	private SubstitutePersonDTO substitute;
+	private boolean orgUnitAssignment = false;
 }

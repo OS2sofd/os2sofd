@@ -8,4 +8,5 @@ import lombok.Setter;
 public class ADGridAffiliation {
 	private String positionName;
 	private String orgUnitUuid;
+	private boolean doNotInherit;
 }

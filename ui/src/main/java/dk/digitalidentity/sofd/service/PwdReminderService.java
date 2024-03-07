@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import dk.digitalidentity.sofd.config.SofdConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -13,10 +14,13 @@ import dk.digitalidentity.sofd.dao.SettingDao;
 import dk.digitalidentity.sofd.dao.model.Setting;
 import dk.digitalidentity.sofd.service.model.PwdReminderStrategy;
 
+import static dk.digitalidentity.sofd.service.model.PwdReminderStrategy.*;
+
 @Service
 public class PwdReminderService {
 	private static final String SETTING_PWD_REMINDER_SMS_TEXT = "PwdReminderSmsTxt";
 	private static final String SETTING_PWD_REMINDER_EMAIL_TEXT = "PwdReminderEmailTxt";
+	private static final String SETTING_PWD_REMINDER_EMAIL_SUBJECT = "PwdReminderEmailSubject";
 	private static final String SETTING_PWD_REMINDER_STRATEGY = "PwdReminderStrategy";
 	private static final String SETTING_PWD_REMINDER_TIME = "PwdReminderTime";
 	private static final String SETTING_PWD_REMINDER_DAYS_BEFORE = "PwdReminderDaysBefore";
@@ -24,6 +28,9 @@ public class PwdReminderService {
 
 	@Autowired
 	private SettingDao settingDao;
+
+	@Autowired
+	private SofdConfiguration sofdConfiguration;
 
 	public Set<String> getPwdReminderOrgUnitFilter() {
 		String value = getKeyWithDefault(SETTING_PWD_REMINDER_ORGUNIT_FILTER, "");
@@ -123,7 +130,7 @@ public class PwdReminderService {
 	}
 	
 	public PwdReminderStrategy getPwdReminderStrategy() {
-		String value = getKeyWithDefault(SETTING_PWD_REMINDER_STRATEGY, PwdReminderStrategy.DISABLED.toString());
+		String value = getKeyWithDefault(SETTING_PWD_REMINDER_STRATEGY, DISABLED.toString());
 
 		return PwdReminderStrategy.valueOf(value);
 	}
@@ -159,6 +166,25 @@ public class PwdReminderService {
 		settingDao.save(setting);
 	}
 
+	public String getPwdReminderEmailSubject() {
+		Setting setting = settingDao.findByKey(SETTING_PWD_REMINDER_EMAIL_SUBJECT);
+		if (setting == null) {
+			return "Påmindelse om kodeordsskifte";
+		}
+
+		return setting.getValue();
+	}
+
+	public void setPwdReminderEmailSubject(String subject) {
+		Setting setting = settingDao.findByKey(SETTING_PWD_REMINDER_EMAIL_SUBJECT);
+		if (setting == null) {
+			setting = new Setting();
+			setting.setKey(SETTING_PWD_REMINDER_EMAIL_SUBJECT);
+		}
+
+		setting.setValue(subject);
+		settingDao.save(setting);
+	}
 
 	public String getPwdReminderSmsTxt() {
 		Setting setting = settingDao.findByKey(SETTING_PWD_REMINDER_SMS_TEXT);
@@ -190,4 +216,12 @@ public class PwdReminderService {
 
 		return defaultValue;
 	}
+
+	public PwdReminderStrategy[] getStrategyOptions() {
+		if (!sofdConfiguration.getModules().getSmsGateway().isSmsEnabled()) {
+			return new PwdReminderStrategy[]{DISABLED, EMAIL_ONLY};
+		}
+		return PwdReminderStrategy.values();
+	}
+
 }

@@ -50,7 +50,7 @@ public class SOFDAccountRestController {
 
 			Optional<Affiliation> primeAffiliation = person.getAffiliations().stream().filter(a -> a.isPrime()).findFirst();
 			if (primeAffiliation.isPresent()) {
-				builder.append(" (" + primeAffiliation.get().getOrgUnit().getName() + ")");
+				builder.append(" (" + primeAffiliation.get().getCalculatedOrgUnit().getName() + ")");
 			}
 
 			ValueData vd = new ValueData();

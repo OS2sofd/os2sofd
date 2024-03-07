@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.security.RequireReadAccess;
 import dk.digitalidentity.sofd.service.SyncService;
+import dk.digitalidentity.sofd.service.model.ADGridAD;
 import dk.digitalidentity.sofd.service.model.ADGridOrgUnit;
 import dk.digitalidentity.sofd.service.model.ADGridPerson;
 import dk.digitalidentity.sofd.service.model.SyncResult;
@@ -42,8 +43,13 @@ public class SyncController {
 	//       need to duplicate the security logic here
 
 	@GetMapping("/api/sync/adgrid/persons")
-	public Collection<ADGridPerson> adGridPersons(@RequestParam(required = false) boolean includeUniloginUsers) {
-		return syncService.getADGridPersons(includeUniloginUsers);
+	public Collection<ADGridPerson> adGridPersons(@RequestParam(required = false) boolean includeUniloginUsers, @RequestParam(required = false) boolean includeSchoolADUsers) {
+		return syncService.getADGridPersons(includeUniloginUsers, includeSchoolADUsers);
+	}
+	
+	@GetMapping("/api/sync/adgrid/allad")
+	public Collection<ADGridAD> adGridAllAD() {
+		return syncService.getADGridAllAD();
 	}
 	
 	@GetMapping("/api/sync/adgrid/orgunits")

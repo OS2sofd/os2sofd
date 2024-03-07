@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -11,7 +12,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import dk.digitalidentity.sofd.security.SecurityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -26,6 +26,7 @@ import dk.digitalidentity.sofd.dao.model.EntityChangeQueueDetail;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.User;
+import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.AffiliationService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
@@ -51,7 +52,9 @@ public class EntityListenerService {
 		CHANGED_PNR,				      // the orgunit has changed pnr
 		CHANGED_PHONES,					  // the person has changed or new phones
 		CHANGED_MANAGER,                  // the orgunit has changed manager
-		DELETED_TRUE                      // the orgunit has had deleted sat to true             
+		DELETED_TRUE,                     // the orgunit has had deleted sat to true             
+		NEW_OR_REACTIVATED_USER,          // the person has new user (or reactivated a disabled one)
+		NEW_AD_USER                       // the person has a completely new AD user
 	}
 
 	@Autowired
@@ -124,6 +127,10 @@ public class EntityListenerService {
 
 		checkForAffiliationStopDateChanges(oldPerson, updatedPerson, change);
 
+		checkForNewOrReactivatedUsers(oldPerson, updatedPerson, change);
+
+		checkForPersonAddedADUser(oldPerson, updatedPerson, change);
+
 		if (change.getEntityChangeQueueDetails().size() > 0) {
 			entityChangeQueueDao.save(change);
 		}
@@ -143,6 +150,7 @@ public class EntityListenerService {
 		Authentication authentication = SecurityUtil.getLoginSession();
 		try {
 			SecurityUtil.fakeLoginSession();
+			
 			for (EntityChangeQueue change : changes) {
 				switch (change.getEntityType()) {
 					case ENTITY_TYPE_ORGUNIT:
@@ -259,6 +267,41 @@ public class EntityListenerService {
 		}
 	}
 
+	private void checkForNewOrReactivatedUsers(Person oldPerson, Person updatedPerson, EntityChangeQueue change) {
+		List<User> oldUsers = PersonService.getUsers(oldPerson);
+		List<User> newUsers = PersonService.getUsers(updatedPerson);
+
+		// remove any "newUser" that already exists (unless it is a disabled user that we are reactivating, as that counts as a "new")
+		for (Iterator<User> iterator = newUsers.iterator(); iterator.hasNext();) {
+			User newUser = iterator.next();
+			
+			// see if an existing user is already there
+			User oldUser = oldUsers.stream()
+					.filter(u -> Objects.equals(u.getMaster(), newUser.getMaster()) &&
+								 Objects.equals(u.getMasterId(), newUser.getMasterId()))
+					.findFirst()
+					.orElse(null);
+			
+			if (oldUser != null) {
+				if (oldUser.isDisabled() && !newUser.isDisabled()) {
+					; // this is a reactivate, so we count it as a new user :)
+				}
+				else {
+					iterator.remove();
+				}
+			}
+		}
+		
+		for (User user : newUsers) {
+			EntityChangeQueueDetail entityChangeQueueDetail = new EntityChangeQueueDetail(); 
+			entityChangeQueueDetail.setChangeType(ChangeType.NEW_OR_REACTIVATED_USER);
+			entityChangeQueueDetail.setChangeTypeDetails(user.getMaster() + ";" + user.getMasterId());
+			entityChangeQueueDetail.setEntityChangeQueue(change);
+
+			change.getEntityChangeQueueDetails().add(entityChangeQueueDetail);
+		}
+	}
+
 	private void checkForPersonUserPasswordLocked(Person oldPerson, Person updatedPerson, EntityChangeQueue change) {
 		for (User user : PersonService.getUsers(updatedPerson)) {
 			// only relevant for AD accounts
@@ -307,7 +350,7 @@ public class EntityListenerService {
 				else {
 					// Check if the affiliation orgUnit has changed
 					Affiliation oldAffiliation = oldAffiliationsMap.get(updatedAffiliation.getUuid());
-					if (!Objects.equals(oldAffiliation.getOrgUnit().getUuid(), updatedAffiliation.getOrgUnit().getUuid())) {
+					if (!Objects.equals(oldAffiliation.getCalculatedOrgUnit().getUuid(), updatedAffiliation.getCalculatedOrgUnit().getUuid())) {
 						changedAffiliation = true;
 					}
 				}
@@ -317,10 +360,10 @@ public class EntityListenerService {
 					Collection<Affiliation> oldAffiliations = oldAffiliationsMap.values();
 					Set<String> affiliatedOuUuids = oldAffiliations
 							.stream()
-							.map(affiliation -> affiliation.getOrgUnit().getUuid()).collect(Collectors.toSet());
+							.map(affiliation -> affiliation.getCalculatedOrgUnit().getUuid()).collect(Collectors.toSet());
 
 					// If the new affiliations OrgUnit is not already affiliated create QueueDetail
-					if (!affiliatedOuUuids.contains(updatedAffiliation.getOrgUnit().getUuid())) {
+					if (!affiliatedOuUuids.contains(updatedAffiliation.getCalculatedOrgUnit().getUuid())) {
 						EntityChangeQueueDetail entityChangeQueueDetail = new EntityChangeQueueDetail();
 						entityChangeQueueDetail.setChangeType(ChangeType.CHANGED_AFFILIATION_LOCATION);
 						entityChangeQueueDetail.setChangeTypeDetails(updatedAffiliation.getUuid());
@@ -461,6 +504,32 @@ public class EntityListenerService {
 			entityChangeQueueDetail.setChangeType(ChangeType.DELETED_TRUE);
 			entityChangeQueueDetail.setOldValue("false");
 			entityChangeQueueDetail.setNewValue("true");
+			entityChangeQueueDetail.setEntityChangeQueue(change);
+
+			change.getEntityChangeQueueDetails().add(entityChangeQueueDetail);
+		}
+	}
+
+	private void checkForPersonAddedADUser(Person oldPerson, Person updatedPerson, EntityChangeQueue change) {
+		List<User> oldUsers = PersonService.getUsers(oldPerson).stream().filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType())).collect(Collectors.toCollection(ArrayList::new));
+		List<User> newUsers = PersonService.getUsers(updatedPerson).stream().filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType())).collect(Collectors.toCollection(ArrayList::new));
+
+		// remove any "newUser" that already exists
+		for (Iterator<User> iterator = newUsers.iterator(); iterator.hasNext();) {
+			User newUser = iterator.next();
+
+			// see if an existing user is already there
+			oldUsers.stream()
+					.filter(u -> Objects.equals(u.getMaster(), newUser.getMaster()) && Objects.equals(u.getMasterId(), newUser.getMasterId()))
+					.findFirst()
+					.ifPresent(oldUser -> iterator.remove());
+
+		}
+
+		for (User user : newUsers) {
+			EntityChangeQueueDetail entityChangeQueueDetail = new EntityChangeQueueDetail();
+			entityChangeQueueDetail.setChangeType(ChangeType.NEW_AD_USER);
+			entityChangeQueueDetail.setChangeTypeDetails(user.getMaster() + ";" + user.getMasterId());
 			entityChangeQueueDetail.setEntityChangeQueue(change);
 
 			change.getEntityChangeQueueDetails().add(entityChangeQueueDetail);

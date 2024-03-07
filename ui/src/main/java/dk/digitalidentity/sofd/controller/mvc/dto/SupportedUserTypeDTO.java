@@ -25,4 +25,6 @@ public class SupportedUserTypeDTO {
 	private String prefixValue;
 	private String infixValue;
 	private String suffixValue;
+	private String prefixExternalValue;
+	private String suffixExternalValue;
 }

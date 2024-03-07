@@ -12,4 +12,5 @@ public class SearchForm {
 	private List<String> orgUnits;
 	private String operation;
 	private String function = "NONE";
+	private boolean includeOrgUnits;
 }

@@ -1,6 +1,7 @@
 package dk.digitalidentity.sofd.interceptor;
 
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -11,24 +12,30 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
+import dk.digitalidentity.sofd.dao.AffiliationDao;
 import dk.digitalidentity.sofd.dao.OrgUnitDao;
 import dk.digitalidentity.sofd.dao.OrgUnitTypeDao;
 import dk.digitalidentity.sofd.dao.PersonDao;
 import dk.digitalidentity.sofd.dao.model.AccountOrder;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
+import dk.digitalidentity.sofd.dao.model.ModificationHistory;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.OrgUnitType;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.User;
+import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.listener.EntityListenerService;
 import dk.digitalidentity.sofd.service.AccountOrderService;
+import dk.digitalidentity.sofd.service.ModificationHistoryService;
 import dk.digitalidentity.sofd.service.OrgUnitService;
 import dk.digitalidentity.sofd.service.OrganisationService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.PrimeService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
+import dk.digitalidentity.sofd.service.model.ChangeType;
 
 @Component
 public class AbstractBeforeSaveInterceptor {
@@ -66,6 +73,12 @@ public class AbstractBeforeSaveInterceptor {
 	@Autowired
 	private AbstractBeforeSaveInterceptor self;
 
+	@Autowired
+	private AffiliationDao affiliationDao;
+	
+	@Autowired
+	private ModificationHistoryService modificationHistoryService;
+
 	@Transactional
 	public void handleSavePerson(Person person) {
 		updateTransientFlags(person);
@@ -77,41 +90,80 @@ public class AbstractBeforeSaveInterceptor {
 		person.setLastChanged(new Date());
 
 		if (person.getUuid() == null) {
-			person.setUuid(UUID.randomUUID().toString());
+			// attempt to use primary AD user as UUID
+			User user = PersonService.getUsers(person).stream().filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType())).findFirst().orElse(null);
+			if (user != null) {
+				try {
+					String potentialUuid = user.getMasterId();
+					
+					// validate UUID format - this throws an exception
+					UUID.fromString(potentialUuid);
+					
+					// verify that no other person has the same uuid (could happen if they changed the CPR on an AD account)
+					Person alreadyExists = personDao.findByUuid(potentialUuid);
+					if (alreadyExists == null) {
+						person.setUuid(potentialUuid);
+					}
+				}
+				catch (Exception ignored) {
+					;
+				}
+			}
+
+			// fallback to random UUID
+			if (person.getUuid() == null) {
+				person.setUuid(UUID.randomUUID().toString());
+			}
 		}
 
 		if (person.getAffiliations() != null) {
-			SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
 			for (Affiliation affiliation : person.getAffiliations()) {
-
-				if (affiliation.getStartDate() != null && affiliation.getStopDate() != null) {
-					String startDate = formatter.format(affiliation.getStartDate());
-					String stopDate = formatter.format(affiliation.getStopDate());
-
-					// set deleted true on "empty" affiliations
-					if (startDate.equals(stopDate) || affiliation.getStopDate().before(affiliation.getStartDate())) {
-						affiliation.setDeleted(true);
-					}
-				}
 
 				if (affiliation.getUuid() == null || affiliation.getUuid().isEmpty()) {
 					affiliation.setUuid(UUID.randomUUID().toString());
+				}
+
+				// set default employeeId to uuid
+				if (!StringUtils.hasLength(affiliation.getEmployeeId())) {
+					affiliation.setEmployeeId(affiliation.getUuid());
 				}
 
 				if (affiliation.getPerson() == null) {
 					affiliation.setPerson(person);
 				}
 			}
-			
-			// have to be after, so we can sort by UUID when picking a random affiliation :)
-			primeService.setPrimeAffilation(person);
 		}
-		
+
 		if (person.getUsers() != null) {
 			for (String userType : userTypeService.getAllUserTypes()) {
 				List<User> users = PersonService.getUsers(person).stream().filter(u -> u.getUserType().equals(userType)).collect(Collectors.toList());
+				
 				if (users != null && users.size() > 0) {
 					primeService.setPrimeUser(users);
+				}
+			}
+		}
+
+		// remove invalid affiliations
+		// NOTE: for some reason this code has to be after userTypeService.getAllUserTypes() otherwise there will be an error
+		// object references an unsaved transient instance - save the transient instance before flushing: dk.digitalidentity.sofd.dao.model.Affiliation
+		if (person.getAffiliations() != null) {
+			for (Iterator<Affiliation> iterator = person.getAffiliations().iterator(); iterator.hasNext();) {
+				Affiliation affiliation = iterator.next();
+				
+				if (!"OPUS".equals(affiliation.getMaster())) {
+					continue;
+				}
+				
+				// remove invalid affiliations
+				if (affiliation.getStartDate()!= null && affiliation.getStopDate() != null) {
+					LocalDate stopDate = toLocalDate(affiliation.getStopDate());
+					LocalDate startDate = toLocalDate(affiliation.getStartDate());
+					
+					if (startDate != null && stopDate != null && startDate.isEqual(stopDate)) {
+						iterator.remove();
+						affiliationDao.delete(affiliation);
+					}
 				}
 			}
 		}
@@ -132,6 +184,9 @@ public class AbstractBeforeSaveInterceptor {
 
 		primeService.setPrimePhone(person);
 		primeService.setPrimePost(person);
+		
+		// have to be after, so we can sort by UUID when picking a random affiliation :)
+		primeService.setPrimeAffilation(person);
 
 		// emit update notifications
 		if (oldPerson != null) {
@@ -140,6 +195,15 @@ public class AbstractBeforeSaveInterceptor {
 		else {
 			entityListenerService.emitCreateEvent(person);
 		}
+		
+		ModificationHistory modificationHistory = new ModificationHistory();
+		modificationHistory.setEntity(EntityType.PERSON);
+		modificationHistory.setUuid(person.getUuid());
+		modificationHistory.setChanged(new Date());
+		modificationHistory.setChangeType(oldPerson != null ? ChangeType.UPDATE : ChangeType.CREATE);
+
+		modificationHistoryService.insert(modificationHistory);
+
 	}
 
 	public void handleAccountOrders(Person person) {
@@ -212,7 +276,6 @@ public class AbstractBeforeSaveInterceptor {
 		}
 
 		primeService.setPrimePhone(orgUnit);
-		primeService.setPrimeEmail(orgUnit);
 		primeService.setPrimePost(orgUnit);
 
 		// emit update notifications
@@ -222,6 +285,14 @@ public class AbstractBeforeSaveInterceptor {
 		else {
 			entityListenerService.emitCreateEvent(orgUnit);
 		}
+		
+		ModificationHistory modificationHistory = new ModificationHistory();
+		modificationHistory.setEntity(EntityType.ORGUNIT);
+		modificationHistory.setUuid(orgUnit.getUuid());
+		modificationHistory.setChanged(new Date());
+		modificationHistory.setChangeType(oldOrgUnit != null ? ChangeType.UPDATE : ChangeType.CREATE);
+
+		modificationHistoryService.insert(modificationHistory);
 	}
 
 	// we ensure a fresh copy is loaded by setting the propagation, but we also need
@@ -254,6 +325,7 @@ public class AbstractBeforeSaveInterceptor {
 		if (person != null) {
 			for (Affiliation affiliation : person.getAffiliations()) {
 				affiliation.getOrgUnit().getUuid();
+				affiliation.getCalculatedOrgUnit().getUuid();
 			}
 
 			person.getChildren().size();
@@ -270,5 +342,19 @@ public class AbstractBeforeSaveInterceptor {
 				affiliation.setTransientFlagNewAffiliation(affiliation.getId() == 0);
 			}
 		}
+	}
+
+	private LocalDate toLocalDate(Date date) {
+		if (date == null) {
+			return null;
+		}
+
+		// might be an SQL instance, so convert to something that has a toInstant()
+		// method on it
+		if (date instanceof java.sql.Date) {
+			date = new Date(date.getTime());
+		}
+
+		return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 	}
 }

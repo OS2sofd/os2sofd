@@ -37,4 +37,9 @@ public class UserService {
 	public List<User> findByUserIdLikeAndUserType(String word, String userType) {
 		return userDao.findByUserIdLikeAndUserType(word, userType);
 	}
+
+	public static boolean isSubstituteADUser(User user) {
+		var substituteRegex = "^vik\\d+$";
+		return SupportedUserTypeService.isActiveDirectory(user.getUserType()) && user.getUserId().toLowerCase().matches(substituteRegex);
+	}
 }

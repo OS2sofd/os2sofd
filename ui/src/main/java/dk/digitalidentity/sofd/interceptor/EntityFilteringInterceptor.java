@@ -185,7 +185,7 @@ public class EntityFilteringInterceptor {
 				break;
 			case ORGUNIT_ADDRESS:
 				orgUnit.setPostAddresses(null);
-				orgUnit.setEmails(null);
+				orgUnit.setEmail(null);
 				break;
 			case ORGUNIT_PHONE:
 				orgUnit.setPhones(null);

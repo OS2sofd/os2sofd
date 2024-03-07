@@ -23,8 +23,9 @@
 							<thead>
 							<tr>
 								<th>sortKey</th>
-								<th class="col-md-5" th:text="#{html.page.functionHierarchy.labels.name}"></th>
-								<th class="col-md-6" th:text="#{html.page.functionHierarchy.labels.description}"></th>
+								<th class="col-md-3" th:text="#{html.page.functionHierarchy.labels.name}"></th>
+								<th class="col-sm-3" th:text="#{html.page.functionHierarchy.labels.category}"></th>
+								<th class="col-md-5" th:text="#{html.page.functionHierarchy.labels.description}"></th>
 								<th class="col-md-1" th:text="#{html.action.label}"></th>
 							</tr>
 							</thead>
@@ -33,6 +34,7 @@
 							<tr th:each="function : ${functions}">
 								<td th:text="${function.sortKey}"></td>
 								<td th:text="${function.name}"></td>
+								<td th:text="${function.category}"></td>
 								<td th:text="${function.description}"></td>
 								<td>
 									<a th:href="'/ui/admin/functionhierarchy/functions/' + ${function.id}"><em class="fa fa-fw fa-pencil" th:title="#{html.mouseover.edit}"></em></a>

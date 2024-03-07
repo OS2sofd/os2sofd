@@ -44,6 +44,9 @@ public class ActiveDirectoryDetails {
 	private User user;
 	
 	@Column
+	private String userType;
+	
+	@Column
 	@JsonSerialize(using = LocalDateSerializer.class)
 	@JsonDeserialize(using = LocalDateDeserializer.class)
 	private LocalDate passwordExpireDate;
@@ -60,8 +63,18 @@ public class ActiveDirectoryDetails {
 	
 	@Column
 	private boolean passwordLocked;
+
+	@Column
+	private String kombitUuid;
 	
 	@Column
 	private String upn;
+	
+	@Column
+	private String title;
 
+	@Column
+	@JsonSerialize(using = LocalDateSerializer.class)
+	@JsonDeserialize(using = LocalDateDeserializer.class)
+	private LocalDate whenCreated;
 }

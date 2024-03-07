@@ -41,8 +41,10 @@ public class PersonDTO {
 	private String leaveReasonText;
 	private boolean leaveExpireAccounts;
 	private boolean leaveDisableAccountOrders;
+	private boolean personUuidNotKombitUuid;
 
 	private boolean forceStop;
+	private String stopReason;
 	private boolean disableAccountOrders;
 	
 	private List<Affiliation> affiliations;
@@ -51,4 +53,6 @@ public class PersonDTO {
 	private List<SubstituteAssignmentDTO> substituteAssignments;
 
 	private List<LocalExtensionDTO> localExtensions;
+	
+	private List<AuthorizationCodeDTO> authorizationCodes;
 }

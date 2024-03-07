@@ -15,6 +15,7 @@ public class UserDTO {
 	private String userId;
 	private String userType;
 	private String employeeId;
+	private String employeeIdDisplay;
 	private boolean prime;
 	private Boolean disabled;
 	private Boolean passwordLocked;
@@ -23,6 +24,7 @@ public class UserDTO {
 	private LocalDate accountExpireDate;
 	private boolean pending;
 	private UserChangeEmployeeIdQueueDTO userChangeEmployeeIdQueueDTO;
+	private String kombitUuid;
 
 	public boolean isDisabled() {
 		return (disabled != null && disabled == true);

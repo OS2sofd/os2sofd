@@ -15,11 +15,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
-import dk.digitalidentity.sofd.dao.EmailTemplateDao;
 import dk.digitalidentity.sofd.dao.SettingDao;
 import dk.digitalidentity.sofd.dao.SupportedUserTypeDao;
 import dk.digitalidentity.sofd.dao.model.ClientConfig;
-import dk.digitalidentity.sofd.dao.model.EmailTemplate;
 import dk.digitalidentity.sofd.dao.model.Setting;
 import dk.digitalidentity.sofd.dao.model.SupportedUserType;
 import dk.digitalidentity.sofd.security.RequireAdminAccess;
@@ -34,9 +32,6 @@ public class DownloadController {
 	
 	@Autowired
 	private SettingDao settingDao;
-	
-	@Autowired
-	private EmailTemplateDao emailTemplateDao;
 	
 	@Autowired
 	private SupportedUserTypeDao supportedUserTypeDao;
@@ -55,10 +50,6 @@ public class DownloadController {
 		List<Setting> settings = settingDao.findAll();
 		String settingsTableJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(settings);
 
-		// serialize EmailTemplate table
-		List<EmailTemplate> emails = emailTemplateDao.findAll();
-		String emailTemplatesTableJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(emails);
-
 		// serialize SupportedUserTypes table
 		List<SupportedUserType> supportedUserTypes = supportedUserTypeDao.findAll();
 		String supportedUserTypesTableJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(supportedUserTypes);
@@ -75,11 +66,6 @@ public class DownloadController {
 		e = new ZipEntry("SettingsTable.json");
 		out.putNextEntry(e);
 		out.write(settingsTableJson.getBytes(Charset.forName("UTF-8")));
-		out.closeEntry();
-		
-		e = new ZipEntry("EmailTemplatesTable.json");
-		out.putNextEntry(e);
-		out.write(emailTemplatesTableJson.getBytes(Charset.forName("UTF-8")));
 		out.closeEntry();
 		
 		e = new ZipEntry("SupportedUserTypesTable.json");

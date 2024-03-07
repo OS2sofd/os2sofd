@@ -105,7 +105,7 @@
 	                "search" : {
 	                    "show_only_matches": true,
 	                    "search_callback": function(str, node) {
-	                        return (node.text.toUpperCase().startsWith(str.toUpperCase()));
+	                        return (node.text.toUpperCase().includes(str.toUpperCase()));
 	                    }
 	                },
                     "plugins" : [

@@ -13,6 +13,14 @@ public class OS2sync {
 	private boolean enabled = false;
 	private boolean cprEnabled = false;
 	
+	// only ever enable one of these - the STIL need should be phased out, and the school one should be enabled by default at some point
+	// it looks at the UserType field to decide what user account to use for schools
+	private boolean stilEnabled = false;
+	private boolean schoolEnabled = false;
+
+	private boolean useObjectGuidAsKombitUuid = true;
+	private boolean doNotSendCprForSubstitutes = true;
+	
 	@JsonIgnore
 	private String datasourceUrl;
 	

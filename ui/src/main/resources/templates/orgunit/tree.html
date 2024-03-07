@@ -117,6 +117,11 @@ div .affix {
 .jstree-disabled{
 	color: #D3D3D3 !important;
 }
+
+.badge-plain {
+	background-color: #D1DADE;
+    color: #5E5E5E;
+}
 </style>
 
 <nav th:replace="fragments/footer :: footer"></nav>
@@ -245,24 +250,65 @@ div .affix {
         			$("#orgUnitTreeHierarchy").jstree(true).deselect_all();
         			
         			orgUnits.forEach(function(entry){
-            			$('#orgUnitTreeHierarchy').jstree(true).disable_node(entry);
+        				var text = $('#orgUnitTreeHierarchy').jstree(true).get_text(entry.id);
+        				if (text != entry.text) {
+        					$('#orgUnitTreeHierarchy').jstree(true).set_text(entry.id, entry.text);
+        				}
+						$('#orgUnitTreeHierarchy').jstree(true).disable_node(entry.id);
             		});
-        			
+
         			ous.forEach(function(entry){
-            			$("#orgUnitTreeHierarchy").jstree(true).enable_node(entry);
-            		});        		
+        				var uuid = entry.uuid;
+        				if (entry.value != null) {
+        					var badge = " <span class=\"badge badge-plain\" title=\"" + entry.value + "\">" + entry.shortValue + "</span>";
+        					var text = $('#orgUnitTreeHierarchy').jstree(true).get_text(uuid);
+        					var newText = text + badge
+					    	$('#orgUnitTreeHierarchy').jstree(true).set_text(uuid, newText);
+        				}
+            			$("#orgUnitTreeHierarchy").jstree(true).enable_node(uuid);
+            			openParentNodes(uuid);
+            		});
         		}
         		else {
         			orgUnits.forEach(function(entry){
+        				var text = $('#orgUnitTreeHierarchy').jstree(true).get_text(entry.id);
+        				if (text != entry.text) {
+        					$('#orgUnitTreeHierarchy').jstree(true).set_text(entry.id, entry.text);
+        				}
             			$('#orgUnitTreeHierarchy').jstree(true).disable_node(entry);
             		});
         		}
         	}
         	else {
         		orgUnits.forEach(function(entry){
+        			var text = $('#orgUnitTreeHierarchy').jstree(true).get_text(entry.id);
+					if (text != entry.text) {
+						$('#orgUnitTreeHierarchy').jstree(true).set_text(entry.id, entry.text);
+					}
         			$('#orgUnitTreeHierarchy').jstree(true).enable_node(entry);
         		});
         	}
+        }
+
+        function openParentNodes(uuid) {
+        	var currentNodeAsOrgUnit = orgUnits.find(function(ou) {
+				return ou.id === uuid;
+			});
+			if (currentNodeAsOrgUnit) {
+				var parentId = currentNodeAsOrgUnit.parent;
+
+				while (parentId !== "#") {
+					$('#orgUnitTreeHierarchy').jstree(true).open_node(parentId);
+					var parentNode = orgUnits.find(function(node) {
+						return node.id === parentId;
+					});
+					if (parentNode) {
+						parentId = parentNode.parent;
+					} else {
+						break;
+					}
+				}
+			}
         }
         
         // IE 11 polyfill for string.includes()

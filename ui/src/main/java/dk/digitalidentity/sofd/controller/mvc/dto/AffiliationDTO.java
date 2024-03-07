@@ -25,4 +25,5 @@ public class AffiliationDTO {
 	private String stopDate;
 	private String vendor;
 	private String internalReference;
+	private boolean useAsPrimaryWhenActive;
 }

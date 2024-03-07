@@ -1,9 +1,7 @@
 package dk.digitalidentity.sofd.controller.api.dto;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonFormat;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,11 +13,10 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class FunctionAssignmentCreateDTO {
-	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-	private Date startDate;
-	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-	private Date stopDate;
+	private LocalDate startDate;
+	private LocalDate stopDate;
 	private String affiliationUuid;
 	private long functionId;
 	private List<FacetValueDTO> facetValues;
+	private LocalDate date;
 }

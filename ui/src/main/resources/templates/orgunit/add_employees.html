@@ -68,15 +68,6 @@ div .affix {
 			});
 		});
 
-		// polyfill for IE
-		if (!String.prototype.startsWith) {
-			String.prototype.startsWith = function(searchString, position) {
-				position = position || 0;
-				return this.substr(position, searchString.length) === searchString;
-			};
-		}
-
-
         function initOrgUnitTree(orgUnits) {
             $('#orgUnitTreeHierarchy').jstree('destroy');
 
@@ -90,7 +81,7 @@ div .affix {
                 "search" : {
                     "show_only_matches": true,
                     "search_callback": function(str, node) {
-                        return (node.text.toUpperCase().startsWith(str.toUpperCase()));
+                        return (node.text.toUpperCase().includes(str.toUpperCase()));
                     }
                 },
                 "plugins" : [

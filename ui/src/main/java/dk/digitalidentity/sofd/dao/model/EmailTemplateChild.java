@@ -5,6 +5,8 @@ import java.util.List;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -19,6 +21,8 @@ import org.hibernate.annotations.BatchSize;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
+import dk.digitalidentity.sofd.dao.model.enums.EmployeeFilter;
+import dk.digitalidentity.sofd.dao.model.enums.SendTo;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -55,8 +59,13 @@ public class EmailTemplateChild {
 	@Column(name = "recipients_bcc")
 	private String recipientsBCC;
 
+	@Enumerated(EnumType.STRING)
 	@Column
-	private boolean sendToSubstitute;
+	private SendTo sendTo;
+
+	@Enumerated(EnumType.STRING)
+	@Column
+	private EmployeeFilter employeeFilter;
 	
 	@Column
 	private long daysBeforeEvent;
@@ -66,7 +75,10 @@ public class EmailTemplateChild {
 	
 	@Column
 	private boolean adRequired;
-	
+
+	@Column
+	private boolean onlyManualRecipients;
+
 	@JsonBackReference
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "email_template_id")

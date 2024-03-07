@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 import javax.validation.Valid;
 
@@ -40,6 +41,8 @@ import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Phone;
 import dk.digitalidentity.sofd.dao.model.Post;
 import dk.digitalidentity.sofd.dao.model.User;
+import dk.digitalidentity.sofd.dao.model.enums.AccountOrderStatus;
+import dk.digitalidentity.sofd.dao.model.enums.AccountOrderType;
 import dk.digitalidentity.sofd.dao.model.mapping.AffiliationFunctionMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.AffiliationManagerMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.MappedEntity;
@@ -48,6 +51,7 @@ import dk.digitalidentity.sofd.dao.model.mapping.PersonUserMapping;
 import dk.digitalidentity.sofd.security.RequireApiWriteAccess;
 import dk.digitalidentity.sofd.security.RequireReadAccess;
 import dk.digitalidentity.sofd.security.SecurityUtil;
+import dk.digitalidentity.sofd.service.AccountOrderService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
 import lombok.extern.slf4j.Slf4j;
@@ -65,6 +69,9 @@ public class PersonApi {
 
 	@Autowired
 	private ActiveDirectoryDetailsDao activeDirectoryDetailsDao;
+
+	@Autowired
+	private AccountOrderService accountOrderService;
 
 	@GetMapping("/api/v2/persons")
 	public PersonResult getPersons(@RequestParam(name = "page", defaultValue = "0") int page, @RequestParam(name = "size", defaultValue = "100") int size) {
@@ -99,6 +106,15 @@ public class PersonApi {
 		}
 		
 		return new ResponseEntity<>(new PersonApiRecord(people.get(0)), HttpStatus.OK);
+	}
+
+	@GetMapping("/api/v2/persons/byKombitUuid/{kombitUuid}")
+	public ResponseEntity<?> getPersonByKombitUuid(@PathVariable("kombitUuid") String kombitUuid) {
+		var person = personService.findByKombitUuid(kombitUuid);
+		if (person == null) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		return new ResponseEntity<>(new PersonApiRecord(person), HttpStatus.OK);
 	}
 
 	@GetMapping("/api/v2/persons/{uuid}")
@@ -174,9 +190,11 @@ public class PersonApi {
 			changes = true;
 		}
 
-		if (record.getChosenName() != null && !Objects.equals(record.getChosenName(), person.getChosenName())) {
-			person.setChosenName(record.getChosenName());
-			changes = true;
+		if (!sofdConfiguration.getModules().getPerson().isChosenNameEditable()) {
+			if (record.getChosenName() != null && !Objects.equals(record.getChosenName(), person.getChosenName())) {
+				person.setChosenName(record.getChosenName());
+				changes = true;
+			}
 		}
 		
 		if (record.getFirstEmploymentDate() != null && !Objects.equals(toLocalDate(record.getFirstEmploymentDate()), toLocalDate(person.getFirstEmploymentDate()))) {
@@ -208,6 +226,25 @@ public class PersonApi {
 		// an empty collection must be supplied to "empty" it.
 		
 		if (record.getUsers() != null) {
+			// check for any new AD users here and supply them with employee_id from matching account order - if any exists.
+			for (var recordUser : record.getUsers()) {
+				if (Objects.equals(recordUser.getUser().getUserType(), SupportedUserTypeService.getActiveDirectoryUserType())) {
+					var userExists = person.getUsers().stream().anyMatch(pu ->
+						Objects.equals(pu.getUser().getUserType(), recordUser.getUser().getUserType())
+						&& Objects.equals(pu.getUser().getMaster(), recordUser.getUser().getMaster())
+						&& Objects.equals(pu.getUser().getMasterId(), recordUser.getUser().getMasterId()));
+					
+					if (!userExists) {
+						// lookup matching account order
+						var matchingAccountOrders = accountOrderService.findOrder(SupportedUserTypeService.getActiveDirectoryUserType(),AccountOrderType.CREATE, AccountOrderStatus.CREATED, recordUser.getUser().getUserId());						
+						if (matchingAccountOrders != null && matchingAccountOrders.size() > 0) {
+							recordUser.getUser().setEmployeeId(matchingAccountOrders.get(0).getEmployeeId());
+						}
+					}
+				}
+			}
+
+			// perform normal patchCollection check
 			if (this.<PersonUserMapping>patchCollection(person, record, Person.class.getMethod("getUsers"), Person.class.getMethod("setUsers", List.class))) {
 				changes = true;
 			}
@@ -527,11 +564,6 @@ public class PersonApi {
 			personEntry.setDeleted(recordEntry.isDeleted());
 			changes = true;
 		}
-		
-		if (recordEntry.isInheritPrivileges() != personEntry.isInheritPrivileges()) {
-			personEntry.setInheritPrivileges(recordEntry.isInheritPrivileges());
-			changes = true;
-		}
 
 		if (recordEntry.getFunctions() != null) {
 			if (recordEntry.getFunctions().size() > 0) {
@@ -559,7 +591,7 @@ public class PersonApi {
 								break;
 							}
 						}
-						
+
 						if (!found) {
 							personEntry.getFunctions().add(recordFunction);
 							changes = true;
@@ -670,6 +702,14 @@ public class PersonApi {
 			}
 		}
 
+		// TODO: dont know if we should do this task says to only support it as read-only in v2 api
+//		if (recordEntry.getAlternativeOrgUnit() != null) {
+//			if (!recordEntry.getAlternativeOrgUnit().getUuid().equals(personEntry.getAlternativeOrgUnit().getUuid())) {
+//				personEntry.setAlternativeOrgUnit(recordEntry.getAlternativeOrgUnit());
+//				changes = true;
+//			}
+//		}
+
 		// TODO: should probably not support changing this
 		if (recordEntry.getUuid() != null && !Objects.equals(personEntry.getUuid(), recordEntry.getUuid())) {
 			personEntry.setUuid(recordEntry.getUuid());
@@ -716,7 +756,7 @@ public class PersonApi {
 			// we only allow changing the employeeId on AD accounts if the version in SOFD Core is NULL, because
 			// SOFD Core should be the master of this field (but initial load from AD is okay)
 			// If EmployeeAssociation is not enabled in SOFD, changing the attribute is also allowed
-			if (!StringUtils.hasLength(personUser.getEmployeeId()) || !SupportedUserTypeService.isActiveDirectory(personUser.getUserType()) || !sofdConfiguration.getIntegrations().getOpus().isEnableActiveDirectoryEmployeeIdAssociation() ) {
+			if (!StringUtils.hasLength(personUser.getEmployeeId()) || !SupportedUserTypeService.isActiveDirectory(personUser.getUserType()) || !sofdConfiguration.getIntegrations().getOpus().isEnableActiveDirectoryEmployeeIdAssociation()) {
 				personUser.setEmployeeId(recordUser.getEmployeeId());
 				changes = true;
 			}
@@ -833,12 +873,12 @@ public class PersonApi {
 
 		// we have users, let's see what we can update
 		for (User user : PersonService.getUsers(person)) {
-			if (!SupportedUserTypeService.isActiveDirectory(user.getUserType())) {
+			if (!SupportedUserTypeService.isActiveDirectory(user.getUserType()) && !SupportedUserTypeService.isActiveDirectorySchool(user.getUserType())) {
 				continue;
 			}
 			
 			UserApiRecord userRecord = record.getUsers().stream()
-					.filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType()) &&
+					.filter(u -> (SupportedUserTypeService.isActiveDirectory(u.getUserType()) || SupportedUserTypeService.isActiveDirectorySchool(u.getUserType())) &&
 							     Objects.equals(u.getMaster(), user.getMaster()) &&
 							     Objects.equals(u.getMasterId(), user.getMasterId()))
 					.findFirst()
@@ -850,7 +890,23 @@ public class PersonApi {
 			if (details == null) {
 				details = new ActiveDirectoryDetails();
 				details.setUserId(user.getId());
+				details.setUserType(user.getUserType());
 				userChanges = true;
+			}
+
+			// no reason to set userChanges = true here - either we are in a very strange migration case (and then the migration should
+			// make sure this is set), or details was NULL above, so kombitUuid will also be null
+			if (!StringUtils.hasLength(details.getKombitUuid())) {
+				if (sofdConfiguration.getIntegrations().getOs2sync().isUseObjectGuidAsKombitUuid()) {
+					// use object guid from AD as uuid in FK Org etc.
+					details.setKombitUuid(user.getMasterId());
+				}
+				else {
+					// generate a uuid based on cvr+cpr+user_id+userType. This is to prevent uuid changes for
+					// municipalites that for some reason deletes and recreates user objects
+					var seed = sofdConfiguration.getCustomer().getCvr() + person.getCpr() + user.getUserId() + user.getUserType();
+					details.setKombitUuid(UUID.nameUUIDFromBytes(seed.toLowerCase().getBytes()).toString());
+				}
 			}
 			
 			if (userRecord.getPasswordLocked() != null) {
@@ -863,6 +919,28 @@ public class PersonApi {
 					userChanges = true;
 					details.setPasswordLocked(false);
 					details.setPasswordLockedDate(null);
+				}
+			}
+			
+			if (userRecord.getWhenCreated() != null) {
+				try {
+					if (userRecord.getWhenCreated().equals("9999-12-31") || userRecord.getWhenCreated().trim().isEmpty()) {
+						if (details.getWhenCreated() != null) {
+							userChanges = true;
+							details.setWhenCreated(null);
+						}
+					}
+					else {
+						LocalDate newValue = LocalDate.parse(userRecord.getWhenCreated());
+	
+						if (!Objects.equals(newValue, details.getWhenCreated())) {
+							userChanges = true;
+							details.setWhenCreated(newValue);
+						}
+					}
+				}
+				catch (Exception ex) {
+					log.warn("Invalid whenCreated format: " + userRecord.getWhenCreated() + " on person " + record.getUuid(), ex);
 				}
 			}
 			
@@ -890,7 +968,7 @@ public class PersonApi {
 			
 			if (userRecord.getPasswordExpireDate() != null) {
 				try {
-					if (userRecord.getPasswordExpireDate().equals("9999-12-31")) {
+					if (userRecord.getPasswordExpireDate().equals("9999-12-31") || userRecord.getPasswordExpireDate().trim().isEmpty()) {
 						if (details.getPasswordExpireDate() != null) {
 							userChanges = true;
 							details.setPasswordExpireDate(null);
@@ -906,7 +984,7 @@ public class PersonApi {
 					}
 				}
 				catch (Exception ex) {
-					log.warn("Invalid passwordExpireDate format: " + userRecord.getAccountExpireDate() + " on person " + record.getUuid(), ex);
+					log.warn("Invalid passwordExpireDate format: " + userRecord.getPasswordExpireDate() + " on person " + record.getUuid(), ex);
 				}
 			}
 			
@@ -916,7 +994,19 @@ public class PersonApi {
 					details.setUpn(userRecord.getUpn());
 				}
 			}
-			
+
+			// trim to max length
+			if (userRecord.getTitle() != null) {
+				if (userRecord.getTitle().length() > 100) {
+					userRecord.setTitle(userRecord.getTitle().substring(0, 100));
+				}
+				
+				if (!Objects.equals(userRecord.getTitle(), details.getTitle())) {
+					userChanges = true;
+					details.setTitle(userRecord.getTitle());
+				}
+			}
+
 			if (userChanges) {
 				changes = true;
 				activeDirectoryDetailsDao.save(details);

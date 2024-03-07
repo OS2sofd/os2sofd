@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.service;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -8,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -57,7 +58,7 @@ public class NotificationService {
 	
 	@Autowired
 	private SofdConfiguration configuration;
-
+	
 	public long countActive() {
 		return notificationDao.countByActiveTrue();
 	}
@@ -73,6 +74,11 @@ public class NotificationService {
 	public Notification save(Notification notification) {
 		// Only save if enabled in settings
 		if (settingService.isNotificationTypeEnabled(notification.getNotificationType())) {
+			// message comes from "user"-input, and might be longer than 1000
+			if (notification.getMessage() != null && notification.getMessage().length() > 1000) {
+				notification.setMessage(notification.getMessage().substring(0, 999));
+			}
+			
 			return notificationDao.save(notification);
 		}
 
@@ -101,6 +107,10 @@ public class NotificationService {
 	
 	public List<Notification> findAllByType(NotificationType type) {
 		return notificationDao.findAllByNotificationType(type);
+	}
+
+	public void delete(Notification notification) {
+		notificationDao.delete(notification);
 	}
 
 	@Transactional
@@ -136,11 +146,19 @@ public class NotificationService {
 			StringBuilder builder = null;
 			for (SupportedUserType userType : supportedUserTypes) {
 
+				// filter users on Type
+				List<User> filteredUsers = person.onlyActiveUsers().stream().filter(u -> u.getUserType().equals(userType.getKey())).collect(Collectors.toList());
+				
+				// if OS2vikar is available, ignore all AD accounts with userId vikXXXX
+				if (SupportedUserTypeService.isActiveDirectory(userType.getKey()) && configuration.getModules().getSubstitute().isEnabled()) {
+					filteredUsers = filteredUsers.stream().filter(u -> !UserService.isSubstituteADUser(u)).collect(Collectors.toList());
+				}
+
 				// if the person does not have any of these accounts, skip to next userType
-				if (!person.onlyActiveUsers().stream().anyMatch(u -> u.getUserType().equals(userType.getKey()))) {
+				if (filteredUsers.size() == 0) {
 					continue;
 				}
-				
+
 				// the user has an account of this type - is it supported by a rule?
 				boolean shouldOrder = false;
 				for (Affiliation affiliation : person.getAffiliations()) {
@@ -152,13 +170,12 @@ public class NotificationService {
 				}
 				
 				if (!shouldOrder) {
-					Optional<User> oUser = PersonService.getUsers(person).stream().filter(u -> u.getUserType().equals(userType.getKey())).findFirst();
-					if (oUser.isPresent()) {
-						if (builder == null) {
-							builder = new StringBuilder("Følgende brugerkonti er ikke understøttet af bestillingsregler:\n\n");
-						}
-						
-						builder.append("'" + oUser.get().getUserId() + "' af typen '" + supportedUserTypeService.getPrettyName(oUser.get().getUserType()) + "'\n");
+					if (builder == null) {
+						builder = new StringBuilder("Følgende brugerkonti er ikke understøttet af bestillingsregler:\n\n");
+					}
+
+					for (User user : filteredUsers) {
+						builder.append("'" + user.getUserId() + "' af typen '" + supportedUserTypeService.getPrettyName(user.getUserType()) + "'\n");
 					}
 				}
 			}
@@ -208,13 +225,11 @@ public class NotificationService {
 					continue;
 				}
 
-				boolean match = AffiliationService.notStoppedAffiliations(person.getAffiliations()).stream()
-						.anyMatch(a -> Objects.equals(a.getMaster(), configuration.getModules().getLos().getPrimeAffiliationMaster()) &&
-									   Objects.equals(a.getEmployeeId(), user.getEmployeeId()));
+				boolean match = AffiliationService.notStoppedAffiliations(person.getAffiliations()).stream().anyMatch(a -> Objects.equals(a.getEmployeeId(), user.getEmployeeId()));
 
 				if (!match) {
 					badEmployeeId = true;
-					message = "AD kontoen '" + user.getUserId() + "' er knyttet til et medarbejder-id som personen ikke har (" + user.getEmployeeId() + ")";
+					message = "AD kontoen '" + user.getUserId() + "' er knyttet til et tilhørsforhold som personen ikke har (" + user.getEmployeeId() + ")";
 					break;
 				}
 			}
@@ -243,7 +258,78 @@ public class NotificationService {
 		
 		return 0;
 	}
-	
+
+	@Transactional
+	public long generateFutureADWithBadEmployeeIdNotifications() {
+		Map<String, Notification> existingNotificationsMap = findAllByType(NotificationType.PERSON_WITH_FUTURE_AD_ACCOUNT_WITH_BAD_EMPLOYEEID).stream().collect(Collectors.toMap(Notification::getAffectedEntityUuid, Function.identity()));
+		List<Notification> notifications = new ArrayList<Notification>();
+
+		List<Person> persons = personService.findByUserType(SupportedUserTypeService.getActiveDirectoryUserType());
+		for (Person person : persons) {
+			boolean futureBadEmployeeId = false;
+			String message = null;
+
+			for (User user : person.onlyActiveUsers()) {
+				if (!SupportedUserTypeService.isActiveDirectory(user.getUserType())) {
+					continue;
+				}
+
+				if (!StringUtils.hasLength(user.getEmployeeId())) {
+					continue;
+				}
+
+				// we check if the affiliation mapped to this user is expiring within the next 3 days
+				// if we pass the 3 days the other notification (ADWithBadEmployeeIdNotification) takes over
+				var isExpiring = person.getAffiliations().stream().anyMatch(a ->
+						Objects.equals(a.getEmployeeId(), user.getEmployeeId())
+						&& (a.getStopDate() != null
+							&& toLocalDate(a.getStopDate()).isBefore(LocalDate.now().plusDays(4))
+							&& toLocalDate(a.getStopDate()).isAfter(LocalDate.now())
+						));
+
+				if( isExpiring )
+				{
+					// check if there is another active affiliation that is not mapped to a user
+					var mappedEmployeeIds = person.onlyActiveUsers().stream().filter(u -> u.getEmployeeId() != null).map(u -> u.getEmployeeId()).toList();
+					var otherAffiliationExists = AffiliationService.notStoppedAffiliations(person.getAffiliations()).stream().anyMatch(a ->
+							!Objects.equals(a.getEmployeeId(), user.getEmployeeId())
+							&& !mappedEmployeeIds.contains(a.getEmployeeId())
+						);
+
+					// we only add the notification if there is another affiliation that the user could be mapped to
+					if (otherAffiliationExists) {
+						futureBadEmployeeId = true;
+						message = "AD kontoen '" + user.getUserId() + "' er knyttet til et tilhørsforhold som snart udløber (" + user.getEmployeeId() + "). Overvej at skifte tilhørsforholdet.";
+						break;
+					}
+				}
+			}
+
+			boolean alreadyBad = existingNotificationsMap.containsKey(person.getUuid());
+			if (futureBadEmployeeId && !alreadyBad) {
+				addNotification(notifications, message, PersonService.getName(person), person.getUuid(), EntityType.PERSON, NotificationType.PERSON_WITH_FUTURE_AD_ACCOUNT_WITH_BAD_EMPLOYEEID);
+			}
+			else if (!futureBadEmployeeId && alreadyBad) {
+				Notification notification = existingNotificationsMap.get(person.getUuid());
+				notificationDao.delete(notification);
+			}
+		}
+
+		// clean up potential notifications for people that no longer has at least one active AD account
+		List<String> uuids = persons.stream().map(p -> p.getUuid()).collect(Collectors.toList());
+		for (Entry<String, Notification> entry : existingNotificationsMap.entrySet()) {
+			if (!uuids.contains(entry.getKey())) {
+				notificationDao.delete(entry.getValue());
+			}
+		}
+
+		if (notifications.size() > 0) {
+			return saveAll(notifications);
+		}
+
+		return 0;
+	}
+
 	@Transactional
 	public long generateMissingRulesNotifications() {
 		List<String> supportedUserTypes = userTypeService.findAll().stream()
@@ -258,7 +344,7 @@ public class NotificationService {
 		
 		Map<String, Notification> existingNotificationsMap = findAllByType(NotificationType.ORGUNIT_WITH_MISSING_RULES).stream().collect(Collectors.toMap(Notification::getAffectedEntityUuid, Function.identity()));
 		List<Notification> notifications = new ArrayList<Notification>();
-		StringBuilder builder = null;		
+		StringBuilder builder = null;
 		
 		for (OrgUnit orgUnit : orgUnitService.getAllActiveWithAffiliations()) {
 			OrgUnitAccountOrder accountOrder = accountOrderService.getAccountOrderSettings(orgUnit, false);
@@ -275,6 +361,72 @@ public class NotificationService {
 					case DISABLED:
 					case EVERYONE:
 					case EVERYONE_EXCEPT_HOURLY_PAID:
+					case BY_POSITION_NAME:
+						// ok, no notification needed
+						break;
+					case UNDECIDED:
+						if (!shouldNotify) {
+							builder = new StringBuilder();
+							shouldNotify = true;
+						}
+						missingRule = true;
+						break;
+				}
+				
+				if (missingRule) {
+					builder.append("Mangler regler for '" + supportedUserTypeService.getPrettyName(type.getUserType()) + "'\n");
+				}
+			}
+
+			if (shouldNotify && !existingNotificationsMap.containsKey(orgUnit.getUuid())) {
+				addNotification(notifications, builder.toString(), orgUnit.getName(), orgUnit.getUuid(), EntityType.ORGUNIT, NotificationType.ORGUNIT_WITH_MISSING_RULES);
+			}
+			else if (!shouldNotify && existingNotificationsMap.containsKey(orgUnit.getUuid())) {
+				Notification notification = existingNotificationsMap.get(orgUnit.getUuid());
+				
+				notificationDao.delete(notification);
+			}
+		}
+		
+		if (notifications.size() > 0) {
+			return saveAll(notifications);
+		}
+		
+		return 0;
+	}
+	
+	@Transactional
+	public long generateMissingRulesTitlesNotifications() {
+		List<String> supportedUserTypes = userTypeService.findAll().stream()
+				.filter(u -> u.isCanOrder())
+				.map(u -> u.getKey())
+				.collect(Collectors.toList());
+		
+		// if nothing can be ordered, no events can be generated
+		if (supportedUserTypes.size() == 0) {
+			return 0;
+		}
+		
+		Map<String, Notification> existingNotificationsMap = findAllByType(NotificationType.ORGUNIT_WITH_MISSING_RULES_TITLES).stream().collect(Collectors.toMap(Notification::getAffectedEntityUuid, Function.identity()));
+		List<Notification> notifications = new ArrayList<Notification>();
+		StringBuilder builder = null;
+		
+		for (OrgUnit orgUnit : orgUnitService.getAllActiveWithAffiliations()) {
+			OrgUnitAccountOrder accountOrder = accountOrderService.getAccountOrderSettings(orgUnit, false);
+			boolean shouldNotify = false;
+
+			for (OrgUnitAccountOrderType type : accountOrder.getTypes()) {
+				if (!supportedUserTypes.contains(type.getUserType())) {
+					continue;
+				}
+
+				boolean missingRule = false;
+
+				switch (type.getRule()) {
+					case DISABLED:
+					case EVERYONE:
+					case EVERYONE_EXCEPT_HOURLY_PAID:
+					case UNDECIDED:
 						// ok, no notification needed
 						break;
 					case BY_POSITION_NAME:
@@ -296,13 +448,6 @@ public class NotificationService {
 							}
 						}
 						break;
-					case UNDECIDED:
-						if (!shouldNotify) {
-							builder = new StringBuilder();
-							shouldNotify = true;
-						}
-						missingRule = true;
-						break;
 				}
 				
 				if (missingRule) {
@@ -311,7 +456,7 @@ public class NotificationService {
 			}
 
 			if (shouldNotify && !existingNotificationsMap.containsKey(orgUnit.getUuid())) {
-				addNotification(notifications, builder.toString(), orgUnit.getName(), orgUnit.getUuid(), EntityType.ORGUNIT, NotificationType.ORGUNIT_WITH_MISSING_RULES);
+				addNotification(notifications, builder.toString(), orgUnit.getName(), orgUnit.getUuid(), EntityType.ORGUNIT, NotificationType.ORGUNIT_WITH_MISSING_RULES_TITLES);
 			}
 			else if (!shouldNotify && existingNotificationsMap.containsKey(orgUnit.getUuid())) {
 				Notification notification = existingNotificationsMap.get(orgUnit.getUuid());
@@ -363,5 +508,18 @@ public class NotificationService {
 		}
 
 		notificationDao.deleteAll(expiredNotifications);
+	}
+
+	private LocalDate toLocalDate(Date date) {
+		if (date == null) {
+			return null;
+		}
+
+		// might be an SQL instance, so convert to something that has a toInstant() method on it
+		if (date instanceof java.sql.Date) {
+			date = new Date(date.getTime());
+		}
+
+		return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 	}
 }

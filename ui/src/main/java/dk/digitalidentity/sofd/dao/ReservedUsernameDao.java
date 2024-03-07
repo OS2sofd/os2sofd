@@ -16,4 +16,6 @@ public interface ReservedUsernameDao extends JpaRepository<ReservedUsername, Lon
 
 	List<ReservedUsername> findByPersonUuid(String uuid);
 
+	void deleteByPersonUuid(String uuid);
+
 }

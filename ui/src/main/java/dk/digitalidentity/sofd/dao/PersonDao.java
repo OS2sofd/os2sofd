@@ -19,12 +19,6 @@ import dk.digitalidentity.sofd.security.RequirePersonCreaterOrDaoWriteAccess;
 
 public interface PersonDao extends JpaRepository<Person, String>, JpaSpecificationExecutor<Person>, RevisionRepository<Person, String, Integer> {
 
-	void delete(Person entity);
-
-	void deleteById(String id);
-
-	void deleteAll();
-
 	<S extends Person>S findByCpr(String cpr);
 	
 	@RequireDaoWriteAccess
@@ -44,6 +38,7 @@ public interface PersonDao extends JpaRepository<Person, String>, JpaSpecificati
 	<S extends Person> List<S> findByUsersUserUserTypeAndUsersUserUserId(String userType, String userId);
 
 	<S extends Person> List<S> findByUsersUserUserTypeAndUsersUserMasterId(String userType, String masterId);
+	Person findByUsersUserActiveDirectoryDetailsKombitUuid(String kombitUuid);
 
 	<S extends Person>S findByUsersUser(User user);
 
@@ -70,8 +65,9 @@ public interface PersonDao extends JpaRepository<Person, String>, JpaSpecificati
 			" WHERE p.deleted = 0" +
 			"  AND (p.firstname LIKE CONCAT('%', ?1, '%')" +
 			"   OR  p.surname LIKE CONCAT('%', ?1, '%')" +
-			"   OR  p.chosen_name LIKE CONCAT('%',?1,'%'))" +
-			" ORDER BY p.firstname LIMIT 10")
+			"   OR  p.chosen_name LIKE CONCAT('%',?1,'%')" +
+			"   OR CONCAT(p.firstname,' ', p.surname) LIKE CONCAT('%',?1,'%'))" +
+			" ORDER BY p.firstname, p.surname LIMIT 10")
 	List<Person> findTop10ByName(@Param("name") String input);
 
 	@Query(nativeQuery = true, value = "SELECT p.* " + 
@@ -85,16 +81,22 @@ public interface PersonDao extends JpaRepository<Person, String>, JpaSpecificati
 	
 	// TODO: should these also respect force_stop_date ?
 	
-	@Query(nativeQuery = true, value = "SELECT p.* " + 
+	@Query(nativeQuery = true, value = "SELECT DISTINCT p.* " + 
 			"FROM   persons p " + 
-			"       INNER JOIN affiliations a " + 
-			"               ON a.person_uuid = p.uuid " + 
-			"       INNER JOIN affiliations_manager am " + 
-			"               ON am.affiliation_id = a.id " + 
-			"WHERE  a.deleted = 0 " + 
+			"       INNER JOIN orgunits_manager om " +
+			"               ON om.manager_uuid = p.uuid and om.inherited = 0")
+	<S extends Person> List<S> getManagers();
+
+	@Query(nativeQuery = true, value = "SELECT p.* " +
+			"FROM   persons p " +
+			"       INNER JOIN affiliations a " +
+			"               ON a.person_uuid = p.uuid " +
+			"       INNER JOIN affiliations_manager am " +
+			"               ON am.affiliation_id = a.id " +
+			"WHERE  a.deleted = 0 " +
 			"       AND (a.start_date IS NULL OR CAST(a.start_date AS DATE) <= CAST(CURRENT_TIMESTAMP AS DATE))" +
 			"       AND (a.stop_date IS NULL OR CAST(a.stop_date AS DATE) >= CAST(CURRENT_TIMESTAMP AS DATE))")
-	<S extends Person> List<S> getManagers();
+	<S extends Person> List<S> getAffiliationManagers();
 
 	@Query(nativeQuery = true, value = "SELECT p.* " + 
 			"FROM   persons p " + 
@@ -119,10 +121,19 @@ public interface PersonDao extends JpaRepository<Person, String>, JpaSpecificati
 			"       AND (a.stop_date IS NULL OR CAST(a.stop_date AS DATE) >= CAST(CURRENT_TIMESTAMP AS DATE))" +
 			"       AND (af.function = 'SR')")
 	List<Person> getSRs();
+	
+	@Query(nativeQuery = true, value = "SELECT count(*)"
+			+ "  FROM substitute_assignment"
+			+ " WHERE substitute_uuid = ?1"
+			+ "   AND substitute_context_id IN ("
+			+ "     SELECT id"
+			+ "       FROM substitute_context"
+			+ "      WHERE identifier IN ('SOFD', 'GLOBAL'))")
+	long countSofdSubstituteAssignments(String personUuid);
 
 	<S extends Person> List<S> findByDeletedFalse();
 	
-	@Query(nativeQuery = true, value = "SELECT rev, last_changed AS lastChanged FROM persons_aud WHERE uuid = ?1")
+	@Query(nativeQuery = true, value = "SELECT pa.rev AS rev, FROM_UNIXTIME(r.timestamp/1000) as lastChanged FROM persons_aud pa JOIN revisions r ON r.id = pa.rev WHERE pa.uuid = ?1")
 	List<RevisionId> getRevisionIds(String id);
 
 	@Modifying
@@ -130,4 +141,6 @@ public interface PersonDao extends JpaRepository<Person, String>, JpaSpecificati
 	void deletePersonLog(String uuid);
 
 	List<Person> findByForceStopTrueOrDisableAccountOrdersTrueOrLeaveNotNull();
+
+	List<Person> findByPhonesPhoneMasterAndPhonesPhoneMasterId(String master, String masterId);
 }

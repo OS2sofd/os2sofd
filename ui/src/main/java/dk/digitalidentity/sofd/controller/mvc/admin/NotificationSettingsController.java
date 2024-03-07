@@ -26,6 +26,7 @@ public class NotificationSettingsController {
 		// For each NotificationType check if it is enabled and create map
 		Map<NotificationType, Boolean> notificationEnabledMap = Arrays
 				.stream(NotificationType.values())
+				.filter( notificationType -> notificationType.isVisibleInUI())
 				.collect(Collectors.toMap(notificationType -> notificationType, notificationType -> settingService.isNotificationTypeEnabled(notificationType)));
 
 		model.addAttribute("settings", notificationEnabledMap);

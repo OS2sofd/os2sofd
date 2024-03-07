@@ -5,11 +5,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.security.RequireAdminAccess;
+import dk.digitalidentity.sofd.service.OrgUnitService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,6 +27,7 @@ import dk.digitalidentity.sofd.security.RequireControllerWriteAccess;
 import dk.digitalidentity.sofd.security.RequirePersonCreaterOrControllerWriteAccess;
 import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.AffiliationService;
+import dk.digitalidentity.sofd.service.PersonService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -32,6 +36,11 @@ public class AffiliationRestController {
 
 	@Autowired
 	private AffiliationService affiliationService;
+	@Autowired
+	private PersonService personService;
+
+	@Autowired
+	private OrgUnitService orgUnitService;
 
 	@RequireControllerWriteAccess
 	@PostMapping(value = "/rest/affil/update/kle")
@@ -114,7 +123,7 @@ public class AffiliationRestController {
 		}
 		
 		Set<String> constraintOUs = SecurityUtil.getOrgUnitUuidsFromConstraint();
-		if (constraintOUs.size() > 0 && !constraintOUs.contains(affiliation.getOrgUnit().getUuid())) {
+		if (constraintOUs.size() > 0 && !constraintOUs.contains(affiliation.getCalculatedOrgUnit().getUuid())) { // TODO maybe filter on both
 			log.warn("Affiliation with uuid " + uuid + " can not be edited by this user");
 			return new ResponseEntity<>("Affiliation with uuid " + uuid + " can not be edited by this user", HttpStatus.BAD_REQUEST);
 		}
@@ -124,17 +133,33 @@ public class AffiliationRestController {
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
+	record AffiliationEditRecord(String positionDisplayName, String alternativeOrgUnit) {}
+	
 	@RequireAdminAccess
 	@PostMapping(value = "/rest/affil/core/edit/{uuid}")
 	@ResponseBody
-	public HttpEntity<String> delete(@PathVariable("uuid") String uuid, @RequestBody String positionDisplayName) {
+	public HttpEntity<String> edit(@PathVariable("uuid") String uuid, @RequestBody AffiliationEditRecord body) {
 		Affiliation affiliation = affiliationService.findByUuid(uuid);
 		if (affiliation == null) {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
 
-		affiliation.setPositionDisplayName(positionDisplayName);
+		if (StringUtils.hasLength(body.alternativeOrgUnit)) {
+			OrgUnit alternativeOrgUnit = orgUnitService.getByUuid(body.alternativeOrgUnit);
+
+			if (alternativeOrgUnit == null) {
+				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			}
+
+			affiliation.setAlternativeOrgUnit(alternativeOrgUnit);
+		}
+		else {
+			affiliation.setAlternativeOrgUnit(null);
+		}
+
+		affiliation.setPositionDisplayName(body.positionDisplayName);
 		affiliationService.save(affiliation);
+		personService.save(affiliation.getPerson());
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}

@@ -2,8 +2,6 @@ package dk.digitalidentity.sofd.dao.model.mapping;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -17,7 +15,6 @@ import org.hibernate.envers.Audited;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import dk.digitalidentity.sofd.dao.model.Affiliation;
-import dk.digitalidentity.sofd.dao.model.enums.AffiliationFunction;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -38,6 +35,5 @@ public class AffiliationFunctionMapping {
 	private Affiliation affiliation;
 
 	@Column
-	@Enumerated(EnumType.STRING)
-	private AffiliationFunction function;
+	private String function;
 }

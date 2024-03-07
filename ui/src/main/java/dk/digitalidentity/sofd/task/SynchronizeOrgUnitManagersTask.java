@@ -34,7 +34,7 @@ public class SynchronizeOrgUnitManagersTask {
 
 	@Autowired
 	private PersonService personService;
-	
+
 	@Autowired
 	private ManagerService managerService;
 
@@ -61,21 +61,22 @@ public class SynchronizeOrgUnitManagersTask {
 
 		// Remove all current manager links
 		List<OrgUnit> allOrgUnits = orgUnitService.getAll();
-		List<Person> allManagers = personService.findAllManagers();
+		List<Person> allManagers = personService.findAllAffiliationManagers();
 
 		if (allManagers != null) {
 			for (Person person : allManagers) {
+				if (person.isForceStop()) {
+					continue;
+				}
 
 				if (person.getAffiliations() != null) {
-					for (Affiliation aff : person.getAffiliations()) {
-
+					for (Affiliation aff : AffiliationService.onlyActiveAffiliations(person.getAffiliations())) {
 						if (aff.getManagerFor() != null) {
 							for (OrgUnit orgUnit : AffiliationService.getManagerFor(aff)) {
 								OrgUnitManager manager = new OrgUnitManager();
 								manager.setInherited(false);
 								manager.setManager(person);
 								manager.setOrgUnit(orgUnit);
-								manager.setName(person.getChosenName() != null ? person.getChosenName() : person.getFirstname() + " " + person.getSurname());
 								orgUnit.setNewManager(manager);
 
 								setManager(orgUnit, person);
@@ -109,28 +110,49 @@ public class SynchronizeOrgUnitManagersTask {
 				// check for new manager mail
 				if (orgUnit.getNewManager() != null && !orgUnit.getNewManager().isInherited()) {
 					boolean sendMail = true;
+
 					if (orgUnit.getManager() != null) {
 						if (!orgUnit.getNewManager().getManager().getUuid().equals(orgUnit.getManager().getManager().getUuid()) || orgUnit.getManager().isInherited()) {
 							sendMail = true;
-						} else {
+						}
+						else {
 							sendMail = false;
 						}
 					}
-					
+
 					if (sendMail) {
-						managerService.sendMail(orgUnit, EmailTemplateType.NEW_MANAGER, orgUnit.getNewManager().getName());
+						managerService.sendMail(orgUnit, EmailTemplateType.NEW_MANAGER, PersonService.getName(orgUnit.getNewManager().getManager()));
 					}
 				}
-				
+
 				// check for manager removed
 				if (orgUnit.getManager() != null && !orgUnit.getManager().isInherited() && (orgUnit.getNewManager() == null || (orgUnit.getNewManager() != null && orgUnit.getNewManager().isInherited()))) {
-					managerService.sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, orgUnit.getManager().getName());
+					managerService.sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, PersonService.getName(orgUnit.getManager().getManager()));
 				}
-				
+
 				orgUnit.setManager(orgUnit.getNewManager());
 
 				orgUnitService.save(orgUnit);
 				counter++;
+			}
+			else {
+
+				// check if the inherited flag should be updated
+				boolean inheritedChanges = false;
+				if (orgUnit.getParent() != null && orgUnit.getParent().getManager() != null && orgUnit.getManager() != null) {
+					if (!orgUnit.getParent().getManager().getManager().getUuid().equals(orgUnit.getManager().getManager().getUuid()) && orgUnit.getManager().isInherited()) {
+						orgUnit.getManager().setInherited(false);
+						inheritedChanges = true;
+					}  else if (orgUnit.getParent().getManager().getManager().getUuid().equals(orgUnit.getManager().getManager().getUuid()) && !orgUnit.getManager().isInherited()) {
+						orgUnit.getManager().setInherited(true);
+						inheritedChanges = true;
+					}
+				}
+
+				if (inheritedChanges) {
+					orgUnitService.save(orgUnit);
+					counter++;
+				}
 			}
 		}
 
@@ -149,7 +171,6 @@ public class SynchronizeOrgUnitManagersTask {
 				manager.setInherited(true);
 				manager.setManager(person);
 				manager.setOrgUnit(child);
-				manager.setName(person.getChosenName() != null ? person.getChosenName() : person.getFirstname() + " " + person.getSurname());
 				child.setNewManager(manager);
 
 				setManager(child, person);

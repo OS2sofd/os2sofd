@@ -52,6 +52,9 @@ public class UserApiRecord extends BaseRecord {
 	private String accountExpireDate;
 	private String passwordExpireDate;
 	private String upn;
+	private String kombitUuid;
+	private String whenCreated;
+	private String title;
 
 	// read-only fields
 
@@ -75,6 +78,8 @@ public class UserApiRecord extends BaseRecord {
 			this.accountExpireDate = (user.getActiveDirectoryDetails().getAccountExpireDate() != null) ? user.getActiveDirectoryDetails().getAccountExpireDate().toString() : null;
 			this.passwordExpireDate = (user.getActiveDirectoryDetails().getPasswordExpireDate() != null) ? user.getActiveDirectoryDetails().getPasswordExpireDate().toString() : null;
 			this.upn = user.getActiveDirectoryDetails().getUpn();
+			this.kombitUuid = user.getActiveDirectoryDetails().getKombitUuid();
+			this.title = user.getActiveDirectoryDetails().getTitle();
 		}
 	}
 

@@ -9,7 +9,6 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -31,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class EboksService {
+	private int errorCount = 0;
 
 	@Autowired
 	private SofdConfiguration configuration;
@@ -56,6 +56,13 @@ public class EboksService {
 			return true;
 		}
 
+		var person = personService.findByCpr(cpr);
+		if ( person == null || person.isDead()) {
+			log.warn("Person not found or person is dead - not sending digital post: " + cpr);
+			// return true to get the message removed from the queue
+			return true;
+		}
+
 		if (PersonService.isFictionalCpr(cpr)) {
 			log.warn("Person has a fictive cpr - not sending digital post: " + cpr);
 
@@ -63,15 +70,13 @@ public class EboksService {
 			return true;
 		}
 		
-		if (configuration.getIntegrations().getEboks().isNewUrlEnabled()) {
-			if (!StringUtils.hasLength(configuration.getIntegrations().getEboks().getSenderName())) {
-				log.error("Bad configuration: missing senderName");
-				return false;
-			}
+		if (!StringUtils.hasLength(configuration.getIntegrations().getEboks().getSenderName())) {
+			log.error("Bad configuration: missing senderName");
+			return false;
 		}
 
 		RestTemplate restTemplate = new RestTemplate();
-		String resourceUrl = (configuration.getIntegrations().getEboks().isNewUrlEnabled()) ? configuration.getIntegrations().getEboks().getUrl() : configuration.getIntegrations().getEboks().getOldUrl();
+		String resourceUrl = configuration.getIntegrations().getEboks().getUrl();
 
 		log.info("Sending e-boks message: '" + subject + "' to " + PersonService.maskCpr(cpr) + ". Using resourceUrl: " + resourceUrl);
 
@@ -92,40 +97,30 @@ public class EboksService {
 				}
 			}
 
-			if (configuration.getIntegrations().getEboks().isNewUrlEnabled()) {
-				eBoks.setContent(Base64.getEncoder().encodeToString(generatePDF(subject, message)));
-				eBoks.setMunicipalityName(configuration.getIntegrations().getEboks().getSenderName());			
-			}
-			else {
-				eBoks.setPdfFileBase64(Base64.getEncoder().encodeToString(generatePDF(subject, message)));
-				eBoks.setSenderId(configuration.getIntegrations().getEboks().getSenderId());
-				eBoks.setContentTypeId(configuration.getIntegrations().getEboks().getMaterialeId());				
-			}
+			eBoks.setContent(Base64.getEncoder().encodeToString(generatePDF(subject, message)));
+			eBoks.setMunicipalityName(configuration.getIntegrations().getEboks().getSenderName());			
 
 	    	HttpHeaders headers = new HttpHeaders();
 	        headers.add("Content-Type", "application/json");
 			HttpEntity<EboksMessage> request = new HttpEntity<EboksMessage>(eBoks, headers);
 
-			ResponseEntity<String> response = restTemplate.postForEntity(resourceUrl, request, String.class);
-			
-			if (response.getStatusCodeValue() != 200) {
-				log.error("Failed to send e-boks message to: " + PersonService.maskCpr(cpr) + ". HTTP: " + response.getStatusCodeValue());
-				return false;
-			}
-			else {
-				if ("Ikke tilmeldt e-boks!".equalsIgnoreCase(response.getBody())) {
-					createNotSubscribedNotification(cpr);
-				}
-			}
+			restTemplate.postForEntity(resourceUrl, request, String.class);
 		}
 		catch (HttpStatusCodeException ex) {
-			// when not "tilmeldt" e-boks, just skip sending this one
-			if (!"Ikke tilmeldt e-boks!".equalsIgnoreCase(ex.getResponseBodyAsString())) {
-				log.error("Failed to send e-boks message to: " + PersonService.maskCpr(cpr), ex);
-				return false;
+			if (ex.getRawStatusCode() == 409) {
+				createNotSubscribedNotification(cpr);				
 			}
 			else {
-				createNotSubscribedNotification(cpr);
+				errorCount++;
+
+				if (errorCount > 5) {
+					log.error("Failed to send e-boks message to: " + PersonService.maskCpr(cpr), ex);
+				}
+				else {
+					log.warn("Failed to send e-boks message to: " + PersonService.maskCpr(cpr), ex);
+				}
+				
+				return false;
 			}
 		}
 		

@@ -24,9 +24,10 @@ public class KleInitTask {
     public void init() {
         if (configuration.getScheduled().isEnabled() && kleService.countByActiveTrue() == 0) {
             kleService.updateCache();
-        } else {
+        }
+        else {
             // even non scheduled instances should populate the cache
-            kleService.reloadCache();
+            kleService.reloadCache(true);
         }
     }
 }

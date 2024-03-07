@@ -19,10 +19,13 @@ import javax.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -35,15 +38,18 @@ import dk.digitalidentity.sofd.controller.mvc.dto.PUnitDTO;
 import dk.digitalidentity.sofd.controller.rest.model.OrgUnitCoreInfo;
 import dk.digitalidentity.sofd.dao.OrgUnitDao;
 import dk.digitalidentity.sofd.dao.OrgUnitTypeDao;
-import dk.digitalidentity.sofd.dao.model.Email;
+import dk.digitalidentity.sofd.dao.model.Affiliation;
+import dk.digitalidentity.sofd.dao.model.ModificationHistory;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.OrgUnitType;
 import dk.digitalidentity.sofd.dao.model.Organisation;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Phone;
 import dk.digitalidentity.sofd.dao.model.Post;
+import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPostMapping;
 import dk.digitalidentity.sofd.security.SecurityUtil;
+import dk.digitalidentity.sofd.service.model.ChangeType;
 import dk.digitalidentity.sofd.service.model.KleAssignmentDto;
 import dk.digitalidentity.sofd.service.model.KleAssignmentType;
 import dk.digitalidentity.sofd.service.model.OUAddressRow;
@@ -67,17 +73,17 @@ public class OrgUnitService {
 	private static final String SELECT_THIN_ORGUNITS_SQL = "SELECT o.uuid, o.name AS name, o.parent_uuid FROM orgunits o WHERE o.deleted = 0 AND o.belongs_to = ?;";
 
 	/*
-	 * SELECT o.uuid, o.name AS name, o.parent_uuid, t.id AS tag_id, m.name AS manager 
-	 *	FROM orgunits o 
-	 *	LEFT JOIN orgunits_tags ot ON ot.orgunit_uuid = o.uuid
-	 *	LEFT JOIN tags t ON ot.tag_id = t.id 
-	 *	LEFT JOIN orgunits_manager m ON m.orgunit_uuid = o.uuid
-	 *	WHERE o.deleted = 0 
-	 *	AND o.belongs_to = ?;
-	 */
-	private static final String SELECT_THIN_ORGUNITS_SQL_WITH_TAGS_AND_MANAGER = "SELECT o.uuid, o.name AS name, o.parent_uuid, t.id AS tag_id, m.name AS manager FROM orgunits o LEFT JOIN orgunits_tags ot ON ot.orgunit_uuid = o.uuid LEFT JOIN tags t ON ot.tag_id = t.id LEFT JOIN orgunits_manager m ON m.orgunit_uuid = o.uuid WHERE o.deleted = 0 AND o.belongs_to = ?;";
+		SELECT o.uuid, o.name AS name, o.parent_uuid, t.id AS tag_id, ifnull(mp.chosen_name,concat(mp.firstname ,'',mp.surname)) AS manager
+		FROM orgunits o
+		LEFT JOIN orgunits_tags ot ON ot.orgunit_uuid = o.uuid
+		LEFT JOIN tags t ON ot.tag_id = t.id
+		LEFT JOIN orgunits_manager m ON m.orgunit_uuid = o.uuid
+		LEFT JOIN persons mp on mp.uuid = m.manager_uuid
+		WHERE o.deleted = 0 AND o.belongs_to = ?;
+	*/
+	private static final String SELECT_THIN_ORGUNITS_SQL_WITH_TAGS_AND_MANAGER = "SELECT o.uuid, o.name AS name, o.parent_uuid, t.id AS tag_id, ifnull(mp.chosen_name,concat(mp.firstname ,' ',mp.surname)) AS manager, ot.custom_value AS tag_value FROM orgunits o LEFT JOIN orgunits_tags ot ON ot.orgunit_uuid = o.uuid LEFT JOIN tags t ON ot.tag_id = t.id LEFT JOIN orgunits_manager m ON m.orgunit_uuid = o.uuid LEFT JOIN persons mp on mp.uuid = m.manager_uuid WHERE o.deleted = 0 AND o.belongs_to = ?;";
 
-	
+
 	/*
 	 * SELECT o.uuid, o.name, CONCAT(p.postal_code, ' ', p.city) AS city, CONCAT(p.street, ', ', p.postal_code, ' ', p.city) AS address
 	 *   FROM orgunits o
@@ -89,7 +95,7 @@ public class OrgUnitService {
 	private static final String SELECT_THIN_ORGUNITS_WITH_ADDRESS_SQL = "SELECT o.uuid, o.name, CONCAT(p.postal_code, ' ', p.city) AS city, CONCAT(p.street, ', ', p.postal_code, ' ', p.city) AS address FROM orgunits o JOIN orgunits_posts op ON op.orgunit_uuid = o.uuid JOIN posts p ON op.post_id = p.id WHERE o.deleted = 0 AND o.belongs_to = ?;";
 
 	public static OrgUnitService getInstance() {
-		return instance;		
+		return instance;
 	}
 
 	@PostConstruct
@@ -106,6 +112,9 @@ public class OrgUnitService {
 
 	@Autowired
 	private OrgUnitTypeDao orgUnitTypeDao;
+
+	@Autowired
+	private ModificationHistoryService modificationHistoryService;
 	
 	@Autowired
 	private KleService kleService;
@@ -118,29 +127,36 @@ public class OrgUnitService {
 
 	@Autowired
 	private OrgUnitFutureChangesService orgUnitFutureChangesService;
-	
+
 	@Autowired
 	private CvrService cvrService;
-	
+
 	@Autowired
 	private SofdConfiguration configuration;
 
 	@Autowired
 	private ManagerService managerService;
-	
+
+	@Autowired
+	AffiliationService affiliationService;
+
 	public OrgUnit getByUuid(String uuid) {
 		Date date = getFutureDateFromSession();
 		if (date != null) {
 			return orgUnitFutureChangesService.getFutureOrgUnit(uuid, date);
 		}
+		var orgUnit = orgUnitDao.findByUuid(uuid);
+		if( orgUnit != null ) {
+			orgUnit.setInheritedEan(orgUnitDao.getInheritedEan(orgUnit.getUuid()));
+		}
 
-		return orgUnitDao.findByUuid(uuid);
+		return orgUnit;
 	}
-	
+
 	public Page<OrgUnit> getAll(Pageable pageable) {
-		return orgUnitDao.findAll(pageable);
+		return orgUnitDao.findByBelongsTo(organisationService.getAdmOrg(), pageable);
 	}
-	
+
 	public List<OrgUnit> getAllWithChildren(List<String> list) {
 		List<OrgUnit> ous = orgUnitDao.findByUuidIn(list);
 		Set<OrgUnit> result = new HashSet<>();
@@ -150,7 +166,7 @@ public class OrgUnitService {
 				getAllWithChildrenRecursive(result, child);
 			}
 		}
-		
+
 		return new ArrayList<>(result);
 	}
 
@@ -169,7 +185,7 @@ public class OrgUnitService {
 
 		return orgUnitDao.findByUuidIn(uuids);
 	}
-	
+
 	public List<OrgUnit> getBySourceName(String sourceName) {
 
 		return orgUnitDao.findBySourceName(sourceName);
@@ -188,10 +204,27 @@ public class OrgUnitService {
 		return orgUnitDao.findByBelongsTo(organisation);
 	}
 
+	@Cacheable(value = "activeOrgUnits")
+	public List<OrgUnit> getAllActiveCached() {
+		return getAllActive(organisationService.getAdmOrg());
+	}
+
+	@Scheduled(fixedRate = 60 * 60 * 1000)
+	public void resetActiveOrgUnitCacheTask() {
+		self.resetActiveOrgUnitCache();
+	}
+
+	@CacheEvict(value = "activeOrgUnits", allEntries = true)
+	public void resetActiveOrgUnitCache() {
+		; // clears cache every hour - we want to protect
+		  // against force-refresh in the browser, as the lookup
+		  // can be a bit intensive
+	}
+
 	public List<OrgUnit> getAllActive() {
 		return getAllActive(organisationService.getAdmOrg());
 	}
-	
+
 	public List<OrgUnit> getAllActive(Organisation organisation) {
 		Date date = getFutureDateFromSession();
 		if (date != null) {
@@ -204,7 +237,7 @@ public class OrgUnitService {
 	public List<OUTreeForm> getAllTree() {
 		return getAllTree(organisationService.getAdmOrg());
 	}
-	
+
 	public List<OUTreeFormWithTags> getAllTreeWithTags() {
 		return getAllTreeWithTags(organisationService.getAdmOrg());
 	}
@@ -237,7 +270,7 @@ public class OrgUnitService {
 
 		return result;
 	}
-	
+
 	public List<OUTreeFormWithTags> getAllTreeWithTags(Organisation organisation) {
 		@SuppressWarnings("deprecation")
 		List<OUTagRow> result = jdbcTemplate.query(SELECT_THIN_ORGUNITS_SQL_WITH_TAGS_AND_MANAGER, new Object[] { organisation.getId()}, (RowMapper<OUTagRow>) (rs, rownum) -> {
@@ -247,6 +280,7 @@ public class OrgUnitService {
 			ou.setText(rs.getString("name"));
 			ou.setManager(rs.getString("manager"));
 			ou.setTagId(rs.getLong("tag_id"));
+			ou.setTagValue(rs.getString("tag_value"));
 
 			String parentUuid = rs.getString("parent_uuid");
 			if (parentUuid != null && !parentUuid.isEmpty()) {
@@ -260,10 +294,10 @@ public class OrgUnitService {
 		});
 
 		List<OUTreeFormWithTags> treeFormList = new ArrayList<>();
-		
+
 		for (OUTagRow ou : result) {
 			OUTreeFormWithTags match = treeFormList.stream().filter(t -> t.getId().equals(ou.getId())).findAny().orElse(null);
-			
+
 			if (match == null) {
 				OUTreeFormWithTags newForm = new OUTreeFormWithTags();
 				newForm.setId(ou.getId());
@@ -271,19 +305,26 @@ public class OrgUnitService {
 				newForm.setText(ou.getText());
 				newForm.setManager(ou.getManager());
 				newForm.setTagIds(new ArrayList<>());
-				
+				newForm.setTagValueMap(new HashMap<>());
+
 				if (ou.getTagId() != null) {
 					newForm.getTagIds().add(ou.getTagId());
+					if (ou.getTagValue() != null) {
+						newForm.getTagValueMap().put(ou.getTagId(), ou.getTagValue());
+					}
 				}
-				
+
 				treeFormList.add(newForm);
 			} else {
 				if (ou.getTagId() != null) {
 					match.getTagIds().add(ou.getTagId());
+					if (ou.getTagValue() != null) {
+						match.getTagValueMap().put(ou.getTagId(), ou.getTagValue());
+					}
 				}
 			}
 		}
-		
+
 		Date date = getFutureDateFromSession();
 		if (date != null) {
 			treeFormList = orgUnitFutureChangesService.getAllTreeWithTagsFutureOrgUnits(treeFormList, date);
@@ -293,24 +334,24 @@ public class OrgUnitService {
 
 		return treeFormList;
 	}
-	
+
 	public List<KleAssignmentDto> getKleAssignments(OrgUnit orgUnit, KleAssignmentType type) {
 		List<KleAssignmentDto> assignments = new ArrayList<>();
-		
+
 		copyKleToAssignments(assignments, orgUnit, type, false);
 
 		if (orgUnit.getParent() != null) {
 			getKleAssignmentsInherited(assignments, orgUnit.getParent(), type);
 		}
-		
+
 		return assignments;
 	}
-	
+
 	private void getKleAssignmentsInherited(List<KleAssignmentDto> assignments, OrgUnit orgUnit, KleAssignmentType type) {
 		if (orgUnit.isInheritKle()) {
 			copyKleToAssignments(assignments, orgUnit, type, true);
 		}
-		
+
 		if (orgUnit.getParent() != null) {
 			getKleAssignmentsInherited(assignments, orgUnit.getParent(), type);
 		}
@@ -329,19 +370,19 @@ public class OrgUnitService {
 				codes = orgUnit.getKleTertiary().stream().map(k -> k.getKleValue()).collect(Collectors.toList());
 				break;
 		}
-		
+
 		if (codes != null && codes.size() > 0) {
 			for (String code : codes) {
 				String title = kleService.getName(code);
-				
+
 				KleAssignmentDto assignment = new KleAssignmentDto();
 				assignment.setCode(code);
 				assignment.setTitle(title);
-				
+
 				if (inherited) {
 					assignment.setThrough(orgUnit.getName());
 				}
-				
+
 				assignments.add(assignment);
 			}
 		}
@@ -363,12 +404,12 @@ public class OrgUnitService {
 
 		return codes;
 	}
-	
+
 	private void addInheritedKle(OrgUnit parent, Set<String> codes) {
 		if (parent.getParent() != null) {
 			addInheritedKle(parent.getParent(), codes);
 		}
-		
+
 		if (parent.isInheritKle()) {
 			if (parent.getKleTertiary() != null && parent.getKleTertiary().size() > 0) {
 				for (String code : parent.getKleTertiary().stream().map(k -> k.getKleValue()).collect(Collectors.toList())) {
@@ -461,14 +502,21 @@ public class OrgUnitService {
 		return orgUnitDao.save(orgUnit);
 	}
 
+	// note that this method will filter out positionNames if the affiliation master is OS2vikar
+	// also note that this method is intended for IdM processes, and should not really be used elsewhere
 	public Set<String> getPositionNames(OrgUnit ou, boolean onlyActive, boolean potentialDisplayName) {
+		List<Affiliation> affiliations = ou.getAffiliations();
+
 		if (onlyActive) {
 			if (potentialDisplayName) {
-				return AffiliationService.onlyActiveAffiliations(ou.getAffiliations()).stream()
+				return AffiliationService.onlyActiveAffiliations(affiliations).stream()
+						.filter(a -> !Objects.equals(a.getMaster(), "OS2vikar"))
 						.map(a -> AffiliationService.getPositionName(a))
 						.collect(Collectors.toSet());
-			} else {
-				return AffiliationService.onlyActiveAffiliations(ou.getAffiliations()).stream()
+			}
+			else {
+				return AffiliationService.onlyActiveAffiliations(affiliations).stream()
+						.filter(a -> !Objects.equals(a.getMaster(), "OS2vikar"))
 						.map(a -> a.getPositionName())
 						.collect(Collectors.toSet());
 			}
@@ -477,11 +525,14 @@ public class OrgUnitService {
 		// if we want more than just active affiliation positionNames, we include the last 6 months of
 		// inactive affiliations as well
 		if (potentialDisplayName) {
-			return AffiliationService.allAffiliationsActiveSinceMonths(ou.getAffiliations(), 6).stream()
+			return AffiliationService.allAffiliationsActiveSinceMonths(affiliations, 6).stream()
+					.filter(a -> !Objects.equals(a.getMaster(), "OS2vikar"))
 					.map(a -> AffiliationService.getPositionName(a))
 					.collect(Collectors.toSet());
-		} else {
-			return AffiliationService.allAffiliationsActiveSinceMonths(ou.getAffiliations(), 6).stream()
+		}
+		else {
+			return AffiliationService.allAffiliationsActiveSinceMonths(affiliations, 6).stream()
+					.filter(a -> !Objects.equals(a.getMaster(), "OS2vikar"))
 					.map(a -> a.getPositionName())
 					.collect(Collectors.toSet());
 		}
@@ -650,6 +701,7 @@ public class OrgUnitService {
 						else {
 							if (!orgUnit.getParent().getUuid().equals(newParent.getUuid())) {
 								orgUnit.setParent(newParent);
+								managerService.checkAndSetManager(orgUnit);
 								changes = true;
 							}
 						}
@@ -758,73 +810,67 @@ public class OrgUnitService {
 	public OrgUnit getByMasterId(String masterId) {
 		return orgUnitDao.findByMasterId(masterId);
 	}
-	
+
 	public static List<String> getKlePrimary(OrgUnit orgUnit) {
 		if (orgUnit.getKlePrimary() == null) {
 			return new ArrayList<>();
 		}
-		
+
 		return orgUnit.getKlePrimary().stream().map(k -> k.getKleValue()).collect(Collectors.toList());
 	}
-	
+
 	public static List<String> getKleSecondary(OrgUnit orgUnit) {
 		if (orgUnit.getKleSecondary() == null) {
 			return new ArrayList<>();
 		}
-		
+
 		return orgUnit.getKleSecondary().stream().map(k -> k.getKleValue()).collect(Collectors.toList());
 	}
-	
+
 	public static List<String> getKleTertiary(OrgUnit orgUnit) {
 		if (orgUnit.getKleTertiary() == null) {
 			return new ArrayList<>();
 		}
-		
+
 		return orgUnit.getKleTertiary().stream().map(k -> k.getKleValue()).collect(Collectors.toList());
 	}
-	
+
 	public static List<Phone> getPhones(OrgUnit orgUnit) {
 		if (orgUnit.getPhones() == null) {
 			return new ArrayList<>();
 		}
-		
+
 		return orgUnit.getPhones().stream().map(p -> p.getPhone()).collect(Collectors.toList());
 	}
-	
-	public static List<Email> getEmails(OrgUnit orgUnit) {
-		if (orgUnit.getEmails() == null) {
-			return new ArrayList<>();
-		}
-		
-		return orgUnit.getEmails().stream().map(e -> e.getEmail()).collect(Collectors.toList());
-	}
-	
+
 	public static List<Post> getPosts(OrgUnit orgUnit) {
 		if (orgUnit.getPostAddresses() == null) {
 			return new ArrayList<>();
 		}
-		
+
 		return orgUnit.getPostAddresses().stream().map(p -> p.getPost()).collect(Collectors.toList());
 	}
-	
+
 	@Transactional
-	public void cvrMaintenance() throws Exception {
+	public void cvrMaintenance() {
 		SecurityUtil.fakeLoginSession();
 		Map<String, PUnitDTO> cvrMap = new HashMap<String, PUnitDTO>();
+
 		for (OrgUnit orgUnit : orgUnitDao.findAll()) {
 			boolean changes = false;
 			List<Post> postsWithMasterCvr = getPosts(orgUnit).stream().filter(p -> p.getMaster().equals("CVR")).collect(Collectors.toList());
+
 			// add a cvr post if one doesn't exist
-			if( orgUnit.getPnr() != null && postsWithMasterCvr.size() == 0 )
-			{
+			if (orgUnit.getPnr() != null && postsWithMasterCvr.size() == 0) {
 				PUnitDTO pUnitDTO = cvrMap.get(orgUnit.getPnr().toString());
 				if (pUnitDTO == null) {
 					pUnitDTO = cvrService.getPUnitByPnr(orgUnit.getPnr().toString());
-					if( pUnitDTO != null)
-					{
+
+					if (pUnitDTO != null) {
 						cvrMap.put(orgUnit.getPnr().toString(), pUnitDTO);
 					}
 				}
+
 				if (pUnitDTO != null) {
 					Post post = new Post();
 					post.setMaster("CVR");
@@ -842,32 +888,36 @@ public class OrgUnitService {
 					changes = true;
 				}
 			}
+
 			// update existing cvr posts
 			for (Post post : postsWithMasterCvr) {
 				PUnitDTO pUnitDTO = cvrMap.get(post.getMasterId());
-				if(pUnitDTO == null)
-				{
+
+				if (pUnitDTO == null) {
 					pUnitDTO = cvrService.getPUnitByPnr(post.getMasterId());
 					cvrMap.put(post.getMasterId(),pUnitDTO);
 				}
-				if( pUnitDTO != null)
-				{
+
+				if (pUnitDTO != null) {
 					String street = pUnitDTO.getStreet() + " " + pUnitDTO.getNumber();
 					if (!Objects.equals(post.getStreet(), street)) {
 						post.setStreet(street);
 						changes = true;
 					}
+
 					if (!Objects.equals(post.getPostalCode(), pUnitDTO.getPostalCode())) {
 						post.setPostalCode(pUnitDTO.getPostalCode());
 						changes = true;
 					}
+
 					if (!Objects.equals(post.getCity(), pUnitDTO.getCity())) {
 						post.setCity(pUnitDTO.getCity());
 						changes = true;
 					}
 				}
 			}
-			if( orgUnit.getPnr() != null ) {
+
+			if (orgUnit.getPnr() != null) {
 				PUnitDTO pUnitDTO = cvrMap.get(orgUnit.getPnr().toString());
 				if (pUnitDTO == null) {
 					pUnitDTO = cvrService.getPUnitByPnr(orgUnit.getPnr().toString());
@@ -875,6 +925,7 @@ public class OrgUnitService {
 						cvrMap.put(orgUnit.getPnr().toString(), pUnitDTO);
 					}
 				}
+
 				if (pUnitDTO != null) {
 					// update cvr name
 					// it is on purpose we only update if we get a non-null response from cvrService (to prevent nulling cvrName field if service is down or fails).
@@ -890,25 +941,67 @@ public class OrgUnitService {
 			}
 		}
 	}
-	
+
 	public List<OrgUnit> getAllWhereManagerIs(Person manager) {
 		return orgUnitDao.findByManagerManager(manager);
 	}
-	
+
 	public List<OrgUnit> getAllWhereIndirectOrDirectManagerIs(Person manager) {
 		Set<OrgUnit> result = new HashSet<>();
 		for (OrgUnit orgUnit : orgUnitDao.findByManagerManager(manager)) {
 			result.add(orgUnit);
 			result.addAll(orgUnit.getChildren());
 		}
+
 		return new ArrayList<>(result);
 	}
-	
+
 	public List<OrgUnit> getByOrgUnitType(OrgUnitType type) {
 		return orgUnitDao.findByType(type);
 	}
-	
+
 	public List<OrgUnit> getByOrgUnitTypeId(Long orgUnitTypeId) {
 		return orgUnitDao.findByOrgTypeId(orgUnitTypeId);
+	}
+	
+	public void delete(OrgUnit orgUnit) {
+		ModificationHistory modificationHistory = new ModificationHistory();
+		modificationHistory.setEntity(EntityType.ORGUNIT);
+		modificationHistory.setUuid(orgUnit.getUuid());
+		modificationHistory.setChanged(new Date());
+		modificationHistory.setChangeType(ChangeType.DELETE);
+
+		modificationHistoryService.insert(modificationHistory);
+
+		orgUnitDao.delete(orgUnit);
+	}
+
+	public boolean isDeletable(OrgUnit orgUnit) {
+
+		if (orgUnit.isDeleted()) {
+			return false;
+		}
+
+		// deletion not allowed if SOFD is not master
+		if (!orgUnit.getMaster().equalsIgnoreCase("SOFD")) {
+			return false;
+		}
+
+		// deletion not allowed if it has any non-deleted children
+		for (var child : orgUnit.getChildren()) {
+
+			if (!child.isDeleted()) {
+				return false;
+			}
+		}
+
+		// deletion not allowed if it has any active affiliations
+		var activeAffiliations = affiliationService.findByCalculatedOrgUnitAndActive(orgUnit);
+
+		if (activeAffiliations.size() > 0) {
+			return false;
+		}
+
+		return true;
 	}
 }

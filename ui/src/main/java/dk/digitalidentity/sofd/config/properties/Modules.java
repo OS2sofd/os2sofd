@@ -21,4 +21,9 @@ public class Modules {
 	private Chart chart = new Chart();
 	private ContactPlaces contactPlaces = new ContactPlaces();
 	private PositionDisplayName positionDisplayName = new PositionDisplayName();
+	private Person person = new Person();
+	private Affiliation affiliation = new Affiliation();
+	private OrgUnitSubstitute orgUnitSubstitute = new OrgUnitSubstitute();
+	private ManagerUI managerUI = new ManagerUI();
+	private OrgUnit orgUnit = new OrgUnit();
 }

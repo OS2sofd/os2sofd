@@ -1,14 +1,16 @@
-CREATE OR REPLACE view `view_odata_function_assignment_value`
-AS
+ CREATE OR REPLACE view `view_odata_function_assignment_value`
+ AS
   SELECT
     fv.id
     ,fv.function_assignment_id
     ,f.name
+    ,f.type
     ,CASE
       WHEN f.type = 'LIST' THEN li.text
       WHEN f.type = 'ORG' THEN org.orgunits
       WHEN f.type = 'FREETEXT' THEN fv.text
       WHEN f.type = 'EMPLOYEE' THEN ifnull(p.chosen_name,concat(p.firstname, ' ',p.surname))
+      WHEN f.type = 'FOLLOW_UP_DATE' THEN fv.date
       ELSE ''
 	END as value
   FROM fh_facet_value fv

@@ -6,7 +6,6 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.EmailTemplate;
 import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
@@ -14,14 +13,15 @@ import dk.digitalidentity.sofd.dao.model.EntityChangeQueueDetail;
 import dk.digitalidentity.sofd.dao.model.FunctionAssignment;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Person;
+import dk.digitalidentity.sofd.dao.model.enums.EmailTemplatePlaceholder;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplateType;
 import dk.digitalidentity.sofd.listener.EntityListenerService.ChangeType;
 import dk.digitalidentity.sofd.service.EmailQueueService;
+import dk.digitalidentity.sofd.service.EmailTemplateChildService;
 import dk.digitalidentity.sofd.service.EmailTemplateService;
 import dk.digitalidentity.sofd.service.FunctionAssignmentService;
 import dk.digitalidentity.sofd.service.OrgUnitService;
 import dk.digitalidentity.sofd.service.PersonService;
-import dk.digitalidentity.sofd.service.SettingService;
 
 @Component
 public class OrgUnitManagerChangesListener implements ListenerAdapter {
@@ -33,27 +33,19 @@ public class OrgUnitManagerChangesListener implements ListenerAdapter {
 	private FunctionAssignmentService functionAssignmentService;
 	
 	@Autowired
-	private SettingService settingService;
-	
-	@Autowired
 	private PersonService personService;
 	
-	@Autowired
-	private SofdConfiguration configuration;
-
 	@Autowired
 	private EmailTemplateService emailTemplateService;
 
 	@Autowired
 	private EmailQueueService emailQueueService;
 
+	@Autowired
+	private EmailTemplateChildService emailTemplateChildService;
 
 	@Override
 	public void orgUnitUpdated(String uuid, List<EntityChangeQueueDetail> changes) {
-		if (!configuration.getModules().getFunctionHierarchy().isEnabled() || !settingService.getFunctionAssignmentEmployeeNewManager()) {
-			return;
-		}
-		
 		List<EntityChangeQueueDetail> orgUnitManagerChanges = changes.stream().filter(c -> c.getChangeType().equals(ChangeType.CHANGED_MANAGER)).collect(Collectors.toList());
 		for (EntityChangeQueueDetail change : orgUnitManagerChanges) {
 			OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
@@ -70,9 +62,6 @@ public class OrgUnitManagerChangesListener implements ListenerAdapter {
 			
 			String oldManagerMail = oldManager == null ? null : PersonService.getEmail(oldManager);
 			String newManagerMail = newManager == null ? null : PersonService.getEmail(newManager);
-			if (oldManagerMail == null && newManagerMail == null) {
-				return;
-			}
 
 			StringBuilder functions = new StringBuilder();
 			boolean sendMail = false;
@@ -100,32 +89,37 @@ public class OrgUnitManagerChangesListener implements ListenerAdapter {
 						continue;
 					}
 
+					String message = child.getMessage();
+					message = message.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnit.getName());
+					message = message.replace(EmailTemplatePlaceholder.FUNCTION_LIST.getPlaceholder(), functions.toString());
+
+					String title = child.getTitle();
+					title = title.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnit.getName());
+					title = title.replace(EmailTemplatePlaceholder.FUNCTION_LIST.getPlaceholder(), functions.toString());
+
+					List<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+					for( var recipient : recipients ) {
+						var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
+						var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
+						emailQueueService.queueEmail(recipient, recipientTitle, recipientMessage, 0, child);
+					}
+
+					if( child.isOnlyManualRecipients()) {
+						continue;
+					}
+
 					if (oldManagerMail != null) {
-						String message = child.getMessage();
-						message = message.replace(EmailTemplateService.ORGUNIT_PLACEHOLDER, orgUnit.getName());
-						message = message.replace(EmailTemplateService.FUNCTION_LIST, functions.toString());
-						message = message.replace(EmailTemplateService.RECEIVER_PLACEHOLDER, oldManagerName);
-
-						String title = child.getTitle();
-						title = title.replace(EmailTemplateService.ORGUNIT_PLACEHOLDER, orgUnit.getName());
-						title = title.replace(EmailTemplateService.FUNCTION_LIST, functions.toString());
-						title = title.replace(EmailTemplateService.RECEIVER_PLACEHOLDER, oldManagerName);
-
-						emailQueueService.queueEmail(oldManagerMail, title, message, 0, child);
+						var oldManagerMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), oldManagerName);
+						var oldManagerTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), oldManagerName);
+						emailQueueService.queueEmail(oldManager, oldManagerTitle, oldManagerMessage, 0, child);
 					}
+
 					if (newManagerMail != null) {
-						String message = child.getMessage();
-						message = message.replace(EmailTemplateService.ORGUNIT_PLACEHOLDER, orgUnit.getName());
-						message = message.replace(EmailTemplateService.FUNCTION_LIST, functions.toString());
-						message = message.replace(EmailTemplateService.RECEIVER_PLACEHOLDER, newManagerName);
-
-						String title = child.getTitle();
-						title = title.replace(EmailTemplateService.ORGUNIT_PLACEHOLDER, orgUnit.getName());
-						title = title.replace(EmailTemplateService.FUNCTION_LIST, functions.toString());
-						title = title.replace(EmailTemplateService.RECEIVER_PLACEHOLDER, newManagerName);
-
-						emailQueueService.queueEmail(newManagerMail, title, message, 0, child);
+						var newManagerMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), newManagerName);
+						var newManagerTitle = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), newManagerName);
+						emailQueueService.queueEmail(newManager, newManagerTitle, newManagerMessage, 0, child);
 					}
+
 				}
 			}
 		}

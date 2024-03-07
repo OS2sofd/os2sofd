@@ -20,11 +20,24 @@ public class BatchJob {
 	private Supplier<Boolean> function;
 	@Setter
 	private Date lastExecutionTime;
+
+	@Setter
+	private Date lastErrorTime;
+
+	@Setter
+	private long errorCount;
 	
 	@Builder.Default
 	private DayOfWeek dayOfWeek = null;
+
+	@Builder.Default
+	private long maxExecutionAttempts = 3;
 	
 	public boolean shouldRun() {
+		if(errorCount >= maxExecutionAttempts && lastErrorTime != null && DateUtils.isSameDay(lastErrorTime, new Date())) {
+			return false;
+		}
+
 		if (lastExecutionTime != null && DateUtils.isSameDay(lastExecutionTime, new Date())) {
 			return false;
 		}

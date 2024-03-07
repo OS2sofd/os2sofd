@@ -17,4 +17,5 @@ public class FacetDTO {
 	private FacetType type;
 	private String pattern;
 	private List<String> listItems;
+	private long sortKey;
 }

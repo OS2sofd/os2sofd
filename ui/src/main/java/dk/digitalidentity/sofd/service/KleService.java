@@ -195,14 +195,16 @@ public class KleService {
 	}
 	
 	// do not reload cache on the instance that is running the scheduled task
-	public void reloadCache() {
-		if (configuration.getScheduled().isEnabled()) {
+	public void reloadCache(boolean force) {
+		if (!force && configuration.getScheduled().isEnabled()) {
 			return;
 		}
 
 		log.info("Refreshing KLE cache");
 
 		loadCache();
+
+		log.info("Finished refreshing KLE cache");
 	}
 	
 	private void loadCache() {

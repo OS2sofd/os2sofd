@@ -35,20 +35,26 @@ public class SetPrimeAndDeletedTask {
 	@Autowired
 	private SupportedUserTypeService userTypeService;
 
-	@Scheduled(cron = "0 0 6 * * ?")
+	@Scheduled(cron = "${cron.primeAndDeleted:0 0 6 * * ?}")
 	@Transactional(rollbackFor = Exception.class)
 	public void processChanges() {
 		if (!configuration.getScheduled().isEnabled()) {
 			log.debug("Scheduled jobs are disabled on this instance");
 			return;
 		}
+		log.info("Executing primeAndDeleted task");
 
 		SecurityUtil.fakeLoginSession();
 
 		List<Person> persons = personService.getAll();
 		List<String> allUserTypes = userTypeService.getAllUserTypes();
 		
+		int counter = 0;
 		for (Person person : persons) {
+			counter ++;
+			if( counter % 100 == 0) {
+				log.debug("Handling person " + counter + " of " + persons.size());
+			}
 			boolean changes = primeService.setPrimeAffilation(person);
 			
 			if (person.getUsers() != null) {
@@ -76,5 +82,6 @@ public class SetPrimeAndDeletedTask {
 				personService.save(person);
 			}
 		}
+		log.info("Finished executing primeAndDeleted task");
 	}
 }

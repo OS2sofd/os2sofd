@@ -388,12 +388,13 @@
 			}
 
 			$.ajax({
-				method : "GET",
+				method : "POST",
 				url: restUrl + "/getByCPR",
 				headers: {
-					"cpr": cpr,
 					'X-CSRF-TOKEN': token
 				},
+				contentType: "application/json; charset=utf-8",
+				data: '{"cpr": "' + cpr + '"}',
 			}).done(function (data) {
 				$.notify({
 					message: msgSuccess

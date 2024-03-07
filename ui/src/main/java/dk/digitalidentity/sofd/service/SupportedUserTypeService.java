@@ -23,7 +23,7 @@ public class SupportedUserTypeService {
 	// this list should be kept, even when we have the database values,
 	// as these are the UserTypes that the code deals with in a special way
 	private static enum WellKnownUserType {
-		ACTIVE_DIRECTORY, OPUS, UNILOGIN, EXCHANGE, KSPCICS, ACTIVE_DIRECTORY_AND_EXCHANGE
+		ACTIVE_DIRECTORY, OPUS, UNILOGIN, EXCHANGE, KSPCICS, ACTIVE_DIRECTORY_AND_EXCHANGE, SCHOOL_EMAIL, MITID_ERHVERV, ACTIVE_DIRECTORY_SCHOOL
 	}
 
 	@Autowired
@@ -93,6 +93,14 @@ public class SupportedUserTypeService {
 		return (WellKnownUserType.ACTIVE_DIRECTORY.toString().equals(userType));
 	}
 	
+	public static boolean isActiveDirectorySchool(String userType) {
+		return (WellKnownUserType.ACTIVE_DIRECTORY_SCHOOL.toString().equals(userType));
+	}
+
+	public static boolean isMitIDErhverv(String userType) {
+		return (WellKnownUserType.MITID_ERHVERV.toString().equals(userType));
+	}
+
 	public static boolean isExchange(String userType) {
 		return (WellKnownUserType.EXCHANGE.toString().equals(userType));
 	}
@@ -111,6 +119,14 @@ public class SupportedUserTypeService {
 	
 	public static boolean isActiveDirectoryAndExchange(String userType) {
 		return (WellKnownUserType.ACTIVE_DIRECTORY_AND_EXCHANGE.toString().equals(userType));
+	}
+
+	public static boolean isSchoolEmail(String userType) {
+		return (WellKnownUserType.SCHOOL_EMAIL.toString().equals(userType));
+	}
+
+	public static String getMitIDErhvervUserType() {
+		return WellKnownUserType.MITID_ERHVERV.toString();
 	}
 
 	public static String getActiveDirectoryUserType() {

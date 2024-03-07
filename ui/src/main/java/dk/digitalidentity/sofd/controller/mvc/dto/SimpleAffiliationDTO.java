@@ -23,7 +23,7 @@ public class SimpleAffiliationDTO {
 		this.id = affiliation.getId();
 		this.prime = affiliation.isPrime();
 		this.positionName = AffiliationService.getPositionName(affiliation);
-		this.orgUnitName = affiliation.getOrgUnit().getName();
+		this.orgUnitName = affiliation.getCalculatedOrgUnit().getName();
 		this.employeeId = affiliation.getEmployeeId();
 		this.master = affiliation.getMaster();
 		this.inheritPrivileges = affiliation.isInheritPrivileges();

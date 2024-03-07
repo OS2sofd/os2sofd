@@ -23,6 +23,8 @@ import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.ReservedUsername;
 import dk.digitalidentity.sofd.dao.model.SupportedUserType;
 import dk.digitalidentity.sofd.dao.model.User;
+import dk.digitalidentity.sofd.dao.model.enums.AccountOrderType;
+import dk.digitalidentity.sofd.dao.model.enums.AffiliationType;
 import dk.digitalidentity.sofd.dao.model.enums.UsernameInfixType;
 import dk.digitalidentity.sofd.service.transliteration.Transliteration;
 import lombok.extern.slf4j.Slf4j;
@@ -50,22 +52,60 @@ public class UsernameGeneratorService {
 	
 	@Autowired
 	private SupportedUserTypeService supportedUserTypeService;
+
+	 @Autowired
+	 private SettingService settingService;
+	
+	@Autowired
+	private AccountOrderService accountOrderService;
 	
 	public String getUsername(Person person, String employeeId, String userType, String linkedUserId) {
-		ReservedUsername reservedUsername = null;
-		try {
-			reservedUsername = getReservedUsername(person, employeeId, userType);
-		}
-		catch (Exception ex) {
-			log.error("Failed to generate username reservation for " + person.getUuid() + " / " + employeeId + " / " + userType);
-			throw ex;
-		}
+		String userId = null;
+		
+		if (configuration.getModules().getAccountCreation().isReservationEnabled()) {
+			ReservedUsername reservedUsername = null;
+			try {
+				reservedUsername = getReservedUsername(person, employeeId, userType);
+			}
+			catch (Exception ex) {
+				log.error("Failed to generate username reservation for " + person.getUuid() + " / " + employeeId + " / " + userType);
+				throw ex;
+			}
+	
+			if (reservedUsername == null) {
+				return null;
+			}
 
-		if (reservedUsername == null) {
-			return null;
+			userId = reservedUsername.getUserId();
 		}
+		else {
+			Affiliation affiliation = (StringUtils.hasLength(employeeId))
+					? person.getAffiliations().stream().filter(a -> Objects.equals(a.getEmployeeId(), employeeId)).findFirst().orElse(null)
+					: AffiliationService.notStoppedAffiliations(person.getAffiliations()).stream().findFirst().orElse(null);
 
-		String userId = reservedUsername.getUserId();
+			if (affiliation == null) {
+				log.warn("Person has no affiliations: " + person.getUuid());
+				return null;
+			}
+			
+			SupportedUserType supportedUserType = supportedUserTypeService.findByKey(userType);
+			if (supportedUserType == null) {
+				log.error("Not a supported userType: " + userType);
+				return null;
+			}
+			
+			userId = generateUsername(supportedUserType, affiliation, person, new ArrayList<>());
+			if (userId == null) {
+				log.warn("Generation not possible for " + person.getUuid());
+				return null;
+			}
+			
+			// and special check, to make sure there are no pending orders for this username (not checked by the generator, because it relies on the
+			// reservation system to ensure this)
+			if (accountOrderService.countByUserTypeAndOrderTypeAndRequestedUserId(userType, AccountOrderType.CREATE, userId) > 0) {
+				throw new RuntimeException("Brugernavngeneratoren valgte '" + userId + "' som brugerId, men der ligger allerede en afventendre ordre med det brugernavn - vælg det ønskede brugernavn og kør ordren igen");
+			}
+		}
 		
 		// verify that the returned reserved username does not conflict with some dependency rule
 		// note that this can happen if the reserved username was created before the account it
@@ -110,7 +150,9 @@ public class UsernameGeneratorService {
 					// someone manually generated this account, and it does NOT match the reserved
 					// userId, so we have to ship this for manual handling
 					if (userIdsOfType.size() > 0) {
-						if (!userIdsOfType.stream().anyMatch(u -> userId.toLowerCase().contains(u))) {
+						final String fUserId = userId.toLowerCase();
+						
+						if (!userIdsOfType.stream().anyMatch(u -> fUserId.contains(u))) {
 							log.warn("Failed to retrieve username for " + PersonService.getName(person) + " / " + person.getUuid() + " because userType " + userType + " depends on " + supportedUserType.getUsernameInfixValue() + " and there was a previous reserved username that did not match the existing account");
 							return null;
 						}
@@ -173,6 +215,12 @@ public class UsernameGeneratorService {
 	}
 
 	private void reserveUsernames(Person person) {
+
+		if( !person.hasName())
+		{
+			log.warn("Did not reserve usernames for person with uuid " + person.getUuid() + " because the person has no name.");
+			return;
+		}
 		List<ReservedUsername> reservedUsernames = reservedUsernameDao.findByPersonUuid(person.getUuid());
 		
 		List<Affiliation> activeAffiliations = AffiliationService.notStoppedAffiliations(person.getAffiliations());
@@ -377,13 +425,23 @@ public class UsernameGeneratorService {
 	}
 	
 	private String generateUsername(SupportedUserType userType, Affiliation affiliation, Person person, List<ReservedUsername> reservedUsernames) {
+		if( !person.hasName())
+		{
+			log.warn("Did not generate username for person with uuid " + person.getUuid() + " because the person has no name.");
+			return null;
+		}
+
 		String prefix = "";
 		switch (userType.getUsernamePrefix()) {
 			case CREATE_DATE:
 				prefix = LocalDate.now().format(DateTimeFormatter.ofPattern("ddMM"));
 				break;
 			case VALUE:
-				prefix = (userType.getUsernamePrefixValue() != null) ? userType.getUsernamePrefixValue().trim() : "";
+				if (affiliation.getAffiliationType() == AffiliationType.EXTERNAL && userType.getUsernamePrefixExternalValue() != null && !userType.getUsernamePrefixExternalValue().isBlank()) {
+					prefix = userType.getUsernamePrefixExternalValue().trim(); 
+				} else {
+					prefix = (userType.getUsernamePrefixValue() != null) ? userType.getUsernamePrefixValue().trim() : "";
+				}
 				break;
 			case NONE:
 				break;
@@ -395,7 +453,11 @@ public class UsernameGeneratorService {
 				suffix = LocalDate.now().format(DateTimeFormatter.ofPattern("ddMM"));
 				break;
 			case VALUE:
-				suffix = (userType.getUsernameSuffixValue() != null) ? userType.getUsernameSuffixValue().trim() : "";
+				if (affiliation.getAffiliationType() == AffiliationType.EXTERNAL && userType.getUsernameSuffixExternalValue() != null && !userType.getUsernameSuffixExternalValue().isBlank()) {
+					suffix = userType.getUsernameSuffixExternalValue().trim();
+				} else {
+					suffix = (userType.getUsernameSuffixValue() != null) ? userType.getUsernameSuffixValue().trim() : "";
+				}
 				break;
 			case NONE:
 				break;
@@ -415,10 +477,16 @@ public class UsernameGeneratorService {
 				infix = shortName(person, userType.getKey(), getLong(userType.getUsernameInfixValue(), 5), prefix, suffix);
 				break;
 			case FROM_NAME_LONG:
-				infix = longName(person, userType.getKey(), prefix, suffix);
+				infix = longName(person, userType.getKey(), prefix, suffix, false);
+				break;
+			case FROM_NAME_FULL:
+				infix = longName(person, userType.getKey(), prefix, suffix, true);
 				break;
 			case RANDOM:
 				infix = random(userType.getKey(), getLong(userType.getUsernameInfixValue(), 5), prefix, suffix);
+				break;
+			case NUMBER:
+				infix = number(userType.getKey(), getLong(userType.getUsernameInfixValue(), 5), prefix, suffix);
 				break;
 			case SAME_AS_OTHER:
 				SupportedUserType otherUserType = supportedUserTypeService.findById(Long.parseLong(userType.getUsernameInfixValue()));
@@ -502,6 +570,35 @@ public class UsernameGeneratorService {
 		return username;
 	}
 
+	private String number(String userType, long len, String prefix, String suffix) {
+		int maxTries = 50;
+		var number = settingService.getLastUserNameNumberUsed(userType) + 1;
+
+		String username = null;
+		// maxtries should not really be necessary here, as we just keep incrementing the number
+		// but we limit amount of retries anyway...just in case.
+		while (maxTries-- > 0) {
+			// zero-pad the number
+			String paddedNumber = String.format("%0" + String.valueOf(len) + "d", number);
+
+			if (isRejected(paddedNumber, userType, prefix, suffix)) {
+				number++;
+				continue;
+			}
+
+			settingService.setLastUserNameNumberUsed(userType,number);
+			username = paddedNumber;
+			break;
+		}
+		if( username == null )
+		{
+			log.error("Max tries exhousted. Failed to generate a number-based username");
+		}
+
+		return username;
+	}
+
+
 	private String shortName(Person person, String userType, long len, String prefix, String suffix) {
 		String personName = PersonService.getName(person);
 		String transliteratedName = Transliteration.transliterate(personName, null);
@@ -542,10 +639,10 @@ public class UsernameGeneratorService {
         return null;
 	}
 
-	private String longName(Person person, String userType, String prefix, String suffix) {
+	private String longName(Person person, String userType, String prefix, String suffix, boolean includeMiddleName) {
 		String personName = PersonService.getName(person);
 		String transliteratedName = Transliteration.transliterate(personName, null);
-        String[] splittedName = splitName(transliteratedName);
+        String[] splittedName = splitName(transliteratedName, includeMiddleName);
 
         String rootName = "";
         for (String split : splittedName)
@@ -683,7 +780,7 @@ public class UsernameGeneratorService {
         return text.trim();
     }
 
-    private String[] splitName(String fullName) {
+    private String[] splitName(String fullName, boolean includeMiddleName) {
         String[] splittedName = fullName.toLowerCase()
         								.replace("æ", "ae")
 										.replace("ø", "oe")
@@ -692,21 +789,23 @@ public class UsernameGeneratorService {
 										.split(" ");
 
 		List<String> newSplittedName = new ArrayList<>();
-		int firstnameIdx = -1;
+		int nameIdx = -1;
 
-		// find first valid firstname
+		// find first valid firstname and middlename
 		for (int i = 0; i < splittedName.length; i++) {
 			String name = removeIllegalCharacters(splittedName[i]);
 
 			if (name.length() > 0) {
 				newSplittedName.add(name);
-				firstnameIdx = i;
+				nameIdx = i;
+			}
+			if( (newSplittedName.size() == 1 & !includeMiddleName) || newSplittedName.size() > 1 ) {
 				break;
 			}
 		}
 
-		// find first valid surname
-		for (int i = splittedName.length - 1; i > firstnameIdx; i--) {
+		// find first valid surname if any split names are left
+		for (int i = splittedName.length - 1; i > nameIdx; i--) {
 			String name = removeIllegalCharacters(splittedName[i]);
 
 			if (name.length() > 0) {

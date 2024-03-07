@@ -139,15 +139,24 @@
                     'description' : $('#editOrgDescription').val()
                 }),
 				success: function(data, textStatus, jQxhr) {
-					location.reload(true);
+                    location.reload(true);
 				},
 				error: function(jqXhr, textStatus, errorThrown) {
-					$.notify({
-						message: createUpdateErrorMsg
-					}, {
-						status: 'danger',
-						autoHideDelay: 4000
-					});
+				    if (jqXhr.responseText != null) {
+				        $.notify({
+						    message: jqXhr.responseText
+                        }, {
+                            status: 'danger',
+                            autoHideDelay: 4000
+                        });
+				    } else {
+				        $.notify({
+						    message: createUpdateErrorMsg
+                        }, {
+                            status: 'danger',
+                            autoHideDelay: 4000
+                        });
+				    }
 				}
 			});
         }

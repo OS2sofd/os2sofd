@@ -9,5 +9,7 @@ import lombok.Setter;
 @Setter
 public class LoginContextResultDTO {
 	private String name;
+	private String username;
+	private String email;
 	private List<LoginContextDTO> contexts;
 }

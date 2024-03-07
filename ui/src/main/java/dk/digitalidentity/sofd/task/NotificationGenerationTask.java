@@ -35,19 +35,35 @@ public class NotificationGenerationTask {
 
 		int count = 0;
 		if (configuration.getModules().getAccountCreation().isEnabled()) {
-			count += notificationService.generateMissingRulesNotifications();
-	
-			count += notificationService.generateUsersNotSupportedByRuleNotifications();
+			var missingRulesNotifications = notificationService.generateMissingRulesNotifications();
+			log.info("missingRulesNotifications count: " + missingRulesNotifications);
+			count += missingRulesNotifications;
+
+			var missingRulesNotificationsTitles = notificationService.generateMissingRulesTitlesNotifications();
+			log.info("missingRulesNotificationsTitles count: " + missingRulesNotificationsTitles);
+			count += missingRulesNotificationsTitles;
+
+			var usersNotSupportedByRuleNotifications = notificationService.generateUsersNotSupportedByRuleNotifications();
+			log.info("usersNotSupportedByRuleNotifications count: " + usersNotSupportedByRuleNotifications);
+			count += usersNotSupportedByRuleNotifications;
 		}
 
 		if (count > 0 && StringUtils.hasLength(configuration.getCustomer().getNotificationEmail())) {
+			log.info("Sending mail to SOFD admin");
 			String subject = "Der er " + count + " nye adviser";
 			String message = "Til SOFD Administratoren.<br/><p>Der er dannet " + count + " nye adviser i SOFD som skal behandles.</p><p>Log venligst ind i SOFD og behandl disse adviser</p>";
 			
 			emailService.sendMessage(configuration.getCustomer().getNotificationEmail(), subject, message, null, null, null);
+			log.info("done sending mail to SOFD admin");
 		}
 
-		count += notificationService.generateADWithBadEmployeeIdNotifications();
+		var adWithBadEmployeeIdNotifications = notificationService.generateADWithBadEmployeeIdNotifications();
+		log.info("adWithBadEmployeeIdNotifications count: " + adWithBadEmployeeIdNotifications);
+		count += adWithBadEmployeeIdNotifications;
+		
+		var futureADWithBadEmployeeIdNotifications = notificationService.generateFutureADWithBadEmployeeIdNotifications();
+		log.info("futureADWithBadEmployeeIdNotifications count: " + futureADWithBadEmployeeIdNotifications);
+		count += futureADWithBadEmployeeIdNotifications;
 		
 		log.info("Completed notification generation with " + count + " new notifications");
 	}

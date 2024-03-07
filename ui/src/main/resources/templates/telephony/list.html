@@ -364,7 +364,7 @@
 				"search" : {
 					"show_only_matches": true,
 					"search_callback": function(str, node) {
-						return (node.text.toUpperCase().startsWith(str.toUpperCase()));
+						return (node.text.toUpperCase().includes(str.toUpperCase()));
 					}
 				},
 				"plugins" : [
@@ -649,8 +649,8 @@
 						$('#phone_vendor').val(phones[i].vendor);
 						$('#phone_accountNumber').val(phones[i].accountNumber);
 						$('#phone_ean').val(phones[i].ean);
-						$('#phone_phoneType option[value="' + phones[i].phoneType.$name + '"]').prop('selected', true);
-						$('#phone_visibility option[value="' + phones[i].visibility.$name + '"]').prop('selected', true);
+						$('#phone_phoneType option[value="' + phones[i].phoneType + '"]').prop('selected', true);
+						$('#phone_visibility option[value="' + phones[i].visibility + '"]').prop('selected', true);
 						$("#phone_subscription_type").val(phones[i].subscriptionType);
 						$("#phone_notes").val(phones[i].notes);
 	
@@ -699,7 +699,7 @@
 
 			for (var i = 0; i < functionTypes.length; i++) {
 				for (var j = 0; j < functionTypes[i].phoneTypes.length; j++) {
-					if(functionTypes[i].phoneTypes[j].$name == phoneType) {
+					if(functionTypes[i].phoneTypes[j] == phoneType) {
 						functionTypeSelect
 							.append($("<option></option>")
 							.attr("value", functionTypes[i].id)

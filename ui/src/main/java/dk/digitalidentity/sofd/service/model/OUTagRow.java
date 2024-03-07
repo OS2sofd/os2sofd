@@ -11,4 +11,5 @@ public class OUTagRow {
 	private String text;
 	private String manager;
 	private Long tagId;
+	private String tagValue;
 }

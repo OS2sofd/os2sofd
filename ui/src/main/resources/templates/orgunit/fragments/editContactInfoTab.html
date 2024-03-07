@@ -4,6 +4,13 @@
 	<hr/>
 
 	<div class="row">
+		<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.contactAddress}"></label>
+		<div class="col-sm-10">
+			<textarea id="contactAddress" th:text="${contactAddress}" class="md-textarea form-control" rows="7"></textarea>
+		</div>
+	</div>
+
+	<div class="row">
 		<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.openingHours}"></label>
 		<div class="col-sm-10">
 			<textarea id="openinghours" th:text="${openingHours}" class="md-textarea form-control" rows="7"></textarea>
@@ -28,6 +35,13 @@
 		<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.notes}"></label>
 		<div class="col-sm-10">
 			<textarea id="notes" th:text="${notes}" class="md-textarea form-control" rows="7"></textarea>
+		</div>
+	</div>
+
+	<div class="row">
+		<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.email}"></label>
+		<div class="col-sm-10">
+			<input id="email" th:value="${email}" class="form-control"></input>
 		</div>
 	</div>
 

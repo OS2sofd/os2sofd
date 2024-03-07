@@ -10,6 +10,8 @@ import lombok.Setter;
 public class OpusFilterRulesDTO {
 	private boolean enabled;
 	private List<String> positionIds;
+	private List<String> positionNames;
 	private List<String> losIds;
 	private String orgUnitInfix;
+	private List<String> invalidPositionNames;
 }

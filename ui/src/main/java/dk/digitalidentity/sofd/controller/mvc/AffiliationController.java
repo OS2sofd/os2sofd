@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 
 import javax.validation.Valid;
 
-import dk.digitalidentity.sofd.config.SofdConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -24,6 +23,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.mvc.dto.AffiliationEditDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.KleDTO;
 import dk.digitalidentity.sofd.controller.validation.AffiliationEditDTOValidator;
@@ -34,6 +34,7 @@ import dk.digitalidentity.sofd.security.RequireReadAccess;
 import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.AffiliationService;
 import dk.digitalidentity.sofd.service.KleService;
+import dk.digitalidentity.sofd.service.OrgUnitService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.model.KleAssignmentDto;
 import lombok.extern.slf4j.Slf4j;
@@ -57,7 +58,10 @@ public class AffiliationController {
 
 	@Autowired
 	private SofdConfiguration sofdConfiguration;
-	
+
+	@Autowired
+	private OrgUnitService orgUnitService;
+
 	@InitBinder("affiliationEditDTO")
 	public void initAffiliationEditBinder(WebDataBinder binder) {
 		binder.setValidator(affiliationEditDTOValidator);
@@ -82,6 +86,7 @@ public class AffiliationController {
 
 		model.addAttribute("backRef", backRef);
 		model.addAttribute("affiliation", affiliation);
+		model.addAttribute("ous", orgUnitService.getAllTree());
 
 		return "affiliation/view";
 	}
@@ -95,13 +100,8 @@ public class AffiliationController {
 			return "redirect:/";
 		}
 		
-		if (!affiliation.getMaster().equals("SOFD")) {
-			log.warn("Affiliation with uuid " + uuid + " is not owned by SOFD!");
-			return "redirect:/";
-		}
-		
 		Set<String> constraintOUs = SecurityUtil.getOrgUnitUuidsFromConstraint();
-		if (constraintOUs.size() > 0 && !constraintOUs.contains(affiliation.getOrgUnit().getUuid())) {
+		if (constraintOUs.size() > 0 && (!constraintOUs.contains(affiliation.getOrgUnit().getUuid()) || (affiliation.getAlternativeOrgUnit() != null && !constraintOUs.contains(affiliation.getAlternativeOrgUnit().getUuid())))) { // TODO: OK
 			log.warn("Affiliation with uuid " + uuid + " can not be edited by this user");
 			return "redirect:/";
 		}
@@ -118,8 +118,10 @@ public class AffiliationController {
 		affiliationDTO.setInternalReference(affiliation.getInternalReference());
 		affiliationDTO.setAffiliationType(affiliation.getAffiliationType());
 		affiliationDTO.setPositionDisplayName(affiliation.getPositionDisplayName());
+		affiliationDTO.setDoNotTransferToFKOrg(affiliation.isDoNotTransferToFkOrg());
 		
 		model.addAttribute("affiliationEditDTO", affiliationDTO);
+		model.addAttribute("fromSofd", affiliation.getMaster().equals("SOFD"));
 
 		return "affiliation/edit";
 	}
@@ -144,60 +146,62 @@ public class AffiliationController {
 		
 		for (Affiliation affiliation : person.getAffiliations()) {
 			if (affiliation.getUuid().equals(affiliationEditDTO.getUuid())) {
-				if (!affiliation.getMaster().equals("SOFD")) {
-					log.warn("Affiliation with uuid " + affiliationEditDTO.getUuid() + " is not owned by SOFD!");
-					return "redirect:/";
-				}
-				
-				if (constraintOUs.size() > 0 && !constraintOUs.contains(affiliation.getOrgUnit().getUuid())) {
+				if (constraintOUs.size() > 0 && (!constraintOUs.contains(affiliation.getOrgUnit().getUuid()) || (affiliation.getAlternativeOrgUnit() != null && !constraintOUs.contains(affiliation.getAlternativeOrgUnit().getUuid())))) {
 					log.warn("Affiliation with uuid " + affiliation.getUuid() + " can not be edited by this user");
 					return "redirect:/";
 				}
 
 				SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
 				boolean changes = false, updateStopDate = false;
-
-				if (affiliation.getStopDate() != null) {
-					String existingStopDate = formatter.format(affiliation.getStopDate());
-					
-					if (!existingStopDate.equals(affiliationEditDTO.getStopDate())) {
+				
+				if (affiliation.getMaster().equals("SOFD")) {
+					if (affiliation.getStopDate() != null) {
+						String existingStopDate = formatter.format(affiliation.getStopDate());
+						
+						if (!existingStopDate.equals(affiliationEditDTO.getStopDate())) {
+							updateStopDate = true;
+						}
+					}
+					else if (StringUtils.hasLength(affiliationEditDTO.getStopDate())) {
+						// existing stopDate is null, and we have a non-null value to replace it
 						updateStopDate = true;
 					}
-				}
-				else if (StringUtils.hasLength(affiliationEditDTO.getStopDate())) {
-					// existing stopDate is null, and we have a non-null value to replace it
-					updateStopDate = true;
-				}
-				
-				if (updateStopDate) {
-					changes = true;
-
-					if (StringUtils.hasLength(affiliationEditDTO.getStopDate())) {
-						affiliation.setStopDate(formatter.parse(affiliationEditDTO.getStopDate()));
+					
+					if (updateStopDate) {
+						changes = true;
+	
+						if (StringUtils.hasLength(affiliationEditDTO.getStopDate())) {
+							affiliation.setStopDate(formatter.parse(affiliationEditDTO.getStopDate()));
+						}
+						else {
+							affiliation.setStopDate(null);
+						}
 					}
-					else {
-						affiliation.setStopDate(null);
+					
+					if (!Objects.equals(affiliationEditDTO.getPositionName(), affiliation.getPositionName())) {
+						changes = true;
+						affiliation.setPositionName(affiliationEditDTO.getPositionName());
+					}
+					
+					if (!Objects.equals(affiliationEditDTO.getVendor(), affiliation.getVendor())) {
+						changes = true;
+						affiliation.setVendor(affiliationEditDTO.getVendor());
+					}
+					
+					if (!Objects.equals(affiliationEditDTO.getInternalReference(), affiliation.getInternalReference())) {
+						changes = true;
+						affiliation.setInternalReference(affiliationEditDTO.getInternalReference());
+					}
+	
+					if (sofdConfiguration.getModules().getPositionDisplayName().isEnabled() && !Objects.equals(affiliationEditDTO.getPositionDisplayName(), affiliation.getPositionDisplayName())) {
+						changes = true;
+						affiliation.setPositionDisplayName(affiliationEditDTO.getPositionDisplayName());
 					}
 				}
 				
-				if (!Objects.equals(affiliationEditDTO.getPositionName(), affiliation.getPositionName())) {
+				if (!Objects.equals(affiliationEditDTO.isDoNotTransferToFKOrg(), affiliation.isDoNotTransferToFkOrg())) {
 					changes = true;
-					affiliation.setPositionName(affiliationEditDTO.getPositionName());
-				}
-				
-				if (!Objects.equals(affiliationEditDTO.getVendor(), affiliation.getVendor())) {
-					changes = true;
-					affiliation.setVendor(affiliationEditDTO.getVendor());
-				}
-				
-				if (!Objects.equals(affiliationEditDTO.getInternalReference(), affiliation.getInternalReference())) {
-					changes = true;
-					affiliation.setInternalReference(affiliationEditDTO.getInternalReference());
-				}
-
-				if (sofdConfiguration.getModules().getPositionDisplayName().isEnabled() && !Objects.equals(affiliationEditDTO.getPositionDisplayName(), affiliation.getPositionDisplayName())) {
-					changes = true;
-					affiliation.setPositionDisplayName(affiliationEditDTO.getPositionDisplayName());
+					affiliation.setDoNotTransferToFkOrg(affiliationEditDTO.isDoNotTransferToFKOrg());
 				}
 
 				if (changes) {

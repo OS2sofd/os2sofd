@@ -45,6 +45,26 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class OpusService {
+	/* sample payload for testing
+	 * 
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:oio:medarbejder:1.0.0" xmlns:urn1="urn:oio:sagdok:3.0.0">
+<soapenv:Header/>
+<soapenv:Body>
+  <urn:LaesInput>
+      <urn1:ModtagerRef>
+        <urn1:UUIDIdentifikator>NotUsed</urn1:UUIDIdentifikator>
+        <urn1:URNIdentifikator>urn:oio:kmd:lpe:modtager:{0}</urn1:URNIdentifikator>
+      </urn1:ModtagerRef>
+      <urn1:MedarbejderRef>
+        <urn1:UUIDIdentifikator>NotUsed</urn1:UUIDIdentifikator>
+        <urn1:URNIdentifikator>urn:oio:kmd:lpe:medarbejdernummer:{0}</urn1:URNIdentifikator>
+      </urn1:MedarbejderRef>
+    <urn:Datakategori>0105</urn:Datakategori>
+  </urn:LaesInput>
+</soapenv:Body>
+</soapenv:Envelope>
+	 * 
+	 */
 	private static final String OPUS_SOAP_BEGIN = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:urn=\"urn:oio:medarbejder:1.0.0\" xmlns:urn1=\"urn:oio:sagdok:3.0.0\"><soapenv:Header/><soapenv:Body>";
 	private static final String OPUS_SOAP_END = "</soapenv:Body></soapenv:Envelope>";
 
@@ -651,6 +671,13 @@ public class OpusService {
 			 stopDateStr = tts.toString();
 		}
 
+		// KMD does not like it when we clear the users original email address, so we will block setting it to the default
+		// email address from an actual email address.
+		if (Objects.equals(configuration.getModules().getAccountCreation().getOpusHandler().getDefaultEmail(), email)) {
+			log.warn("Will not update email on " + employeeId + " because given email was the default email address");
+			return;
+		}
+		
 		if (!overwriteEmail(existingOpusValue.email.value)) {
 			log.info("Skipping updating " + employeeId + " email to " + email + " because of existing email: " + existingOpusValue.email.value);
 			return;

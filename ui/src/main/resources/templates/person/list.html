@@ -62,6 +62,16 @@
 									</tr>
 								</thead>
 
+								<tfoot style="display: table-row-group">
+									<tr>
+										<td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+										<td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+										<td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+										<td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+										<td></td>
+									</tr>
+								</tfoot>
+
 								<tbody>
 								</tbody>
 							</table>
@@ -88,6 +98,8 @@
 			var forceStop_message = [[#{html.entity.person.forceStop}]];
 			var disableAccountOrders_message = [[#{html.entity.person.disableAccountOrders}]];
 			var fakeCpr_message = [[#{html.entity.person.fakeCpr}]];
+			var dead_message = [[#{html.entity.person.dead}]];
+			var disenfranchised_message = [[#{html.entity.person.disenfranchised}]];
 			var url = [[@{/ui/person}]];
 			var ajaxUrl = [[@{/rest/person/list}]]
 			var ouUrl = [[@{/ui/orgunit/view/}]];
@@ -127,6 +139,12 @@
 						}
 						if (row.fictiveCpr == true) {
 							result += '&nbsp;<span class="badge badge-warning">' + fakeCpr_message + '</span>';
+						}
+						if (row.dead == true) {
+							result += '&nbsp;<span class="badge badge-warning">' + dead_message + '</span>';
+						}
+						if (row.disenfranchised == true) {
+							result += '&nbsp;<span class="badge badge-warning">' + disenfranchised_message + '</span>';
 						}
 						
 						return result;
@@ -190,14 +208,30 @@
 					}
 				}
 			});
+			
+			
+			$.each($('.input-filter', currentTable.table().footer()), function() {
+				var column = currentTable.column($(this).index());
+	
+				$('input', this).on('keyup change', function () {
+					if (column.search() !== this.value) {
+						column.search(this.value).draw();
+					}
+				});
+			});
+
 		}
 		
 		function dataTablesToggleColumn(elem) {
 			if (!currentTable) {
 				return false;
 			}
-			
+
 			var cId = $(elem).data("cid");
+
+			//Reset search
+			$('.input-filter input')[cId].value = '';
+			currentTable.column(cId).search('').draw();
 
 			currentTable.column(cId).visible(!currentTable.column(cId).visible());
 			

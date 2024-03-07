@@ -1,0 +1,1 @@
+ALTER TABLE email_template_children ADD COLUMN only_manual_recipients BOOLEAN NOT NULL DEFAULT FALSE;

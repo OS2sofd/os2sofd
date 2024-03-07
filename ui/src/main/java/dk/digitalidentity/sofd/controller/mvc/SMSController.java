@@ -136,6 +136,7 @@ public class SMSController {
 
 	private Set<PhoneNumberDTO> selectPhoneNumbers(SearchForm searchForm) {
 		Set<PhoneNumberDTO> phoneNumbers = new HashSet<PhoneNumberDTO>();
+		Set<String> addedPhoneNumbers = new HashSet<>();
 
 		// search by OrgUnit selection
 		List<OrgUnit> orgUnits = new ArrayList<OrgUnit>();
@@ -169,7 +170,8 @@ public class SMSController {
 				}
 
 				// we only add phone-numbers from OrgUnits if we are not filtering on it-systems and/or functions
-				if ((searchForm.getItSystems() == null || searchForm.getItSystems().size() == 0) && !StringUtils.hasLength(searchForm.getFunction())) {
+				if ((searchForm.getItSystems() == null || searchForm.getItSystems().size() == 0) &&
+					(!StringUtils.hasLength(searchForm.getFunction()) || "NONE".equals(searchForm.getFunction()))) {
 					phoneNumbers.addAll(getPhones(orgUnit));
 				}
 			}
@@ -205,19 +207,41 @@ public class SMSController {
 		if (searchForm.getOperation().equals("OR")) {
 			if (functionPersons != null) {
 				for (Person person : functionPersons) {
-					phoneNumbers.add(getPhone(person));
+					PhoneNumberDTO phone = getPhone(person);
+					if (phone != null) {
+						phoneNumbers.add(phone);
+						addedPhoneNumbers.add(phone.getPhone());
+					}
 				}
 			}
 
 			if (orgUnitPersons != null) {
 				for (Person person : orgUnitPersons) {
-					phoneNumbers.add(getPhone(person));
+					PhoneNumberDTO phone = getPhone(person);
+					if (phone != null) {
+						phoneNumbers.add(phone);
+						addedPhoneNumbers.add(phone.getPhone());
+					}
 				}
 			}
 
 			if (itSystemPersons != null) {
 				for (Person person : itSystemPersons) {
-					phoneNumbers.add(getPhone(person));
+					PhoneNumberDTO phone = getPhone(person);
+					if (phone != null) {
+						phoneNumbers.add(phone);
+						addedPhoneNumbers.add(phone.getPhone());
+					}
+				}
+			}
+
+			if (searchForm.isIncludeOrgUnits() && !orgUnits.isEmpty()) {
+				for (OrgUnit orgUnit : orgUnits) {
+					PhoneNumberDTO phone = getPhone(orgUnit);
+					if (phone != null) {
+						phoneNumbers.add(phone);
+						addedPhoneNumbers.add(phone.getPhone());
+					}
 				}
 			}
 		}
@@ -264,12 +288,30 @@ public class SMSController {
 			}
 
 			for (Person person : firstList) {
-				phoneNumbers.add(getPhone(person));
+				PhoneNumberDTO phone = getPhone(person);
+				if (phone != null) {
+					phoneNumbers.add(phone);
+					addedPhoneNumbers.add(phone.getPhone());
+				}
+			}
+
+			if (searchForm.isIncludeOrgUnits() && itSystemPersons == null && functionPersons == null && !orgUnits.isEmpty()) {
+				for (OrgUnit orgUnit : orgUnits) {
+					PhoneNumberDTO phone = getPhone(orgUnit);
+					if (phone != null) {
+						phoneNumbers.add(phone);
+						addedPhoneNumbers.add(phone.getPhone());
+					}
+				}
 			}
 		}
 
 		// remove nulls if present
 		phoneNumbers.remove(null);
+
+		// remove duplicates
+		HashSet<String> seen = new HashSet<>();
+		phoneNumbers.removeIf(ph -> !seen.add(ph.getPhone()));
 
 		return phoneNumbers;
 	}
@@ -313,6 +355,7 @@ public class SMSController {
 		PwdReminderDTO form = new PwdReminderDTO();
 		form.setDays(pwdReminderService.getPwdReminderDaysBefore());
 		form.setEmailTxt(pwdReminderService.getPwdReminderEmailTxt());
+		form.setEmailSubject(pwdReminderService.getPwdReminderEmailSubject());
 		form.setSmsTxt(pwdReminderService.getPwdReminderSmsTxt());
 		form.setStrategy(pwdReminderService.getPwdReminderStrategy());
 		form.setTime(pwdReminderService.getPwdReminderTime().toString());
@@ -327,6 +370,7 @@ public class SMSController {
 	@PostMapping("/ui/sms/pwdreminders")
 	public String pwdReminderRules(Model model, PwdReminderDTO form) {
 		pwdReminderService.setPwdReminderEmailTxt(form.getEmailTxt());
+		pwdReminderService.setPwdReminderEmailSubject(form.getEmailSubject());
 		pwdReminderService.setPwdReminderSmsTxt(form.getSmsTxt());
 		pwdReminderService.setPwdReminderStrategy(form.getStrategy());
 		pwdReminderService.setPwdReminderOrgUnitFilter(form.getOrgUnits());
@@ -375,6 +419,17 @@ public class SMSController {
 		if (phone.isPresent()) {
 			String name = PersonService.getName(person);
 			return new PhoneNumberDTO(name, phone.get().getPhoneNumber(), RecipientType.PERSON);
+		}
+
+		return null;
+	}
+
+	private PhoneNumberDTO getPhone(OrgUnit orgUnit) {
+		Optional<Phone> phone = OrgUnitService.getPhones(orgUnit).stream().filter(p -> p.getPhoneType().equals(PhoneType.MOBILE) && p.isTypePrime()).findFirst();
+
+		if (phone.isPresent()) {
+			String name = orgUnit.getName();
+			return new PhoneNumberDTO(name, phone.get().getPhoneNumber(), RecipientType.ORGUNIT);
 		}
 
 		return null;

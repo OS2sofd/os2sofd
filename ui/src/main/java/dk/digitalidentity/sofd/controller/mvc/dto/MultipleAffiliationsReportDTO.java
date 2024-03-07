@@ -12,7 +12,7 @@ public class MultipleAffiliationsReportDTO {
 	private String name;
 	private String cpr;
 	private String affiliationName;
-	private String affilliationOrgUnitName;
+	private String affiliationOrgUnitName;
 	private boolean primeAffiliation;
 	private String affiliationTerms;
 	private String employeeId;

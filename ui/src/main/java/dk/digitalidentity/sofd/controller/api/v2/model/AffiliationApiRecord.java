@@ -15,7 +15,6 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Person;
-import dk.digitalidentity.sofd.dao.model.enums.AffiliationFunction;
 import dk.digitalidentity.sofd.dao.model.enums.AffiliationType;
 import dk.digitalidentity.sofd.dao.model.mapping.AffiliationFunctionMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.AffiliationManagerMapping;
@@ -68,12 +67,13 @@ public class AffiliationApiRecord extends BaseRecord {
 	private String positionTypeName;
 	private Set<String> functions;
 	private Set<String> managerForUuids;
-	
+
 	// TODO: remove at some point once we no longer manage deleted from our AD integration (which we really should stop doing)
 	private Boolean deleted;
-	
+
 	@Pattern(regexp = "([a-f0-9]{8}(-[a-f0-9]{4}){4}[a-f0-9]{8})", message = "Invalid uuid")
 	private String orgUnitUuid;
+	private String alternativeOrgUnitUuid;
 
 	// read-only
 	private boolean prime;
@@ -118,6 +118,10 @@ public class AffiliationApiRecord extends BaseRecord {
 			this.orgUnitUuid = affiliation.getOrgUnit().getUuid();
 		}
 
+		if (affiliation.getAlternativeOrgUnit() != null) {
+			this.alternativeOrgUnitUuid = affiliation.getAlternativeOrgUnit().getUuid();
+		}
+
 		if (affiliation.getManagerFor() != null) {
 			this.managerForUuids = new HashSet<String>();
 
@@ -150,6 +154,7 @@ public class AffiliationApiRecord extends BaseRecord {
 		affiliation.setMaster(master);
 		affiliation.setMasterId(masterId);
 		affiliation.setOrgUnit(OrgUnitService.getInstance().getByUuid(orgUnitUuid));
+//		affiliation.setAlternativeOrgUnit(OrgUnitService.getInstance().getByUuid(alternativeOrgUnitUuid)); // TODO this would make the field read and write
 		affiliation.setPayGrade(payGrade);
 		affiliation.setWageStep(wageStep);
 		affiliation.setPerson(person);
@@ -158,7 +163,7 @@ public class AffiliationApiRecord extends BaseRecord {
 		affiliation.setPositionTypeId(positionTypeId);
 		affiliation.setPositionTypeName(positionTypeName);
 		affiliation.setStartDate((startDate != null) ? toDate(startDate) : null);
-		affiliation.setStopDate((stopDate != null) ? toDate(stopDate) : null);
+		affiliation.setStopDate((stopDate != null) ? toDateEndOfDay(stopDate) : null);
 		affiliation.setUuid(uuid);
 		affiliation.setWorkingHoursDenominator(workingHoursDenominator);
 		affiliation.setWorkingHoursNumerator(workingHoursNumerator);
@@ -191,7 +196,7 @@ public class AffiliationApiRecord extends BaseRecord {
 			for (String function : functions) {
 				AffiliationFunctionMapping fMap = new AffiliationFunctionMapping();
 				fMap.setAffiliation(actualAffiliation);
-				fMap.setFunction(AffiliationFunction.valueOf(function));
+				fMap.setFunction(function);
 
 				affiliation.getFunctions().add(fMap);
 			}

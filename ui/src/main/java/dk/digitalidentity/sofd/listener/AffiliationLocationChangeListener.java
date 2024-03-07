@@ -3,12 +3,18 @@ package dk.digitalidentity.sofd.listener;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
+import dk.digitalidentity.sofd.dao.model.OrgUnit;
+import dk.digitalidentity.sofd.dao.model.SubstituteContext;
+import dk.digitalidentity.sofd.dao.model.SubstituteOrgUnitAssignment;
+import dk.digitalidentity.sofd.service.SubstituteOrgUnitAssignmentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.EmailTemplate;
 import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
@@ -16,6 +22,7 @@ import dk.digitalidentity.sofd.dao.model.EntityChangeQueueDetail;
 import dk.digitalidentity.sofd.dao.model.Notification;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.SubstituteAssignment;
+import dk.digitalidentity.sofd.dao.model.enums.EmailTemplatePlaceholder;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplateType;
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.dao.model.enums.NotificationType;
@@ -52,6 +59,12 @@ public class AffiliationLocationChangeListener implements ListenerAdapter {
 	
 	@Autowired
 	private SubstituteAssignmentService substituteAssignmentService;
+	
+	@Autowired
+	private SofdConfiguration configuration;
+
+	@Autowired
+	private SubstituteOrgUnitAssignmentService substituteOrgUnitAssignmentService;
 
 	@Override
 	public void personUpdated(String uuid, List<EntityChangeQueueDetail> changes) {
@@ -70,9 +83,12 @@ public class AffiliationLocationChangeListener implements ListenerAdapter {
 			if (affiliation == null) {
 				continue;
 			}
-
-			createNotification(affiliation);
-			createSubstituteWarningEmail(affiliation);
+			
+			// if this is an actual "wage" affiliation, we will create a notification - other masters we ignore
+			if (Objects.equals(affiliation.getMaster(), configuration.getModules().getLos().getPrimeAffiliationMaster())) {
+				createNotification(affiliation);
+				createSubstituteWarningEmail(affiliation);
+			}
 		}
 	}
 
@@ -92,29 +108,51 @@ public class AffiliationLocationChangeListener implements ListenerAdapter {
 
 		List<SubstituteAssignment> substituteAssignments = substituteAssignmentService.findBySubstitute(affiliation.getPerson());
 		for (SubstituteAssignment substituteAssignment : substituteAssignments) {
-			Person manager = substituteAssignment.getPerson();
-			Person substitute = substituteAssignment.getSubstitute();
-	
-			String email = PersonService.getEmail(manager);
-			if (!StringUtils.hasLength(email)) {
-				log.warn("createSubstituteWarningEmail - no email address found for manager.");
-				continue;
-			}
-	
-			for (EmailTemplateChild child : substituteReminder.getChildren()) {
-				if (child.isEnabled()) {
-					String message = child.getMessage();
-					message = message.replace(EmailTemplateService.RECEIVER_PLACEHOLDER, PersonService.getName(manager));
-					message = message.replace(EmailTemplateService.SUBSTITUTE_PLACEHOLDER, PersonService.getName(substitute));
-					message = message.replace(EmailTemplateService.SUBSTITUTE_CONTEXT_PLACEHOLDER, substituteAssignment.getContext().getName());
-					
-					String title = child.getTitle();
-					title = title.replace(EmailTemplateService.RECEIVER_PLACEHOLDER, PersonService.getName(manager));
-					title = title.replace(EmailTemplateService.SUBSTITUTE_PLACEHOLDER, PersonService.getName(substitute));
-					title = title.replace(EmailTemplateService.SUBSTITUTE_CONTEXT_PLACEHOLDER, substituteAssignment.getContext().getName());
-					
-					emailQueueService.queueEmail(email, title, message, 0, child);
+			queueEmail(substituteReminder, substituteAssignment.getPerson(), substituteAssignment.getSubstitute(), substituteAssignment.getContext(), affiliation.getCalculatedOrgUnit());
+		}
+
+		List<SubstituteOrgUnitAssignment> substituteOrgUnitAssignments = substituteOrgUnitAssignmentService.findBySubstitute(affiliation.getPerson());
+		for (SubstituteOrgUnitAssignment substituteAssignment : substituteOrgUnitAssignments) {
+			queueEmail(substituteReminder, substituteAssignment.getOrgUnit().getManager().getManager(), substituteAssignment.getSubstitute(), substituteAssignment.getContext(),substituteAssignment.getOrgUnit().getManager().getOrgUnit());
+
+			// this means that if a substitute on an OrgUnit stops, and the context is isInheritOrgUnitAssignments, every manager under this ou will get notified
+			if (substituteAssignment.getContext().isInheritOrgUnitAssignments()) {
+				for (OrgUnit child : substituteAssignment.getOrgUnit().getChildren()) {
+					handleQueueEmailRecursive(child, substituteReminder, substituteAssignment.getSubstitute(), substituteAssignment.getContext(),substituteAssignment.getOrgUnit().getManager().getOrgUnit());
 				}
+			}
+		}
+	}
+
+	private void handleQueueEmailRecursive(OrgUnit currentOU, EmailTemplate substituteReminder, Person substitute, SubstituteContext context, OrgUnit orgUnit) {
+		queueEmail(substituteReminder, currentOU.getManager().getManager(), substitute, context, orgUnit);
+		for (OrgUnit child : currentOU.getChildren()) {
+			handleQueueEmailRecursive(child, substituteReminder, substitute, context, orgUnit);
+		}
+	}
+
+	private void queueEmail(EmailTemplate substituteReminder, Person manager, Person substitute, SubstituteContext substituteContext, OrgUnit orgUnit) {
+		String email = PersonService.getEmail(manager);
+		if (!StringUtils.hasLength(email)) {
+			log.warn("createSubstituteWarningEmail - no email address found for manager.");
+			return;
+		}
+
+		for (EmailTemplateChild child : substituteReminder.getChildren()) {
+			if (child.isEnabled()) {
+				String message = child.getMessage();
+				message = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(manager));
+				message = message.replace(EmailTemplatePlaceholder.SUBSTITUTE_PLACEHOLDER.getPlaceholder(), PersonService.getName(substitute));
+				message = message.replace(EmailTemplatePlaceholder.SUBSTITUTE_CONTEXT_PLACEHOLDER.getPlaceholder(), substituteContext.getName());
+				message = message.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnit.getName());
+
+				String title = child.getTitle();
+				title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(manager));
+				title = title.replace(EmailTemplatePlaceholder.SUBSTITUTE_PLACEHOLDER.getPlaceholder(), PersonService.getName(substitute));
+				title = title.replace(EmailTemplatePlaceholder.SUBSTITUTE_CONTEXT_PLACEHOLDER.getPlaceholder(), substituteContext.getName());
+				title = title.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnit.getName());
+
+				emailQueueService.queueEmail(manager, title, message, 0, child);
 			}
 		}
 	}
@@ -127,7 +165,7 @@ public class AffiliationLocationChangeListener implements ListenerAdapter {
 		notification.setAffectedEntityName(PersonService.getName(affiliation.getPerson()));
 		notification.setNotificationType(NotificationType.NEW_AFFILIATION_LOCATION);
 		notification.setCreated(new Date());
-		notification.setMessage("Nyt tilhørsforhold i " + affiliation.getOrgUnit().getName() + " (" + affiliation.getOrgUnit().getShortname() + ")");
+		notification.setMessage("Nyt tilhørsforhold i " + affiliation.getCalculatedOrgUnit().getName() + " (" + affiliation.getCalculatedOrgUnit().getShortname() + ")");
 
 		if (affiliation.getStartDate() != null) {
 			notification.setEventDate(affiliation.getStartDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());

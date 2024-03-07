@@ -2,15 +2,16 @@ package dk.digitalidentity.sofd.service;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import dk.digitalidentity.sofd.config.SofdConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.comparator.NullSafeComparator;
 
+import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
-import dk.digitalidentity.sofd.dao.model.Email;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Phone;
@@ -53,7 +54,7 @@ public class PrimeService {
 				users.stream().forEach(u -> u.setPrime(false));
 			}
 		}
-		
+
 		return false;
 	}
 
@@ -61,10 +62,10 @@ public class PrimeService {
 		if (person.getAffiliations() == null || person.getAffiliations().size() == 0) {
 			return false;
 		}
-		
+
 		// rule 0: filter out affiliations that are deleted or expired
 		List<Affiliation> activeAffiliations = AffiliationService.onlyActiveAffiliations(person.getAffiliations());
-		
+
 		// special case: if there are no active affiliations, but we have future affiliations, we should add those
 		// so we pick one of them as the prime affiliation (otherwise our delete job will set the deleted flag on the user)
 		if (activeAffiliations.size() == 0) {
@@ -77,15 +78,15 @@ public class PrimeService {
 
 		if (activeAffiliations.size() == 0) {
 			boolean changes = false;
-			
+
 			// any remaining affiliations that are prime, are now flagged as non-primes
 			for (Affiliation a : person.getAffiliations()) {
 				if (a.isPrime()) {
 					a.setPrime(false);
 					changes = true;
 				}
-			}					
-			
+			}
+
 			return changes;
 		}
 
@@ -114,7 +115,7 @@ public class PrimeService {
 			if (change) {
 				return true;
 			}
-			
+
 			return false;
 		}
 
@@ -126,16 +127,16 @@ public class PrimeService {
 		if (opusAffiliations.size() > 0) {
 			// rule 2: LOWEST employmentTerms, and if equal, fallback to HIGHEST working hours, and finally LOWEST employeeId
 			Optional<Affiliation> affiliation = opusAffiliations.stream().max((a1, a2)
-					-> (a1.getEmploymentTerms().equals(a2.getEmploymentTerms())
-						? (a1.getWorkingHoursNumerator() == a2.getWorkingHoursNumerator()
-							? a2.getEmployeeId().compareTo(a1.getEmployeeId())
-							: a1.getWorkingHoursNumerator().compareTo(a2.getWorkingHoursNumerator()))
-						: a2.getEmploymentTerms().compareTo(a1.getEmploymentTerms())));
-					
+					-> (Objects.equals(a1.getEmploymentTerms(),a2.getEmploymentTerms())
+						? (Objects.equals(a1.getWorkingHoursNumerator(),a2.getWorkingHoursNumerator())
+						? a2.getEmployeeId().compareTo(a1.getEmployeeId())
+						: a1.getWorkingHoursNumerator().compareTo(a2.getWorkingHoursNumerator()))
+						: Objects.compare(a2.getEmploymentTerms(), a1.getEmploymentTerms(), new NullSafeComparator<String>(String::compareTo,true))));
+
 			if (affiliation.isPresent()) {
 				Affiliation aPrime = affiliation.get();
 				boolean change = false;
-				
+
 				for (Affiliation a : person.getAffiliations()) {
 					if (a == aPrime) {
 						if (!a.isPrime()) {
@@ -154,7 +155,7 @@ public class PrimeService {
 				if (change) {
 					return true;
 				}
-			}			
+			}
 		}
 		else {
 			// rule 3: fall back to a random prime affiliation if number of active primes is not exactly 1
@@ -189,7 +190,7 @@ public class PrimeService {
 	public void setPrimePost(Person person) {
 		if (person.getRegisteredPostAddress() != null) {
 			person.getRegisteredPostAddress().setPrime(true);
-			
+
 			if (person.getResidencePostAddress() != null) {
 				person.getResidencePostAddress().setPrime(false);
 			}
@@ -198,7 +199,7 @@ public class PrimeService {
 			person.getResidencePostAddress().setPrime(true);
 		}
 	}
-	
+
 	public void setPrimePhone(Person person) {
 		if (person.getPhones() == null || person.getPhones().size() == 0) {
 			return;
@@ -206,7 +207,7 @@ public class PrimeService {
 
 		for (PhoneType phoneType : PhoneType.values()) {
 			List<Phone> phonesOfType = PersonService.getPhones(person).stream().filter(p -> p.getPhoneType().equals(phoneType)).collect(Collectors.toList());
-			
+
 			if (phonesOfType.size() == 0) {
 				continue;
 			}
@@ -223,7 +224,7 @@ public class PrimeService {
 				phonesOfType.get(0).setTypePrime(true);
 			}
 		}
-		
+
 		int primes = 0;
 
 		for (Phone phone : PersonService.getPhones(person)) {
@@ -231,7 +232,7 @@ public class PrimeService {
 				primes++;
 			}
 		}
-			
+
 		if (primes != 1) {
 			PersonService.getPhones(person).forEach(p -> p.setPrime(false));
 
@@ -251,7 +252,7 @@ public class PrimeService {
 
 		for (PhoneType phoneType : PhoneType.values()) {
 			List<Phone> phonesOfType = OrgUnitService.getPhones(orgUnit).stream().filter(p -> p.getPhoneType().equals(phoneType)).collect(Collectors.toList());
-			
+
 			if (phonesOfType.size() == 0) {
 				continue;
 			}
@@ -268,7 +269,7 @@ public class PrimeService {
 				phonesOfType.get(0).setTypePrime(true);
 			}
 		}
-		
+
 		int primes = 0;
 
 		for (Phone phone : OrgUnitService.getPhones(orgUnit)) {
@@ -276,7 +277,7 @@ public class PrimeService {
 				primes++;
 			}
 		}
-			
+
 		if (primes != 1) {
 			OrgUnitService.getPhones(orgUnit).forEach(p -> p.setPrime(false));
 
@@ -284,26 +285,6 @@ public class PrimeService {
 				if (phone.isTypePrime()) {
 					phone.setPrime(true);
 					break;
-				}
-			}
-		}
-	}
-
-	public void setPrimeEmail(OrgUnit orgUnit) {
-		if (orgUnit.getEmails() != null && orgUnit.getEmails().size() > 0) {
-			int primes = 0;
-
-			for (Email email : OrgUnitService.getEmails(orgUnit)) {
-				if (email.isPrime()) {
-					primes++;
-				}
-			}
-			
-			if (primes != 1) {
-				orgUnit.getEmails().get(0).getEmail().setPrime(true);
-				
-				for (int i = 1; i < orgUnit.getEmails().size(); i++) {
-					orgUnit.getEmails().get(i).getEmail().setPrime(false);
 				}
 			}
 		}
@@ -318,10 +299,10 @@ public class PrimeService {
 					primes++;
 				}
 			}
-			
+
 			if (primes != 1) {
 				orgUnit.getPostAddresses().get(0).getPost().setPrime(true);
-				
+
 				for (int i = 1; i < orgUnit.getPostAddresses().size(); i++) {
 					orgUnit.getPostAddresses().get(i).getPost().setPrime(false);
 				}

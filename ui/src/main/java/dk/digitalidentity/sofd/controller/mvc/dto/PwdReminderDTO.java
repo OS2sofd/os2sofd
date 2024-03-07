@@ -11,6 +11,7 @@ import lombok.Setter;
 public class PwdReminderDTO {
 	private String smsTxt;
 	private String emailTxt;
+	private String emailSubject;
 	private String days;
 	private String time;
 	private Set<String> orgUnits;

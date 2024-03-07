@@ -1,5 +1,6 @@
 package dk.digitalidentity.sofd.dao.model;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -31,7 +32,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
-import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitEmailMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPhoneMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPostMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPrimaryKleMapping;
@@ -52,10 +52,10 @@ public class OrgUnit implements Loggable {
 
 	@Id
 	private String uuid;
-	
+
 	@GeneratedValue
 	private long id;
-	
+
 	@Column
 	@NotNull
 	private String master;
@@ -97,11 +97,11 @@ public class OrgUnit implements Loggable {
 	@NotNull
 	@Size(max = 255)
 	private String name;
-	
+
 	@Column
 	@Size(max = 255)
 	private String displayName;
-	
+
 	@Column
 	@NotNull
 	@Size(max = 255)
@@ -109,7 +109,7 @@ public class OrgUnit implements Loggable {
 
 	@Column
 	private Long cvr;
-	
+
 	@Column
 	@Size(max = 255)
 	private String cvrName;
@@ -136,13 +136,16 @@ public class OrgUnit implements Loggable {
 
 	@Column
 	private String keyWords;
-	
+
 	@Column
 	private String notes;
 
 	@Column
 	private String openingHours;
-	
+
+	@Column
+	private String contactAddress;
+
 	@Column
 	private boolean inheritKle;
 
@@ -157,7 +160,10 @@ public class OrgUnit implements Loggable {
 
 	@Column
 	private String emailNotes;
-	
+
+	@Column
+	private String email;
+
 	@BatchSize(size = 100)
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, mappedBy = "orgUnit")
 	@Valid
@@ -167,11 +173,6 @@ public class OrgUnit implements Loggable {
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, mappedBy = "orgUnit")
 	@Valid
 	private List<OrgUnitPhoneMapping> phones;
-	
-	@BatchSize(size = 100)
-	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, mappedBy = "orgUnit")
-	@Valid
-	private List<OrgUnitEmailMapping> emails;
 
 	@BatchSize(size = 100)
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "orgUnit", orphanRemoval = true)
@@ -191,7 +192,11 @@ public class OrgUnit implements Loggable {
 	@Transient
 	@JsonIgnore
 	private OrgUnitManager newManager;
-	
+
+	@Transient
+	@JsonIgnore
+	private String inheritedEan;
+
 	@BatchSize(size = 100)
 	@OneToMany(mappedBy = "orgUnit", fetch = FetchType.LAZY)
 	@Valid
@@ -213,17 +218,22 @@ public class OrgUnit implements Loggable {
 	@JsonSerialize(using = LocalExtensionsSerializer.class)
 	@JsonDeserialize(using = LocalExtensionsDeserializer.class)
 	private String localExtensions;
-	
+
 	@BatchSize(size = 100)
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, mappedBy = "orgUnit")
 	private List<ManagedTitle> managedTitles;
+
+	@BatchSize(size = 100)
+	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "orgUnit", orphanRemoval = true)
+	@JsonIgnore
+	private List<SubstituteOrgUnitAssignment> substitutes = new ArrayList<>();
 
 	@JsonIgnore
 	@Override
 	public String getEntityId() {
 		return uuid;
 	}
-	
+
 	@JsonIgnore
 	@Override
 	public EntityType getEntityType() {
@@ -255,7 +265,7 @@ public class OrgUnit implements Loggable {
     	if (this.masterId != null) {
     		return masterId.hashCode();
     	}
-    	
+
     	// but safety first
         return getClass().hashCode();
     }

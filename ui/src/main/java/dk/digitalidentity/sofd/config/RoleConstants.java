@@ -23,4 +23,7 @@ public class RoleConstants {
 	public static final String SYSTEM_ROLE_WRITE_ACCESS = "ROLE_WRITE_ACCESS";
 	public static final String SYSTEM_ROLE_READ_ACCESS = "ROLE_READ_ACCESS";
 	public static final String SYSTEM_ROLE_LIMITED_READ_ACCESS = "ROLE_LIMITED_READ_ACCESS";
+	
+	// roles given due to data in SOFD at login time
+	public static final String DATA_ROLE_MANAGER = "ROLE_MANAGER";
 }

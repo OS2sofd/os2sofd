@@ -19,7 +19,6 @@ public class ManagerApiRecord {
         Person manager = new Person();
         manager.setUuid(uuid);
         orgUnitManager.setManager(manager);
-        orgUnitManager.setName(name);
         orgUnitManager.setInherited(inherited);
         return orgUnitManager;
     }

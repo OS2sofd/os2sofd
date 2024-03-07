@@ -1,6 +1,7 @@
 package dk.digitalidentity.sofd.controller.mvc;
 
 import java.net.URLEncoder;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -13,6 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 
 import dk.digitalidentity.sofd.config.SessionConstants;
@@ -28,14 +31,18 @@ import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.mvc.dto.AccountOrderDTO;
 import dk.digitalidentity.sofd.controller.mvc.xls.GenericReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.MultipleAffiliationsReportXlsView;
+import dk.digitalidentity.sofd.controller.mvc.xls.PersonsWithActiveSOFDAffiliationsReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.SofdAffiliationsReportXlsView;
+import dk.digitalidentity.sofd.controller.mvc.xls.UsersReportXlsView;
 import dk.digitalidentity.sofd.dao.model.AccountOrder;
 import dk.digitalidentity.sofd.dao.model.Notification;
+import dk.digitalidentity.sofd.dao.model.OrgUnit;
+import dk.digitalidentity.sofd.dao.model.OrgUnitManager;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderStatus;
 import dk.digitalidentity.sofd.dao.model.enums.ReportType;
 import dk.digitalidentity.sofd.security.RequireControllerWriteAccess;
-import dk.digitalidentity.sofd.security.RequireReadAccess;
+import dk.digitalidentity.sofd.security.RequireReadOrManagerAccess;
 import dk.digitalidentity.sofd.service.AccountOrderService;
 import dk.digitalidentity.sofd.service.NotificationService;
 import dk.digitalidentity.sofd.service.PersonService;
@@ -44,7 +51,7 @@ import dk.digitalidentity.sofd.service.S3Service;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@RequireReadAccess
+@RequireReadOrManagerAccess
 @Controller
 public class ReportController {
 
@@ -68,7 +75,7 @@ public class ReportController {
 
 	@Autowired
 	private ReportService reportService;
-	
+
 	@GetMapping("/ui/report/accountorders")
 	public String accountOrders(Model model) {
 		List<AccountOrder> adAccountOrders = accountOrderService.findAll();
@@ -122,6 +129,7 @@ public class ReportController {
 		return "redirect:/ui/report/accountorders";
 	}
 
+
 	@GetMapping("/ui/report/reports")
 	public String reports(Model model) {
 		ReportType[] reports = ReportType.values();
@@ -174,6 +182,9 @@ public class ReportController {
 			case PERSONS_WITH_SOFD_AFFILIATIONS:
 				model.addAttribute("rows", reportService.generateSofdAffiliationsReport());
 				return "report/persons_with_sofd_affiliations";
+			case PERSONS_WITH_ACTIVE_SOFD_AFFILIATIONS:
+				model.addAttribute("rows", reportService.generatePersonsWithActiveSOFDAffiliationsReport());
+				return "report/persons_with_active_sofd_affiliations";
 		}
 
 		return "redirect:/ui/report/reports";
@@ -252,6 +263,12 @@ public class ReportController {
 				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xls\"");
 
 				return new ModelAndView(new SofdAffiliationsReportXlsView(), model);
+			case PERSONS_WITH_ACTIVE_SOFD_AFFILIATIONS:
+				model.put("rows", reportService.generatePersonsWithActiveSOFDAffiliationsReport());
+				response.setContentType("application/ms-excel");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xls\"");
+
+				return new ModelAndView(new PersonsWithActiveSOFDAffiliationsReportXlsView(), model);
 		}
 
 		response.setContentType("application/ms-excel");
@@ -294,5 +311,46 @@ public class ReportController {
 		return "report/notificationView";
 	}
 
+	record ManagerDTO(String uuid, String name, OrgUnit orgUnit, List<String> substitutes) {}
 
+	@GetMapping("/ui/report/managers")
+	public String managers(Model model) {
+		List<ManagerDTO> dtos = new ArrayList<>();
+
+		List<OrgUnitManager> managerMapping = personService.findAllManagersWithOrgUnits();
+		for (OrgUnitManager mapping : managerMapping) {
+			Person manager = mapping.getManager();
+			OrgUnit orgUnit = mapping.getOrgUnit();
+
+			String name = PersonService.getName(manager);
+			List<String> substitutes = manager.getSubstitutes().stream().filter(sub -> sub.getConstraintMappings().isEmpty() || sub.getConstraintMappings().stream().anyMatch(cm -> cm.getOrgUnit().equals(orgUnit)))
+					.map(s -> PersonService.getName(s.getSubstitute()) + " (" + s.getContext().getName() + ")").toList();
+			dtos.add(new ManagerDTO(manager.getUuid(), name, orgUnit, substitutes));
+		}
+
+		model.addAttribute("managers", dtos);
+
+		return "report/managers";
+	}
+	
+	@GetMapping(path = "/ui/report/users")
+	public String specialUsersReport(Model model) {
+		model.addAttribute("startDate", LocalDate.now().minusYears(1));
+
+		return "report/users";
+	}
+
+	@GetMapping("/ui/report/users/download")
+	public ModelAndView downloadUsersReport(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date, HttpServletResponse response, Locale loc) throws Exception {
+		Map<String, Object> model = new HashMap<>();
+		model.put("locale", loc);
+		model.put("messagesBundle", messageSource);
+		model.put("personService", personService);
+		model.put("rows", reportService.generateADUsersReport(date));
+
+		response.setContentType("application/ms-excel");
+		response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xls\"");
+
+		return new ModelAndView(new UsersReportXlsView(), model);
+	}
 }

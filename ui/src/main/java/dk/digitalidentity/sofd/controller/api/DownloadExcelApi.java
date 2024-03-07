@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderRulesXlsDto;
 import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderRulesXlsView;
+import dk.digitalidentity.sofd.controller.mvc.xls.PersonsWithActiveSOFDAffiliationsReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.GenericReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.MultipleAffiliationsReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.SofdAffiliationsReportXlsView;
@@ -124,6 +125,13 @@ public class DownloadExcelApi {
 				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xls\"");
 
 				new SofdAffiliationsReportXlsView().render(model, request, response);
+				return;
+			case PERSONS_WITH_ACTIVE_SOFD_AFFILIATIONS:
+				model.put("rows", reportService.generatePersonsWithActiveSOFDAffiliationsReport());
+				response.setContentType("application/ms-excel");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xls\"");
+
+				new PersonsWithActiveSOFDAffiliationsReportXlsView().render(model, request, response);
 				return;
 		}
 

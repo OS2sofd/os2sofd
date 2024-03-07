@@ -109,7 +109,9 @@ public class AccountOrderController {
 		else if (configuration.getIntegrations().getOpus().isEnableActiveDirectoryEmployeeIdAssociation()) {
 			// only send affiliations from the wages system in this scenario
 			affiliations = AffiliationService.notStoppedAffiliations(person.getAffiliations());
-			affiliations = affiliations.stream().filter(u -> configuration.getModules().getLos().getPrimeAffiliationMaster().equals(u.getMaster())).collect(Collectors.toList());
+			if (configuration.getIntegrations().getOpus().isAdEmployeeIdAssociationLimitedToPrimeAffiliation()) {
+				affiliations = affiliations.stream().filter(u -> configuration.getModules().getLos().getPrimeAffiliationMaster().equals(u.getMaster())).collect(Collectors.toList());
+			}
 
 			// allow no-affiliation
 			Affiliation affiliation = new Affiliation();
@@ -181,7 +183,9 @@ public class AccountOrderController {
 		else if (configuration.getIntegrations().getOpus().isEnableActiveDirectoryEmployeeIdAssociation()) {
 			// only send affiliations from the wages system in this scenario
 			adAffiliations = AffiliationService.notStoppedAffiliations(person.getAffiliations());
-			adAffiliations = adAffiliations.stream().filter(u -> configuration.getModules().getLos().getPrimeAffiliationMaster().equals(u.getMaster())).collect(Collectors.toList());
+			if (configuration.getIntegrations().getOpus().isAdEmployeeIdAssociationLimitedToPrimeAffiliation()) {
+				adAffiliations = adAffiliations.stream().filter(u -> configuration.getModules().getLos().getPrimeAffiliationMaster().equals(u.getMaster())).collect(Collectors.toList());
+			}
 
 			// allow no-affiliation
 			Affiliation affiliation = new Affiliation();
@@ -190,7 +194,7 @@ public class AccountOrderController {
 			affiliation.setPositionName("Ikke tilknyttet noget tilhørsforhold");
 			adAffiliations.add(0, affiliation);
 		}
-		
+
 		CreateDoubleAccountOrderDTO accountOrder = CreateDoubleAccountOrderDTO.builder()
 				.personUuid(personUUID)
 				.personName(PersonService.getName(person))
@@ -222,7 +226,7 @@ public class AccountOrderController {
 		
 		// if an affiliationUuid is supplied, scan for it
 		String employeeId = null;
-		for (Affiliation affiliation : AffiliationService.onlyActiveAffiliations(person.getAffiliations())) {
+		for (Affiliation affiliation : AffiliationService.notStoppedAffiliations(person.getAffiliations())) {
 			if (affiliation.getUuid().equals(order.getAffiliationUuid())) {
 				employeeId = affiliation.getEmployeeId();
 				break;
@@ -255,12 +259,15 @@ public class AccountOrderController {
 		AccountOrder accountOrder = accountOrderService.createAccountOrder(
 				person,
 				supportedUserType,
+				order.getChosenUserId(),
 				order.getUserId(),
 				employeeId,
 				new Date(),
-				(SupportedUserTypeService.getActiveDirectoryUserType().equals(supportedUserType.getKey()) ? order.getUserEndDate() : EndDate.NO));
-		
-		accountOrder.setRequestedUserId(order.getChosenUserId());
+				(SupportedUserTypeService.getActiveDirectoryUserType().equals(supportedUserType.getKey()) ? order.getUserEndDate() : EndDate.NO),
+				null,
+				false,
+				(StringUtils.hasLength(employeeId) ? true : false),
+				true);
 		
 		accountOrderService.save(accountOrder);
 
@@ -300,13 +307,13 @@ public class AccountOrderController {
 
 		// if an affiliationUuid is supplied, scan for it
 		String employeeId = null;
-		for (Affiliation affiliation : AffiliationService.onlyActiveAffiliations(person.getAffiliations())) {
+		for (Affiliation affiliation : AffiliationService.notStoppedAffiliations(person.getAffiliations())) {
 			if (affiliation.getUuid().equals(order.getAdAffiliationUuid())) {
 				employeeId = affiliation.getEmployeeId();
 				break;
 			}
 		}
-				
+
 		if (StringUtils.hasLength(order.getAdChosenUserId())) {
 			order.setAdChosenUserId(order.getAdChosenUserId().trim());
 		}
@@ -314,7 +321,7 @@ public class AccountOrderController {
 			String generatedUserId = usernameGeneratorService.getUsername(person, employeeId, adUserType.getKey(), null);
 			order.setAdChosenUserId(generatedUserId == null ? "" : generatedUserId);
 		}
-		
+
 		if (StringUtils.hasLength(order.getExchangeChosenUserId())) {
 			order.setExchangeChosenUserId(order.getExchangeChosenUserId().trim());
 		}
@@ -331,23 +338,31 @@ public class AccountOrderController {
 		AccountOrder adAccountOrder = accountOrderService.createAccountOrder(
 				person,
 				adUserType,
+				order.getAdChosenUserId(),
 				null,
 				employeeId,
 				new Date(),
-				order.getAdUserEndDate());
+				order.getAdUserEndDate(),
+				null,
+				false,
+				(StringUtils.hasLength(employeeId) ? true : false),
+				true);
 
-		adAccountOrder.setRequestedUserId(order.getAdChosenUserId());
 		accountOrderService.save(adAccountOrder);
 		
 		AccountOrder exchangeAccountOrder = accountOrderService.createAccountOrder(
 				person,
 				exchangeUserType,
-				null,
+				order.getExchangeChosenUserId(),
+				order.getAdChosenUserId(),
 				employeeId,
 				new Date(),
-				EndDate.NO);
+				EndDate.NO,
+				null,
+				false,
+				(StringUtils.hasLength(employeeId) ? true : false),
+				true);
 
-		exchangeAccountOrder.setRequestedUserId(order.getExchangeChosenUserId());
 		exchangeAccountOrder.setStatus(AccountOrderStatus.BLOCKED);
 		exchangeAccountOrder.setDependsOn(adAccountOrder);
 		accountOrderService.save(exchangeAccountOrder);
@@ -373,5 +388,5 @@ public class AccountOrderController {
 
 		return "redirect:/ui/report/accountorders";
 	}
-
+	
 }

@@ -15,12 +15,14 @@ import java.util.stream.Collectors;
 
 import javax.validation.Valid;
 
+import dk.digitalidentity.sofd.service.ManagerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,7 +32,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-
+import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.mvc.admin.dto.TagDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.PostDTO;
 import dk.digitalidentity.sofd.controller.rest.model.ContactDTO;
@@ -83,7 +85,7 @@ public class OrgUnitRestController {
 
 	@Autowired
 	private AccountOrderService accountOrderService;
-	
+
 	@Autowired
 	private SupportedUserTypeService supportedUserTypeService;
 
@@ -92,10 +94,35 @@ public class OrgUnitRestController {
 
 	@Autowired
 	private TagsService tagsService;
-	
+
 	@Autowired
 	private PersonService personService;
-	
+
+	@Autowired
+	private SofdConfiguration configuration;
+
+	@Autowired
+	private ManagerService managerService;
+
+	@RequireAdminAccess
+	@DeleteMapping(value = "/rest/orgunit/{uuid}")
+	@ResponseBody
+	public HttpEntity<String> delete(@PathVariable("uuid") String uuid) throws Exception {
+		var orgUnit = orgUnitService.getByUuid(uuid);
+		if (orgUnit == null) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+
+		if (!orgUnitService.isDeletable(orgUnit)) {
+			return new ResponseEntity<>("Orgunit is not deletable", HttpStatus.BAD_REQUEST);
+		}
+
+		orgUnit.setDeleted(true);
+		orgUnitService.save(orgUnit);
+
+		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
 	@RequireAdminAccess
 	@PostMapping(value = "/rest/orgunit/{uuid}/copyRulesTo")
 	@ResponseBody
@@ -115,22 +142,22 @@ public class OrgUnitRestController {
 			if (orgUnit.getUuid().equals(ou.getUuid())) {
 				continue;
 			}
-			
+
 			OrgUnitAccountOrder existingOrder = accountOrderService.getAccountOrderSettings(orgUnit, true);
 			boolean byPositionRulesExist = existingOrder.getTypes().stream().anyMatch(t -> t.getRule().equals(AccountOrderRule.BY_POSITION_NAME));
-			
+
 			// do not overwrite rules on OrgUnits that has existing rules based on positions
 			if (!byPositionRulesExist) {
-				accountOrderService.setAccountOrderSettings(orgUnit, accountOrder);
+				accountOrderService.setAccountOrderSettings(orgUnit, accountOrder, false);
 			}
 			else {
 				failedOrgUnits.add(orgUnit.getName());
 			}
 		}
-		
+
 		return new ResponseEntity<>(failedOrgUnits, HttpStatus.OK);
 	}
-	
+
 	@RequireControllerWriteAccess
 	@PostMapping(value = "/rest/orgunit/update/kle")
 	@ResponseBody
@@ -142,7 +169,7 @@ public class OrgUnitRestController {
 
 		if ("KlePrimary".equals(type)) {
 			List<OrgUnitPrimaryKleMapping> existingKles = ou.getKlePrimary();
-			
+
 			// To remove
 			for (Iterator<OrgUnitPrimaryKleMapping> iterator = existingKles.iterator(); iterator.hasNext();) {
 				OrgUnitPrimaryKleMapping existingKle = iterator.next();
@@ -151,7 +178,7 @@ public class OrgUnitRestController {
 					iterator.remove();
 				}
 			}
-			
+
 			// To add
 			Set<String> existingCodes = existingKles.stream().map(k -> k.getKleValue()).collect(Collectors.toSet());
 			for (String code : codes) {
@@ -166,7 +193,7 @@ public class OrgUnitRestController {
 		}
 		else if ("KleSecondary".equals(type)) {
 			List<OrgUnitSecondaryKleMapping> existingKles = ou.getKleSecondary();
-			
+
 			// To remove
 			for (Iterator<OrgUnitSecondaryKleMapping> iterator = existingKles.iterator(); iterator.hasNext();) {
 				OrgUnitSecondaryKleMapping existingKle = iterator.next();
@@ -175,7 +202,7 @@ public class OrgUnitRestController {
 					iterator.remove();
 				}
 			}
-			
+
 			// To add
 			Set<String> existingCodes = existingKles.stream().map(k -> k.getKleValue()).collect(Collectors.toSet());
 			for (String code : codes) {
@@ -190,7 +217,7 @@ public class OrgUnitRestController {
 		}
 		else if ("KleTertiary".equals(type)) {
 			List<OrgUnitTertiaryKleMapping> existingKles = ou.getKleTertiary();
-			
+
 			// To remove
 			for (Iterator<OrgUnitTertiaryKleMapping> iterator = existingKles.iterator(); iterator.hasNext();) {
 				OrgUnitTertiaryKleMapping existingKle = iterator.next();
@@ -199,7 +226,7 @@ public class OrgUnitRestController {
 					iterator.remove();
 				}
 			}
-			
+
 			// To add
 			Set<String> existingCodes = existingKles.stream().map(k -> k.getKleValue()).collect(Collectors.toSet());
 			for (String code : codes) {
@@ -220,7 +247,7 @@ public class OrgUnitRestController {
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
-	
+
 	@RequireControllerWriteAccess
 	@PostMapping(value = "/rest/orgunit/update/kle/inherit")
 	@ResponseBody
@@ -235,7 +262,7 @@ public class OrgUnitRestController {
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
-	
+
 	@RequireAdminAccess
 	@PostMapping(value = "/rest/orgunit/{uuid}/update/accountOrderRules/try")
 	@ResponseBody
@@ -244,20 +271,20 @@ public class OrgUnitRestController {
 		if (orgUnit == null) {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
-		
+
 		TryAccountOrderRulesResult result = new TryAccountOrderRulesResult();
 		result.setResult(new HashMap<>());
-		
+
 		List<AccountOrder> accountsToCreate = accountOrderService.getAccountsToCreate(orgUnit, accountOrders);
 		for (AccountOrder order : accountsToCreate) {
 			String userType = order.getUserType();
-			
+
 			// don't count orders for persons with disabled ordering
 			Person person = personService.getByUuid(order.getPersonUuid());
 			if (person != null && person.isDisableAccountOrders()) {
 				continue;
 			}
-			
+
 			if (result.getResult().containsKey(userType)) {
 				result.getResult().put(userType, result.getResult().get(userType) + 1);
 			}
@@ -285,8 +312,8 @@ public class OrgUnitRestController {
 		if (orgUnit == null) {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
-		
-		accountOrders = accountOrderService.setAccountOrderSettings(orgUnit, accountOrders);
+
+		accountOrders = accountOrderService.setAccountOrderSettings(orgUnit, accountOrders, true);
 
 		return new ResponseEntity<>(accountOrders, HttpStatus.OK);
 	}
@@ -307,7 +334,7 @@ public class OrgUnitRestController {
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
-	
+
 	@RequireReadAccess
 	@GetMapping(value = "/rest/orgunit/{uuid}/getPositionNames/autocomplete")
 	@ResponseBody
@@ -321,7 +348,7 @@ public class OrgUnitRestController {
 
 		titles = orgUnitService.getPositionNames(ou, false, true);
 		titles.addAll(ou.getManagedTitles().stream().map(m -> m.getName()).collect(Collectors.toSet()));
-		
+
 		// filter - should contain search term
 		titles = titles.stream().filter(t -> t.toLowerCase().contains(term.toLowerCase())).collect(Collectors.toSet());
 
@@ -330,7 +357,7 @@ public class OrgUnitRestController {
 			ValueData vd = new ValueData();
 			vd.setValue(title);
 			vd.setData(title);
-			
+
 			suggestions.add(vd);
 		}
 
@@ -349,6 +376,14 @@ public class OrgUnitRestController {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
 
+		if (StringUtils.hasLength(contactInfo.getContactAddress()) && contactInfo.getContactAddress().length() > 250) {
+			contactInfo.setContactAddress(contactInfo.getContactAddress().substring(0, 250));
+		}
+		else if (!StringUtils.hasLength(contactInfo.getContactAddress())) {
+			contactInfo.setContactAddress(null);
+		}
+
+		ou.setContactAddress(contactInfo.getContactAddress());
 		ou.setOpeningHours(contactInfo.getOpeningHours());
 		ou.setOpeningHoursPhone(contactInfo.getOpeningHoursPhone());
 		ou.setKeyWords(contactInfo.getKeywords());
@@ -356,8 +391,9 @@ public class OrgUnitRestController {
 		ou.setEmailNotes(contactInfo.getEmailNotes());
 		ou.setLocation(contactInfo.getLocation());
 		ou.setUrlAddress(contactInfo.getUrlAddress());
+		ou.setEmail(contactInfo.getEmail());
 		orgUnitService.save(ou);
-		
+
 		return new ResponseEntity<>(contactInfo, HttpStatus.OK);
 	}
 
@@ -387,7 +423,7 @@ public class OrgUnitRestController {
 			phone.setPrime(false);
 			phone.setTypePrime(false);
 			phone.setFunctionType(functionType);
-			
+
 			OrgUnitPhoneMapping mapping = new OrgUnitPhoneMapping();
 			mapping.setOrgUnit(orgUnit);
 			mapping.setPhone(phone);
@@ -474,13 +510,13 @@ public class OrgUnitRestController {
 
 		if (removedAny) {
 			chooseDefaultReturnAddress(allPosts);
-			
+
 			orgUnitService.save(orgUnit);
 		}
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
-	
+
 	@RequireLosAdminAccess
 	@PostMapping(value = "/rest/orgunit/editOrCreatePost")
 	@ResponseBody
@@ -488,7 +524,7 @@ public class OrgUnitRestController {
 		if (bindingResult.hasErrors()) {
 			return new ResponseEntity<>(bindingResult.getAllErrors(), HttpStatus.BAD_REQUEST);
 		}
-		
+
 		OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
 		if (orgUnit == null) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -506,7 +542,7 @@ public class OrgUnitRestController {
 			post.setLocalname(postDTO.getLocalname());
 			post.setPostalCode(postDTO.getPostalCode());
 			post.setStreet(postDTO.getStreet());
-			
+
 			if (postDTO.isReturnAddress()) {
 				post.setReturnAddress(true);
 				allPosts.forEach(p -> p.setReturnAddress(false));
@@ -520,7 +556,7 @@ public class OrgUnitRestController {
 			OrgUnitPostMapping mapping = new OrgUnitPostMapping();
 			mapping.setOrgUnit(orgUnit);
 			mapping.setPost(post);
-			
+
 			orgUnit.getPostAddresses().add(mapping);
 			allPosts.add(post);
 
@@ -531,29 +567,32 @@ public class OrgUnitRestController {
 			if (existingPost.isPresent()) {
 				Post modifiedPost = existingPost.get();
 
-				if (!Objects.equals(modifiedPost.getCity(), postDTO.getCity())) {
-					modifiedPost.setCity(postDTO.getCity());
-					changes = true;
-				}
-				
-				if (!Objects.equals(modifiedPost.getCountry(), postDTO.getCountry())) {
-					modifiedPost.setCountry(postDTO.getCountry());
-					changes = true;
-				}
-				
-				if (!Objects.equals(modifiedPost.getLocalname(), postDTO.getLocalname())) {
-					modifiedPost.setLocalname(postDTO.getLocalname());
-					changes = true;
-				}
-				
-				if (!Objects.equals(modifiedPost.getPostalCode(), postDTO.getPostalCode())) {
-					modifiedPost.setPostalCode(postDTO.getPostalCode());
-					changes = true;
-				}
-				
-				if (!Objects.equals(modifiedPost.getStreet(), postDTO.getStreet())) {
-					modifiedPost.setStreet(postDTO.getStreet());
-					changes = true;
+				if (modifiedPost.getMaster().equals("SOFD")) {
+
+					if (!Objects.equals(modifiedPost.getCity(), postDTO.getCity())) {
+						modifiedPost.setCity(postDTO.getCity());
+						changes = true;
+					}
+
+					if (!Objects.equals(modifiedPost.getCountry(), postDTO.getCountry())) {
+						modifiedPost.setCountry(postDTO.getCountry());
+						changes = true;
+					}
+
+					if (!Objects.equals(modifiedPost.getLocalname(), postDTO.getLocalname())) {
+						modifiedPost.setLocalname(postDTO.getLocalname());
+						changes = true;
+					}
+
+					if (!Objects.equals(modifiedPost.getPostalCode(), postDTO.getPostalCode())) {
+						modifiedPost.setPostalCode(postDTO.getPostalCode());
+						changes = true;
+					}
+
+					if (!Objects.equals(modifiedPost.getStreet(), postDTO.getStreet())) {
+						modifiedPost.setStreet(postDTO.getStreet());
+						changes = true;
+					}
 				}
 
 				if (!Objects.equals(modifiedPost.isReturnAddress(), postDTO.isReturnAddress())) {
@@ -587,6 +626,10 @@ public class OrgUnitRestController {
 	}
 
 	private void chooseDefaultReturnAddress(List<Post> allPosts) {
+		if (!configuration.getModules().getOrgUnit().isChooseDefaultReturnAddressEnabled()) {
+			return;
+		}
+
 		if (allPosts.stream().noneMatch(p -> p.isReturnAddress())) {
 			Post primeAddress = allPosts.stream().filter(p -> p.isPrime()).findAny().orElse(null);
 			if (primeAddress != null) {
@@ -628,7 +671,7 @@ public class OrgUnitRestController {
 		}
 		if (tag.isCustomValueEnabled()) {
 			// verify regex tag syntax
-			if (tag.getCustomValueRegex() != null && tag.getCustomValueRegex() != "") {
+			if (tag.getCustomValueRegex() != null && StringUtils.hasLength(tag.getCustomValueRegex())) {
 				if (tagDTO.getCustomValue() == null || !Pattern.matches(tag.getCustomValueRegex(), tagDTO.getCustomValue())) {
 					return new ResponseEntity<>("Ugyldig værdi", HttpStatus.BAD_REQUEST);
 				}
@@ -641,14 +684,14 @@ public class OrgUnitRestController {
 					return new ResponseEntity<>(errorMessage, HttpStatus.BAD_REQUEST);
 				}
 			}
-			
+
 			orgUnitTag.setCustomValue(tagDTO.getCustomValue());
 		}
 		else {
 			orgUnitTag.setCustomValue(null);
 		}
 		orgUnitService.save(orgUnit);
-		
+
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
@@ -669,7 +712,7 @@ public class OrgUnitRestController {
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
-	
+
 	@RequireLosAdminAccess
 	@PostMapping(value = "/rest/orgunit/new")
 	@ResponseBody
@@ -712,13 +755,15 @@ public class OrgUnitRestController {
 			post.setAddressProtected(false);
 			post.setMaster("CVR");
 			post.setMasterId(orgUnitDTO.getPnr().toString());
-			
+
 			OrgUnitPostMapping mapping = new OrgUnitPostMapping();
 			mapping.setOrgUnit(orgUnit);
 			mapping.setPost(post);
-			
+
 			orgUnit.getPostAddresses().add(mapping);
 		}
+
+		managerService.checkAndSetManager(orgUnit);
 
 		OrgUnit newOrgUnit = orgUnitService.save(orgUnit);
 
@@ -746,12 +791,12 @@ public class OrgUnitRestController {
 		if (sourceName == null || sourceName.equals("")) {
 			return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
 		}
-		
+
 		boolean found = !orgUnitService.getBySourceName(sourceName).isEmpty();
 
 		return new ResponseEntity<>(found, HttpStatus.OK);
 	}
-	
+
 	@RequireControllerWriteAccess
 	@PostMapping(value = "/rest/orgunit/{uuid}/managedtitles/create")
 	@ResponseBody
@@ -761,7 +806,7 @@ public class OrgUnitRestController {
 			log.warn("No OrgUnit with uuid " + uuid);
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		
+
 		List<String> extraTitleNames = orgUnit.getManagedTitles().stream().map(m -> m.getName()).collect(Collectors.toList());
 		if (!extraTitleNames.contains(titleName)) {
 			ManagedTitle managedTitle = new ManagedTitle();
@@ -772,19 +817,19 @@ public class OrgUnitRestController {
 			orgUnit.getManagedTitles().add(managedTitle);
 			try {
 				orgUnitService.save(orgUnit);
-			} 
+			}
 			catch (Exception ex) {
 				log.error("Failed to save orgUnit " + orgUnit.getUuid(), ex);
 				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-			} 
+			}
 		}
 		else {
 			return new ResponseEntity<>("Der findes allerede en stilling på enheden med samme navn.", HttpStatus.BAD_REQUEST);
 		}
-		
+
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
-	
+
 	@RequireControllerWriteAccess
 	@PostMapping(value = "/rest/orgunit/{uuid}/managedtitles/{id}/delete")
 	public HttpEntity<String> createManagedTitle(@PathVariable("uuid") String uuid, @PathVariable("id") long id) {
@@ -793,17 +838,17 @@ public class OrgUnitRestController {
 			log.warn("No OrgUnit with uuid " + uuid);
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		
+
 		ManagedTitle titleToDelete = orgUnit.getManagedTitles().stream().filter(m -> m.getId() == id).findAny().orElse(null);
 		if (titleToDelete == null) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		
+
 		if (!titleToDelete.getMaster().equals("SOFD")) {
 			log.warn("ManagedTitle with id " + id + " is not owned by SOFD!");
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
-		
+
 		orgUnit.getManagedTitles().remove(titleToDelete);
 		try {
 			orgUnitService.save(orgUnit);
@@ -812,8 +857,8 @@ public class OrgUnitRestController {
 			log.error("Failed to save orgUnit " + orgUnit.getUuid(), ex);
 
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-		} 
-		
+		}
+
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 }

@@ -18,7 +18,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class Photo {
-    @Id
+
+	@Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 

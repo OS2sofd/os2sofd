@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.model.EmailTemplate;
 import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
+import dk.digitalidentity.sofd.dao.model.enums.EmailTemplatePlaceholder;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplateType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -88,14 +89,14 @@ public class OrgUnitChangeService {
 
 			for (String recipient : recipients) {
 				String message = child.getMessage();
-				message = message.replace(EmailTemplateService.RECEIVER_PLACEHOLDER, recipient);
-				message = message.replace(EmailTemplateService.CHANGES_PLACEHOLDER, html);
+				message = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
+				message = message.replace(EmailTemplatePlaceholder.CHANGES_PLACEHOLDER.getPlaceholder(), html);
 				
 				String title = child.getTitle();
-				title = title.replace(EmailTemplateService.RECEIVER_PLACEHOLDER, recipient);
-				title = title.replace(EmailTemplateService.CHANGES_PLACEHOLDER, html);
+				title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
+				title = title.replace(EmailTemplatePlaceholder.CHANGES_PLACEHOLDER.getPlaceholder(), html);
 				
-				emailQueueService.queueEmail(recipient, title, message, 0, child);
+				emailQueueService.queueEmailToSystemMailbox(recipient, title, message, 0, child);
 			}
 		}
 		

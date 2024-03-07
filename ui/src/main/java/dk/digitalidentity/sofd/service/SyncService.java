@@ -20,6 +20,7 @@ import org.springframework.util.StringUtils;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.model.ModificationHistory;
+import dk.digitalidentity.sofd.service.model.ADGridAD;
 import dk.digitalidentity.sofd.service.model.ADGridAffiliation;
 import dk.digitalidentity.sofd.service.model.ADGridOrgUnit;
 import dk.digitalidentity.sofd.service.model.ADGridPerson;
@@ -31,8 +32,9 @@ import dk.digitalidentity.sofd.service.model.SyncResult;
 public class SyncService {
 	
 	private static final String adGridPersonQuery =
-			"SELECT uuid," + 
-			"       cpr," + 
+			"SELECT person_uuid," +
+			"       uuid," +
+			"       cpr," +
 			"       name," + 
 			"       user_id," +
 			"       disabled," +
@@ -42,14 +44,28 @@ public class SyncService {
 			"       position_name," + 
 			"       orgunit_uuid," +
 			"       upn," +
+			"       nemlogin_user_uuid," +
 			"       inherit_privileges," +
 			"       kle_primary_values," + 
-			"       kle_secondary_values" + 
-			"  FROM view_syncservice_users";
-
-	private static final String adGridPersonQueryFilter = " WHERE disabled = 0";
-	private static final String adGridPersonQueryOnlyADFilter = " WHERE user_type = 'ACTIVE_DIRECTORY'";
-	private static final String adGridPersonQueryNotDisabledAndOnlyADFilter = " WHERE disabled = 0 AND user_type = 'ACTIVE_DIRECTORY'";
+			"       kle_secondary_values," +
+			"       user_type" +
+			"  FROM view_syncservice_users" +
+			"  WHERE 1=1 ";
+	
+	private static final String adGridAllAdQuery =
+			"SELECT person_uuid," +
+			"       uuid," +
+			"       cpr," + 
+			"       name," + 
+			"       user_id," +
+			"       disabled," +
+			"       expired," +
+			"       prime," + 
+			"       email," +
+			"       upn," +
+			"       primary_orgunit_name," +
+			"       local_extensions" +
+			"  FROM view_syncservice_all_ad_users";
 
 	private static final String adGridOrgUnitQuery =
 			"SELECT uuid," + 
@@ -100,41 +116,90 @@ public class SyncService {
 		return jdbcTemplate.queryForObject(maxQuery, Long.class);
 	}
 
-	public Collection<ADGridPerson> getADGridPersons(boolean includeUniloginUsers) {
-		String query = adGridPersonQuery;
-		if (includeUniloginUsers) {
-			query += configuration.getIntegrations().getRoleCatalogue().isIncludeDisabled() == false ? adGridPersonQueryFilter : "";
-		} else {
-			if (configuration.getIntegrations().getRoleCatalogue().isIncludeDisabled()) {
-				query += adGridPersonQueryOnlyADFilter;
-			} else {
-				query += adGridPersonQueryNotDisabledAndOnlyADFilter;
-			}
-		}
+	@SuppressWarnings("deprecation")
+	public Collection<ADGridAD> getADGridAllAD() {
+		String query = adGridAllAdQuery;
 		
-		@SuppressWarnings("deprecation")
-		List<ADGridPerson> persons = jdbcTemplate.query(query, new Object[0], (RowMapper<ADGridPerson>) (rs, rowNum) -> {
-			ADGridPerson person = new ADGridPerson();
-			
+		return jdbcTemplate.query(query, new Object[0], (RowMapper<ADGridAD>) (rs, rowNum) -> {
+			ADGridAD person = new ADGridAD();
+
+			String personUuid = rs.getString("person_uuid");
 			String uuid = rs.getString("uuid");
 			String cpr = rs.getString("cpr");
 			String name = rs.getString("name");
 			String userId = rs.getString("user_id");
 			String email = rs.getString("email");
 			String upn = rs.getString("upn");
+			String primaryOrgunitName = rs.getString("primary_orgunit_name");
+			String localExtensions = rs.getString("local_extensions");
+			boolean prime = rs.getBoolean("prime");
+			boolean disabled = rs.getBoolean("disabled");
+			boolean expired = rs.getBoolean("expired");
+
+			person.setPersonUuid(personUuid);
+			person.setUuid(uuid);
+			person.setEmail(email);
+			person.setName(name);
+			person.setCpr(cpr);
+			person.setUpn(upn);
+			person.setPrimaryOrgunitName(primaryOrgunitName);
+			person.setPrime(prime);
+			person.setUserId(userId);
+			person.setDisabled(disabled);
+			person.setExpired(expired);
+			person.setLocalExtensions(localExtensions);
+
+			return person;
+		});
+	}
+
+	public Collection<ADGridPerson> getADGridPersons(boolean includeUniloginUsers, boolean includeSchoolADUsers) {
+		String query = adGridPersonQuery;
+
+
+		if(!configuration.getIntegrations().getRoleCatalogue().isIncludeDisabled()) {
+			query += " AND disabled = 0 ";
+		}
+
+		var includedUserTypes = new ArrayList<String>();
+		includedUserTypes.add("'ACTIVE_DIRECTORY'");
+		if( includeUniloginUsers) {
+			includedUserTypes.add("'UNILOGIN'");
+		}
+		if( includeSchoolADUsers ) {
+			includedUserTypes.add("'ACTIVE_DIRECTORY_SCHOOL'");
+		}
+		query += " AND user_type in (" + String.join(",", includedUserTypes) + ") ";
+
+		@SuppressWarnings("deprecation")
+		List<ADGridPerson> persons = jdbcTemplate.query(query, new Object[0], (RowMapper<ADGridPerson>) (rs, rowNum) -> {
+			ADGridPerson person = new ADGridPerson();
+
+			String personUuid = rs.getString("person_uuid");
+			String uuid = rs.getString("uuid");
+			String cpr = rs.getString("cpr");
+			String name = rs.getString("name");
+			String userId = rs.getString("user_id");
+			String email = rs.getString("email");
+			String upn = rs.getString("upn");
+			String nemloginUserUuid = rs.getString("nemlogin_user_uuid");
 			boolean prime = rs.getBoolean("prime");
 			boolean disabled = rs.getBoolean("disabled");
 			boolean inheritPrivileges = rs.getBoolean("inherit_privileges");
 			String phoneNumber = rs.getString("phone_number");
 			String positionName = rs.getString("position_name");
 			String orgUnitUuid = rs.getString("orgunit_uuid");
+			String userType = rs.getString("user_type");
 
+			person.setSchoolUser(userType.equalsIgnoreCase("ACTIVE_DIRECTORY_SCHOOL"));
+			person.setPersonUuid(personUuid);
 			person.setUuid(uuid);
 			person.setEmail(email);
 			person.setPhone(phoneNumber);
 			person.setName(name);
 			person.setCpr(cpr);
 			person.setUpn(upn);
+			person.setNemloginUserUuid(nemloginUserUuid);
 			person.setPrime(prime);
 			person.setUserId(userId);
 			person.setDoNotInherit(!inheritPrivileges);
@@ -160,6 +225,7 @@ public class SyncService {
 				ADGridAffiliation affiliation = new ADGridAffiliation();
 				affiliation.setOrgUnitUuid(orgUnitUuid);
 				affiliation.setPositionName(positionName);
+				affiliation.setDoNotInherit(!inheritPrivileges);
 
 				person.getAffiliations().add(affiliation);
 			}

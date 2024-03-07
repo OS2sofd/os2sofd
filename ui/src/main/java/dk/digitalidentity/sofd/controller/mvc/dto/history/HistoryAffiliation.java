@@ -40,9 +40,9 @@ public class HistoryAffiliation {
 		this.deleted = affiliation.isDeleted();
 		this.inheritPrivileges = affiliation.isInheritPrivileges();
 		this.prime = affiliation.isPrime();
-		if (affiliation.getOrgUnit() != null) {
-			this.orgUnitName = affiliation.getOrgUnit().getName();
-			this.orgUnitUuid = affiliation.getOrgUnit().getUuid();
+		if (affiliation.getCalculatedOrgUnit() != null) {
+			this.orgUnitName = affiliation.getCalculatedOrgUnit().getName();
+			this.orgUnitUuid = affiliation.getCalculatedOrgUnit().getUuid();
 		}
 		this.employeeId = affiliation.getEmployeeId();
 		this.employmentTerms = affiliation.getEmploymentTerms();

@@ -5,6 +5,8 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -30,6 +32,11 @@ public class GridPersonActive implements GridPerson {
 	@Column
 	private String phoneNumber;
 
+	// JsonIgnore prevents leaking cpr back to ui
+	@JsonIgnore
+	@Column
+	private String cpr;
+
 	@Column
 	private boolean leave;
 	
@@ -38,6 +45,12 @@ public class GridPersonActive implements GridPerson {
 	
 	@Column
 	private boolean disableAccountOrders;
+	
+	@Column
+	private boolean dead;
+	
+	@Column
+	private boolean disenfranchised;
 
 	@Column
 	private String userIds;

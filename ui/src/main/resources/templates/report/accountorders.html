@@ -45,6 +45,7 @@
 										<td th:text="#{__${order.status.messageId}__}"></td>
 										<td>
 											<a th:href="@{/ui/report/accountorders/} + ${order.id}"><em class="fa fa-fw fa-search"></em></a>
+											<a href="#" th:attr="data-orderid=${order.id}" onclick="deleteAccountOrder(this); return false;"><em class="fa fa-fw fa-times"></em></a>
 										</td>
 									</tr>
 								</tbody>
@@ -71,6 +72,8 @@
 	<script th:replace="fragments/datatables :: datatables(autoLoad=false) "></script>
 	
 	<script th:inline="javascript">
+		/*<![CDATA[*/
+		var token = $("meta[name='_csrf']").attr("content");
 
 		var accountOrderDatatableService;
 		$(document).ready(function () {
@@ -138,6 +141,57 @@
 			}
 		}
 
+		function deleteAccountOrder(elem) {
+			var orderId = $(elem).data('orderid');
+			
+			/*[+
+			var deleteURL = [[@{/rest/accountorder/delete}]];
+			var removeTitle = [[#{html.page.accountorders.delete.title}]];
+			var removeText = [[#{html.page.accountorders.delete.text}]];
+			var removeButtonConfirm = [[#{html.button.delete}]];
+			var removeButtonCancel = [[#{html.button.cancel}]];
+			var deleteErrorMsg = [[#{html.page.accountorders.delete.error}]];
+			+]*/
+			
+			swal({
+				html : true,
+				title : removeTitle,
+				text : removeText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : removeButtonConfirm,
+				cancelButtonText : removeButtonCancel,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						url: deleteURL,
+						headers: {
+							'X-CSRF-TOKEN': token
+						},
+						type: 'post',
+						contentType: 'application/json',
+						data: JSON.stringify({ orderId: orderId }),
+						success: function( data, textStatus, jQxhr ){
+							location.reload(true);
+						},
+						error: function( jqXhr, textStatus, errorThrown ){
+							$.notify({
+								message: deleteErrorMsg
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						}
+					});
+				}
+			});
+		}
+
+		/*]]>*/
 	</script>
 </body>
 </html>

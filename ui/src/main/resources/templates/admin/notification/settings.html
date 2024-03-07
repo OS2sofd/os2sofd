@@ -22,7 +22,7 @@
 						</fieldset>
 
 						<fieldset>
-							<div class="form-group row" style="margin-bottom: inherit;" th:each="notificationtype : ${T(dk.digitalidentity.sofd.dao.model.enums.NotificationType).values()}">
+							<div class="form-group row" style="margin-bottom: inherit;" th:each="notificationtype : ${T(dk.digitalidentity.sofd.dao.model.enums.NotificationType).values()}"  th:if="${notificationtype.isVisibleInUI()}" >
 								<label class="col-sm-3 control-label" style="padding-top: inherit;" th:text="#{__${notificationtype.message}__}"></label>
 								<div class="col-sm-9">
 									<span class="checkbox c-checkbox" style="display: inline;">

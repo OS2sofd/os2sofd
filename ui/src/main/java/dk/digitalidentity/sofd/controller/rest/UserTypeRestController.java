@@ -73,10 +73,12 @@ public class UserTypeRestController {
 
 		userType.setUsernamePrefix(supportedUserTypeDTO.getPrefix());
 		userType.setUsernamePrefixValue(supportedUserTypeDTO.getPrefixValue());
+		userType.setUsernamePrefixExternalValue(supportedUserTypeDTO.getPrefixExternalValue());
 		userType.setUsernameInfix(supportedUserTypeDTO.getInfix());
 		userType.setUsernameInfixValue(supportedUserTypeDTO.getInfixValue());
 		userType.setUsernameSuffix(supportedUserTypeDTO.getSuffix());
 		userType.setUsernameSuffixValue(supportedUserTypeDTO.getSuffixValue());
+		userType.setUsernameSuffixExternalValue(supportedUserTypeDTO.getSuffixExternalValue());
 
 		supportedUserTypeService.save(userType);
 

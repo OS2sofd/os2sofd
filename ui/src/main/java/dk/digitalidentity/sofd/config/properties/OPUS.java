@@ -13,11 +13,10 @@ public class OPUS {
 	private boolean enableFiltering = false;
 	private boolean enableAutoAffiliationConfiguration = false;
 	private boolean enableActiveDirectoryEmployeeIdAssociation = false;
+	private boolean adEmployeeIdAssociationLimitedToPrimeAffiliation = true;
 	private List<String> positionIds = new ArrayList<>();
+	private List<String> positionNames = List.of("efterindtægt");
 	private List<String> losIds = new ArrayList<>();
 	private String orgUnitInfix = "";
-	
-	// documentation only - not used here. Flag as false in docker-compose.yml
-	// to indicate that the setting has been turned off
-	private boolean filterEfterindtaegt = true;
+	private List<String> invalidPositionNames = new ArrayList<>();
 }

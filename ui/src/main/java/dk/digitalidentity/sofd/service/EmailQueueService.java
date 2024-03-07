@@ -23,6 +23,8 @@ import dk.digitalidentity.sofd.dao.model.Attachment;
 import dk.digitalidentity.sofd.dao.model.EmailQueue;
 import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
 import dk.digitalidentity.sofd.dao.model.Person;
+import dk.digitalidentity.sofd.dao.model.User;
+import dk.digitalidentity.sofd.dao.model.enums.EmailTemplatePlaceholder;
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.dao.model.enums.EventType;
 import dk.digitalidentity.sofd.log.AuditLogger;
@@ -46,6 +48,9 @@ public class EmailQueueService {
 	
 	@Autowired
 	private PersonService personService;
+	
+	@Autowired
+	private UserService userService;
 
 	@Autowired
 	private SofdConfiguration configuration;
@@ -58,13 +63,52 @@ public class EmailQueueService {
 		emailQueueDao.deleteAll(emailQueues);
 	}
 
-	public void queueEmail(String email, String title, String message, long delay, EmailTemplateChild templateChild) {
+	public List<EmailQueue> findAll() {
+		return emailQueueDao.findAll();
+	}
+
+	public EmailQueue findById(long id) {
+		return emailQueueDao.findById(id);
+	}
+
+	public EmailQueue save(EmailQueue entity) {
+		return emailQueueDao.save(entity);
+	}
+
+	public void delete(EmailQueue entity) {
+		emailQueueDao.delete(entity);
+	}
+
+	public void queueEmailToSystemMailbox(String email, String title, String message, long delay, EmailTemplateChild templateChild) {
 		EmailQueue mail = new EmailQueue();
 		mail.setEmail(email);
 		mail.setMessage(message);
 		mail.setTitle(title);
 		mail.setDeliveryTts(getDeliveryTts(delay));
 		mail.setEmailTemplateChild(templateChild);
+		mail.setPerformEmailCheck(false); // we do not perform checks on email-existance when sending to "external" mailbox
+		mail.setRecipient(email);
+
+		emailQueueDao.save(mail);
+	}
+	
+	public void queueEmail(String email, String title, String message, long delay, EmailTemplateChild templateChild) {
+		queueEmail(email, title, message, delay, templateChild, email);
+	}
+
+	public void queueEmail(Person recipient, String title, String message, long delay, EmailTemplateChild templateChild) {
+		queueEmail(PersonService.getEmail(recipient), title, message, delay, templateChild, PersonService.getName(recipient));
+	}
+
+	private void queueEmail(String email, String title, String message, long delay, EmailTemplateChild templateChild, String recipient) {
+		EmailQueue mail = new EmailQueue();
+		mail.setEmail(email);
+		mail.setMessage(message);
+		mail.setTitle(title);
+		mail.setDeliveryTts(getDeliveryTts(delay));
+		mail.setEmailTemplateChild(templateChild);
+		mail.setPerformEmailCheck(true);
+		mail.setRecipient(recipient);
 
 		emailQueueDao.save(mail);
 	}
@@ -72,59 +116,46 @@ public class EmailQueueService {
 	public void queueEmail(String title, String message, Date deliveryTts, EmailTemplateChild templateChild, List<Person> persons) {
 		for (Person person : persons) {
 			String email = PersonService.getEmail(person);
-			message = message.replace(EmailTemplateService.RECEIVER_PLACEHOLDER, PersonService.getName(person));
-			title = title.replace(EmailTemplateService.RECEIVER_PLACEHOLDER, PersonService.getName(person));
+			message = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
+			title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
 
 			EmailQueue mail = new EmailQueue();
-			//email can be null - means that we will look up mail from uuid when sending
-			mail.setEmail(email);
-			mail.setPersonUuid(person.getUuid());
 			mail.setMessage(message);
 			mail.setTitle(title);
 			mail.setDeliveryTts(deliveryTts);
 			mail.setEmailTemplateChild(templateChild);
+			
+			// email can be null - means that we will look up mail from uuid when sending
+			if (StringUtils.hasLength(email)) {
+				mail.setEmail(email);
+				mail.setPerformEmailCheck(true);
+			}
+			else {
+				mail.setPersonUuid(person.getUuid());
+			}
+			mail.setRecipient(PersonService.getName(person));
 
 			emailQueueDao.save(mail);
 		}
 	}
 	
-	public void queueEboks(String cpr, String title, String message, long delay, EmailTemplateChild templateChild) {
-		if (!isCpr(cpr)) {
-			log.warn("Not sending e-boks to invalid cpr = " + cpr);
+	public void queueEboks(Person person, String title, String message, long delay, EmailTemplateChild templateChild) {
+		if (!isCpr(person.getCpr())) {
+			log.warn("Not sending e-boks to invalid cpr = " + person.getCpr());
 			return;
 		}
 
 		EmailQueue mail = new EmailQueue();
-		mail.setCpr(cpr);
+		mail.setCpr(person.getCpr());
 		mail.setMessage(message);
 		mail.setTitle(title);
 		mail.setDeliveryTts(getDeliveryTts(delay));
 		mail.setEmailTemplateChild(templateChild);
+		mail.setRecipient(PersonService.getName(person));
 		
 		emailQueueDao.save(mail);
 	}
 
-	public void queueEboks(String title, String message, Date deliveryTts, EmailTemplateChild templateChild, List<Person> persons) {
-		for (Person person : persons) {
-			if (!isCpr(person.getCpr())) {
-				log.warn("Not sending e-boks to invalid cpr = " + person.getCpr());
-				continue;
-			}
-			
-			message = message.replace(EmailTemplateService.RECEIVER_PLACEHOLDER, PersonService.getName(person));
-			title = title.replace(EmailTemplateService.RECEIVER_PLACEHOLDER, PersonService.getName(person));
-
-			EmailQueue mail = new EmailQueue();
-			mail.setCpr(person.getCpr());
-			mail.setMessage(message);
-			mail.setTitle(title);
-			mail.setDeliveryTts(deliveryTts);
-			mail.setEmailTemplateChild(templateChild);
-			
-			emailQueueDao.save(mail);
-		}
-	}
-	
 	private boolean isCpr(String cpr) {
 		if (cpr == null) {
 			return false;
@@ -189,11 +220,15 @@ public class EmailQueueService {
 				
 				if (StringUtils.hasLength(email.getEmail())) {
 					// verify that email still exists
-					Person person = personService.getByUuid(email.getPersonUuid());
-					if (person != null) {
-						var emailStillExists = person.getUsers().stream().anyMatch(u -> u.getUser().getUserType().equalsIgnoreCase(SupportedUserTypeService.getExchangeUserType()) && u.getUser().getUserId().equalsIgnoreCase(email.getEmail()));
-						if (!emailStillExists) {
-							log.warn("Could not find email " + email.getEmail() + " on person with uuid " + person.getUuid() + " when sending email of type " + templateChild.getEmailTemplate().getTemplateType().toString());
+					if (email.isPerformEmailCheck()) {
+						User user = userService.findByUserIdAndUserType(email.getEmail(), SupportedUserTypeService.getExchangeUserType());
+						if (user == null) {
+							log.warn("Could not find email " + email.getEmail() + " when sending email of type " + templateChild.getEmailTemplate().getTemplateType().toString());
+							emailQueueDao.delete(email);
+							continue;
+						}
+						else if (user.isDisabled()) {
+							log.warn("Email " + email.getEmail() + " was disabled when sending email of type " + templateChild.getEmailTemplate().getTemplateType().toString());
 							emailQueueDao.delete(email);
 							continue;
 						}
@@ -204,16 +239,19 @@ public class EmailQueueService {
 					Person person = personService.getByUuid(email.getPersonUuid());
 					if (person != null) {
 						String foundEmail = PersonService.getEmail(person);
+						
 						if (!StringUtils.hasLength(foundEmail)) {
 							log.warn("Could not find email on person with uuid " + person.getUuid() + " when sending email of type " + templateChild.getEmailTemplate().getTemplateType().toString());
 							emailQueueDao.delete(email);
 							continue;
 						}
+						
+						// TODO: should probably check if the account is active (disabled == 0)
 						email.setEmail(foundEmail);
 					}
 				}
 
-				//Check if email matches whitelisted domains
+				// check if email matches whitelisted domains
 				if (templateChild.getDomainFilter() != null && configuration.getEmailTemplate().isDomainFilterEnabled()) {
 					List<String> domains = Arrays.asList(templateChild.getDomainFilter().split(","));
 					if (domains.size() > 0 && domains.stream().noneMatch(filter -> email.getEmail().endsWith(filter.trim()))) {
@@ -293,5 +331,4 @@ public class EmailQueueService {
 		
 		return inlineImages;		
 	}
-
 }

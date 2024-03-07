@@ -76,3 +76,7 @@ li.bold {
 .modal {
   overflow-y:auto;
 }
+.footnote {
+	color: red;
+	font-size: smaller;
+}

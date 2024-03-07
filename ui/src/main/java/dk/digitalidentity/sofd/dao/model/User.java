@@ -9,6 +9,7 @@ import javax.persistence.OneToOne;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import org.apache.commons.lang.StringUtils;
 import org.hibernate.annotations.BatchSize;
 import org.hibernate.envers.Audited;
 import org.springframework.data.annotation.ReadOnlyProperty;
@@ -76,6 +77,7 @@ public class User extends MasteredEntity {
 	@NotNull
 	private boolean prime;
 
+	// TODO: this does not appear to be used for anything (yet?)
 	@Column
 	@NotNull
 	private boolean substituteAccount;
@@ -87,4 +89,9 @@ public class User extends MasteredEntity {
 	// TODO: temporary hack to ensure we can deal with null values in Better API
 	private transient Boolean tSubstituteAccount;
 	private transient Boolean tDisabled;
+
+	public void setEmployeeId(String employeeId) {
+		this.employeeId = StringUtils.isBlank(employeeId) ? null : employeeId;
+	}
+
 }

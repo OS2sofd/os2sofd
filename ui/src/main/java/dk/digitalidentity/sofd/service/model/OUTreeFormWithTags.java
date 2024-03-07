@@ -1,6 +1,7 @@
 package dk.digitalidentity.sofd.service.model;
 
 import java.util.List;
+import java.util.Map;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -13,4 +14,5 @@ public class OUTreeFormWithTags {
 	private String text;
 	private String manager;
 	private List<Long> tagIds;
+	private Map<Long, String> tagValueMap;
 }

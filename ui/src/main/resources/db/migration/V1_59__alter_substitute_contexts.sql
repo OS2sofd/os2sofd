@@ -1,0 +1,1 @@
+ALTER TABLE substitute_context ADD COLUMN inherit_org_unit_assignments BOOLEAN NOT NULL DEFAULT FALSE;
