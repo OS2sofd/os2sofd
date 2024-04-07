@@ -422,7 +422,7 @@ public class OS2SyncService {
 				blankCpr = true;
 			}
 			else if (configuration.getIntegrations().getOs2sync().isDoNotSendCprForSubstitutes()) {
-				if (UserService.isSubstituteADUser(adUser)) {
+				if (UserService.isSubstituteUser(adUser)) {
 					blankCpr = true;
 				}
 			}
@@ -440,7 +440,7 @@ public class OS2SyncService {
 			final String finalUserId = adUser.getUserId();
 
 			// we want to fasttrack sync of substitute users (vikXXXX)
-			final long priority = (UserService.isSubstituteADUser(adUser)) ? 8 : 10;
+			final long priority = (UserService.isSubstituteUser(adUser)) ? 8 : 10;
 
 			if (adUser.isDisabled()) {
 				deleteUser(finalUuid);

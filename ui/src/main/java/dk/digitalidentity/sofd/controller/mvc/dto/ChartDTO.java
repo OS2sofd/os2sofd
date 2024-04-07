@@ -10,6 +10,7 @@ import lombok.Setter;
 public class ChartDTO {
 	private String name;
 	private String manager;
+	private String className;
 	private List<ChartDTO> children;
 	
 	private boolean managerInherited;

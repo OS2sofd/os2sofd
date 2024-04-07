@@ -206,5 +206,4 @@ public class Affiliation extends MasteredEntity implements Serializable {
 	public OrgUnit getCalculatedOrgUnit() {
 		return this.alternativeOrgUnit != null ? alternativeOrgUnit : orgUnit;
 	}
-
 }

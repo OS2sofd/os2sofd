@@ -12,6 +12,7 @@ import dk.digitalidentity.sofd.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -196,17 +197,20 @@ public class ManagerUIApiController {
 
 		boolean changes = false;
 		if (!Objects.equals(match.getPositionName(), dto.position())) {
-			match.setPositionName(dto.position());
+			match.setPositionName((StringUtils.hasLength(dto.position())) ? dto.position().trim() : "Ukendt");
 			changes = true;
 		}
+		
 		if (!Objects.equals(match.getPositionDisplayName(), dto.positionDisplayName())) {
 			match.setPositionDisplayName(dto.positionDisplayName());
 			changes = true;
 		}
+
 		if (!Objects.equals(match.getStopDate(), dto.stopDate())) {
 			match.setStopDate(dto.stopDate());
 			changes = true;
 		}
+		
 		if (!Objects.equals(match.getInternalReference(), dto.internalReference())) {
 			match.setInternalReference(dto.internalReference());
 			changes = true;

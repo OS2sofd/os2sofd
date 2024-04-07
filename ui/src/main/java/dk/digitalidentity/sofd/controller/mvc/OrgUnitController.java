@@ -772,7 +772,8 @@ public class OrgUnitController {
 		affiliation.setOrgUnit(ou);
 		affiliation.setPerson(person);
 		affiliation.setStartDate(getToday());
-		affiliation.setPositionName(affiliationDTO.getPositionName());
+		affiliation.setPositionName((StringUtils.hasLength(affiliationDTO.getPositionName())) ? affiliationDTO.getPositionName().trim() : "Ukendt");
+		
 		affiliation.setAffiliationType(affiliationDTO.getAffiliationType());
 
 		if (affiliationDTO.getAffiliationType().equals(AffiliationType.EXTERNAL)) {

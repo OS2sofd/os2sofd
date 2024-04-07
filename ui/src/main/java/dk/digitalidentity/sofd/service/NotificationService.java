@@ -151,7 +151,7 @@ public class NotificationService {
 				
 				// if OS2vikar is available, ignore all AD accounts with userId vikXXXX
 				if (SupportedUserTypeService.isActiveDirectory(userType.getKey()) && configuration.getModules().getSubstitute().isEnabled()) {
-					filteredUsers = filteredUsers.stream().filter(u -> !UserService.isSubstituteADUser(u)).collect(Collectors.toList());
+					filteredUsers = filteredUsers.stream().filter(u -> !UserService.isSubstituteUser(u)).collect(Collectors.toList());
 				}
 
 				// if the person does not have any of these accounts, skip to next userType

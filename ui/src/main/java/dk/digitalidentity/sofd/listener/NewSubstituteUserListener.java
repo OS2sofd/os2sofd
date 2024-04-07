@@ -82,7 +82,7 @@ public class NewSubstituteUserListener implements ListenerAdapter {
 
 	private void sendEboksMessage(Person person, User user) {
 		// we only trigger on vikar accounts (vikXXXX)
-		if (!UserService.isSubstituteADUser(user)) {
+		if (!UserService.isSubstituteUser(user)) {
 			return;
 		}
 

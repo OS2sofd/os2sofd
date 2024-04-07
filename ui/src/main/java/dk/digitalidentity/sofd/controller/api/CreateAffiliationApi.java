@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -69,7 +70,7 @@ public class CreateAffiliationApi {
 		affiliation.setMasterId(UUID.randomUUID().toString());
 		affiliation.setOrgUnit(orgUnit);
 		affiliation.setPerson(person);
-		affiliation.setPositionName(dto.getPositionName());
+		affiliation.setPositionName((StringUtils.hasLength(dto.getPositionName())) ? dto.getPositionName().trim() : "Ukendt");
 		affiliation.setAffiliationType(dto.getAffiliationType());
 
 		affiliation.setStopDate(dto.getStopDate());

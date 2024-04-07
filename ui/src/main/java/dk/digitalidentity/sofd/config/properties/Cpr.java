@@ -9,4 +9,5 @@ public class Cpr {
 	private String url = "http://cprservice5.digital-identity.dk";
 	private boolean useAddressName = false;
 	private boolean addressEnabled = true;
+	private boolean showPersonStateInUi = false;
 }

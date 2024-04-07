@@ -14,7 +14,8 @@ public enum UsernameInfixType {
 	FROM_NAME_LONG("html.usertype.username.infix.from_name_long"),
 	FROM_NAME_FULL("html.usertype.username.infix.from_name_full"),
 	EMPLOYEE_ID("html.usertype.username.infix.employee_id"),
-	NUMBER("html.usertype.username.infix.number");
+	NUMBER("html.usertype.username.infix.number"),
+	NAME23SERIAL("html.usertype.username.infix.name23serial");
 
 	private String message;
 

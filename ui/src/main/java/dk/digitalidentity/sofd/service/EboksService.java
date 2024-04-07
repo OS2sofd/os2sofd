@@ -151,6 +151,10 @@ public class EboksService {
 
 		String htmlContent = templateEngine.process("pdf/template", ctx);
 
+		htmlContent = htmlContent.replace("&nbsp;", "&#160;");
+		htmlContent = htmlContent.replace("<br>", "<br />");
+		htmlContent = htmlContent.replace("& ", "&amp; ");
+
 		// Create PDF document and return as byte[]
 		try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
 			ITextRenderer renderer = new ITextRenderer();

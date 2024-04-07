@@ -180,7 +180,7 @@ public class AffiliationController {
 					
 					if (!Objects.equals(affiliationEditDTO.getPositionName(), affiliation.getPositionName())) {
 						changes = true;
-						affiliation.setPositionName(affiliationEditDTO.getPositionName());
+						affiliation.setPositionName((StringUtils.hasLength(affiliationEditDTO.getPositionName())) ? affiliationEditDTO.getPositionName().trim() : "Ukendt");
 					}
 					
 					if (!Objects.equals(affiliationEditDTO.getVendor(), affiliation.getVendor())) {

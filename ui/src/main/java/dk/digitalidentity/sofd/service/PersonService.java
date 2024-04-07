@@ -458,8 +458,9 @@ public class PersonService {
 		if( !Objects.equals(person.getFirstname(), firstname) || !Objects.equals(person.getSurname(), surname) ) {
 			person.setFirstname(firstname);
 			person.setSurname(surname);
+
 			// name was changed in CPR - reset chosen name according to config
-			if( configuration.getModules().getPerson().isResetChosenNameOnNameChange() ) {
+			if (configuration.getModules().getPerson().isResetChosenNameOnNameChange()) {
 				person.setChosenName(null);
 			}
 

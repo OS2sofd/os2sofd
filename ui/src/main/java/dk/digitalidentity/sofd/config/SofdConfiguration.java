@@ -5,6 +5,8 @@ import java.util.Objects;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import dk.digitalidentity.sofd.config.properties.AmazonS3Details;
 import dk.digitalidentity.sofd.config.properties.Customer;
 import dk.digitalidentity.sofd.config.properties.EmailTemplateConfiguration;
@@ -19,13 +21,15 @@ import lombok.Setter;
 @Setter
 @ConfigurationProperties(prefix = "sofd")
 public class SofdConfiguration {
-	private String version = "2023 r3";
-	private String latestVersion = "2023 r3";
+	private String version = "2024 r1";
+	private String latestVersion = "2024 r1";
 	
 	private Modules modules = new Modules();
 	private Customer customer = new Customer();
 	private Integrations integrations = new Integrations();
 	private Scheduled scheduled = new Scheduled();
+	
+	@JsonIgnore
 	private AmazonS3Details s3 = new AmazonS3Details();
 	private EmailTemplateConfiguration emailTemplate = new EmailTemplateConfiguration();
 	

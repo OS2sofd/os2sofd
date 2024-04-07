@@ -1,6 +1,7 @@
 package dk.digitalidentity.sofd.controller.mvc;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -92,6 +93,7 @@ public class ChartController {
 		if (shouldAdd) {
 			ChartDTO childChart = new ChartDTO();
 			childChart.setName(currentNode.getName());
+			childChart.setClassName(currentNode.getType().getKey());
 			childChart.setManager(currentNode.getManager() != null ? currentNode.getManager().getName() : "&nbsp;"); // whitespace needed to keep multiple charts aligned vertically
 			childChart.setChildren(new ArrayList<>());
 			childChart.setUuid(currentNode.getUuid());
@@ -106,7 +108,7 @@ public class ChartController {
 				currentChart = childChart;
 			}
 		}
-		for (OrgUnit childOu : allOus.stream().filter(o -> o.getParent() != null && o.getParent().getUuid().equalsIgnoreCase(currentNode.getUuid())).collect(Collectors.toList())) {
+		for (OrgUnit childOu : allOus.stream().filter(o -> o.getParent() != null && o.getParent().getUuid().equalsIgnoreCase(currentNode.getUuid())).sorted(Comparator.comparing(OrgUnit::getName)).toList()) {
 			getChildrenRecursive(allOus, chart, childOu, charts, inherit, currentChart, currentLevel+1, uuidsInChart);
 		}
 	}

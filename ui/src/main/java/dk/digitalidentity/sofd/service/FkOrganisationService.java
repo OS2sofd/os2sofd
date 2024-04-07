@@ -9,7 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
@@ -34,6 +34,7 @@ public class FkOrganisationService {
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("Cvr", configuration.getCustomer().getCvr());
+		headers.add("Accept", "application/json");
 		headers.add("onlyOUs", "true");
 		HttpEntity<String> request = new HttpEntity<>(headers);
 
@@ -52,14 +53,14 @@ public class FkOrganisationService {
 			Thread.sleep(5 * 1000); // sleep 5 seconds before attempting to read again
 
 			try {
-				response = restTemplate.getForEntity(configuration.getIntegrations().getOs2sync().getRestUrl() + "/" + key, FKHierarchyWrapper.class);
+				response = restTemplate.exchange(configuration.getIntegrations().getOs2sync().getRestUrl() + "/" + key, HttpMethod.GET, request, FKHierarchyWrapper.class);
 
 				if (response.getStatusCodeValue() != 404) {
 					break;
 				}
 			}
-			catch (RestClientException e) {
-				log.warn("Failed to get hierarchy for key " + key + ". Attempt " + i + " of " + maxAttempts + ".");
+			catch (HttpStatusCodeException e) {
+				log.warn("Failed to get hierarchy for key " + key + ". Attempt " + i + " of " + maxAttempts + ". status=" + e.getRawStatusCode());
 			}
 		}
 

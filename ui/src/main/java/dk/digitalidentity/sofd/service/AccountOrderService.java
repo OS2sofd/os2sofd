@@ -501,7 +501,7 @@ public class AccountOrderService {
 			originalOrder = orgUnitAccountOrderDao.save(originalOrder);
 
 			// trigger ordering new accounts if needed
-			List<AccountOrder> orderAccounts = getAccountsToCreate(affiliationService.findByCalculatedOrgUnit(orgUnit), true, originalOrder, false);
+			List<AccountOrder> orderAccounts = getAccountsToCreate(affiliationService.findByCalculatedOrgUnit(orgUnit), true, originalOrder, true);
 			if (orderAccounts.size() > 0) {
 				save(orderAccounts);
 			}
@@ -618,7 +618,7 @@ public class AccountOrderService {
 
 			// if OS2vikar is enabled, we skip all AD accounts with vikXXXX as the userId
 			if (configuration.getModules().getSubstitute().isEnabled()) {
-                users = users.stream().filter(u -> !UserService.isSubstituteADUser(u)).collect(Collectors.toList());
+                users = users.stream().filter(u -> !UserService.isSubstituteUser(u)).collect(Collectors.toList());
 			}
 
 			// ignore persons with no relevant user accounts
@@ -763,7 +763,7 @@ public class AccountOrderService {
 
 			// do not associate substitute accounts according to configuration
 			if( !configuration.getModules().getAccountCreation().isLinkSubstituteADAccountsToExchange() ) {
-				users.removeIf(UserService::isSubstituteADUser);
+				users.removeIf(UserService::isSubstituteUser);
 			}
 			// remove non AD users
 			users.removeIf(u ->  !u.getUserType().equals(SupportedUserTypeService.getActiveDirectoryUserType()));
@@ -927,7 +927,7 @@ public class AccountOrderService {
 
 			for (User existingUserAccount : affiliation.getPerson().onlyActiveUsers()) {
 				// do not associate substitute accounts according to configuration
-				if( !configuration.getModules().getAccountCreation().isLinkSubstituteADAccountsToExchange() && UserService.isSubstituteADUser(existingUserAccount)) {
+				if( !configuration.getModules().getAccountCreation().isLinkSubstituteADAccountsToExchange() && UserService.isSubstituteUser(existingUserAccount)) {
 					continue;
 				}
 
@@ -1011,8 +1011,8 @@ public class AccountOrderService {
 		List<User> existingUsers = person.onlyActiveUsers().stream().filter(u -> Objects.equals(u.getUserType(), userType)).collect(Collectors.toList());
 
 		// if OS2vikar is enabled, also remove any existing substitute accounts as they should not block the creation of other accounts
-		if (configuration.getModules().getSubstitute().isEnabled() && SupportedUserTypeService.isActiveDirectory(userType)) {
-            existingUsers = existingUsers.stream().filter(u -> !UserService.isSubstituteADUser(u)).collect(Collectors.toList());
+		if (configuration.getModules().getSubstitute().isEnabled() && (SupportedUserTypeService.isActiveDirectory(userType) || SupportedUserTypeService.isExchange(userType) )) {
+            existingUsers = existingUsers.stream().filter(u -> !UserService.isSubstituteUser(u)).collect(Collectors.toList());
 		}
 
 		SupportedUserType supportedUserType = supportedUserTypeService.findByKey(userType);
@@ -1365,7 +1365,7 @@ public class AccountOrderService {
 									if (orgUnitUuid != null && configuration.getEmailTemplate().isOrgFilterEnabled() && template.getTemplateType().isShowOrgFilter()) {
 										List<String> excludedOUUuids = child.getExcludedOrgUnitMappings().stream().map(o -> o.getOrgUnit()).map(o -> o.getUuid()).collect(Collectors.toList());
 										if (excludedOUUuids.contains(orgUnitUuid)) {
-											log.info("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + affiliation.getUuid() + ". The affiliation OU was in the excluded ous list. Email template type " + EmailTemplateType.AD_CREATE_MANAGER.toString());
+											log.info("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + (affiliation != null ? affiliation.getUuid() : "<null>") + ". The affiliation OU was in the excluded ous list. Email template type " + EmailTemplateType.AD_CREATE_MANAGER.toString());
 											continue;
 										}
 									}

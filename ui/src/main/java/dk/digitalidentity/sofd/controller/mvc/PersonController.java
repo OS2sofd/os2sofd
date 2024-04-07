@@ -290,6 +290,8 @@ public class PersonController {
 
     @GetMapping("/ui/person")
     public String list(Model model) {
+    	model.addAttribute("showPersonState", configuration.getIntegrations().getCpr().isShowPersonStateInUi());
+
         return "person/list";
     }
 
@@ -631,7 +633,7 @@ public class PersonController {
         affiliation.setMasterId(UUID.randomUUID().toString());
         affiliation.setOrgUnit(orgUnitService.getByUuid(affiliationDTO.getOrgUnitUuid()));
         affiliation.setPerson(person);
-        affiliation.setPositionName(affiliationDTO.getPositionName());
+		affiliation.setPositionName((StringUtils.hasLength(affiliationDTO.getPositionName())) ? affiliationDTO.getPositionName().trim() : "Ukendt");
         affiliation.setAffiliationType(affiliationDTO.getAffiliationType());
         affiliation.setInternalReference(affiliationDTO.getInternalReference());
 

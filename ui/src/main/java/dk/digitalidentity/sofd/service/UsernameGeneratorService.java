@@ -13,8 +13,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+
+import com.querydsl.core.NonUniqueResultException;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.ReservedUsernameDao;
@@ -53,9 +56,9 @@ public class UsernameGeneratorService {
 	@Autowired
 	private SupportedUserTypeService supportedUserTypeService;
 
-	 @Autowired
-	 private SettingService settingService;
-	
+	@Autowired
+	private SettingService settingService;
+
 	@Autowired
 	private AccountOrderService accountOrderService;
 	
@@ -182,7 +185,17 @@ public class UsernameGeneratorService {
 				reservedUsername = reservedUsernameDao.findByPersonUuidAndEmployeeIdAndUserType(person.getUuid(), employeeId, userType);
 			}
 			else {
-				reservedUsername = reservedUsernameDao.findByPersonUuidAndUserType(person.getUuid(), userType);
+				try {
+					reservedUsername = reservedUsernameDao.findByPersonUuidAndUserType(person.getUuid(), userType);
+				}
+				catch (NonUniqueResultException | IncorrectResultSizeDataAccessException ignored) {
+					// special case - we MIGHT have a employeeId, and that could be used to avoid the nonUnique problem
+					reservedUsername = reservedUsernameDao.findByPersonUuidAndEmployeeIdAndUserType(person.getUuid(), employeeId, userType);
+					if (reservedUsername == null) {
+						log.warn("attempting to lookup using employeeId " + employeeId + " did not help, got NULL");
+						return null;
+					}
+				}
 			}
 		}
 		catch (Exception ex) {
@@ -488,6 +501,9 @@ public class UsernameGeneratorService {
 			case NUMBER:
 				infix = number(userType.getKey(), getLong(userType.getUsernameInfixValue(), 5), prefix, suffix);
 				break;
+			case NAME23SERIAL:
+				infix =  name23serial(person, userType.getKey(), prefix, suffix);
+				break;
 			case SAME_AS_OTHER:
 				SupportedUserType otherUserType = supportedUserTypeService.findById(Long.parseLong(userType.getUsernameInfixValue()));
 				if (otherUserType == null) {
@@ -598,7 +614,70 @@ public class UsernameGeneratorService {
 		return username;
 	}
 
+	private String name23serial(Person person, String userType, String prefix, String suffix) {
+		String personName = PersonService.getName(person);
+		String transliteratedName = Transliteration.transliterate(personName, null);
+        String name = sanitize(transliteratedName);
 
+        String nameTokens[] = name.split(" ");
+        StringBuilder builder = new StringBuilder();
+        
+        // 2 letters from firstname
+        for (int i = 0; i < 2; i++) {
+        	if (nameTokens[0].length() > i) {
+        		builder.append(nameTokens[0].charAt(i));
+        	}
+        	else {
+        		builder.append("x");
+        	}
+        }
+        
+        // 3 letters from surname
+        for (int i = 0; i < 3; i++) {
+        	if (nameTokens.length > 1 && nameTokens[nameTokens.length - 1].length() > i) {
+        		builder.append(nameTokens[nameTokens.length - 1].charAt(i));
+        	}
+        	else {
+        		builder.append("x");
+        	}
+        }
+        
+        String infix = builder.toString();
+        long serial = 1;
+
+        // for now, we max out at 99, but we can safely increase this later if needed (se code below in serialToString)
+        while (serial < 100) {
+	        String candidate = infix + serialToString(serial);
+	        
+	        if (!isRejected(candidate, userType, prefix, suffix)) {
+	            return candidate;
+	        }
+	        
+	        serial++;
+        }
+
+		log.warn("Unable to generate serial for " + PersonService.getName(person) + " / " + person.getUuid() + " maxed serial out");
+
+        return null;
+	}
+
+	private String serialToString(long serial) {
+		// we make sure we start at 01, 02, 03, but we skip to 100, 1000, etc later on
+		if (serial < 10) {
+			return "0" + serial;
+		}
+
+		if (serial < 100) {
+			return "00" + serial;
+		}
+
+		if (serial < 1000) {
+			return "000" + serial;
+		}
+
+		return "" + serial;
+	}
+	
 	private String shortName(Person person, String userType, long len, String prefix, String suffix) {
 		String personName = PersonService.getName(person);
 		String transliteratedName = Transliteration.transliterate(personName, null);

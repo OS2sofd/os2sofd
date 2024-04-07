@@ -38,8 +38,13 @@ public class UserService {
 		return userDao.findByUserIdLikeAndUserType(word, userType);
 	}
 
-	public static boolean isSubstituteADUser(User user) {
+	public static boolean isSubstituteUser(User user) {
 		var substituteRegex = "^vik\\d+$";
-		return SupportedUserTypeService.isActiveDirectory(user.getUserType()) && user.getUserId().toLowerCase().matches(substituteRegex);
+		var result = false;
+		// AD user check
+		result |= SupportedUserTypeService.isActiveDirectory(user.getUserType()) && user.getUserId().toLowerCase().matches(substituteRegex);
+		// Exchange user check
+		result |= SupportedUserTypeService.isExchange(user.getUserType()) && user.getMasterId().toLowerCase().matches(substituteRegex);
+		return result;
 	}
 }

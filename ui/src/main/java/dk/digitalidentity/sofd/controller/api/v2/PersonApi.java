@@ -522,7 +522,7 @@ public class PersonApi {
 		}
 		
 		if (recordEntry.getPositionName() != null && !Objects.equals(personEntry.getPositionName(), recordEntry.getPositionName())) {
-			personEntry.setPositionName(recordEntry.getPositionName());
+			personEntry.setPositionName((StringUtils.hasLength(recordEntry.getPositionName())) ? recordEntry.getPositionName().trim() : "Ukendt");
 			changes = true;
 		}
 		

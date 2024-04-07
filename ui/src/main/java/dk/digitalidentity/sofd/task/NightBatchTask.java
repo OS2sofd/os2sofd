@@ -96,7 +96,7 @@ public class NightBatchTask {
 			return;
 		}
 
-		if(configuration.getScheduled().isGenerateAccountOrdersOnStartupEnabled()) {
+		if (configuration.getScheduled().isGenerateAccountOrdersOnStartupEnabled()) {
 			log.info("Executing nightlyjob on startup");
 			accountOrderService.nightlyJob();
 		}
@@ -197,11 +197,11 @@ public class NightBatchTask {
 					}).build());
 		}
 
-		// generate new account orders (03:15 - 03:45)
+		// generate new account orders (05:15 - 05:45)
 		if (configuration.getModules().getAccountCreation().isEnabled()) {
 			batchJobs.add(BatchJob.builder()
 					.name("Generate Account Orders Task")
-					.time(LocalTime.of(3, random.nextInt(30) + 15))
+					.time(LocalTime.of(5, random.nextInt(30) + 15))
 					.function(() -> {
 						accountOrderService.nightlyJob();
 

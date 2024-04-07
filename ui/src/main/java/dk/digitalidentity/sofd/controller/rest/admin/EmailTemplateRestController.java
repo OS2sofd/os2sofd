@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import dk.digitalidentity.sofd.service.EboksService;
+import dk.digitalidentity.sofd.service.EmailTemplateService;
 import org.apache.commons.io.IOUtils;
 import org.htmlcleaner.BrowserCompactXmlSerializer;
 import org.htmlcleaner.CleanerProperties;
@@ -74,6 +76,9 @@ public class EmailTemplateRestController {
 	
 	@Autowired
 	private OrgUnitService orgUnitService;
+
+	@Autowired
+	private EboksService eboksService;
 	
 	@DeleteMapping("/rest/mailtemplates/attachment/{templateChildId}/{attachmentId}")
 	public ResponseEntity<Long> uploadAttachment(@PathVariable("templateChildId") Long templateChildId, @PathVariable("attachmentId") Long attachmentId) {
@@ -158,29 +163,40 @@ public class EmailTemplateRestController {
 
 			if (user != null) {
 				Person person = personService.findByUser(user);
-				
-				Optional<User> oUser = PersonService.getUsers(person).stream()
+
+				List<InlineImageDTO> inlineImages = transformImages(emailTemplateChildDTO);
+				List<Attachment> attachments = null;
+				EmailTemplateChild templateChild = emailTemplateChildService.findById(emailTemplateChildDTO.getId());
+				if (templateChild != null) {
+					templateChild.forceLoadAttachments();
+					attachments = templateChild.getAttachments();
+				}
+
+				var message = emailTemplateChildDTO.getMessage();
+				// perform placeholder replacement so you can verify that the template replacement worked.
+				for( var placeholder : templateChild.getEmailTemplate().getTemplateType().getEmailTemplatePlaceholders() )
+				{
+					message = message.replace(placeholder.getPlaceholder(), placeholder.getPlaceholder().replaceAll("[\\{\\}]",""));
+				}
+
+				if( templateChild.getEmailTemplate().getTemplateType().isEboks() && configuration.getIntegrations().getEboks().isEnabled() ) {
+					eboksService.sendMessageWithAttachments(person.getCpr(),emailTemplateChildDTO.getTitle(),message, attachments);
+					return new ResponseEntity<>("Digital Post sendt til " + PersonService.getName(person), HttpStatus.OK);
+				}
+				else {
+					Optional<User> oUser = PersonService.getUsers(person).stream()
 							.filter(u -> u.getUserType().equals(SupportedUserTypeService.getExchangeUserType()) && u.isPrime())
 							.findFirst();
-				
-				String email = oUser.isPresent() ? oUser.get().getUserId() : null;
-				if (email != null) {
-					List<InlineImageDTO> inlineImages = transformImages(emailTemplateChildDTO);
-					List<Attachment> attachments = null;
-
-					EmailTemplateChild templateChild = emailTemplateChildService.findById(emailTemplateChildDTO.getId());
-					if (templateChild != null) {
-						templateChild.forceLoadAttachments();
-						attachments = templateChild.getAttachments();
+					String email = oUser.isPresent() ? oUser.get().getUserId() : null;
+					if (email != null) {
+						emailService.sendMessage(email, emailTemplateChildDTO.getTitle(), message, attachments, inlineImages, null);
+						return new ResponseEntity<>("Test email sendt til " + email, HttpStatus.OK);
 					}
-
-					emailService.sendMessage(email, emailTemplateChildDTO.getTitle(), emailTemplateChildDTO.getMessage(), attachments, inlineImages, null);
-					
-					return new ResponseEntity<>("Test email sent til " + email, HttpStatus.OK);
+					else {
+						return new ResponseEntity<>("Du har ingen email adresse registreret!", HttpStatus.CONFLICT);
+					}
 				}
 			}
-			
-			return new ResponseEntity<>("Du har ingen email adresse registreret!", HttpStatus.CONFLICT);
 		}
 		else {
 			EmailTemplateChild templateChild = emailTemplateChildService.findById(emailTemplateChildDTO.getId());
