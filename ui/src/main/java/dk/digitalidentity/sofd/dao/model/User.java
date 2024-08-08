@@ -1,18 +1,23 @@
 package dk.digitalidentity.sofd.dao.model;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.OneToOne;
+import javax.persistence.OneToMany;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 import org.apache.commons.lang.StringUtils;
 import org.hibernate.annotations.BatchSize;
 import org.hibernate.envers.Audited;
-import org.springframework.data.annotation.ReadOnlyProperty;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -28,6 +33,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Audited
+@BatchSize(size = 100)
 @EqualsAndHashCode(callSuper = true)
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class User extends MasteredEntity {
@@ -65,14 +71,11 @@ public class User extends MasteredEntity {
 	@JsonSerialize(using = LocalExtensionsSerializer.class)
 	@JsonDeserialize(using = LocalExtensionsDeserializer.class)
 	private String localExtensions;
-
-	// we want to be able to read this information, but we do NOT want to update it through the person/user construct,
-	// so a readonly annotation is required here
-	@ReadOnlyProperty
-	@BatchSize(size = 100)
-	@OneToOne(mappedBy = "user")
-	private ActiveDirectoryDetails activeDirectoryDetails;
 	
+	@BatchSize(size = 100)
+	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, mappedBy = "user")
+	private List<ActiveDirectoryDetails> activeDirectoryDetails;
+
 	@Column
 	@NotNull
 	private boolean prime;
@@ -94,4 +97,28 @@ public class User extends MasteredEntity {
 		this.employeeId = StringUtils.isBlank(employeeId) ? null : employeeId;
 	}
 
+	public boolean isExpired() {
+		var expired = false;
+		if (getActiveDirectoryDetails() != null && getActiveDirectoryDetails().getAccountExpireDate() != null ) {
+			expired = getActiveDirectoryDetails().getAccountExpireDate().isBefore(LocalDate.now().plusDays(1));
+		}
+		return expired;
+	}
+
+	public ActiveDirectoryDetails getActiveDirectoryDetails() {
+		if (activeDirectoryDetails != null && activeDirectoryDetails.size() > 0) {
+			return activeDirectoryDetails.get(0);
+		}
+		
+		return null;
+	}
+	
+	public void setActiveDirectoryDetails(ActiveDirectoryDetails details) {
+		if (activeDirectoryDetails == null) {
+			activeDirectoryDetails = new ArrayList<ActiveDirectoryDetails>();
+		}
+		
+		activeDirectoryDetails.clear();
+		activeDirectoryDetails.add(details);
+	}
 }

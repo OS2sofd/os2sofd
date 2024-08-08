@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Post;
@@ -20,6 +21,8 @@ public class OrgUnitExcelDTO {
 	private String organisation;
 	//Uuid
 	private String uuid;
+	//ParentUuid
+	private String parentUuid;
 	//Navn
 	private String name;
 	//Type (orgunit_type)
@@ -40,14 +43,15 @@ public class OrgUnitExcelDTO {
 	public OrgUnitExcelDTO(OrgUnit orgUnit) {
 		this.organisation = orgUnit.getBelongsTo().getName();
 		this.uuid = orgUnit.getUuid();
+		this.parentUuid = orgUnit.getParent() == null ? null : orgUnit.getParent().getUuid();
 		this.name = orgUnit.getName();
 		this.type = orgUnit.getType() != null ? orgUnit.getType().getValue() : "NO TYPE";
 		this.address = buildAddress(orgUnit);
 		this.cvr = orgUnit.getCvr() != null ? orgUnit.getCvr().toString() : "";
-		this.ean = orgUnit.getEan() != null ? orgUnit.getEan().toString() : "";
 		this.senr = orgUnit.getSenr() != null ? orgUnit.getSenr().toString() : "";
 		this.pnr = orgUnit.getPnr() != null ? orgUnit.getPnr().toString() : "";
 		this.path = buildPath(orgUnit);
+		this.ean = orgUnit.getEanList().stream().map(e -> Long.toString(e.getNumber())).collect(Collectors.joining(", "));
 	}
 
 	private String buildPath(OrgUnit orgUnit) {

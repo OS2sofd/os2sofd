@@ -176,6 +176,7 @@ public class PersonService {
 		return personDao.findByPhonesPhoneMasterAndPhonesPhoneMasterId(master, masterId);
 	}
 
+	// TODO: can remove this once RKSK is migrated
 	@Transactional
 	public void migrateUuids() {
 		List<ActiveDirectoryDetails> toSave = new ArrayList<>();
@@ -254,6 +255,7 @@ public class PersonService {
 
 			for (Affiliation affiliation : person.getAffiliations()) {
 				affiliation.getOrgUnit().getName();
+				affiliation.getWorkplaces().size();
 
 				if (affiliation.getAlternativeOrgUnit() != null) {
 					affiliation.getAlternativeOrgUnit().getName();
@@ -346,6 +348,10 @@ public class PersonService {
 			return person.getChosenName();
 		}
 
+		return getCprName(person);
+	}
+
+	public static String getCprName(Person person) {
 		return person.getFirstname() + " " + person.getSurname();
 	}
 
@@ -469,7 +475,7 @@ public class PersonService {
 				reservedUsernameDao.deleteByPersonUuid(person.getUuid());
 			}
 		}
-
+		person.setUpdatedFromCpr(true);
 		self.save(person);
 	}
 

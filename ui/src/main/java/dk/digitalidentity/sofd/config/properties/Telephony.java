@@ -7,6 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class Telephony {
+	
 	@FeatureDocumentation(name = "Telefoni", description = "Modul til håndtering af telefonnumre")
 	private boolean enabled = false;
 }

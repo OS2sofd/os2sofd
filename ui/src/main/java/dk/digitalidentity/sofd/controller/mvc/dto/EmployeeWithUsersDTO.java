@@ -19,4 +19,5 @@ public class EmployeeWithUsersDTO {
 	private List<User> users;
 	private String employmentTerms;
 	private String orgUnitUuid;
+	private String internalReference;
 }

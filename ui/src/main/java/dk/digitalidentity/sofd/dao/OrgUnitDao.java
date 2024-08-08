@@ -1,6 +1,7 @@
 package dk.digitalidentity.sofd.dao;
 
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -52,29 +53,64 @@ public interface OrgUnitDao extends JpaRepository<OrgUnit, String> {
 	List<OrgUnit> findByOrgTypeId(Long orgTypeId);
 
 	@Query(nativeQuery = true, value =
-			"with recursive cte as " +
-			"( " +
-			"    select " +
-			"        o.uuid " +
-			"        ,o.parent_uuid " +
-			"        ,o.ean " +
-			"    from " +
-			"        orgunits o " +
-			"    where " +
-			"        o.parent_uuid is null " +
-			"        and o.deleted = 0 " +
-			"    union all " +
-			"    select " +
-			"        o.uuid " +
-			"        ,o.parent_uuid " +
-			"        ,ifnull(o.ean, parent.ean) as ean " +
-			"    from " +
-			"        orgunits o " +
-			"    inner join cte parent on parent.uuid = o.parent_uuid " +
-			"    where " +
-			"        o.deleted = 0 " +
-			") " +
-			"select ean from cte where uuid = :uuid")
-    String getInheritedEan(@Param("uuid") String uuid);
+			"with recursive cte as" +
+			"(" +
+			"    select" +
+			"        o.uuid" +
+			"        ,o.parent_uuid" +
+			"        ,e.number as ean" +
+			"        ,e.id" +
+			"    from" +
+			"        orgunits o" +
+			"    left join ean e on e.orgunit_uuid = o.uuid" +
+			"    where" +
+			"        o.parent_uuid is null" +
+			"        and o.deleted = 0" +
+			"    union all" +
+			"    select" +
+			"        o.uuid" +
+			"        ,o.parent_uuid" +
+			"        ,ifnull(e.number, parent.ean) as ean" +
+			"        ,ifnull(e.id, parent.id)" +
+			"    from" +
+			"        orgunits o" +
+			"    left join ean e on e.orgunit_uuid = o.uuid" +
+			"    inner join cte parent on parent.uuid = o.parent_uuid" +
+			"    where" +
+			"        o.deleted = 0" +
+			")" +
+			"select distinct id from cte where uuid = :uuid")
+	List<Long> getInheritedEan(@Param("uuid") String uuid);
+
+	// returns uuids of all orgunits that are marked not to be transferred to FK Org - including children
+	@Query(nativeQuery = true, value = """
+		with recursive orgcte as
+		(
+			select
+				o.uuid,
+				o.parent_uuid,
+				o.do_not_transfer_to_fk_org
+			from orgunits o
+			inner join organisations adm on adm.short_name = 'ADMORG' and adm.id = o.belongs_to
+			where
+				o.deleted = 0
+				and o.parent_uuid is NULL
+			union all
+			select
+				o.uuid,
+				o.parent_uuid,
+				if(p.do_not_transfer_to_fk_org or o.do_not_transfer_to_fk_org,true,false) as do_not_transfer_to_fk_org
+			from orgunits o
+			inner join orgcte p on p.uuid = o.parent_uuid
+			where
+				o.deleted = 0
+		)
+		select
+			uuid
+		from orgcte
+		where
+			do_not_transfer_to_fk_org = true;
+		""")
+	Set<String> getDoNotTransferToFKOrgUuids();
 
 }

@@ -12,6 +12,7 @@ import javax.validation.constraints.Pattern;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
+import dk.digitalidentity.sofd.dao.model.Ean;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.OrgUnitTag;
 import dk.digitalidentity.sofd.dao.model.Phone;
@@ -80,6 +81,7 @@ public class OrgUnitApiRecord extends BaseRecord {
 	private ManagerApiRecord manager;
 
 	private Set<OrgUnitTagApiRecord> tags;
+	private Set<EanApiRecord> eanList;
 
 	private long id;
 
@@ -95,7 +97,6 @@ public class OrgUnitApiRecord extends BaseRecord {
 		this.displayName = orgUnit.getDisplayName();
 		this.cvr = orgUnit.getCvr();
 		this.cvrName = orgUnit.getCvrName();
-		this.ean = orgUnit.getEan();
 		this.senr = orgUnit.getSenr();
 		this.pnr = orgUnit.getPnr();
 		this.costBearer = orgUnit.getCostBearer();
@@ -130,12 +131,24 @@ public class OrgUnitApiRecord extends BaseRecord {
 			}
 		}
 
-		if( orgUnit.getTags() != null) {
+		if (orgUnit.getTags() != null) {
 			this.tags = new HashSet<OrgUnitTagApiRecord>();
 
 			for (OrgUnitTag tag : orgUnit.getTags()) {
-
 				this.tags.add(new OrgUnitTagApiRecord(tag));
+			}
+		}
+		
+		if (orgUnit.getEanList() != null) {
+			this.eanList = new HashSet<EanApiRecord>();
+
+			for (Ean ean : orgUnit.getEanList()) {
+				// backwards compatible - expose prime ean in API as "ean"
+				if (ean.isPrime()) {
+					this.ean = ean.getNumber();
+				}
+
+				this.eanList.add(new EanApiRecord(ean));
 			}
 		}
 	}
@@ -153,7 +166,6 @@ public class OrgUnitApiRecord extends BaseRecord {
 		orgUnit.setCostBearer(costBearer);
 		orgUnit.setCvr(cvr);
 		orgUnit.setCvrName(cvrName);
-		orgUnit.setEan(ean);
 		orgUnit.setSourceName(name);
 		orgUnit.setOrgType(orgType);
 		orgUnit.setOrgTypeId(orgTypeId);
@@ -199,6 +211,26 @@ public class OrgUnitApiRecord extends BaseRecord {
 
 		if (manager != null) {
 			orgUnit.setManager(manager.toOrgUnitManager());
+		}
+
+		// if an eanList is supplied as part of input, that trumps any ean field,
+		// but if an ean field is supplied, that is used as fallback value
+		if (eanList != null) {
+			orgUnit.setEanList(new ArrayList<>());
+
+			for (EanApiRecord ean : eanList) {
+				orgUnit.getEanList().add(ean.toEan(actualOrgUnit));
+			}
+		}
+		else if (ean != null) {
+			orgUnit.setEanList(new ArrayList<>());
+			
+			Ean eanEntity = new Ean();
+			eanEntity.setMaster(master);
+			eanEntity.setNumber(ean);
+			eanEntity.setOrgUnit(actualOrgUnit);
+			
+			orgUnit.getEanList().add(eanEntity);
 		}
 
 		return orgUnit;

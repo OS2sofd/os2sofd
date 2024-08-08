@@ -4,14 +4,16 @@ import java.time.LocalDate;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
-import javax.persistence.OneToOne;
+import javax.persistence.ManyToOne;
 
 import org.hibernate.envers.Audited;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
@@ -30,19 +32,11 @@ public class ActiveDirectoryDetails {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private long id;
 
-	@Column
-	private long userId;
-	
-	// this allows us to map to a non-pk from the User side (i.e. the "userId" field on this end),
-	// without having an actual back-reference that Hibernate will perform cascade-saving on, and
-	// we can leave it NULL for most use-cases except when reading (which will work automatically
-	// with the annotation on the other side) - hackish, but it does the trick... the trick btw
-	// is to avoid entries in person_aud and user_aud whenever these fields are updated, which can
-	// happen very often due to local scripting on the municipality side
-	@OneToOne
-	@JoinColumn(name = "userId", insertable = false, updatable = false)
+	@ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+	@JsonBackReference
 	private User user;
-	
+
 	@Column
 	private String userType;
 	

@@ -65,16 +65,15 @@ public class HistoricalReportsOnOrgUnitsService {
 
             courseRow.createCell(0).setCellValue(orgUnitDTO.getOrganisation());
             courseRow.createCell(1).setCellValue(orgUnitDTO.getUuid());
-
-            courseRow.createCell(2).setCellValue(orgUnitDTO.getName());
-
-            courseRow.createCell(3).setCellValue(orgUnitDTO.getType());
-            courseRow.createCell(4).setCellValue(orgUnitDTO.getAddress());
-            courseRow.createCell(5).setCellValue(orgUnitDTO.getCvr());
-            courseRow.createCell(6).setCellValue(orgUnitDTO.getEan());
-            courseRow.createCell(7).setCellValue(orgUnitDTO.getSenr());
-            courseRow.createCell(8).setCellValue(orgUnitDTO.getPnr());
-            courseRow.createCell(9).setCellValue(orgUnitDTO.getPath());
+            courseRow.createCell(2).setCellValue(orgUnitDTO.getParentUuid());
+            courseRow.createCell(3).setCellValue(orgUnitDTO.getName());
+            courseRow.createCell(4).setCellValue(orgUnitDTO.getType());
+            courseRow.createCell(5).setCellValue(orgUnitDTO.getAddress());
+            courseRow.createCell(6).setCellValue(orgUnitDTO.getCvr());
+            courseRow.createCell(7).setCellValue(orgUnitDTO.getEan());
+            courseRow.createCell(8).setCellValue(orgUnitDTO.getSenr());
+            courseRow.createCell(9).setCellValue(orgUnitDTO.getPnr());
+            courseRow.createCell(10).setCellValue(orgUnitDTO.getPath());
         }
 
         format(sheet);
@@ -93,19 +92,21 @@ public class HistoricalReportsOnOrgUnitsService {
         sheet.autoSizeColumn(8);
         sheet.autoSizeColumn(9);
         sheet.autoSizeColumn(10);
+        sheet.autoSizeColumn(11);
     }
 
     private void createHeader(Workbook workbook, Sheet sheet) {
         String header1 = messageSource.getMessage("xls.historicreportorgunits.orgunit.organisation", null, locale);
         String header2 = messageSource.getMessage("xls.historicreportorgunits.orgunit.uuid", null, locale);
-        String header3 = messageSource.getMessage("xls.historicreportorgunits.orgunit.name", null, locale);
-        String header4 = messageSource.getMessage("xls.historicreportorgunits.orgunit.type", null, locale);
-        String header5 = messageSource.getMessage("xls.historicreportorgunits.orgunit.address", null, locale);
-        String header6 = messageSource.getMessage("xls.historicreportorgunits.orgunit.cvr", null, locale);
-        String header7 = messageSource.getMessage("xls.historicreportorgunits.orgunit.ean", null, locale);
-        String header8 = messageSource.getMessage("xls.historicreportorgunits.orgunit.senr", null, locale);
-        String header9 = messageSource.getMessage("xls.historicreportorgunits.orgunit.pnr", null, locale);
-        String header10 = messageSource.getMessage("xls.historicreportorgunits.orgunit.path", null, locale);
+        String header3 = messageSource.getMessage("xls.historicreportorgunits.orgunit.parentUuid", null, locale);
+        String header4 = messageSource.getMessage("xls.historicreportorgunits.orgunit.name", null, locale);
+        String header5 = messageSource.getMessage("xls.historicreportorgunits.orgunit.type", null, locale);
+        String header6 = messageSource.getMessage("xls.historicreportorgunits.orgunit.address", null, locale);
+        String header7 = messageSource.getMessage("xls.historicreportorgunits.orgunit.cvr", null, locale);
+        String header8 = messageSource.getMessage("xls.historicreportorgunits.orgunit.ean", null, locale);
+        String header9 = messageSource.getMessage("xls.historicreportorgunits.orgunit.senr", null, locale);
+        String header10 = messageSource.getMessage("xls.historicreportorgunits.orgunit.pnr", null, locale);
+        String header11 = messageSource.getMessage("xls.historicreportorgunits.orgunit.path", null, locale);
 
         Font headerFont = workbook.createFont();
         headerFont.setBold(true);
@@ -124,6 +125,7 @@ public class HistoricalReportsOnOrgUnitsService {
         createCell(header, 7, header8, headerStyle);
         createCell(header, 8, header9, headerStyle);
         createCell(header, 9, header10, headerStyle);
+        createCell(header, 10, header11, headerStyle);
     }
 
     private static void createCell(Row header, int column, String value, CellStyle style) {

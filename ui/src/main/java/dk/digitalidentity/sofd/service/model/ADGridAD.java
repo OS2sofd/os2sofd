@@ -17,5 +17,6 @@ public class ADGridAD {
 	private String email;
 	private String upn;
 	private String primaryOrgunitName;
+	private String passwordExpireDate;
 	private String localExtensions;
 }

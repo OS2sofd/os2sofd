@@ -3,7 +3,6 @@ package dk.digitalidentity.sofd.controller.mvc;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -13,10 +12,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.mvc.dto.ChartDTO;
-import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Chart;
-import dk.digitalidentity.sofd.service.OrgUnitService;
+import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.service.ChartService;
+import dk.digitalidentity.sofd.service.OrgUnitService;
 
 @Controller
 public class ChartController {

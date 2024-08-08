@@ -85,13 +85,21 @@ public class CprUpdateService {
 
 		int count = 0;
 		for (Person person : activePersons) {
-			if (person.getCpr().endsWith(digit)) {
+			if (person.getCpr().endsWith(digit) || !person.isUpdatedFromCpr()) {
 				syncPerson(person);
 				count++;
 			}
 		}
 
 		log.info("Verified " + count + " persons against cpr");
+	}
+
+	@Transactional
+	public void updatePerson(String personUuid) {
+		var person = personService.getByUuid(personUuid);
+		if (person != null) {
+			syncPerson(person);
+		}
 	}
 
 	private void syncPerson(Person person) {

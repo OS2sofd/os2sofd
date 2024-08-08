@@ -14,6 +14,7 @@ import dk.digitalidentity.sofd.dao.OrgUnitDao;
 import dk.digitalidentity.sofd.dao.PersonDao;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.Client;
+import dk.digitalidentity.sofd.dao.model.Ean;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Phone;
@@ -99,8 +100,9 @@ public class DataGenerator {
 		List<OrgUnit> units = new ArrayList<>();
 		OrgUnit kommune = new OrgUnit();
 		kommune.setCvr(12345678L);
-		kommune.setEan(12345678900L);
 		kommune.setEmail("email@email.dk");
+		kommune.setEanList(new ArrayList<>());
+		kommune.getEanList().add(new Ean(0, 576234545L, "TEST", true, kommune));
 		
 		Phone phone = Phone.builder().phoneNumber("12341234").master("TEST").masterId("TEST").prime(true).phoneType(PhoneType.LANDLINE).build();
 		OrgUnitPhoneMapping phoneMapping = new OrgUnitPhoneMapping();
@@ -128,7 +130,8 @@ public class DataGenerator {
 
 		OrgUnit hr = new OrgUnit();
 		hr.setCvr(12345678L);
-		hr.setEan(12345678900L);
+		hr.setEanList(new ArrayList<>());
+		hr.getEanList().add(new Ean(0, 5758354545L, "TEST", true, hr));
 		
 		Post post = Post.builder().addressProtected(false).city("Viby J").country("DK").localname("localName").postalCode("8260").prime(true).street("Hasselager Centervej 17").master("TEST").masterId("TEST").build();
 		OrgUnitPostMapping mapping = new OrgUnitPostMapping();
@@ -152,7 +155,8 @@ public class DataGenerator {
 		OrgUnit sundhedOgOmsorg = new OrgUnit();
 		sundhedOgOmsorg.setParent(kommune);
 		sundhedOgOmsorg.setCvr(12345678L);
-		sundhedOgOmsorg.setEan(12345678900L);
+		sundhedOgOmsorg.setEanList(new ArrayList<>());
+		sundhedOgOmsorg.getEanList().add(new Ean(0, 5743544545L, "TEST", true, sundhedOgOmsorg));
 		
 		post = Post.builder().addressProtected(false).city("Viby J").country("DK").localname("localName").postalCode("8260").prime(true).street("Hasselager Centervej 17").master("TEST").masterId("TEST").build();
 		mapping = new OrgUnitPostMapping();
@@ -176,7 +180,6 @@ public class DataGenerator {
 		OrgUnit sundhed = new OrgUnit();
 		sundhed.setParent(sundhedOgOmsorg);
 		sundhed.setCvr(12345678L);
-		sundhed.setEan(12345678900L);
 		sundhed.setSourceName("Sundhed");
 		sundhed.setShortname("SUND");
 		sundhed.setUuid(ouSundhedUuid);
@@ -187,6 +190,8 @@ public class DataGenerator {
 		sundhed.setMaster("TEST");
 		sundhed.setMasterId(sundhed.getUuid());
 		sundhed.setEmail("email_s@email.dk");
+		sundhed.setEanList(new ArrayList<>());
+		sundhed.getEanList().add(new Ean(0, 5746674534L, "TEST", true, sundhed));
 
 		units.add(sundhed);
 
@@ -194,7 +199,6 @@ public class DataGenerator {
 		omsorg.setUuid(ouOmsorgUuid);
 		omsorg.setParent(sundhedOgOmsorg);
 		omsorg.setCvr(12345678L);
-		omsorg.setEan(12345678900L);
 		omsorg.setSourceName("Omsorg");
 		omsorg.setShortname("OMSORG");
 		omsorg.setOrgType("OrgTypeString");
@@ -204,6 +208,8 @@ public class DataGenerator {
 		omsorg.setMaster("TEST");
 		omsorg.setMasterId(omsorg.getUuid());
 		omsorg.setEmail("email_om@email.dk");
+		omsorg.setEanList(new ArrayList<>());
+		omsorg.getEanList().add(new Ean(0, 5732112332L, "TEST", true, omsorg));
 
 		units.add(omsorg);
 

@@ -277,6 +277,7 @@ public class AbstractBeforeSaveInterceptor {
 
 		primeService.setPrimePhone(orgUnit);
 		primeService.setPrimePost(orgUnit);
+		primeService.setPrimeEan(orgUnit);
 
 		// emit update notifications
 		if (oldOrgUnit != null) {

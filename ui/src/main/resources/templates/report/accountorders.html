@@ -18,7 +18,8 @@
 									<tr>
 										<th class="col-md-2" th:text="#{html.page.accountorders.activationTime}"></th>
 										<th class="col-md-3" th:text="#{html.page.accountorders.personName}"></th>
-										<th class="col-md-2" th:text="#{html.page.accountorders.orderType}"></th>
+										<th class="col-md-1" th:text="#{html.page.accountorders.userId}"></th>
+										<th class="col-md-1" th:text="#{html.page.accountorders.orderType}"></th>
 										<th class="col-md-2" th:text="#{html.page.accountorders.userType}"></th>
 										<th class="col-md-2" th:text="#{html.page.accountorders.status}"></th>
 										<th class="col-md-1" th:text="#{html.control.operations}"></th>
@@ -35,6 +36,7 @@
 												<em class="fa fa-external-link"></em>
 											</a>
 										</td>
+										<td th:text="${order.userId}"></td>
 										
 										<td th:if="${order.orderType == T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderType).EXPIRE and order.endDate == null}"
 										    th:text="#{html.enum.accountOrderStatus.expireReverse}"></td>
@@ -53,6 +55,7 @@
 						            <tr>
 						                <th th:text="#{html.page.accountorders.activationTime}"></th>
 						                <th th:text="#{html.page.accountorders.personName}"></th>
+						                <th th:text="#{html.page.accountorders.userId}"></th>
 						                <th th:text="#{html.page.accountorders.orderType}"></th>
 						                <th th:text="#{html.page.accountorders.userType}"></th>
 						                <th th:text="#{html.page.accountorders.status}"></th>

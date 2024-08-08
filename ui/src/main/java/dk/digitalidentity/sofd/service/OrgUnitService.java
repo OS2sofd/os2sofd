@@ -39,6 +39,7 @@ import dk.digitalidentity.sofd.controller.rest.model.OrgUnitCoreInfo;
 import dk.digitalidentity.sofd.dao.OrgUnitDao;
 import dk.digitalidentity.sofd.dao.OrgUnitTypeDao;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
+import dk.digitalidentity.sofd.dao.model.Ean;
 import dk.digitalidentity.sofd.dao.model.ModificationHistory;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.OrgUnitType;
@@ -140,17 +141,36 @@ public class OrgUnitService {
 	@Autowired
 	AffiliationService affiliationService;
 
+	@Autowired
+	private EanService eanService;
+
 	public OrgUnit getByUuid(String uuid) {
 		Date date = getFutureDateFromSession();
 		if (date != null) {
 			return orgUnitFutureChangesService.getFutureOrgUnit(uuid, date);
 		}
 		var orgUnit = orgUnitDao.findByUuid(uuid);
-		if( orgUnit != null ) {
-			orgUnit.setInheritedEan(orgUnitDao.getInheritedEan(orgUnit.getUuid()));
+
+		if (orgUnit != null && orgUnit.getEanList().isEmpty()) {
+			List<Long> ids = orgUnitDao.getInheritedEan(orgUnit.getUuid());
+			if (!ids.isEmpty()) {
+				ids.removeIf(Objects::isNull);
+				orgUnit.setInheritedEan(true);
+				orgUnit.setInheritedEanList(new ArrayList<>());
+				
+				for (long eanId : ids) {
+					Ean sourceEan = eanService.findById(eanId);
+					Ean ean = new Ean(0, sourceEan.getNumber(), "INHERITED", sourceEan.isPrime(), orgUnit);
+					orgUnit.getInheritedEanList().add(ean);
+				}
+			}
 		}
 
 		return orgUnit;
+	}
+
+	public Set<String> getDoNotTransferToFKOrgUuids() {
+		return orgUnitDao.getDoNotTransferToFKOrgUuids();
 	}
 
 	public Page<OrgUnit> getAll(Pageable pageable) {
@@ -206,7 +226,10 @@ public class OrgUnitService {
 
 	@Cacheable(value = "activeOrgUnits")
 	public List<OrgUnit> getAllActiveCached() {
-		return getAllActive(organisationService.getAdmOrg());
+		var result = getAllActive(organisationService.getAdmOrg());
+		// force load type
+		result.forEach(o -> o.getType().getKey());
+		return result;
 	}
 
 	@Scheduled(fixedRate = 60 * 60 * 1000)
@@ -491,7 +514,6 @@ public class OrgUnitService {
 			coreInfo.setCostBearer(orgUnit.getCostBearer());
 			coreInfo.setCvr(orgUnit.getCvr());
 			coreInfo.setPnr(orgUnit.getPnr());
-			coreInfo.setEan(orgUnit.getEan());
 			coreInfo.setSenr(orgUnit.getSenr());
 			coreInfo.setOrgUnitType(orgUnit.getOrgType());
 			coreInfo.setDisplayName(orgUnit.getDisplayName());
@@ -547,6 +569,7 @@ public class OrgUnitService {
 		}
 
 		boolean changes = false;
+		boolean transferToFKChanges = false;
 
 		List<OrgUnitType> types = getTypes();
 		for (OrgUnitType type : types) {
@@ -565,6 +588,12 @@ public class OrgUnitService {
 			changes = true;
 		}
 
+		if (!Objects.equals(orgUnit.isDoNotTransferToFkOrg(), coreInfoDTO.isDoNotTransferToFKOrg())) {
+			orgUnit.setDoNotTransferToFkOrg(coreInfoDTO.isDoNotTransferToFKOrg());
+			changes = true;
+			transferToFKChanges = true;
+		}
+
 		if (SecurityUtil.getUserRoles().contains(RoleConstants.USER_ROLE_LOS_ADMIN)) {
 			if( configuration.getModules().getLos().isEnabled() ) {
 				if (!Objects.equals(orgUnit.getSourceName(), coreInfoDTO.getSourceName())) {
@@ -574,11 +603,6 @@ public class OrgUnitService {
 
 				if (!Objects.equals(orgUnit.getShortname(), coreInfoDTO.getShortname())) {
 					orgUnit.setShortname(coreInfoDTO.getShortname());
-					changes = true;
-				}
-
-				if (!Objects.equals(orgUnit.getEan(), coreInfoDTO.getEan())) {
-					orgUnit.setEan(coreInfoDTO.getEan());
 					changes = true;
 				}
 
@@ -710,9 +734,16 @@ public class OrgUnitService {
 			}
 		}
 
+
 		if (changes) {
 			// use autowired instance to ensure interceptors are called
 			self.save(orgUnit);
+
+			// if changes was made to the fk org transfer setting we also need to update children to respect inheritance
+			if( transferToFKChanges )
+			{
+				self.forceUpdateChildren(orgUnit);
+			}
 		}
 	}
 
@@ -988,10 +1019,12 @@ public class OrgUnitService {
 		}
 
 		// deletion not allowed if it has any non-deleted children
-		for (var child : orgUnit.getChildren()) {
+		if( orgUnit.getChildren() != null ) {
+			for (var child : orgUnit.getChildren()) {
 
-			if (!child.isDeleted()) {
-				return false;
+				if (!child.isDeleted()) {
+					return false;
+				}
 			}
 		}
 
@@ -1003,5 +1036,20 @@ public class OrgUnitService {
 		}
 
 		return true;
+	}
+
+	public void forceUpdateChildren(OrgUnit orgUnit) {
+		if( orgUnit.getChildren() == null ) {
+			return;
+		}
+		orgUnit.getChildren().stream().filter(o -> !o.isDeleted()).forEach(child -> {
+			ModificationHistory modificationHistory = new ModificationHistory();
+			modificationHistory.setEntity(EntityType.ORGUNIT);
+			modificationHistory.setUuid(child.getUuid());
+			modificationHistory.setChanged(new Date());
+			modificationHistory.setChangeType(ChangeType.UPDATE);
+			modificationHistoryService.insert(modificationHistory);
+			forceUpdateChildren(child);
+		});
 	}
 }

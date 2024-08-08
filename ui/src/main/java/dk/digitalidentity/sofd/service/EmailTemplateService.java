@@ -65,6 +65,10 @@ public class EmailTemplateService {
 				title = "Brugerkonto lukket";
 				message = "Kære {modtager}\n<br/>\n<br/>\nBrugerkontoen for {medarbejder} er blevet lukket. Der er tale om brugerkontoen med brugernavnet\n<br/>\n<br/>\n{kontonavn}";
 				break;
+			case EXCHANGE_CREATE_MANAGER:
+				title = "Mailkonto oprettet";
+				message = "Kære {modtager}\n<br/>\n<br/>\nDer er blevet oprettet en mailkonto til {medarbejder} med brugernavn\n<br/>\n<br/>\n{kontonavn}";
+				break;
 			case EXCHANGE_CREATE_EMPLOYEE:
 				title = "Mailkonto oprettet";
 				message = "Kære {modtager}\n<br/>\n<br/>Der er blevet oprettet en mailkonto til dig.";

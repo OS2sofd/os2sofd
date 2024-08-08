@@ -259,10 +259,15 @@ public class OpusService {
 
 			ExistingOpusValue existingOpusValue = callOpusAndReadUser(employeeId);
 			if (StringUtils.hasLength(existingOpusValue.itBruger.value) && StringUtils.hasLength(existingOpusValue.userId.value)) {
-				// person is null on purpose, as no notification is then generated
-				failAndNotify(null, order, "Personen har allerede en OPUS konto for medarbejderID " + employeeId + ": " + existingOpusValue.userId.value);
-				
-				continue;
+				if( StringUtils.hasLength(existingOpusValue.itBruger.stopDate) && LocalDate.parse(existingOpusValue.itBruger.stopDate).isBefore(LocalDate.now()) ) {
+					// the user already exists, but stopdate is passed, so we call opus and reactivate it
+					requestedUserId = existingOpusValue.itBruger.value;
+				}
+				else {
+					// person is null on purpose, as no notification is then generated
+					failAndNotify(null, order, "Personen har allerede en OPUS konto for medarbejderID " + employeeId + ": " + existingOpusValue.userId.value);
+					continue;
+				}
 			}
 
 			OpusStatusCodeWrapper status = callOpusAndOrderUser(existingOpusValue, employeeId, requestedUserId, email, startDate, stopDate, phone, departmentNumber);

@@ -5,9 +5,10 @@ with recursive cte as
 select
        o.uuid
        ,o.parent_uuid
-       ,o.ean
+       ,e.number as ean
 from
        orgunits o
+left join ean e on e.orgunit_uuid = o.uuid and e.prime = true
 where
        o.parent_uuid is null
        and o.deleted = 0
@@ -17,9 +18,10 @@ union all
 select
        o.uuid
        ,o.parent_uuid
-       ,ifnull(o.ean, parent.ean) as ean
+       ,ifnull(e.number, parent.ean) as ean
 from
        orgunits o
+left join ean e on e.orgunit_uuid = o.uuid and e.prime = true
 inner join cte parent on parent.uuid = o.parent_uuid
 where
        o.deleted = 0
@@ -35,7 +37,7 @@ select o.uuid             	as uuid,
        o.name             	as name,
        o.cvr              	as cvr,
        o.cvr_name         	as cvr_name,
-       ifnull(o.ean,cte.ean)     as ean,
+       cte.ean              as ean,
        o.senr             	as senr,
        o.pnr              	as pnr,
        o.cost_bearer      	as cost_bearer,
@@ -49,7 +51,8 @@ select o.uuid             	as uuid,
        o.source_name      	as source_name,
        o.email            	as email,
        o.id               	as id,
-       case when o.ean is null and cte.ean is not null and length(cte.ean) > 0 then 1 else 0 end as ean_inherited
+       case when e.number is null and cte.ean is not null and length(cte.ean) > 0 then 1 else 0 end as ean_inherited
 from cte
 inner join orgunits o on o.uuid = cte.uuid
+left join ean e on e.orgunit_uuid = o.uuid and e.prime = true
 inner join view_adm_organisation on view_adm_organisation.id = o.belongs_to;

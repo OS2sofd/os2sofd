@@ -26,7 +26,7 @@
 			<div class="row">
 				<label class="col-sm-3 control-label" th:text="#{html.entity.person.chosenName}"></label>
 				<div class="col-sm-9">
-					<input name="chosenName" th:value="${person.chosenName}" class="form-control personMasterTooltip"/>
+					<input name="chosenName" th:value="${person.chosenName}" class="form-control personMasterTooltip" th:readonly="${@sofdConfiguration.modules.person.chosenNameEditable == false}"/>
 				</div>
 			</div>
 		</fieldset>

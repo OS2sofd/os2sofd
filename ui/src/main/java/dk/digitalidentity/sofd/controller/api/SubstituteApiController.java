@@ -6,6 +6,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import dk.digitalidentity.sofd.dao.model.enums.EntityType;
+import dk.digitalidentity.sofd.dao.model.enums.EventType;
+import dk.digitalidentity.sofd.log.AuditLogger;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +43,7 @@ import dk.digitalidentity.sofd.telephony.controller.rest.dto.AutoCompleteResult;
 
 @RequireDaoWriteAccess
 @RestController
+@Slf4j
 public class SubstituteApiController {
 	
 	@Autowired
@@ -56,6 +61,9 @@ public class SubstituteApiController {
 	@Autowired
 	private SubstituteOrgUnitAssignmentService substituteOrgUnitAssignmentService;
 
+	@Autowired
+	private AuditLogger auditLogger;
+
 	@GetMapping("/api/substitutes/assignments")
 	public ResponseEntity<?> getAllSubstituteAssignments() {
 		List<SubstituteAssignmentDTO> result = new ArrayList<>();
@@ -70,6 +78,7 @@ public class SubstituteApiController {
 				continue;
 			}
 			
+			// denne filtrerer ned til 46 fra 52 (så 6 minus)
 			User managerPrimeUser = personGetPrimeUser(manager);
 			if (managerPrimeUser == null) {
 				continue;
@@ -79,25 +88,45 @@ public class SubstituteApiController {
 			if (substitute == null) {
 				continue;
 			}
-			
+
+			// denne filtrerer ned til 49 fra 52, så 3 minutes
 			User substitutPrimeUser = personGetPrimeUser(substitute);
 			if (substitutPrimeUser == null) {
 				continue;
 			}
-
+			
+			// afhængig af overlap, kan vi have op til 9 filtreret væk her, men det er stadig 43 i output (og vi får 23)
+			
 			SubstituteAssignmentDTO dto = new SubstituteAssignmentDTO();
 
 			if (assignment.getContext().getIdentifier().equals("GLOBAL")) {
 				List<OrgUnit> managerOrgUnits = orgUnitService.getAllWhereManagerIs(manager);
 				
 				dto.setConstraintOrgUnits(managerOrgUnits.stream()
+						.filter(o -> !o.isDeleted())
 						.map(ou -> OUConstraintDTO.builder().name(ou.getName()).uuid(ou.getUuid()).build())
 						.collect(Collectors.toList()));
 			}
-			else {				
-				dto.setConstraintOrgUnits(assignment.getConstraintMappings().stream()
-						.map(c -> OUConstraintDTO.builder().name(c.getOrgUnit().getName()).uuid(c.getOrgUnit().getUuid()).build())
-						.collect(Collectors.toList()));
+			else {
+				if (assignment.getConstraintMappings().size() > 0) {
+					dto.setConstraintOrgUnits(assignment.getConstraintMappings().stream()
+							.filter(m -> !m.getOrgUnit().isDeleted())
+							.map(c -> OUConstraintDTO.builder().name(c.getOrgUnit().getName()).uuid(c.getOrgUnit().getUuid()).build())
+							.collect(Collectors.toList()));					
+				}
+				else {
+					List<OrgUnit> managerOrgUnits = orgUnitService.getAllWhereManagerIs(manager);
+
+					dto.setConstraintOrgUnits(managerOrgUnits.stream()
+							.filter(o -> !o.isDeleted())
+							.map(ou -> OUConstraintDTO.builder().name(ou.getName()).uuid(ou.getUuid()).build())
+							.collect(Collectors.toList()));
+				}
+			}
+			
+			// need at least one OU for this to make sense
+			if (dto.getConstraintOrgUnits().size() == 0) {
+				continue;
 			}
 
 			dto.setId(assignment.getId());
@@ -278,12 +307,15 @@ public class SubstituteApiController {
 		substituteAssignment.setPerson(person);
 		substituteAssignment.setSubstitute(substitute);
 
-		substituteAssignmentService.save(substituteAssignment);
-		
+		var assignment = substituteAssignmentService.save(substituteAssignment);
+		var message = "Stedfortræder (" + assignment.getContext().getName() + ") '" + assignment.getSubstitute().getEntityName() + "' for leder '" + assignment.getPerson().getEntityName() + "' oprettet via API";
+		log.info(message);
+		auditLogger.log(String.valueOf(assignment.getId()), EntityType.SUBSTITUTE_ASSIGNMENT, EventType.SAVE,assignment.getSubstitute().getEntityName(), message, dto.getUserId());
+
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
-	record AddOrgUnitSubstituteDTO(long substituteContextId, String substitutePersonUuid, String orgUnitUuid) {}
+	record AddOrgUnitSubstituteDTO(long substituteContextId, String substitutePersonUuid, String orgUnitUuid, String userId) {}
 	@PostMapping(value = "/api/substitutes/orgunit/assignments/create")
 	public ResponseEntity<?> createSubstituteAssignment(@RequestBody AddOrgUnitSubstituteDTO dto) {
 		OrgUnit orgUnit = orgUnitService.getByUuid(dto.orgUnitUuid());
@@ -306,13 +338,18 @@ public class SubstituteApiController {
 		substituteAssignment.setOrgUnit(orgUnit);
 		substituteAssignment.setSubstitute(substitute);
 
-		substituteOrgUnitAssignmentService.save(substituteAssignment);
+
+		var assignment = substituteOrgUnitAssignmentService.save(substituteAssignment);
+		var message = "Stedfortræder (" + assignment.getContext().getName() + ") '" + assignment.getSubstitute().getEntityName() + "' for enhed '" + assignment.getOrgUnit().getEntityName() + "' oprettet via API";
+		log.info(message);
+		auditLogger.log(String.valueOf(assignment.getId()), EntityType.SUBSTITUTE_ORGUNIT_ASSIGNMENT, EventType.SAVE,assignment.getSubstitute().getEntityName(), message, dto.userId());
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
-	
+
+	record EditSubstituteDTO(List<String> constraintOUUuids, String userId) {}
 	@PostMapping(value = "/api/substitutes/assignments/{assignmentId}/edit")
-	public ResponseEntity<?> editSubstituteAssignment(@PathVariable long assignmentId, @RequestBody List<String> constraintOUUuids) {
+	public ResponseEntity<?> editSubstituteAssignment(@PathVariable long assignmentId, @RequestBody EditSubstituteDTO dto ) {
 		SubstituteAssignment assignment = substituteAssignmentService.getById(assignmentId);
 		if (assignment == null) {
 			return new ResponseEntity<>("SubstituteAssignment with id " + assignmentId + " was not found", HttpStatus.NOT_FOUND);
@@ -325,8 +362,8 @@ public class SubstituteApiController {
 		}
 
 		List<String> existingOUUuids = assignment.getConstraintMappings().stream().map(c -> c.getOrgUnit().getUuid()).collect(Collectors.toList());
-		if (assignment.getContext().isSupportsConstraints() && constraintOUUuids != null) {
-			List<OrgUnit> orgUnits = orgUnitService.getByUuid(constraintOUUuids);
+		if (assignment.getContext().isSupportsConstraints() && dto.constraintOUUuids() != null) {
+			List<OrgUnit> orgUnits = orgUnitService.getByUuid(dto.constraintOUUuids());
 
 			for (OrgUnit orgUnit : orgUnits) {
 				if (!existingOUUuids.contains(orgUnit.getUuid()) && managedOrgUnitUuids.contains(orgUnit.getUuid())) {
@@ -338,33 +375,44 @@ public class SubstituteApiController {
 			}
 		}
 		
-		List<SubstituteAssignmentOrgUnitMapping> toDelete = assignment.getConstraintMappings().stream().filter(c -> !constraintOUUuids.contains(c.getOrgUnit().getUuid())).collect(Collectors.toList());
+		List<SubstituteAssignmentOrgUnitMapping> toDelete = assignment.getConstraintMappings().stream().filter(c -> !dto.constraintOUUuids().contains(c.getOrgUnit().getUuid())).collect(Collectors.toList());
 		assignment.getConstraintMappings().removeAll(toDelete);
 		
-		substituteAssignmentService.save(assignment);
+		assignment = substituteAssignmentService.save(assignment);
+		var message = "Stedfortræder (" + assignment.getContext().getName() + ") '" + assignment.getSubstitute().getEntityName() + "' for leder '" + assignment.getPerson().getEntityName() + "' redigeret via API";
+		log.info(message);
+		auditLogger.log(String.valueOf(assignment.getId()), EntityType.SUBSTITUTE_ASSIGNMENT, EventType.SAVE,assignment.getSubstitute().getEntityName(), message, dto.userId());
 		
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
-	
+
+	record deleteSubstituteDTO(long assignmentId, String userId) {}
 	@PostMapping(value = "/api/substitutes/{assignmentId}/delete")
-	public ResponseEntity<?> deleteSubstituteAssignemnt(@PathVariable long assignmentId) {
-		SubstituteAssignment assignment = substituteAssignmentService.getById(assignmentId);
+	public ResponseEntity<?> deleteSubstituteAssignemnt(@RequestBody deleteSubstituteDTO dto) {
+		SubstituteAssignment assignment = substituteAssignmentService.getById(dto.assignmentId());
 		if (assignment == null) {
-			return new ResponseEntity<>("SubstituteAssignment with id " + assignmentId + " was not found", HttpStatus.NOT_FOUND);
+			return new ResponseEntity<>("SubstituteAssignment with id " + dto.assignmentId() + " was not found", HttpStatus.NOT_FOUND);
 		}
-		
+
+		var message = "Stedfortræder (" + assignment.getContext().getName() + ") '" + assignment.getSubstitute().getEntityName() + "' for leder '" + assignment.getPerson().getEntityName() + "' slettet via API";
+		log.info(message);
+		auditLogger.log(String.valueOf(assignment.getId()), EntityType.SUBSTITUTE_ASSIGNMENT, EventType.DELETE,assignment.getSubstitute().getEntityName(), message, dto.userId());
 		substituteAssignmentService.delete(assignment);
 		
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
+	record deleteOrgUnitSubstituteDTO(long assignmentId, String userId) {}
 	@PostMapping(value = "/api/substitutes/orgunit/{assignmentId}/delete")
-	public ResponseEntity<?> deleteSubstituteOrgUnitAssignemnt(@PathVariable long assignmentId) {
-		SubstituteOrgUnitAssignment assignment = substituteOrgUnitAssignmentService.getById(assignmentId);
+	public ResponseEntity<?> deleteSubstituteOrgUnitAssignemnt(@RequestBody deleteOrgUnitSubstituteDTO dto) {
+		SubstituteOrgUnitAssignment assignment = substituteOrgUnitAssignmentService.getById(dto.assignmentId());
 		if (assignment == null) {
-			return new ResponseEntity<>("SubstituteOrgUnitAssignment with id " + assignmentId + " was not found", HttpStatus.NOT_FOUND);
+			return new ResponseEntity<>("SubstituteOrgUnitAssignment with id " + dto.assignmentId() + " was not found", HttpStatus.NOT_FOUND);
 		}
 
+		var message = "Stedfortræder (" + assignment.getContext().getName() + ") '" + assignment.getSubstitute().getEntityName() + "' for enhed '" + assignment.getOrgUnit().getEntityName() + "' slettet via API";
+		log.info(message);
+		auditLogger.log(String.valueOf(assignment.getId()), EntityType.SUBSTITUTE_ORGUNIT_ASSIGNMENT, EventType.DELETE,assignment.getSubstitute().getEntityName(), message, dto.userId());
 		substituteOrgUnitAssignmentService.delete(assignment);
 
 		return new ResponseEntity<>(HttpStatus.OK);

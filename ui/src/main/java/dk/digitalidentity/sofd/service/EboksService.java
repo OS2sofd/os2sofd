@@ -97,8 +97,9 @@ public class EboksService {
 				}
 			}
 
-			eBoks.setContent(Base64.getEncoder().encodeToString(generatePDF(subject, message)));
-			eBoks.setMunicipalityName(configuration.getIntegrations().getEboks().getSenderName());			
+			var pdf = generatePDF(subject, message);
+			eBoks.setContent(Base64.getEncoder().encodeToString(pdf));
+			eBoks.setMunicipalityName(configuration.getIntegrations().getEboks().getSenderName());
 
 	    	HttpHeaders headers = new HttpHeaders();
 	        headers.add("Content-Type", "application/json");
@@ -108,7 +109,7 @@ public class EboksService {
 		}
 		catch (HttpStatusCodeException ex) {
 			if (ex.getRawStatusCode() == 409) {
-				createNotSubscribedNotification(cpr);				
+				createNotSubscribedNotification(cpr);
 			}
 			else {
 				errorCount++;
@@ -119,14 +120,14 @@ public class EboksService {
 				else {
 					log.warn("Failed to send e-boks message to: " + PersonService.maskCpr(cpr), ex);
 				}
-				
+
 				return false;
 			}
 		}
-		
+
 		return true;
 	}
-	
+
 	private void createNotSubscribedNotification(String cpr) {
 		Person person = personService.findByCpr(cpr);
 

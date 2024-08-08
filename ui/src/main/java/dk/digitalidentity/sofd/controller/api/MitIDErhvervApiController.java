@@ -23,7 +23,9 @@ import dk.digitalidentity.sofd.security.RequireApiWriteAccess;
 import dk.digitalidentity.sofd.security.RequireDaoWriteAccess;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RequireDaoWriteAccess
 @RestController
 public class MitIDErhvervApiController {
@@ -37,24 +39,38 @@ public class MitIDErhvervApiController {
 	@RequireApiWriteAccess
 	@PostMapping("/api/nemlogin")
 	public ResponseEntity<String> postMitIDErhvervAccounts(@RequestBody MitIDErhvervStatus status) throws Exception {
-		List<Person> persons = personService.getAll();
-
-		Map<String, List<MitIDErhvervStatusEntry>> entriesByCpr = status.entries().stream().collect(Collectors.groupingBy(e -> e.cpr()));
+		log.info("Invoking MitID Erhverv UUID update through API");
 		
+		List<Person> persons = personService.getActive();
+		
+		Map<String, List<MitIDErhvervStatusEntry>> entriesByCpr = status.entries().stream().collect(Collectors.groupingBy(e -> e.cpr()));
+
+		log.info("Processing " + persons.size() + " persons");
+		
+		long addUpdateProcessingTime = 0;
+		long deleteProcessingTime = 0;
+		long otherProcessingTime = 0;
+		long readUsersTime = 0;
+		long saveCounter = 0;
+		
+		long start = System.currentTimeMillis(), tick = 0, tock = 0;
 		for (Person person : persons) {
 			boolean changes = false;
-			
+
 			List<MitIDErhvervStatusEntry> entries = entriesByCpr.get(person.getCpr());
 			if (entries == null) {
 				entries = new ArrayList<>();
 			}
 
-			// existing users
+			tick = System.currentTimeMillis();
 			Set<User> mitIdErhvervUsers = PersonService.getUsers(person).stream()
 					.filter(u -> SupportedUserTypeService.isMitIDErhverv(u.getUserType()))
 					.collect(Collectors.toSet());
+			tock = System.currentTimeMillis();
+			readUsersTime += (tock - tick);
 
 			// add / update
+			tick = System.currentTimeMillis();
 			for (MitIDErhvervStatusEntry entry : entries) {
 				boolean exists = false;
 				
@@ -91,7 +107,10 @@ public class MitIDErhvervApiController {
 					changes = true;
 				}
 			}
+			tock = System.currentTimeMillis();
+			addUpdateProcessingTime += (tock - tick);
 
+			tick = System.currentTimeMillis();
 			for (Iterator<PersonUserMapping> iterator = person.getUsers().iterator(); iterator.hasNext();) {
 				PersonUserMapping personUserMapping = iterator.next();
 				
@@ -106,11 +125,18 @@ public class MitIDErhvervApiController {
 					changes = true;
 				}
 			}
+			tock = System.currentTimeMillis();
+			deleteProcessingTime += (tock - tick);
 			
 			if (changes) {
+				saveCounter++;
 				personService.save(person);
 			}
 		}
+		tock = System.currentTimeMillis();
+		otherProcessingTime = (tock - start) - addUpdateProcessingTime - deleteProcessingTime - readUsersTime;
+		
+		log.info("Finished processing - " + saveCounter + " persons updated taking " + (tock - start) + "ms split into " + addUpdateProcessingTime + "ms on add/update and " + deleteProcessingTime + "ms on delete and " + readUsersTime + "ms on readUsers and " + otherProcessingTime + "ms on other stuff");
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}

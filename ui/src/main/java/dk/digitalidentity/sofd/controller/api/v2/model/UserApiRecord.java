@@ -1,11 +1,17 @@
 package dk.digitalidentity.sofd.controller.api.v2.model;
 
+import java.time.LocalDate;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 
+import org.springframework.util.StringUtils;
+
+import dk.digitalidentity.sofd.dao.model.ActiveDirectoryDetails;
 import dk.digitalidentity.sofd.dao.model.User;
+import dk.digitalidentity.sofd.service.SupportedUserTypeService;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -63,27 +69,28 @@ public class UserApiRecord extends BaseRecord {
 	public UserApiRecord(User user) {
 		this.master = user.getMaster();
 		this.masterId = user.getMasterId();
+		this.employeeId = user.getEmployeeId();
 		this.uuid = user.getUuid();
 		this.userId = user.getUserId();
-		this.employeeId = user.getEmployeeId();
 		this.userType = user.getUserType();
 		this.localExtensions = stringToMap(user.getLocalExtensions());
 		this.prime = user.isPrime();
 		this.disabled = user.isDisabled();
 		this.substituteAccount = user.isSubstituteAccount();
-				
+
 		// readonly fields mapping for AD accounts
 		if (user.getActiveDirectoryDetails() != null) {
 			this.passwordLocked = user.getActiveDirectoryDetails().isPasswordLocked();
 			this.accountExpireDate = (user.getActiveDirectoryDetails().getAccountExpireDate() != null) ? user.getActiveDirectoryDetails().getAccountExpireDate().toString() : null;
 			this.passwordExpireDate = (user.getActiveDirectoryDetails().getPasswordExpireDate() != null) ? user.getActiveDirectoryDetails().getPasswordExpireDate().toString() : null;
-			this.upn = user.getActiveDirectoryDetails().getUpn();
+			this.whenCreated = (user.getActiveDirectoryDetails().getWhenCreated() != null) ? user.getActiveDirectoryDetails().getWhenCreated().toString() : null;
+			this.upn = (StringUtils.hasLength(user.getActiveDirectoryDetails().getUpn())) ? user.getActiveDirectoryDetails().getUpn() : null;
 			this.kombitUuid = user.getActiveDirectoryDetails().getKombitUuid();
-			this.title = user.getActiveDirectoryDetails().getTitle();
+			this.title = (StringUtils.hasLength(user.getActiveDirectoryDetails().getTitle())) ? user.getActiveDirectoryDetails().getTitle() : null;
 		}
 	}
 
-	public User toUser() {
+	public User toUser(String seedPrefix) {
 		User user = new User();
 		user.setEmployeeId(("".equals(employeeId)) ? null : employeeId); // translate "" to null on incoming data for employeeId
 		user.setLocalExtensions(mapToString(localExtensions));
@@ -93,6 +100,47 @@ public class UserApiRecord extends BaseRecord {
 		user.setUserType(userType);
 		user.setUuid(uuid);
 		
+		// this code is only really used during creation of a new User - the update code looks at the stored field on the userRecord
+		if (SupportedUserTypeService.isActiveDirectory(userType) || SupportedUserTypeService.isActiveDirectorySchool(userType)) {
+			// compute kombitUuid
+			if (StringUtils.hasLength(seedPrefix)) {
+				String seed = seedPrefix + user.getUserId() + user.getUserType();
+
+				kombitUuid = UUID.nameUUIDFromBytes(seed.toLowerCase().getBytes()).toString();
+			}
+			else {
+				kombitUuid = user.getMasterId();
+			}
+			
+			// sanity check on dates
+			if (title != null && title.length() > 100) {
+				title = title.substring(0, 100);
+			}
+			if (!StringUtils.hasLength(whenCreated) || whenCreated.equals("9999-12-31")) {
+				whenCreated = null;
+			}
+			if (!StringUtils.hasLength(accountExpireDate) || accountExpireDate.equals("9999-12-31")) {
+				accountExpireDate = null;
+			}
+			if (!StringUtils.hasLength(passwordExpireDate) || passwordExpireDate.equals("9999-12-31")) {
+				passwordExpireDate = null;
+			}
+
+			ActiveDirectoryDetails details = new ActiveDirectoryDetails();
+			details.setKombitUuid(kombitUuid);
+			details.setPasswordLocked(passwordLocked != null ? passwordLocked : false);
+			details.setPasswordLockedDate(details.isPasswordLocked() ? LocalDate.now() : null);
+			details.setUpn(upn);
+			details.setUser(user);
+			details.setUserType(userType);
+			details.setTitle(title);
+			details.setPasswordExpireDate(StringUtils.hasLength(passwordExpireDate) ? LocalDate.parse(passwordExpireDate) : null);
+			details.setWhenCreated(StringUtils.hasLength(whenCreated) ? LocalDate.parse(whenCreated) : null);
+			details.setAccountExpireDate(StringUtils.hasLength(accountExpireDate) ? LocalDate.parse(accountExpireDate) : null);
+
+			user.setActiveDirectoryDetails(details);
+		}
+
 		// this is not actually true (might be different in the DB on a patch call) - but these fields are never accessed in the comparison,
 		// and only set when creating, so the default values of FALSE makes sense if not supplied by the caller
 		user.setDisabled((disabled != null) ? disabled : false);

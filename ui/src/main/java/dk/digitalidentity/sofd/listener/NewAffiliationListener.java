@@ -103,14 +103,24 @@ public class NewAffiliationListener implements ListenerAdapter {
 	}
 
 	private void handleNewAffiliations(Person person, List<Affiliation> affiliations) {
+		Calendar cal = Calendar.getInstance();
+		cal.setTime(new Date());
+		cal.add(Calendar.DATE, -60);
+		Date twoMonthsAgo = cal.getTime();
+		
 		for (Affiliation affiliation : affiliations) {
+			// if the start date is > 2 months ago, skip it (not super relevant information to send a mail about)
+			if (affiliation.getStartDate().before(twoMonthsAgo)) {
+				continue;
+			}
+
 			var managerResponse = PersonService.getManagerDifferentFromPerson(person, affiliation.getEmployeeId());
 			if (managerResponse == null) {
 				continue;
 			}
 			Person manager = managerResponse.manager().getManager();
 
-			Calendar cal = Calendar.getInstance();
+			cal = Calendar.getInstance();
 			cal.setTime(affiliation.getStartDate());
 			cal.set(Calendar.HOUR_OF_DAY, 7);
 			Date firstTts = cal.getTime();

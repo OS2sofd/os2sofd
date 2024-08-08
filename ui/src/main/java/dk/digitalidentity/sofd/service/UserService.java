@@ -37,6 +37,10 @@ public class UserService {
 	public List<User> findByUserIdLikeAndUserType(String word, String userType) {
 		return userDao.findByUserIdLikeAndUserType(word, userType);
 	}
+	
+	public List<User> findByUserTypeAndDisabledFalse(String userType) {
+		return userDao.findByUserTypeAndDisabledFalse(userType);
+	}
 
 	public static boolean isSubstituteUser(User user) {
 		var substituteRegex = "^vik\\d+$";

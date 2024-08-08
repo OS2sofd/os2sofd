@@ -58,6 +58,13 @@
 						</a>
 					</li>
 
+					<li>
+						<a target="_blank" th:href="@{/download/brugermanual.pdf}">
+							<em class="fa fa-fw fa-book"></em>
+							<span th:text="#{html.index.link.usermanual}"></span>
+						</a>
+					</li>
+
 					<li sec:authorize="hasRole('ROLE_USER_ADMIN')" th:unless="${@sofdConfiguration.checkVersion()}">
 						<a th:href="@{/ui/version}" style="color: #feff4b !important;">
 							<em class="fa fa-fw fa-warning"></em>
@@ -280,6 +287,13 @@
 									<span th:text="#{html.navbar.tags}"></span>
 								</a>
 							</li>
+
+							<li sec:authorize="hasRole('ROLE_USER_ADMIN')" th:if="${@sofdConfiguration.getModules().getStudents().isEnabled() == true}" th:class="${page == 'institutions'} ? 'active' : ''">
+								<a th:href="@{/ui/institutions}">
+									<em class="fa fa-university"></em>
+									<span th:text="#{html.navbar.institutions}"></span>
+								</a>
+							</li>
 						</th:block>
 						
 						<th:block>
@@ -329,6 +343,13 @@
 							<a th:href="@{/ui/contactplaces}">
 								<em class="fa fa-map-marker"></em>
 								<span th:text="#{html.navbar.contactPlaces}"></span>
+							</a>
+						</li>
+
+						<li th:class="${page == 'students'} ? 'active' : ''" th:if="${@sofdConfiguration.getModules().getStudents().isEnabled() == true}">
+							<a th:href="@{/ui/student}">
+								<em class="fa fa-graduation-cap"></em>
+								<span th:text="#{html.navbar.students}"></span>
 							</a>
 						</li>
 					</th:block>
@@ -432,12 +453,21 @@
 								<span th:text="#{html.navbar.accountorders}"></span>
 							</li>
 
-							<li th:if="${@sofdConfiguration.getModules().getAccountCreation().isAccountOrderApprove() == true}" sec:authorize="hasRole('ROLE_MANAGER') or hasRole('ROLE_USER_EDIT')" th:class="${page == 'pendingapproval'} ? 'active' : ''">
+							<th:block th:if="${@sofdConfiguration.getModules().getAccountCreation().isAccountOrderApprove() == true}">
+							<li sec:authorize="hasRole('ROLE_MANAGER') or hasRole('ROLE_USER_EDIT')" th:class="${page == 'pendingapproval'} ? 'active' : ''">
 								<a th:href="@{/ui/account/order/approve}">
-									<em class="fa fa-clock-o"></em>
+									<em class="fa fa-table"></em>
 									<span th:text="#{html.navbar.report.approvependingorders}"></span>
 								</a>
 							</li>
+
+							<li sec:authorize="hasRole('ROLE_USER_EDIT')" th:class="${page == 'approvallog'} ? 'active' : ''">
+								<a th:href="@{/ui/report/accountorderapprovals}">
+									<em class="fa fa-recycle"></em>
+									<span th:text="#{html.navbar.accountorders.approvals}"></span>
+								</a>
+							</li>
+							</th:block>
 	
 							<li sec:authorize="hasRole('ROLE_USER_EDIT')" th:class="${page == 'accountcreation'} ? 'active' : ''">
 								<a th:href="@{/ui/report/accountorders}">

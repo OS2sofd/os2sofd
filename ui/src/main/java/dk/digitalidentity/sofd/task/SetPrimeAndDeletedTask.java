@@ -68,7 +68,7 @@ public class SetPrimeAndDeletedTask {
 			}
 			
 			// if the person does not have any users, and does not have any prime affiliations (i.e. no active affiliations), then flip the delete flag
-			boolean shouldBeDeleted = (person.onlyActiveUsers().size() == 0 && !person.getAffiliations().stream().anyMatch(a -> a.isPrime()));
+			boolean shouldBeDeleted = (person.getUsers().size() == 0 && !person.getAffiliations().stream().anyMatch(a -> a.isPrime()));
 			if (shouldBeDeleted && !person.isDeleted()) {
 				person.setDeleted(true);
 				changes = true;

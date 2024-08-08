@@ -4,8 +4,13 @@ DROP VIEW IF EXISTS persons_deleted_grid;
 CREATE OR REPLACE VIEW subview_datatables_affiliations AS SELECT
      CASE WHEN TRIM(IFNULL(position_display_name,'')) <> '' THEN position_display_name ELSE position_name END AS position_name,
      person_uuid,
-     CASE WHEN TRIM(IFNULL(alt_orgunit_uuid,'')) <> '' THEN alt_orgunit_uuid ELSE orgunit_uuid END AS orgunit_uuid
-   FROM affiliations
+     COALESCE(workplace.orgunit_uuid, a.`alt_orgunit_uuid`, a.`orgunit_uuid`) AS orgunit_uuid
+     FROM affiliations a
+     LEFT JOIN (
+        SELECT aw.orgunit_uuid, aw.affiliation_id
+        FROM affiliations_workplaces aw
+        WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate() LIMIT 1
+     ) workplace ON workplace.affiliation_id = a.id
    WHERE prime = 1;
 
 CREATE OR REPLACE VIEW view_datatables_persons AS SELECT
@@ -61,3 +66,15 @@ CREATE OR REPLACE VIEW view_datatables_persons_deleted AS SELECT
     ) usrs ON usrs.person_uuid = p.uuid
   WHERE p.deleted = 1
   GROUP BY p.uuid;
+
+CREATE OR REPLACE VIEW view_datatables_students AS SELECT
+    s.uuid,
+    s.name,
+    s.disabled,
+    s.username,
+    GROUP_CONCAT(sin.institution_number) AS institution_numbers,
+    GROUP_CONCAT(scn.class) AS classes
+  FROM student s
+  LEFT JOIN student_institution_numbers sin ON s.id = sin.student_id
+  LEFT JOIN student_class_names scn ON s.id = scn.student_id
+  GROUP BY s.id;

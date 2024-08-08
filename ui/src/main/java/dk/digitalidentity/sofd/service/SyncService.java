@@ -1,8 +1,10 @@
 package dk.digitalidentity.sofd.service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -20,6 +22,7 @@ import org.springframework.util.StringUtils;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.model.ModificationHistory;
+import dk.digitalidentity.sofd.dao.model.User;
 import dk.digitalidentity.sofd.service.model.ADGridAD;
 import dk.digitalidentity.sofd.service.model.ADGridAffiliation;
 import dk.digitalidentity.sofd.service.model.ADGridOrgUnit;
@@ -27,7 +30,9 @@ import dk.digitalidentity.sofd.service.model.ADGridPerson;
 import dk.digitalidentity.sofd.service.model.AuditWrapper;
 import dk.digitalidentity.sofd.service.model.ChangeType;
 import dk.digitalidentity.sofd.service.model.SyncResult;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class SyncService {
 	
@@ -42,6 +47,7 @@ public class SyncService {
 			"       prime," + 
 			"       phone_number," +
 			"       position_name," + 
+			"       start_date," + 
 			"       orgunit_uuid," +
 			"       upn," +
 			"       nemlogin_user_uuid," +
@@ -64,8 +70,17 @@ public class SyncService {
 			"       email," +
 			"       upn," +
 			"       primary_orgunit_name," +
+			"       password_expire_date," +
 			"       local_extensions" +
 			"  FROM view_syncservice_all_ad_users";
+
+	private static final String adGridOpusNoAdQuery =
+			"SELECT person_uuid," +
+					"       cpr," +
+					"       name," +
+					"       employee_id," +
+					"       deleted" +
+					"  FROM view_syncservice_all_users_with_opus_no_ad";
 
 	private static final String adGridOrgUnitQuery =
 			"SELECT uuid," + 
@@ -84,6 +99,9 @@ public class SyncService {
 	@Qualifier("defaultTemplate")
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+	
+	@Autowired
+	private UserService userService;
 	
 	@Autowired
 	private SofdConfiguration configuration;
@@ -132,6 +150,7 @@ public class SyncService {
 			String upn = rs.getString("upn");
 			String primaryOrgunitName = rs.getString("primary_orgunit_name");
 			String localExtensions = rs.getString("local_extensions");
+			String passwordExpireDate = rs.getString("password_expire_date");
 			boolean prime = rs.getBoolean("prime");
 			boolean disabled = rs.getBoolean("disabled");
 			boolean expired = rs.getBoolean("expired");
@@ -147,7 +166,34 @@ public class SyncService {
 			person.setUserId(userId);
 			person.setDisabled(disabled);
 			person.setExpired(expired);
+			person.setPasswordExpireDate(passwordExpireDate);
 			person.setLocalExtensions(localExtensions);
+
+			return person;
+		});
+	}
+
+	@SuppressWarnings("deprecation")
+	public Collection<ADGridAD> getADGridOpusButNoADAccount() {
+		String query = adGridOpusNoAdQuery;
+
+		return jdbcTemplate.query(query, new Object[0], (RowMapper<ADGridAD>) (rs, rowNum) -> {
+			ADGridAD person = new ADGridAD();
+
+			String personUuid = rs.getString("person_uuid");
+			String cpr = rs.getString("cpr");
+			String name = rs.getString("name");
+			String employeeId = rs.getString("employee_id");
+			boolean deleted = rs.getBoolean("deleted");
+
+			person.setPersonUuid(personUuid);
+			person.setUuid(personUuid);
+			person.setName(name);
+			person.setCpr(cpr);
+			person.setUserId(employeeId);
+
+			person.setDisabled(deleted);
+			person.setExpired(deleted);
 
 			return person;
 		});
@@ -156,10 +202,11 @@ public class SyncService {
 	public Collection<ADGridPerson> getADGridPersons(boolean includeUniloginUsers, boolean includeSchoolADUsers) {
 		String query = adGridPersonQuery;
 
-
-		if(!configuration.getIntegrations().getRoleCatalogue().isIncludeDisabled()) {
+		if (!configuration.getIntegrations().getRoleCatalogue().isIncludeDisabled()) {
 			query += " AND disabled = 0 ";
 		}
+		
+		LocalDate cutOff = LocalDate.now().plusDays(configuration.getIntegrations().getRoleCatalogue().getAffiliationCutoff());
 
 		var includedUserTypes = new ArrayList<String>();
 		includedUserTypes.add("'ACTIVE_DIRECTORY'");
@@ -191,6 +238,20 @@ public class SyncService {
 			String orgUnitUuid = rs.getString("orgunit_uuid");
 			String userType = rs.getString("user_type");
 
+			String startDateStr = rs.getString("start_date");
+			LocalDate startDate = LocalDate.of(1979, 5, 21);
+			try {
+				startDate = LocalDate.parse(startDateStr.substring(0, 10));
+			}
+			catch (Exception ex) {
+				log.warn("Failed to parse startDate " + startDate + " on userId: " + ex.getMessage());
+			}
+			
+			// returning null will just remove it from the dataset (by removing null entries ;))
+			if (startDate.isAfter(cutOff)) {
+				return null;
+			}
+			
 			person.setSchoolUser(userType.equalsIgnoreCase("ACTIVE_DIRECTORY_SCHOOL"));
 			person.setPersonUuid(personUuid);
 			person.setUuid(uuid);
@@ -233,6 +294,19 @@ public class SyncService {
 			return person;
 		});
 		
+		// remove null entries
+		persons.removeAll(Collections.singletonList(null));
+		
+		List<User> mitIdErhvervUsers = userService.findByUserTypeAndDisabledFalse(SupportedUserTypeService.getMitIDErhvervUserType());
+		
+		// we only want those with the special "mitid-" masterId prefix, as those are not handled by the SQL VIEW extration
+		// but we want to map it to an easy lookup map for later use
+		Map<String, User> mitIdErhvervLookupMap = new HashMap<String, User>();
+		for (User user : mitIdErhvervUsers.stream().filter(u -> u.getMasterId().startsWith("mitid-")).collect(Collectors.toList())) {
+			String key = user.getMasterId().substring("mitid-".length());
+			mitIdErhvervLookupMap.put(key, user);
+		}
+		
 		Map<String, ADGridPerson> result = new HashMap<>();
 		for (ADGridPerson person : persons) {
 			String key = person.getUuid() + person.getUserId();
@@ -250,6 +324,12 @@ public class SyncService {
 				}
 			}
 			else {
+				// first time we see this user - check for MitID Erhverv and map MitID UUID into person if available
+				User user = mitIdErhvervLookupMap.get(person.getUserId());
+				if (user != null) {
+					person.setNemloginUserUuid(user.getUserId());
+				}
+				
 				result.put(key, person);
 			}
 		}

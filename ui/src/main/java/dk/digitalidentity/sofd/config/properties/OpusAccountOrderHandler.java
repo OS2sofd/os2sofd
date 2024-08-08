@@ -9,8 +9,10 @@ import lombok.Setter;
 @Getter
 @Setter
 public class OpusAccountOrderHandler {
+	
 	@FeatureDocumentation(name = "OPUS brugeroprettelse", description = "Oprettelse af OPUS it-bruger på intotype 105")
 	private boolean enabled = false;
+
 	private String defaultEmail = null;
 	private String defaultEmailDomain = null;
 	private String municipalityNumber;

@@ -44,7 +44,7 @@ public class FkOrganisationService {
 			throw new Exception("Synchronization (getKey) failed: " + keyResponse.getStatusCodeValue());
 		}
 
-		String key = keyResponse.getBody();
+		String key = keyResponse.getBody().replace("\"", "");
 
 		ResponseEntity<FKHierarchyWrapper> response = null;
 		int maxAttempts = 60;

@@ -80,6 +80,7 @@ import dk.digitalidentity.sofd.dao.model.enums.AffiliationType;
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.dao.model.enums.EventType;
 import dk.digitalidentity.sofd.dao.model.enums.NotificationType;
+import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPostMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.PersonAuthorizationCodeMapping;
 import dk.digitalidentity.sofd.log.AuditLogger;
 import dk.digitalidentity.sofd.security.RequirePersonCreaterOrControllerWriteAccess;
@@ -223,7 +224,6 @@ public class PersonController {
             post.setStreet(createPersonDTO.getRegisteredPostAddress().getStreet());
 
             person.setRegisteredPostAddress(post);
-
         }
 
         Affiliation aff = addAffiliationFromDTO(createPersonDTO.getAffiliation(), person);
@@ -330,7 +330,8 @@ public class PersonController {
 
             if (affiliation.getStartDate() != null) {
                 dto.setActiveInFuture(dateWithoutTime(affiliation.getStartDate()).after(today));
-            } else {
+            }
+            else {
                 dto.setActiveInFuture(false);
             }
 
@@ -741,6 +742,20 @@ public class PersonController {
                     .addressProtected(resAddr.isAddressProtected())
                     .master(resAddr.getMaster())
                     .build());
+        }
+        
+        if (person.getAffiliations() != null) {
+        	Affiliation affiliation = person.getAffiliations().stream().filter(a -> a.isPrime()).findFirst().orElse(null);
+        	
+        	if (affiliation != null && affiliation.getOrgUnit() != null) {
+        		if (affiliation.getOrgUnit().getPostAddresses() != null) {
+        			OrgUnitPostMapping postMapping = affiliation.getOrgUnit().getPostAddresses().stream().filter(p -> p.getPost().isPrime()).findFirst().orElse(null);
+        			
+        			if (postMapping != null) {
+        				personDTO.setWorkAddress(postMapping.getPost().getAsOneLine());
+        			}
+        		}
+        	}
         }
 
         // add pending UserAccount orders to the list of users

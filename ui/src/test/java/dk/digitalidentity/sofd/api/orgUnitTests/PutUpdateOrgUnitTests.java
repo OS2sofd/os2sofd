@@ -67,7 +67,6 @@ public class PutUpdateOrgUnitTests {
 		ResponseEntity<OrgUnit> orgUnitResponse = template.exchange("https://localhost:9020/api/orgUnits/" + dataGenerator.getOuHRUuid(), HttpMethod.GET, httpEntity, OrgUnit.class);
 		OrgUnit orgUnit = orgUnitResponse.getBody();
 
-		orgUnit.setEan(99999L);
 		orgUnit.setSourceName("HR test");
 		orgUnit.setPnr(null);
 
@@ -83,8 +82,7 @@ public class PutUpdateOrgUnitTests {
 				.header("ApiKey", dataGenerator.getApiKey()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.pnr", is(IsNull.nullValue())))
-				.andExpect(jsonPath("$.name", is("HR test")))
-				.andExpect(jsonPath("$.ean", is(99999)));
+				.andExpect(jsonPath("$.name", is("HR test")));
 	}
 
 	@Test
@@ -99,7 +97,6 @@ public class PutUpdateOrgUnitTests {
 		ResponseEntity<OrgUnit> orgUnitResponse = template.exchange("https://localhost:9020/api/orgUnits/" + dataGenerator.getOuHRUuid(), HttpMethod.GET, httpEntity, OrgUnit.class);
 		OrgUnit orgUnit = orgUnitResponse.getBody();
 
-		orgUnit.setEan(99999L);
 		orgUnit.setSourceName("HR test");
 		orgUnit.setPnr(null);
 

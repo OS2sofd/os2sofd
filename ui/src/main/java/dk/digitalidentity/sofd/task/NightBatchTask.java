@@ -10,6 +10,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
+import dk.digitalidentity.sofd.service.SubstituteAssignmentService;
+import dk.digitalidentity.sofd.service.SubstituteOrgUnitAssignmentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -88,9 +90,16 @@ public class NightBatchTask {
 	@Autowired
 	private BatchJobExecutionService batchJobExecutionService;
 
+	@Autowired
+	private SubstituteAssignmentService substituteAssignmentService;
+
+	@Autowired
+	private SubstituteOrgUnitAssignmentService substituteOrgUnitAssignmentService;
+
 
 	@EventListener(ApplicationReadyEvent.class)
 	public void init() {
+
 		if (!configuration.getScheduled().isEnabled()) {
 			log.debug("Scheduled jobs are disabled on this instance");
 			return;
@@ -295,6 +304,20 @@ public class NightBatchTask {
 						return true;
 					}).build());
 		}
+
+		// delete substitutes with no affiliations (10:15 to 10:45)
+		if (configuration.getScheduled().getDeleteSubstitutes().isEnabled()) {
+			batchJobs.add(BatchJob.builder()
+					.name("Delete Substitutes Task")
+					.time(LocalTime.of(10, random.nextInt(30) + 15))
+					.function(() -> {
+						substituteAssignmentService.Cleanup(configuration.getScheduled().getDeleteSubstitutes().getDays());
+						substituteOrgUnitAssignmentService.Cleanup(configuration.getScheduled().getDeleteSubstitutes().getDays());
+
+						return true;
+					}).build());
+		}
+
 		
 		// cleanup orgUnits in FK Organisation every Monday morning (10:00 to 10:59)
 		batchJobs.add(BatchJob.builder()

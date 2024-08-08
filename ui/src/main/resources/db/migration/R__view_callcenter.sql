@@ -111,7 +111,12 @@ CREATE OR REPLACE VIEW subview_callcenter_employees AS
 			AND af.deleted = 0
 			AND (af.start_date IS NULL OR CAST(af.start_date AS DATE) <= CAST(CURRENT_TIMESTAMP AS DATE))
 			AND (af.stop_date IS NULL OR CAST(af.stop_date AS DATE) >= CAST(CURRENT_TIMESTAMP AS DATE))
-		INNER JOIN orgunits ou ON ou.uuid = COALESCE(af.`alt_orgunit_uuid`, af.`orgunit_uuid`) and ou.deleted = 0
+		LEFT JOIN (
+        	SELECT orgunit_uuid, affiliation_id
+            FROM affiliations_workplaces aw
+            WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate() LIMIT 1
+        ) workplace ON workplace.affiliation_id = af.id
+        INNER JOIN orgunits ou ON ou.uuid = COALESCE(workplace.orgunit_uuid, af.alt_orgunit_uuid, af.orgunit_uuid) and ou.deleted = 0
         LEFT JOIN subview_callcenter_prime_orgunit_phone pop ON pop.orgunit_uuid = ou.uuid
 		LEFT JOIN subview_callcenter_orgunit_prime_post oupp ON oupp.orgunit_uuid = ou.uuid
 		LEFT JOIN subview_callcenter_prime_ad_user padu ON padu.person_uuid = p.uuid

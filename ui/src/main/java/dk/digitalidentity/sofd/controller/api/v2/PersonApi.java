@@ -32,8 +32,6 @@ import org.springframework.web.bind.annotation.RestController;
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.api.v2.model.PersonApiRecord;
 import dk.digitalidentity.sofd.controller.api.v2.model.PersonResult;
-import dk.digitalidentity.sofd.controller.api.v2.model.UserApiRecord;
-import dk.digitalidentity.sofd.dao.ActiveDirectoryDetailsDao;
 import dk.digitalidentity.sofd.dao.model.ActiveDirectoryDetails;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.MasteredEntity;
@@ -54,6 +52,7 @@ import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.AccountOrderService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
+import dk.digitalidentity.sofd.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -66,9 +65,6 @@ public class PersonApi {
 
 	@Autowired
 	private SofdConfiguration sofdConfiguration;
-
-	@Autowired
-	private ActiveDirectoryDetailsDao activeDirectoryDetailsDao;
 
 	@Autowired
 	private AccountOrderService accountOrderService;
@@ -126,6 +122,19 @@ public class PersonApi {
 		
 		return new ResponseEntity<>(new PersonApiRecord(person), HttpStatus.OK);
 	}
+
+	// various integrations may need to know about these settings
+	public record PersonApiSettings(boolean activeDirectoryEmployeeIdAssociationEnabled) { }
+
+	@GetMapping("/api/v2/persons/settings")
+	public ResponseEntity<?> getSettings() {
+		return new ResponseEntity<>(
+			new PersonApiSettings(
+				sofdConfiguration.getIntegrations().getOpus().isEnableActiveDirectoryEmployeeIdAssociation()
+			),
+			HttpStatus.OK
+		);
+	}
 	
 	@RequireApiWriteAccess
 	@PostMapping("/api/v2/persons")
@@ -138,11 +147,14 @@ public class PersonApi {
 			return new ResponseEntity<>("Already exists", HttpStatus.CONFLICT);
 		}
 
-		Person person = personService.save(record.toPerson(null));
+		String seedPrefix = null;
+		if (!sofdConfiguration.getIntegrations().getOs2sync().isUseObjectGuidAsKombitUuid()) {
+			seedPrefix = sofdConfiguration.getCustomer().getCvr() + record.getCpr();
+		}
+
+		Person person = personService.save(record.toPerson(null, seedPrefix));
 		
 		checkForADUserWithSameUserId(person);
-		
-		updateActiveDirectoryFields(person, record);
 		
 		return new ResponseEntity<>(new PersonApiRecord(person), HttpStatus.CREATED);
 	}
@@ -162,8 +174,6 @@ public class PersonApi {
 				person = personService.save(person);
 			}
 			
-			changes |= updateActiveDirectoryFields(person, record);
-
 			if (!changes) {
 				return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
 			}
@@ -178,7 +188,12 @@ public class PersonApi {
 	}
 
 	private boolean patch(Person person, PersonApiRecord personRecord) throws Exception {
-		Person record = personRecord.toPerson(person);
+		String seedPrefix = null;
+		if (!sofdConfiguration.getIntegrations().getOs2sync().isUseObjectGuidAsKombitUuid()) {
+			seedPrefix = sofdConfiguration.getCustomer().getCvr() + personRecord.getCpr();
+		}
+
+		Person record = personRecord.toPerson(person, seedPrefix);
 		boolean changes = false;
 		
 		// in patch() fields are only updated if the supplied record is non-null, meaning PATCH cannot
@@ -425,7 +440,7 @@ public class PersonApi {
 								}
 							}
 							else if (personMasteredEntity instanceof User) {
-								if (patchUserEntityFields((User) personMasteredEntity, (User) recordMasteredEntity)) {
+								if (patchUserEntityFields(person, (User) personMasteredEntity, (User) recordMasteredEntity)) {
 									changes = true;
 								}
 							}
@@ -525,7 +540,12 @@ public class PersonApi {
 			personEntry.setPositionName((StringUtils.hasLength(recordEntry.getPositionName())) ? recordEntry.getPositionName().trim() : "Ukendt");
 			changes = true;
 		}
-		
+
+		if (recordEntry.getPositionShort() != null && !Objects.equals(personEntry.getPositionShort(), recordEntry.getPositionShort())) {
+			personEntry.setPositionShort(recordEntry.getPositionShort());
+			changes = true;
+		}
+
 		if (recordEntry.getPositionTypeId() != null && !Objects.equals(personEntry.getPositionTypeId(), recordEntry.getPositionTypeId())) {
 			personEntry.setPositionTypeId(recordEntry.getPositionTypeId());
 			changes = true;
@@ -747,18 +767,21 @@ public class PersonApi {
 		return changes;
 	}
 
-	private boolean patchUserEntityFields(User personUser, User recordUser) {
+	private boolean patchUserEntityFields(Person person, User personUser, User recordUser) {
 		boolean changes = false;
 		
 		// note that patching cannot be used for null'ing fields, only setting or updating them
 		
-		if (recordUser.getEmployeeId() != null && !Objects.equals(personUser.getEmployeeId(), recordUser.getEmployeeId())) {
-			// we only allow changing the employeeId on AD accounts if the version in SOFD Core is NULL, because
-			// SOFD Core should be the master of this field (but initial load from AD is okay)
-			// If EmployeeAssociation is not enabled in SOFD, changing the attribute is also allowed
-			if (!StringUtils.hasLength(personUser.getEmployeeId()) || !SupportedUserTypeService.isActiveDirectory(personUser.getUserType()) || !sofdConfiguration.getIntegrations().getOpus().isEnableActiveDirectoryEmployeeIdAssociation()) {
-				personUser.setEmployeeId(recordUser.getEmployeeId());
-				changes = true;
+		// never allow setting/updating employeeId on vikXXXX users, as this will not work well over time
+		if (!UserService.isSubstituteUser(personUser)) {
+			if (recordUser.getEmployeeId() != null && !Objects.equals(personUser.getEmployeeId(), recordUser.getEmployeeId())) {
+				// we only allow changing the employeeId on AD accounts if the version in SOFD Core is NULL, because
+				// SOFD Core should be the master of this field (but initial load from AD is okay)
+				// If EmployeeAssociation is not enabled in SOFD, changing the attribute is also allowed
+				if (!StringUtils.hasLength(personUser.getEmployeeId()) || !SupportedUserTypeService.isActiveDirectory(personUser.getUserType()) || !sofdConfiguration.getIntegrations().getOpus().isEnableActiveDirectoryEmployeeIdAssociation()) {
+					personUser.setEmployeeId(recordUser.getEmployeeId());
+					changes = true;
+				}
 			}
 		}
 
@@ -795,6 +818,10 @@ public class PersonApi {
 			changes = true;
 		}
 
+		if (patchActiveDirectoryFields(person, personUser, recordUser)) {
+			changes = true;
+		}
+		
 		return changes;
 	}
 	
@@ -860,159 +887,82 @@ public class PersonApi {
 		}
 	}
 	
-	// ActiveDirectoryDetails objects are hibernate-decoupled from the User object, and needs to be updated independent of the
-	// person/user construct. For this purpose, this method is called AFTER the person has been persisted, and then any pending
-	// updates on the ActiveDirectoryDetails object(s) are performed (if needed)
-	private boolean updateActiveDirectoryFields(Person person, PersonApiRecord record) {
+	private boolean patchActiveDirectoryFields(Person person, User user, User userRecord) {
 		boolean changes = false;
 
-		// no reason to perform any updates if no users are supplied
-		if (record.getUsers() == null || record.getUsers().size() == 0) {
+		if (!SupportedUserTypeService.isActiveDirectory(user.getUserType()) && !SupportedUserTypeService.isActiveDirectorySchool(user.getUserType())) {
+			return changes;
+		}
+		
+		if (!SupportedUserTypeService.isActiveDirectory(userRecord.getUserType()) && !SupportedUserTypeService.isActiveDirectorySchool(userRecord.getUserType())) {
 			return changes;
 		}
 
-		// we have users, let's see what we can update
-		for (User user : PersonService.getUsers(person)) {
-			if (!SupportedUserTypeService.isActiveDirectory(user.getUserType()) && !SupportedUserTypeService.isActiveDirectorySchool(user.getUserType())) {
-				continue;
-			}
-			
-			UserApiRecord userRecord = record.getUsers().stream()
-					.filter(u -> (SupportedUserTypeService.isActiveDirectory(u.getUserType()) || SupportedUserTypeService.isActiveDirectorySchool(u.getUserType())) &&
-							     Objects.equals(u.getMaster(), user.getMaster()) &&
-							     Objects.equals(u.getMasterId(), user.getMasterId()))
-					.findFirst()
-					.orElse(null);
-			
-			boolean userChanges = false;
-			
-			ActiveDirectoryDetails details = activeDirectoryDetailsDao.findByUserId(user.getId());
-			if (details == null) {
-				details = new ActiveDirectoryDetails();
-				details.setUserId(user.getId());
-				details.setUserType(user.getUserType());
-				userChanges = true;
-			}
+		if (!Objects.equals(userRecord.getMaster(), user.getMaster()) || !Objects.equals(userRecord.getMasterId(), user.getMasterId())) {
+			return changes;
+		}
 
-			// no reason to set userChanges = true here - either we are in a very strange migration case (and then the migration should
-			// make sure this is set), or details was NULL above, so kombitUuid will also be null
-			if (!StringUtils.hasLength(details.getKombitUuid())) {
-				if (sofdConfiguration.getIntegrations().getOs2sync().isUseObjectGuidAsKombitUuid()) {
-					// use object guid from AD as uuid in FK Org etc.
-					details.setKombitUuid(user.getMasterId());
-				}
-				else {
-					// generate a uuid based on cvr+cpr+user_id+userType. This is to prevent uuid changes for
-					// municipalites that for some reason deletes and recreates user objects
-					var seed = sofdConfiguration.getCustomer().getCvr() + person.getCpr() + user.getUserId() + user.getUserType();
-					details.setKombitUuid(UUID.nameUUIDFromBytes(seed.toLowerCase().getBytes()).toString());
-				}
-			}
-			
-			if (userRecord.getPasswordLocked() != null) {
-				if (userRecord.getPasswordLocked() == true && details.isPasswordLocked() == false) {
-					userChanges = true;
-					details.setPasswordLocked(true);
-					details.setPasswordLockedDate(LocalDate.now());
-				}
-				else if (userRecord.getPasswordLocked() == false && details.isPasswordLocked() == true) {
-					userChanges = true;
-					details.setPasswordLocked(false);
-					details.setPasswordLockedDate(null);
-				}
-			}
-			
-			if (userRecord.getWhenCreated() != null) {
-				try {
-					if (userRecord.getWhenCreated().equals("9999-12-31") || userRecord.getWhenCreated().trim().isEmpty()) {
-						if (details.getWhenCreated() != null) {
-							userChanges = true;
-							details.setWhenCreated(null);
-						}
-					}
-					else {
-						LocalDate newValue = LocalDate.parse(userRecord.getWhenCreated());
-	
-						if (!Objects.equals(newValue, details.getWhenCreated())) {
-							userChanges = true;
-							details.setWhenCreated(newValue);
-						}
-					}
-				}
-				catch (Exception ex) {
-					log.warn("Invalid whenCreated format: " + userRecord.getWhenCreated() + " on person " + record.getUuid(), ex);
-				}
-			}
-			
-			if (userRecord.getAccountExpireDate() != null) {
-				try {
-					if (userRecord.getAccountExpireDate().equals("9999-12-31") || userRecord.getAccountExpireDate().trim().isEmpty()) {
-						if (details.getAccountExpireDate() != null) {
-							userChanges = true;
-							details.setAccountExpireDate(null);
-						}
-					}
-					else {
-						LocalDate newValue = LocalDate.parse(userRecord.getAccountExpireDate());
-	
-						if (!Objects.equals(newValue, details.getAccountExpireDate())) {
-							userChanges = true;
-							details.setAccountExpireDate(newValue);
-						}
-					}
-				}
-				catch (Exception ex) {
-					log.warn("Invalid accountExpireDate format: " + userRecord.getAccountExpireDate() + " on person " + record.getUuid(), ex);
-				}
-			}
-			
-			if (userRecord.getPasswordExpireDate() != null) {
-				try {
-					if (userRecord.getPasswordExpireDate().equals("9999-12-31") || userRecord.getPasswordExpireDate().trim().isEmpty()) {
-						if (details.getPasswordExpireDate() != null) {
-							userChanges = true;
-							details.setPasswordExpireDate(null);
-						}
-					}
-					else {
-						LocalDate newValue = LocalDate.parse(userRecord.getPasswordExpireDate());
-	
-						if (!Objects.equals(newValue, details.getPasswordExpireDate())) {
-							userChanges = true;
-							details.setPasswordExpireDate(newValue);
-						}
-					}
-				}
-				catch (Exception ex) {
-					log.warn("Invalid passwordExpireDate format: " + userRecord.getPasswordExpireDate() + " on person " + record.getUuid(), ex);
-				}
-			}
-			
-			if (userRecord.getUpn() != null) {
-				if (!Objects.equals(userRecord.getUpn(), details.getUpn())) {
-					userChanges = true;
-					details.setUpn(userRecord.getUpn());
-				}
-			}
+		ActiveDirectoryDetails details = user.getActiveDirectoryDetails();
+		if (details == null) {
+			details = new ActiveDirectoryDetails();
+			details.setUser(user);
+			details.setUserType(user.getUserType());
 
-			// trim to max length
-			if (userRecord.getTitle() != null) {
-				if (userRecord.getTitle().length() > 100) {
-					userRecord.setTitle(userRecord.getTitle().substring(0, 100));
-				}
-				
-				if (!Objects.equals(userRecord.getTitle(), details.getTitle())) {
-					userChanges = true;
-					details.setTitle(userRecord.getTitle());
-				}
-			}
+			user.setActiveDirectoryDetails(details);
+			changes = true;
+		}
 
-			if (userChanges) {
-				changes = true;
-				activeDirectoryDetailsDao.save(details);
+		// no reason to set change = true here - either we are in a very strange migration case (and then the migration should
+		// make sure this is set), or details was NULL above, so kombitUuid will also be null
+		if (!StringUtils.hasLength(details.getKombitUuid())) {
+			if (sofdConfiguration.getIntegrations().getOs2sync().isUseObjectGuidAsKombitUuid()) {
+				// use object guid from AD as uuid in FK Org etc.
+				details.setKombitUuid(user.getMasterId());
+			}
+			else {
+				// generate a uuid based on cvr+cpr+user_id+userType. This is to prevent uuid changes for
+				// municipalites that for some reason deletes and recreates user objects
+				var seed = sofdConfiguration.getCustomer().getCvr() + person.getCpr() + user.getUserId() + user.getUserType();
+				details.setKombitUuid(UUID.nameUUIDFromBytes(seed.toLowerCase().getBytes()).toString());
 			}
 		}
 		
+		if (userRecord.getActiveDirectoryDetails().isPasswordLocked() && details.isPasswordLocked() == false) {
+			changes = true;
+			details.setPasswordLocked(true);
+			details.setPasswordLockedDate(LocalDate.now());
+		}
+		else if (!userRecord.getActiveDirectoryDetails().isPasswordLocked() && details.isPasswordLocked() == true) {
+			changes = true;
+			details.setPasswordLocked(false);
+			details.setPasswordLockedDate(null);
+		}
+
+		if (!Objects.equals(userRecord.getActiveDirectoryDetails().getWhenCreated(), details.getWhenCreated())) {
+			changes = true;
+			details.setWhenCreated(userRecord.getActiveDirectoryDetails().getWhenCreated());
+		}
+
+		if (!Objects.equals(userRecord.getActiveDirectoryDetails().getAccountExpireDate(), details.getAccountExpireDate())) {
+			changes = true;
+			details.setAccountExpireDate(userRecord.getActiveDirectoryDetails().getAccountExpireDate());
+		}
+
+		if (!Objects.equals(userRecord.getActiveDirectoryDetails().getPasswordExpireDate(), details.getPasswordExpireDate())) {
+			changes = true;
+			details.setPasswordExpireDate(userRecord.getActiveDirectoryDetails().getPasswordExpireDate());
+		}
+				
+		if (!Objects.equals(userRecord.getActiveDirectoryDetails().getUpn(), details.getUpn())) {
+			changes = true;
+			details.setUpn(userRecord.getActiveDirectoryDetails().getUpn());
+		}
+
+		if (!Objects.equals(userRecord.getActiveDirectoryDetails().getTitle(), details.getTitle())) {
+			changes = true;
+			details.setTitle(userRecord.getActiveDirectoryDetails().getTitle());
+		}
+
 		return changes;
 	}
 }

@@ -10,8 +10,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import dk.digitalidentity.sofd.service.EboksService;
-import dk.digitalidentity.sofd.service.EmailTemplateService;
 import org.apache.commons.io.IOUtils;
 import org.htmlcleaner.BrowserCompactXmlSerializer;
 import org.htmlcleaner.CleanerProperties;
@@ -46,6 +44,7 @@ import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.User;
 import dk.digitalidentity.sofd.security.RequireAdminAccess;
 import dk.digitalidentity.sofd.security.SecurityUtil;
+import dk.digitalidentity.sofd.service.EboksService;
 import dk.digitalidentity.sofd.service.EmailService;
 import dk.digitalidentity.sofd.service.EmailTemplateChildService;
 import dk.digitalidentity.sofd.service.OrgUnitService;
@@ -163,14 +162,14 @@ public class EmailTemplateRestController {
 
 			if (user != null) {
 				Person person = personService.findByUser(user);
-
-				List<InlineImageDTO> inlineImages = transformImages(emailTemplateChildDTO);
 				List<Attachment> attachments = null;
 				EmailTemplateChild templateChild = emailTemplateChildService.findById(emailTemplateChildDTO.getId());
 				if (templateChild != null) {
 					templateChild.forceLoadAttachments();
 					attachments = templateChild.getAttachments();
 				}
+				var isEboks = templateChild.getEmailTemplate().getTemplateType().isEboks() && configuration.getIntegrations().getEboks().isEnabled();
+				List<InlineImageDTO> inlineImages = isEboks ? null : transformImages(emailTemplateChildDTO);
 
 				var message = emailTemplateChildDTO.getMessage();
 				// perform placeholder replacement so you can verify that the template replacement worked.
@@ -179,7 +178,7 @@ public class EmailTemplateRestController {
 					message = message.replace(placeholder.getPlaceholder(), placeholder.getPlaceholder().replaceAll("[\\{\\}]",""));
 				}
 
-				if( templateChild.getEmailTemplate().getTemplateType().isEboks() && configuration.getIntegrations().getEboks().isEnabled() ) {
+				if( isEboks ) {
 					eboksService.sendMessageWithAttachments(person.getCpr(),emailTemplateChildDTO.getTitle(),message, attachments);
 					return new ResponseEntity<>("Digital Post sendt til " + PersonService.getName(person), HttpStatus.OK);
 				}

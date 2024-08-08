@@ -11,7 +11,8 @@ CREATE OR REPLACE VIEW view_syncservice_users AS
     e.email,
     ph.phone_number,
     a.position_name,
-    COALESCE(a.`alt_orgunit_uuid`, a.`orgunit_uuid`) AS `orgunit_uuid`,
+    COALESCE(a.start_date, '1979-05-21 00:00:00') AS start_date,
+    COALESCE(workplace.orgunit_uuid, a.`alt_orgunit_uuid`, a.`orgunit_uuid`) AS `orgunit_uuid`,
     a.inherit_privileges,
     ad.upn,
     mitid.user_id AS nemlogin_user_uuid,
@@ -61,7 +62,12 @@ CREATE OR REPLACE VIEW view_syncservice_users AS
         	)
         )
     )
-  LEFT JOIN orgunits o ON o.uuid = COALESCE(a.`alt_orgunit_uuid`, a.`orgunit_uuid`)
+  LEFT JOIN (
+     SELECT orgunit_uuid, affiliation_id
+     FROM affiliations_workplaces aw
+     WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate() LIMIT 1
+  ) workplace ON workplace.affiliation_id = a.id
+  LEFT JOIN orgunits o ON o.uuid = COALESCE(workplace.orgunit_uuid, a.`alt_orgunit_uuid`, a.`orgunit_uuid`)
   LEFT JOIN persons_phones pp ON pp.person_uuid = p.uuid
   LEFT JOIN phones ph ON ph.id = pp.phone_id
   -- join email

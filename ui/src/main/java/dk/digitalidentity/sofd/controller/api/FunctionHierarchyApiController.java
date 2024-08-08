@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.model.FunctionFacetAssignment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -66,6 +67,9 @@ public class FunctionHierarchyApiController {
 	
 	@Autowired
 	private OrgUnitService orgUnitService;
+
+	@Autowired
+	private SofdConfiguration sofdConfiguration;
 	
 	@GetMapping("/api/functionhierarchy/functions")
 	public ResponseEntity<?> getFunctionsAndFacets() {
@@ -114,7 +118,7 @@ public class FunctionHierarchyApiController {
 			functionAssignmentDTO.setStopDate(assignment.getStopDate());
 			functionAssignmentDTO.setAffiliationUuid(assignment.getAffiliation().getUuid());
 			functionAssignmentDTO.setAffiliationPersonName(PersonService.getName(assignment.getAffiliation().getPerson()));
-			functionAssignmentDTO.setAffiliationPersonUserId(assignment.getAffiliation().getPerson().getPrimeADAccount());
+			functionAssignmentDTO.setAffiliationPersonUserId(assignment.getAffiliation().getPerson().getPrimeUserByUserType(sofdConfiguration.getModules().getFunctionHierarchy().getDisplayUserType()));
 			
 			functionAssignmentDTO.setFacetValues(new ArrayList<>());
 			for (FunctionFacetAssignment facetAssignment : assignment.getFunction().getFacetAssignments()) {

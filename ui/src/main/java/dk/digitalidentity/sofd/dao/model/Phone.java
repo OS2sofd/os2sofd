@@ -13,6 +13,7 @@ import javax.persistence.ManyToOne;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.envers.Audited;
 import org.springframework.data.annotation.ReadOnlyProperty;
 
@@ -34,6 +35,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @NoArgsConstructor
 @AllArgsConstructor
 @Audited
+@BatchSize(size = 100)
 @EqualsAndHashCode(exclude = "id", callSuper = true)
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Phone extends MasteredEntity {

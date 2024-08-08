@@ -6,6 +6,9 @@ import java.util.List;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.model.SubstituteOrgUnitAssignment;
+import dk.digitalidentity.sofd.dao.model.enums.EntityType;
+import dk.digitalidentity.sofd.dao.model.enums.EventType;
+import dk.digitalidentity.sofd.log.AuditLogger;
 import dk.digitalidentity.sofd.service.SubstituteOrgUnitAssignmentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
@@ -58,6 +61,9 @@ public class SubstituteRestController {
 
 	@Autowired
 	private SubstituteOrgUnitAssignmentService substituteOrgUnitAssignmentService;
+
+	@Autowired
+	private AuditLogger auditLogger;
 
 	@RequireAdminAccess
 	@ResponseBody
@@ -117,12 +123,15 @@ public class SubstituteRestController {
 		if (!configuration.getModules().getOrgUnitSubstitute().isEnabled()) {
 			return ResponseEntity.badRequest().build();
 		}
-		SubstituteOrgUnitAssignment subAssignment = substituteOrgUnitAssignmentService.getById(id);
-		if (subAssignment == null) {
+		SubstituteOrgUnitAssignment assignment = substituteOrgUnitAssignmentService.getById(id);
+		if (assignment == null) {
 			return ResponseEntity.badRequest().build();
 		}
 
-		substituteOrgUnitAssignmentService.delete(subAssignment);
+		var message = "Stedfortræder (" + assignment.getContext().getName() + ") '" + assignment.getSubstitute().getEntityName() + "' for enhed '" + assignment.getOrgUnit().getEntityName() + "' slettet via SOFD";
+		log.info(message);
+		auditLogger.log(String.valueOf(assignment.getId()), EntityType.SUBSTITUTE_ORGUNIT_ASSIGNMENT, EventType.DELETE,assignment.getSubstitute().getEntityName(), message);
+		substituteOrgUnitAssignmentService.delete(assignment);
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
@@ -130,12 +139,15 @@ public class SubstituteRestController {
 	@ResponseBody
 	@DeleteMapping(value = "/rest/substituteAssignment/delete/{id}")
 	public HttpEntity<?> deleteSubstituteAssignemnt(@PathVariable("id") Long id) {
-		SubstituteAssignment subAssignment = substituteAssignmentService.getById(id);
-		if (subAssignment == null) {
+		SubstituteAssignment assignment = substituteAssignmentService.getById(id);
+		if (assignment == null) {
 			return ResponseEntity.badRequest().build();
 		}
 
-		substituteAssignmentService.delete(subAssignment);
+		var message = "Stedfortræder (" + assignment.getContext().getName() + ") '" + assignment.getSubstitute().getEntityName() + "' for leder '" + assignment.getPerson().getEntityName() + "' slettet via SOFD";
+		log.info(message);
+		auditLogger.log(String.valueOf(assignment.getId()), EntityType.SUBSTITUTE_ASSIGNMENT, EventType.DELETE,assignment.getSubstitute().getEntityName(), message);
+		substituteAssignmentService.delete(assignment);
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
@@ -189,7 +201,10 @@ public class SubstituteRestController {
 		ass.setPerson(person);
 		ass.setSubstitute(substitute);
 
-		substituteAssignmentService.save(ass);
+		var assignment = substituteAssignmentService.save(ass);
+		var message = "Stedfortræder (" + assignment.getContext().getName() + ") '" + assignment.getSubstitute().getEntityName() + "' for leder '" + assignment.getPerson().getEntityName() + "' oprettet via SOFD";
+		log.info(message);
+		auditLogger.log(String.valueOf(assignment.getId()), EntityType.SUBSTITUTE_ASSIGNMENT, EventType.SAVE,assignment.getSubstitute().getEntityName(), message );
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
@@ -225,7 +240,11 @@ public class SubstituteRestController {
 		substituteOrgUnitAssignment.setOrgUnit(ou);
 		substituteOrgUnitAssignment.setSubstitute(substitute);
 
-		substituteOrgUnitAssignmentService.save(substituteOrgUnitAssignment);
+		var assignment = substituteOrgUnitAssignmentService.save(substituteOrgUnitAssignment);
+		var message = "Stedfortræder (" + assignment.getContext().getName() + ") '" + assignment.getSubstitute().getEntityName() + "' for enhed '" + assignment.getOrgUnit().getEntityName() + "' oprettet via SOFD";
+		log.info(message);
+		auditLogger.log(String.valueOf(assignment.getId()), EntityType.SUBSTITUTE_ORGUNIT_ASSIGNMENT, EventType.SAVE,assignment.getSubstitute().getEntityName(), message);
+
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}

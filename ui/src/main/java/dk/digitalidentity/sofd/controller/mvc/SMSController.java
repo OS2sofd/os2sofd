@@ -164,7 +164,7 @@ public class SMSController {
 			orgUnitPersons = new ArrayList<Person>();
 
 			for (OrgUnit orgUnit : orgUnits) {
-				List<Affiliation> affiliations = affiliationService.findByOrgUnitAndActive(orgUnit);
+				List<Affiliation> affiliations = affiliationService.findByCalculatedOrgUnitAndActive(orgUnit);
 				for (Affiliation affiliation : affiliations) {
 					addPerson(orgUnitPersons, affiliation.getPerson());
 				}

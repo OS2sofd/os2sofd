@@ -39,6 +39,15 @@
 
         <fieldset>
             <div class="form-group">
+                <label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.sizeRecursive}"></label>
+                <div class="col-sm-10">
+                    <input th:value="${employeeCountRecursive}" class="form-control" disabled="disabled"/>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <div class="form-group">
                 <div class="col-sm-12">
                     <a th:href="@{/ui/orgunit/view/{id}(id=${orgUnit.uuid})}">
                         <span class="btn btn-lg btn-primary" th:text="#{html.action.view}"></span>

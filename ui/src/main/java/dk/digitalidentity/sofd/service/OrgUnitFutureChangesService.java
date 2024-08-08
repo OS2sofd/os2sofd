@@ -269,11 +269,6 @@ public class OrgUnitFutureChangesService {
 						newChange = new OrgUnitFutureChange(uuid, name, OrgUnitAttribute.CVR, Long.toString(orgUnitCoreInfo.getCvr()), date);
 					}
 					break;
-				case EAN:
-					if (orgUnitCoreInfo.getEan() != null && !java.util.Objects.equals(orgUnit.getEan(), orgUnitCoreInfo.getEan())) {
-						newChange = new OrgUnitFutureChange(uuid, name, OrgUnitAttribute.EAN, Long.toString(orgUnitCoreInfo.getEan()), date);
-					}
-					break;
 				case SENR:
 					if (orgUnitCoreInfo.getSenr() != null && !java.util.Objects.equals(orgUnit.getSenr(), orgUnitCoreInfo.getSenr())) {
 						newChange = new OrgUnitFutureChange(uuid, name, OrgUnitAttribute.SENR, Long.toString(orgUnitCoreInfo.getSenr()), date);
@@ -352,9 +347,6 @@ public class OrgUnitFutureChangesService {
 					break;
 				case CVR:
 					map.put(OrgUnitAttribute.CVR, orgUnitCoreInfo.getCvr() != null ? Long.toString(orgUnitCoreInfo.getCvr()) : null);
-					break;
-				case EAN:
-					map.put(OrgUnitAttribute.EAN, orgUnitCoreInfo.getEan() != null ? Long.toString(orgUnitCoreInfo.getEan()) : null);
 					break;
 				case NAME:
 					map.put(OrgUnitAttribute.NAME, orgUnitCoreInfo.getSourceName());
@@ -438,6 +430,7 @@ public class OrgUnitFutureChangesService {
 		orgUnit.getChildren().size();
 		orgUnit.getPostAddresses().stream().forEach(m -> m.getPost().getCity());
 		orgUnit.getPhones().stream().forEach(m -> m.getPhone().getPhoneNumber());
+		orgUnit.getEanList().stream().forEach(m -> m.getMaster());
 		orgUnit.getAffiliations().size();
 		orgUnit.getTags().stream().forEach(m -> m.getTag().getValue());
 		orgUnit.getSubstitutes().stream().forEach(m -> {
@@ -487,10 +480,6 @@ public class OrgUnitFutureChangesService {
 
 					if (coreInfoMap.get(OrgUnitAttribute.CVR) != null) {
 						orgUnit.setCvr(Long.parseLong(coreInfoMap.get(OrgUnitAttribute.CVR)));
-					}
-					
-					if (coreInfoMap.get(OrgUnitAttribute.EAN) != null) {
-						orgUnit.setEan(Long.parseLong(coreInfoMap.get(OrgUnitAttribute.EAN)));
 					}
 					
 					if (coreInfoMap.get(OrgUnitAttribute.SENR) != null) {
@@ -556,9 +545,6 @@ public class OrgUnitFutureChangesService {
 						break;
 					case CVR:
 						orgUnit.setCvr(Long.parseLong(change.getAttributeValue()));
-						break;
-					case EAN:
-						orgUnit.setEan(Long.parseLong(change.getAttributeValue()));
 						break;
 					case SENR:
 						orgUnit.setSenr(Long.parseLong(change.getAttributeValue()));

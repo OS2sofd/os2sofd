@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.model.ActiveDirectoryDetails;
+import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Phone;
 import dk.digitalidentity.sofd.dao.model.User;
@@ -142,6 +143,7 @@ public class PwdReminderTask {
 		if (ouFilter.size() > 0) {
 			Set<String> orgUnitUuids = person.getAffiliations().stream().map(a -> a.getOrgUnit().getUuid()).collect(Collectors.toSet());
 			orgUnitUuids.addAll(person.getAffiliations().stream().filter(a -> a.getAlternativeOrgUnit() != null).map(a -> a.getAlternativeOrgUnit().getUuid()).collect(Collectors.toSet()));
+			orgUnitUuids.addAll(findWorkplaceOUUuids(person.getAffiliations()));
 
 			// find intersection between ouFilter-set and the orgunits that the user is in
 			orgUnitUuids.retainAll(ouFilter);
@@ -152,6 +154,16 @@ public class PwdReminderTask {
 
 		// no filter, no one is filtered...
 		return false;
+	}
+
+	private Set<String> findWorkplaceOUUuids(List<Affiliation> affiliations) {
+		Set<String> orgUnitUuids = new HashSet<>();
+		for (Affiliation affiliation : affiliations) {
+			if (affiliation.getWorkplaces() != null) {
+				orgUnitUuids.addAll(affiliation.getWorkplaces().stream().map(w -> w.getOrgUnit().getUuid()).collect(Collectors.toSet()));
+			}
+		}
+		return orgUnitUuids;
 	}
 
 	private boolean notifyEmail(Person person, User user, String emailTxt, String subject, long days) {

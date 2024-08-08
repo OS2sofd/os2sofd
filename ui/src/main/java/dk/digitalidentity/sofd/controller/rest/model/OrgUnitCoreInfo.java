@@ -20,8 +20,6 @@ public class OrgUnitCoreInfo {
 
 	private Long cvr;
 
-	private Long ean;
-
 	private Long senr;
 
 	private Long pnr;
@@ -43,4 +41,6 @@ public class OrgUnitCoreInfo {
 	private String manager;
 
 	private Long belongsTo;
+
+	private boolean doNotTransferToFKOrg;
 }

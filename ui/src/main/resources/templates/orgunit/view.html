@@ -56,6 +56,9 @@
 								<li th:if="${@sofdConfiguration.getModules().getOrgUnitSubstitute().isEnabled()}">
 									<a data-toggle="tab" href="#substitutes_menu" th:text="#{html.page.orgunit.view.substitute.title}"></a>
 								</li>
+                                <li>
+                                    <a data-toggle="tab" href="#ean_menu" th:text="#{html.page.orgunit.view.ean.title}"></a>
+                                </li>
                             </ul>
 
                             <div class="tab-content">
@@ -236,6 +239,10 @@
 								<div id="substitutes_menu" class="tab-pane fade">
 									<div th:replace="orgunit/fragments/substitutesTab :: substitutesTab (substitutes = ${substitutes})"></div>
 								</div>
+
+                                <div id="ean_menu" class="tab-pane fade">
+	                                <div id="eanPlaceholder"></div>
+                                </div>
                             </div>
 						</th:block>
 					</div>
@@ -264,6 +271,11 @@
 
 	<!-- create substitute modal -->
 	<div th:replace="orgunit/fragments/substitutesTab :: substitutesCreateModal"></div>
+	
+	<!-- create ean modal -->
+	<div th:replace="orgunit/fragments/eanTab :: eanCreateModal"></div>
+	<!-- prime ean modal -->
+	<div th:replace="orgunit/fragments/eanTab :: eanPrimeModal"></div>
 
 	<nav th:replace="fragments/footer :: footer"></nav>
 
@@ -334,6 +346,12 @@
 			var swalDeleteTitleText = [[#{html.page.orgunit.view.managedtitles.delete.text}]];
 			var managedTitleDeleteError = [[#{html.page.orgunit.view.managedtitles.delete.error}]];
 
+			var eanError = [[#{html.page.orgunit.view.ean.create.error}]];
+			var swalDeleteEanTitle = [[#{html.page.orgunit.view.ean.delete}]];
+			var swalDeleteEanText = [[#{html.page.orgunit.view.ean.delete.text}]];
+			var eanDeleteError = [[#{html.page.orgunit.view.ean.delete.error}]];
+			var eanPrimeError = [[#{html.page.orgunit.view.ean.prime.error}]];
+
 			var orgUnitSubstituteEnabled = [[${@sofdConfiguration.getModules().getOrgUnitSubstitute().isEnabled()}]];
 			var substituteRestUrl = [[@{/rest/substituteOrgUnitAssignment}]];
 			var substituteAutocompleteRestUrl = [[@{/rest/substituteAssignment}]];
@@ -359,10 +377,13 @@
 			};
 		}
 
-		var managedTitleService, substituteService;
+		var managedTitleService, substituteService, eanService;
 		$("document").ready(function() {
 			managedTitleService = new ManagedTitleService();
 			managedTitleService.init();
+			
+			eanService = new EanService();
+			eanService.init();
 
 			if (orgUnitSubstituteEnabled) {
 				substituteService = new SubstituteService();
@@ -534,6 +555,9 @@
 
 			// deal with type
 			data.orgUnitType = $("#orgUnitType").val();
+
+			// fix checkbox
+			data.doNotTransferToFKOrg = $("#doNotTransferToFKOrgCheckbox").is(':checked');
 
 			$('.validationMessage').hide();
 
@@ -947,6 +971,149 @@
 							},
 							success: function(response) {
 								managedTitleService.loadFragment();
+							}
+						});
+					}
+					else {
+						return;
+					}
+				});
+			}
+		}
+
+		function EanService() {
+			this.init = function() {
+				eanService.loadFragment();
+			}
+
+			this.loadFragment = function(reload) {
+				$("#eanPlaceholder").load(url + "/" + uuid + "/fragments/ean", function() {
+					//Refresh datatables
+					var tab = $('#ean_menu');
+					loadDataTableWithState(tab.find("table"), "orgUnitTab" + '#ean_menu', [], tab.find(".dropdown-menu"));
+				});
+				
+				if (reload) {
+					$("#modal-create-ean").load(url + "/" + uuid + "/fragments/ean-create-modal #modal-create-ean > *");
+					$("#modal-prime-ean").load(url + "/" + uuid + "/fragments/ean-prime-modal #modal-prime-ean > *");
+				}
+			}
+
+			this.startCreate = function() {
+				$("#eanNumber").val("");
+				$("#modal-create-ean").modal("show");
+			}
+
+			this.selectPrime = function() {
+				$("#modal-prime-ean").modal("show");
+			}
+
+			this.setPrime = function() {
+				var primeEan = $('input[name=prime]:checked', '#selectPrimeEanForm').val();
+				if (primeEan) {
+					$.ajax({
+						contentType: 'application/json',
+						url: restUrl + "/" + uuid + "/ean/setPrime",
+						method : "POST",
+						headers: {
+							'X-CSRF-TOKEN': token
+						},
+						data: primeEan,
+						error: function(response) {
+							if (response != null && response.responseText != null && response.responseText != "") {
+								$.notify({
+									message: response.responseText
+								}, {
+									status: 'danger',
+									autoHideDelay: 4000
+								});
+							} else {
+								$.notify({
+									message: eanPrimeError
+								}, {
+									status: 'danger',
+									autoHideDelay: 4000
+								});
+							}
+						},
+						success: function(response) {
+							eanService.loadFragment();
+						}
+					});
+				}
+				$("#modal-prime-ean").modal("hide");
+			}
+
+			this.create = function() {
+				var eanNumber = $("#eanNumber").val();
+
+				$.ajax({
+					contentType: 'application/json',
+					url: restUrl + "/" + uuid + "/ean/create",
+					method : "POST",
+					headers: {
+						'X-CSRF-TOKEN': token
+					},
+					data: eanNumber,
+					error: function(response) {
+						$("#modal-create-ean").modal("hide");
+						if (response != null && response.responseText != null && response.responseText != "") {
+							$.notify({
+								message: response.responseText
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						} else {
+							$.notify({
+								message: eanError
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						}
+					},
+					success: function(response) {
+						$("#modal-create-ean").modal("hide");
+						eanService.loadFragment(true);
+					}
+				});
+			}
+
+			this.deleteEan = function(elem) {
+				var id = $(elem).data("id");
+
+				swal({
+					html : true,
+					title : swalDeleteEanTitle,
+					text : swalDeleteEanText,
+					type : "warning",
+					showCancelButton : true,
+					confirmButtonColor : "#DD6B55",
+					confirmButtonText : yesButtonTxt,
+					cancelButtonText : noButtonTxt,
+					closeOnConfirm : true,
+					closeOnCancel : true
+				},
+				function(isConfirm) {
+					if (isConfirm) {
+						$.ajax({
+							contentType: 'application/json',
+							url: restUrl + "/" + uuid + "/ean/" + id + "/delete",
+							method : "POST",
+							headers: {
+								'X-CSRF-TOKEN': token
+							},
+							error: function(response) {
+								$.notify({
+									message: eanDeleteError
+								}, {
+									status: 'danger',
+									autoHideDelay: 4000
+								});
+							},
+							success: function(response) {
+								eanService.loadFragment(true);
 							}
 						});
 					}

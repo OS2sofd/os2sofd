@@ -28,11 +28,11 @@ public class SofdConfiguration {
 	private Customer customer = new Customer();
 	private Integrations integrations = new Integrations();
 	private Scheduled scheduled = new Scheduled();
+	private EmailTemplateConfiguration emailTemplate = new EmailTemplateConfiguration();
 	
 	@JsonIgnore
 	private AmazonS3Details s3 = new AmazonS3Details();
-	private EmailTemplateConfiguration emailTemplate = new EmailTemplateConfiguration();
-	
+		
 	private boolean hidePersonAddresses = false; // TODO: burde den ikke defaulte til true?
 
 	@FeatureDocumentation(name = "Funktionsoverblik", description = "Vis tillidsfunktioner indlæst fra OPUS")

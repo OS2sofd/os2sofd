@@ -82,24 +82,9 @@
 						<div class="col-lg-6">
 							<fieldset>
 								<div class="row">
-									<label class="col-sm-3 control-label" th:text="#{html.entity.person.registeredPostAddress}"></label>
-									<div th:switch="${person.registeredPostAddress != null and (person.registeredPostAddress.addressProtected or @sofdConfiguration.hidePersonAddresses)}" class="col-sm-9">
-										<span th:case="${true}" class="col-sm-9 form-control regPostMasterTooltip" style="background-color: #edf1f2">
-											<em class="fa fa-fw fa-eye" onclick="toggleHiddenField('#registeredPostAddress')"></em>
-											<span id="registeredPostAddress" th:text="${'********'}" th:attr="data-key=${person.registeredPostAddress.street + ', ' + person.registeredPostAddress.postalCode + ' ' + person.registeredPostAddress.city + (person.registeredPostAddress.addressProtected ? ' (adressebeskyttet)' : '')}"></span>
-										</span>
-										<input th:case="${false}" th:value="${person.registeredPostAddress != null ? (person.registeredPostAddress.street + ', ' + person.registeredPostAddress.postalCode + ' ' + person.registeredPostAddress.city) : ''}" class="form-control regPostMasterTooltip" readonly="readonly" />
-									</div>
-								</div>
-
-								<div class="row">
-									<label class="col-sm-3 control-label" th:text="#{html.entity.person.residencePostAddress}"></label>
-									<div th:switch="${person.residencePostAddress != null and (person.residencePostAddress.addressProtected or @sofdConfiguration.hidePersonAddresses)}" class="col-sm-9">
-										<span th:case="${true}" class="col-sm-9 form-control regPostMasterTooltip" style="background-color: #edf1f2">
-											<em class="fa fa-fw fa-eye" onclick="toggleHiddenField('#residencePostAddress')"></em>
-											<span id="residencePostAddress" th:text="${'********'}" th:attr="data-key=${person.residencePostAddress.street + ', ' + person.residencePostAddress.postalCode + ' ' + person.residencePostAddress.city + (person.residencePostAddress.addressProtected ? ' (adressebeskyttet)' : '')}"></span>
-										</span>
-										<input th:case="${false}" th:value="${person.residencePostAddress != null ? (person.residencePostAddress.street + ', ' + person.residencePostAddress.postalCode + ' ' + person.residencePostAddress.city) : ''}" class="form-control resPostMasterTooltip" readonly="readonly" />
+									<label class="col-sm-3 control-label" th:text="#{html.entity.person.workAddress}"></label>
+									<div class="col-sm-9">
+										<input th:value="${person.workAddress}" class="form-control" readonly="readonly" />
 									</div>
 								</div>
 							</fieldset>
@@ -167,6 +152,9 @@
 						<li th:if="${showFunctions}">
 							<a data-toggle="tab" href="#functions_menu" th:text="#{html.page.person.view.functions.title}"></a>
 						</li>
+						<li>
+							<a data-toggle="tab" href="#address_menu" th:text="#{html.page.person.view.addresses.title}"></a>
+						</li>
 					</ul>
 
 					<div class="tab-content">
@@ -186,6 +174,7 @@
 								<li><a href="#" data-cid="6" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.status}"></span></a></li>
 								<li><a href="#" data-cid="7" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.employmentTerms}"></span></a></li>
 							  	<li><a href="#" data-cid="8" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.doNotTransferToFKOrg}"></span></a></li>
+							  	<li th:if="${@sofdConfiguration.getModules().getAffiliationWorkplaces().isEnabled()}"><a href="#" data-cid="9" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.workplaces}"></span></a></li>
 							  </ul>
 							</div>
 
@@ -244,6 +233,7 @@
 									<th th:text="#{html.entity.affiliation.status}"></th>
                                     <th th:text="#{html.entity.affiliation.employmentTerms}"></th>
                                     <th th:text="#{html.entity.affiliation.doNotTransferToFKOrg}"></th>
+                                    <th th:if="${@sofdConfiguration.getModules().getAffiliationWorkplaces().isEnabled()}" th:text="#{html.entity.affiliation.workplaces}"></th>
 									<th class="col-md-1" th:text="#{html.control.operations}"></th>
 								</thead>
 
@@ -276,13 +266,16 @@
 									<td>
 										<em th:if="${affiliation.doNotTransferToFkOrg}" class="fa fa-fw fa-check"></em>
 									</td>
+									<td th:if="${@sofdConfiguration.getModules().getAffiliationWorkplaces().isEnabled()}" th:text="${not #lists.isEmpty(affiliation.workplaces)} ? ${#lists.size(affiliation.workplaces)} + ' arbejdssteder' : ''"></td>
 									<td>
 										<a th:href="@{/ui/affiliation/view/{id}?backRef=person(id=${affiliation.uuid})}"><em class="fa fa-fw fa-search"></em></a>
-										<th:block sec:authorize="hasRole('ROLE_USER_EDIT')">
-											<a th:href="@{/ui/affiliation/edit/{id}(id=${affiliation.uuid})}"><em class="fa fa-fw fa-pencil"></em></a>
+										<th:block sec:authorize="hasRole('ROLE_USER_EDIT') OR hasRole('ROLE_USER_ADMIN')">
+											<a th:href="@{/ui/affiliation/view/{id}(id=${affiliation.uuid})}+'?edit=true&backRef=person'"><em class="fa fa-fw fa-pencil"></em></a>
+											<a th:if="${affiliation.master == 'SOFD'}" onclick="deleteAffiliation(this);" th:attr="data-affiliationuuid=${affiliation.uuid}"><em style="cursor:pointer;" class="fa fa-fw fa-times"></em></a>
 										</th:block>
 										<th:block sec:authorize="!hasRole('ROLE_USER_EDIT') AND hasRole('ROLE_USER_PERSON_CREATER')" th:if="${affiliation.master == 'SOFD'} AND (${#lists.contains(constraintOUs, affiliation.orgUnit.uuid)} OR ${#lists.isEmpty(constraintOUs)})">
-											<a th:href="@{/ui/affiliation/edit/{id}(id=${affiliation.uuid})}"><em class="fa fa-fw fa-pencil"></em></a>
+											<a th:href="@{/ui/affiliation/view/{id}(id=${affiliation.uuid})}+'?edit=true&backref=person'"><em class="fa fa-fw fa-pencil"></em></a>
+											<a th:if="${affiliation.master == 'SOFD'}" onclick="deleteAffiliation(this);" th:attr="data-affiliationuuid=${affiliation.uuid}"><em  style="cursor:pointer;" class="fa fa-fw fa-times"></em></a>
 										</th:block>
 									</td>
 								</tr>
@@ -526,13 +519,46 @@
 						<div th:if="${showFunctions}" id="functions_menu" class="tab-pane fade">
 							<table id="listTableFunctions" class="table table-striped table-hover listTable">
 								<thead>
-								<th class="col-md-12" th:text="#{html.page.person.view.functions.table.headers.function}"></th>
+									<th class="col-md-12" th:text="#{html.page.person.view.functions.table.headers.function}"></th>
 								</thead>
 
 								<tbody>
 								<tr th:each="function : ${functions}">
 									<td th:text="${function}"></td>
 								</tr>
+								</tbody>
+							</table>
+						</div>
+						
+						<div id="address_menu" class="tab-pane fade">
+							<table id="listTableAddresses" class="table table-striped table-hover listTable">
+								<thead>
+									<th class="col-md-2" th:text="#{html.page.person.view.functions.table.headers.addresstype}"></th>
+									<th class="col-md-10" th:text="#{html.page.person.view.functions.table.headers.addressvalue}"></th>
+								</thead>
+
+								<tbody>
+									<tr th:if="${person.registeredPostAddress != null}">
+										<td th:text="#{html.entity.person.registeredPostAddress}"></td>
+										<th:block th:switch="${person.registeredPostAddress.addressProtected or @sofdConfiguration.hidePersonAddresses}">
+											<td th:case="${true}">
+												<em class="fa fa-fw fa-eye" onclick="toggleHiddenField('#registeredPostAddress')"></em>
+												<span id="registeredPostAddress" th:text="${'********'}" th:attr="data-key=${person.registeredPostAddress.street + ', ' + person.registeredPostAddress.postalCode + ' ' + person.registeredPostAddress.city + (person.registeredPostAddress.addressProtected ? ' (adressebeskyttet)' : '')}"></span>
+											</td>
+											<td th:case="${false}" th:text="${person.registeredPostAddress.street + ', ' + person.registeredPostAddress.postalCode + ' ' + person.registeredPostAddress.city}"></td>											
+										</th:block>
+									</tr>
+									
+									<tr th:if="${person.residencePostAddress != null}">
+										<td th:text="#{html.entity.person.residencePostAddress}"></td>
+										<th:block th:switch="${person.residencePostAddress.addressProtected or @sofdConfiguration.hidePersonAddresses}">
+											<td th:case="${true}">
+												<em class="fa fa-fw fa-eye" onclick="toggleHiddenField('#residencePostAddress')"></em>
+												<span id="residencePostAddress" th:text="${'********'}" th:attr="data-key=${person.residencePostAddress.street + ', ' + person.residencePostAddress.postalCode + ' ' + person.residencePostAddress.city + (person.residencePostAddress.addressProtected ? ' (adressebeskyttet)' : '')}"></span>
+											</td>
+											<td th:case="${false}" th:text="${person.residencePostAddress.street + ', ' + person.residencePostAddress.postalCode + ' ' + person.residencePostAddress.city}"></td>											
+										</th:block>
+									</tr>
 								</tbody>
 							</table>
 						</div>
@@ -561,7 +587,7 @@
 
 					<tbody>
 						<th:block th:each="type : ${allUserTypes}">
-							<tr th:each="user : ${person.users.?[userType == '__${type.key}__']}" class="primeUserRadioTr" th:attr="data-key=${user.uuid}" th:unless="${user.pending}">
+							<tr th:each="user : ${person.users.?[userType == '__${type.key}__']}" class="primeUserRadioTr" th:attr="data-key=${user.uuid}" th:unless="${user.pending or user.isExpired() or user.isDisabled()}">
 								<td style="vertical-align: middle !important;" th:text="${user.userId}"></td>
 								<td style="vertical-align: middle !important;" th:text="${@supportedUserTypeService.getPrettyName(user.userType)}"></td>
 
@@ -977,13 +1003,12 @@
 			var url = [[@{/ui/person}]]
 			var restUrl = [[@{/rest/person}]];
 			var substituteRestUrl = [[@{/rest/substituteAssignment}]];
+			var affiliationRestUrl = [[@{/rest/affil}]];
 			var uuid = [[${person.uuid}]];
 			var phones = [[${person.phones}]];
 			var allUserTypes = [[${allUserTypes}]];
 			
 			var personMaster = [[${person.master}]];
-			var registeredPost = [[${person.registeredPostAddress}]];
-			var residencePost = [[${person.residencePostAddress}]];
 			var affiliations = [[${affiliations}]];
 			
 			var tooltipTxt = [[#{html.entity.person.master}]];
@@ -1007,7 +1032,10 @@
 			var deactivateUserText = [[#{html.page.person.user.msg.delete.Text}]];
 			var deactivateUserFail = [[#{html.page.person.user.msg.delete.Fail}]];
 			var deactivateUserSuccess = [[#{html.page.person.user.msg.delete.Success}]];
-			
+
+			var deleteAffiliationTitle = [[#{html.page.person.affiliation.msg.delete.Title}]];
+			var deleteAffiliationText = [[#{html.page.person.affiliation.msg.delete.Text}]];
+
 			var btnDelete = [[#{html.button.delete}]];
 			var removeSubstituteAssignmentTitle = [[#{html.page.person.substitute.msg.delete.Title}]];
 			var removeSubstituteAssignmentText = [[#{html.page.person.substitute.msg.delete.Text}]];
@@ -1031,6 +1059,8 @@
 
 			var uuidWarning = [[#{html.entity.person.uuid.warning}]];
 			var kombitUuidText = [[#{html.entity.person.uuid.kombit}]];
+			
+			var affiliationWorkplacesEnabled = [[${@sofdConfiguration.getModules().getAffiliationWorkplaces().isEnabled()}]];
 		+]*/
 		var token = $("meta[name='_csrf']").attr("content");
 
@@ -1044,15 +1074,6 @@
 			$('.personUuidTooltip').tooltip({title: uuidWarning, placement: 'right', template: '<div class="tooltip" style="width: 200px" role="tooltip"><div class="arrow"></div><div class="tooltip-inner"></div></div>'});
 			$('.uuidTooltip').tooltip({title: kombitUuidText});
 
-
-			if (registeredPost != null) {
-				addTooltips('regPostMasterTooltip', registeredPost.master);
-			}
-
-			if (residencePost != null) {
-				addTooltips('resPostMasterTooltip', residencePost.master);
-			}
-			
 			$('#startDatePicker').datetimepicker({
 				format: 'YYYY-MM-DD'
 			});
@@ -1094,7 +1115,12 @@
 			
 			var filter = [];
 			if ("#affiliation_menu" === selectedTab) {
-				filter = [2,5,8];
+				if (affiliationWorkplacesEnabled) {
+					filter = [2,5,8,9];
+				}
+				else {
+					filter = [2,5,8];
+				}
 			}
 
 			loadDataTableWithState(tab.find("table"), ("personTab" + selectedTab), filter, tab.find(".dropdown-menu"));
@@ -1338,6 +1364,44 @@
 				}
 			});
 		}
+
+		function deleteAffiliation(elem) {
+			var affiliationUuid = $(elem).data('affiliationuuid');
+
+			swal({
+				html : true,
+				title : deleteAffiliationTitle,
+				text : deleteAffiliationText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : btnDelete,
+				cancelButtonText : btnCancel,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						method : "POST",
+						url: affiliationRestUrl + "/delete/" + affiliationUuid,
+						headers: {
+							'X-CSRF-TOKEN': token
+						}
+					}).done(function (data) {
+						location.reload(true);
+					}).fail(function (jqXHR, textStatus, errorThrown) {
+						$.notify({
+							message: deactivateUserFail + 'todo'
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					});
+				}
+			});
+		}
+
 
 		function fetchFromCpr() {
 			$.notify({

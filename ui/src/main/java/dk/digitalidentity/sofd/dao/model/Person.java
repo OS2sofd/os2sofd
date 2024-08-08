@@ -127,6 +127,9 @@ public class Person implements Loggable {
 	@Column
 	private boolean hasUpdatedAuthorizationCode;
 
+	@Column
+	private boolean updatedFromCpr = false;
+
 	@OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
 	@JoinColumn(name = "leave_id")
 	@Valid
@@ -210,7 +213,24 @@ public class Person implements Loggable {
 		
 		return null;
 	}
-	
+
+	@JsonIgnore
+	public String getActiveADAccounts() {
+		var adAccounts = PersonService.getUsers(this).stream().filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType()) && !u.isDisabled()).map(User::getUserId).collect(Collectors.joining(", "));
+		return adAccounts;
+	}
+
+	@JsonIgnore
+	public String getPrimeUserByUserType(String userType) {
+		Optional<User> primeUser = PersonService.getUsers(this).stream().filter(u -> u.isPrime() && Objects.equals(u.getUserType(),userType)).findFirst();
+
+		if (primeUser.isPresent()) {
+			return primeUser.get().getUserId();
+		}
+
+		return null;
+	}
+
 	@JsonIgnore
 	public String getPrimeOPUSAccount() {
 		Optional<User> primeOPUS = PersonService.getUsers(this).stream().filter(u -> u.isPrime() && SupportedUserTypeService.isOpus(u.getUserType())).findFirst();

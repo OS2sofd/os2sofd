@@ -35,6 +35,13 @@ public class RestTemplateConfiguration {
 	public RestTemplate opusRestTemplate() throws Exception {
 		TrustStrategy acceptingTrustStrategy = (X509Certificate[] chain, String authType) -> true;
 
+		RequestConfig requestConfig = RequestConfig.custom()
+				.setConnectionRequestTimeout(30000)
+				.setConnectTimeout(30000)
+				.setSocketTimeout(60000)
+				.setCookieSpec(CookieSpecs.STANDARD)
+				.build();
+
 		CloseableHttpClient client = null;
 		if (configuration.getModules().getAccountCreation().isEnabled() && configuration.getModules().getAccountCreation().getOpusHandler().isEnabled()) {
 			SSLContext sslContext = SSLContextBuilder.create()
@@ -46,13 +53,13 @@ public class RestTemplateConfiguration {
 			                .build();
 			
 			client = HttpClients.custom()
-				        .setDefaultRequestConfig(RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build())
 						.setSSLContext(sslContext)
+						.setDefaultRequestConfig(requestConfig)
 						.build();			
 		}
 		else {
 			client = HttpClients.custom()
-						.setDefaultRequestConfig(RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build())
+						.setDefaultRequestConfig(requestConfig)
 						.build();
 		}
 

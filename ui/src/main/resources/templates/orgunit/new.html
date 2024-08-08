@@ -87,6 +87,21 @@
 										</div>
 									</div>
 								</fieldset>
+
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.doNotTransferToFKOrg}"></label>
+										<div class="col-sm-8">
+											<div class="checkbox c-checkbox">
+												<label>
+													<input id="doNotTransferToFKOrgCheckbox" type="checkbox"/>
+													<span class="fa fa-check"></span>
+												</label>
+											</div>
+										</div>
+									</div>
+								</fieldset>
+
 							</div>
 						</form>
 					</div>
@@ -204,7 +219,10 @@
 			fields.map(function(index, value) {
 				data[value.id] = value.value;
 			});
-			
+
+			// fix checkbox
+			data.doNotTransferToFKOrg = $("#doNotTransferToFKOrgCheckbox").is(':checked');
+
 			$('.validationMessage').hide();
 
 			$.ajax({

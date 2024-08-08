@@ -56,4 +56,9 @@ public class SyncController {
 	public Collection<ADGridOrgUnit> adGridOrgUnits() {
 		return syncService.getADGridOrgUnits();
 	}
+
+	@GetMapping("/api/sync/adgrid/opusNoAd")
+	public Collection<ADGridAD> adGridOpusNoAd() {
+		return syncService.getADGridOpusButNoADAccount();
+	}
 }

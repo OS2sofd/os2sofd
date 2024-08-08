@@ -13,11 +13,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -56,7 +58,7 @@ public class NotificationApiController {
 
 	@RequireApiWriteAccess
 	@PostMapping(value = "/api/notifications")
-	public ResponseEntity<?> postNotification(@RequestBody NotificationRecord[] notificationRecord) {
+	public ResponseEntity<?> postNotification(@RequestBody NotificationRecord[] notificationRecord, @RequestParam(name = "fullSync", required = false, defaultValue = "false") boolean fullSync) {
 		List<Notification> currentNotifications = notificationService.findAll();
 		ArrayList<Notification> newNotifications = new ArrayList<>();
 
@@ -75,19 +77,44 @@ public class NotificationApiController {
 			if (!checkIfExists(currentNotifications, notification)) {
 				newNotifications.add(notification);
 			}
+			else {
+				remove(currentNotifications, notification);
+			}
 		}
 
 		notificationService.saveAll(newNotifications);
-		
+
+		// in case of a full sync, remove any in the database that did not match the existing ones
+		if (fullSync) {
+			notificationService.deleteAll(currentNotifications);
+		}
+
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 	
 	private boolean checkIfExists(List<Notification> old, Notification notification) {
-		if (old.stream().anyMatch(o -> Objects.equals(o.getAffectedEntityUuid(), notification.getAffectedEntityUuid()) && Objects.equals(o.getMessage(),notification.getMessage()) &&
-									   Objects.equals(o.getNotificationType(), notification.getNotificationType()) && Objects.equals(o.getAffectedEntityName(),notification.getAffectedEntityName()))) {
+		if (old.stream().anyMatch(o -> isEqual(o, notification))) {
 			return true;
 		}
 
 		return false;
+	}
+	
+	private void remove(List<Notification> old, Notification notification) {
+		for (Iterator<Notification> iterator = old.iterator(); iterator.hasNext();) {
+			Notification notification2 = iterator.next();
+			
+			if (isEqual(notification, notification2)) {
+				iterator.remove();
+				break;
+			}
+		}
+	}
+	
+	private boolean isEqual(Notification notification1, Notification notification2) {
+		return Objects.equals(notification1.getAffectedEntityUuid(), notification2.getAffectedEntityUuid()) &&
+			   Objects.equals(notification1.getMessage(), notification2.getMessage()) &&
+			   Objects.equals(notification1.getNotificationType(), notification2.getNotificationType()) &&
+			   Objects.equals(notification1.getAffectedEntityName(), notification2.getAffectedEntityName());
 	}
 }

@@ -1,8 +1,11 @@
 package dk.digitalidentity.sofd.service;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -61,6 +64,7 @@ import dk.digitalidentity.sofd.dao.model.enums.EmployeeFilter;
 import dk.digitalidentity.sofd.dao.model.enums.EndDate;
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.dao.model.enums.NotificationType;
+import dk.digitalidentity.sofd.dao.model.mapping.PersonUserMapping;
 import dk.digitalidentity.sofd.service.model.UserAudRow;
 import lombok.extern.slf4j.Slf4j;
 
@@ -212,6 +216,31 @@ public class AccountOrderService {
 
 					if (userId != null) {
 						order.setRequestedUserId(userId);
+						// notify approver if this is a new ad account and status is pending approval
+						if( order.getId() == 0 && order.getStatus() == AccountOrderStatus.PENDING_APPROVAL ) {
+							EmailTemplate template = emailTemplateService.findByTemplateType(EmailTemplateType.ORDER_PENDING_APPOVAL);
+							for (EmailTemplateChild child : template.getChildren()) {
+								if (child.isEnabled()) {
+									String message = child.getMessage();
+									message = message.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
+
+									String title = child.getTitle();
+									title = title.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
+
+									List<Person> emailRecipients = new ArrayList<>();
+
+									OrgUnitManager orgUnitManager = PersonService.getOrgUnitManager(person, order.getEmployeeId());
+									if (orgUnitManager != null) {
+										emailRecipients.add(orgUnitManager.getManager());
+										emailRecipients.addAll(personService.findAllSofdSubstitutesForManager(person, order.getEmployeeId()));
+
+										message = message.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnitManager.getOrgUnit().getName());
+										title = title.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnitManager.getOrgUnit().getName());
+									}
+									emailQueueService.queueEmail(title, message, new Date(), child, emailRecipients);
+								}
+							}
+						}
 					}
 					else {
 						log.warn("Failed to generate a username for accountOrder: " + userType.getName() + " / " + PersonService.getName(person) + " / " + person.getUuid());
@@ -420,35 +449,9 @@ public class AccountOrderService {
 			}
 		}
 
-		// finally notify if needed
+		// set status according to configuration of approval flow
 		if (configuration.getModules().getAccountCreation().isAccountOrderApprove() && SupportedUserTypeService.isActiveDirectory(userType.getKey()) && !bypassApproval) {
 			accountOrder.setStatus(AccountOrderStatus.PENDING_APPROVAL);
-
-			// check if is not null
-			EmailTemplate template = emailTemplateService.findByTemplateType(EmailTemplateType.ORDER_PENDING_APPOVAL);
-
-			for (EmailTemplateChild child : template.getChildren()) {
-				if (child.isEnabled()) {
-					String message = child.getMessage();
-					message = message.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
-
-					String title = child.getTitle();
-					title = title.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
-
-					List<Person> emailRecipients = new ArrayList<>();
-
-					OrgUnitManager orgUnitManager = PersonService.getOrgUnitManager(person, accountOrder.getEmployeeId());
-					if (orgUnitManager != null) {
-						emailRecipients.add(orgUnitManager.getManager());
-						emailRecipients.addAll(personService.findAllSofdSubstitutesForManager(person, accountOrder.getEmployeeId()));
-
-						message = message.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnitManager.getOrgUnit().getName());
-						title = title.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnitManager.getOrgUnit().getName());
-					}
-
-					emailQueueService.queueEmail(title, message, new Date(), child, emailRecipients);
-				}
-			}
 		}
 		else {
 			accountOrder.setStatus(AccountOrderStatus.PENDING);
@@ -1144,7 +1147,7 @@ public class AccountOrderService {
 			}
 		});
 
-		log.info("Got " + newCreateOrders.size() + " distinct new create orders");
+		log.info("Got " + distinctCreateOrders.size() + " distinct new create orders");
 
 		List<AccountOrder> existingOrders = findAllCreateOrders();
 
@@ -1159,11 +1162,13 @@ public class AccountOrderService {
 				continue;
 			}
 
-			// only PENDING should be removed - we keep the CREATED/FAILED orders
+			// skip cleanup on any where status != PENDING
 			if (!existingOrder.getStatus().equals(AccountOrderStatus.PENDING)) {
 				continue;
 			}
 
+			// status is now pending - compare with new orders - if we have a PENDING that is not in the new order-set, remove it
+			
 			boolean noMatch = distinctCreateOrders.stream()
 					 .noneMatch(newOrder -> newOrder.getPersonUuid().equals(existingOrder.getPersonUuid()) &&
 							 				Objects.equals(newOrder.getEmployeeId(), existingOrder.getEmployeeId()) &&
@@ -1171,6 +1176,7 @@ public class AccountOrderService {
 
 			if (noMatch) {
 				removedCreateOrders++;
+				log.info("Removing existing order: " + existingOrder.smallPrint());
 				delete(existingOrder);
 			}
 		}
@@ -1181,16 +1187,19 @@ public class AccountOrderService {
 		entityManager.flush();
 		entityManager.clear();
 
-		// new create orders to be added to able (do not order if an existing)
+		// new create orders to be added to able (do not order if an existing exists that is within the last 7 days)
 		int addedCreateOrders = 0;
 		for (AccountOrder newOrder : distinctCreateOrders) {
 			boolean noMatch = existingOrders.stream()
 					 .noneMatch(existingOrder -> newOrder.getPersonUuid().equals(existingOrder.getPersonUuid()) &&
 							 					 Objects.equals(newOrder.getEmployeeId(), existingOrder.getEmployeeId()) &&
-							 					 newOrder.getUserType().equals(existingOrder.getUserType()));
+							 					 newOrder.getUserType().equals(existingOrder.getUserType()) &&
+							 					 withinLast7Days(existingOrder.getModifiedTimestamp())
+							   );
 
 			if (noMatch) {
 				addedCreateOrders++;
+				log.info("Adding " + newOrder.smallPrint());
 				save(newOrder, allPersons);
 			}
 		}
@@ -1226,7 +1235,7 @@ public class AccountOrderService {
 
 				// we double-check against actual users, because the person might have been re-hired, and the old account re-activated,
 				// and in that case, we do NOT want to delete the account
-				User user = userService.findByUserIdAndUserType(existingOrder.getActualUserId(), SupportedUserTypeService.getActiveDirectoryUserType());
+				User user = userService.findByUserIdAndUserType(existingOrder.getRequestedUserId(), SupportedUserTypeService.getActiveDirectoryUserType());
 				if (user != null && user.isDisabled()) {
 					continue;
 				}
@@ -1239,6 +1248,7 @@ public class AccountOrderService {
 							 				newOrder.getUserType().equals(existingOrder.getUserType()));
 
 			if (noMatch) {
+				log.info("Removing account order that is no longer relevant: " + existingOrder.getOrderType() + " on " + existingOrder.getRequestedUserId());
 				removedDeleteOrders++;
 				delete(existingOrder);
 			}
@@ -1265,6 +1275,12 @@ public class AccountOrderService {
 		if (processingTime > (10 * 60 * 1000)) {
 			log.error("Processing nightjob took more than 10 minutes - total ms = " + processingTime);
 		}
+	}
+
+	private boolean withinLast7Days(Date date) {
+		LocalDate localDate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+
+		return localDate.isAfter(LocalDate.now().minusDays(8));
 	}
 
 	@Transactional(rollbackFor = Exception.class)
@@ -1508,6 +1524,48 @@ public class AccountOrderService {
 					else {
 						log.warn("Could not find any cpr to send eboks message to for person: " + person.getUuid());
 					}
+					
+					
+					// notify manager through email
+					if (managerResponse != null) {
+						Person manager = managerResponse.manager().getManager();
+
+						String orgUnitUuid = managerResponse.relatedAffiliation().getCalculatedOrgUnit().getUuid();
+
+						// Get the linked AD Account for upn
+						String upn = "";
+
+						User linkedADAccount = person.getUsers().stream().map(PersonUserMapping::getUser).filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType()) && Objects.equals(u.getUserId(), order.getLinkedUserId())).findAny().orElse(null);
+						if (linkedADAccount != null) {
+							upn = linkedADAccount.getActiveDirectoryDetails().getUpn();
+						}
+						
+						EmailTemplate template = emailTemplateService.findByTemplateType(EmailTemplateType.EXCHANGE_CREATE_MANAGER);
+						for (EmailTemplateChild child : template.getChildren()) {
+							if (child.isEnabled()) {
+
+								List<Person> recipients = emailTemplateService.getManagerOrSubstitutes(child, manager, orgUnitUuid);
+
+								String message = child.getMessage();
+								message = message.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
+								message = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(manager));
+								message = message.replace(EmailTemplatePlaceholder.ACCOUNT_PLACEHOLDER.getPlaceholder(), order.getActualUserId());
+								message = message.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), managerResponse.manager().getOrgUnit().getName());
+								message = message.replace(EmailTemplatePlaceholder.UPN.getPlaceholder(), upn);
+
+								String title = child.getTitle();
+								title = title.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
+								title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(manager));
+								title = title.replace(EmailTemplatePlaceholder.ACCOUNT_PLACEHOLDER.getPlaceholder(), order.getActualUserId());
+								title = title.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), managerResponse.manager().getOrgUnit().getName());
+								title = title.replace(EmailTemplatePlaceholder.UPN.getPlaceholder(), upn);
+
+								for (Person recipient : recipients) {
+									emailQueueService.queueEmail(recipient, title, message, child.getMinutesDelay(), child);
+								}
+							}
+						}
+					}
 				}
 
 				break;
@@ -1635,31 +1693,28 @@ public class AccountOrderService {
 	private long getEboksDelay(Person person, EmailTemplateChild child) {
 		long delay = 0;
 
-		// only relevant for persons with ONE affiliation. If they already have other affiliations, it does
-		// not matter that we send the e-boks message early
-		if (person.getAffiliations().size() == 1) {
-			Affiliation affiliation = person.getAffiliations().get(0);
+		// find an affiliation to base delay on
+		var affiliation = AffiliationService.notStoppedAffiliations(person.getAffiliations()).stream().min(Comparator.comparing(Affiliation::getStartDate)).orElse(null);
 
-			if (affiliation != null && affiliation.getStartDate() != null) {
-				Date today = new Date();
+		if (affiliation != null && affiliation.getStartDate() != null) {
+			Date today = new Date();
 
-				// child.getMinutesDelay = 0 means that we will send immediately
-				if (child.getMinutesDelay() > 0) {
-					if (AffiliationService.notActiveYet(affiliation, (int) child.getMinutesDelay())) {
-						// the affiliation starts in more than x (child.getMinutesDelay()) days
-						Date startDate = affiliation.getStartDate();
-						Calendar cal = Calendar.getInstance();
-						cal.setTime(startDate);
-						cal.add(Calendar.DATE, (int) (-1 * child.getMinutesDelay()));
-						Date dateToSend = cal.getTime();
+			// child.getMinutesDelay = 0 means that we will send immediately
+			if (child.getMinutesDelay() > 0) {
+				if (AffiliationService.notActiveYet(affiliation, (int) child.getMinutesDelay())) {
+					// the affiliation starts in more than x (child.getMinutesDelay()) days
+					Date startDate = affiliation.getStartDate();
+					Calendar cal = Calendar.getInstance();
+					cal.setTime(startDate);
+					cal.add(Calendar.DATE, (int) (-1 * child.getMinutesDelay()));
+					Date dateToSend = cal.getTime();
 
-						long diff = dateToSend.getTime() - today.getTime();
-						delay = TimeUnit.MILLISECONDS.toMinutes(diff);
+					long diff = dateToSend.getTime() - today.getTime();
+					delay = TimeUnit.MILLISECONDS.toMinutes(diff);
 
-						// should not happen
-						if (delay < 0) {
-							delay = 0;
-						}
+					// should not happen
+					if (delay < 0) {
+						delay = 0;
 					}
 				}
 			}

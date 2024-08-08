@@ -70,7 +70,7 @@ public class GenericReportXlsView extends AbstractXlsView {
 					break;
 				case AD_ACCOUNT_BUT_NO_AFFILIATION:
 				case AD_ACCOUNT_BUT_NO_WAGES_AFFILIATION:
-					courseRow.createCell(3).setCellValue(person.getPrimeADAccount());
+					courseRow.createCell(3).setCellValue(person.getActiveADAccounts());
 					courseRow.createCell(4).setCellValue(personService.hasAffiliationInWagesSystem(person) ? messageSource.getMessage("html.button.yes", null, locale) : messageSource.getMessage("html.button.no", null, locale));
 					break;
 				case OPUS_ACCOUNT_BUT_NO_AD_ACCOUNT:

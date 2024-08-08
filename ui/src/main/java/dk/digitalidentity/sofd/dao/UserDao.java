@@ -12,4 +12,5 @@ public interface UserDao extends CrudRepository<User, Long> {
 	User findByUuid(String uuid);
 	List<User> findAll();
 	List<User> findByUserIdLikeAndUserType(String word, String userType);
+	List<User> findByUserTypeAndDisabledFalse(String userType);
 }

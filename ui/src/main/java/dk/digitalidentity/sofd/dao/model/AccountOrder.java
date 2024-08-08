@@ -111,4 +111,8 @@ public class AccountOrder {
 				&& Objects.equals(this.getStatus(), other.getStatus())
 				&& Objects.equals(this.getRequestedUserId(), other.getRequestedUserId());
     }
+
+	public String smallPrint() {
+		return "[" + this.getId() + "," + this.getPersonUuid() + "," + this.getUserType() + "," + this.getOrderType() + "," + this.getStatus() + "," + this.getRequestedUserId() + "]";
+	}
 }

@@ -12,4 +12,5 @@ public class SubstituteAssignmentCreateDTO {
 	private List<String> constraintOrgUnitUuids;
 	private String personUuid;
 	private String substitutePersonUuid;
+	private String userId;
 }

@@ -20,18 +20,34 @@ public interface AffiliationDao extends CrudRepository<Affiliation, Long> {
 
 	List<Affiliation> findByOrgUnit(OrgUnit orgUnit);
 
-	@Query(value = "SELECT * FROM affiliations a WHERE (alt_orgunit_uuid IS NOT NULL AND alt_orgunit_uuid = ?1 ) OR (alt_orgunit_uuid IS NULL AND orgunit_uuid = ?1 )", nativeQuery = true)
+	@Query(value = "SELECT * FROM affiliations a LEFT JOIN (SELECT orgunit_uuid, affiliation_id FROM affiliations_workplaces aw WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate() LIMIT 1) workplace ON workplace.affiliation_id = a.id WHERE COALESCE(workplace.orgunit_uuid, a.`alt_orgunit_uuid`, a.`orgunit_uuid`)  = ?1", nativeQuery = true)
 	List<Affiliation> findByCalculatedOrgUnit(String orgUnitUuid);
 
-	@Query(value = "SELECT COUNT(*) FROM affiliations WHERE orgunit_uuid = ?1 AND deleted = 0 AND (stop_date IS NULL OR CAST(stop_date AS DATE) >= CAST(CURRENT_TIMESTAMP AS DATE))", nativeQuery = true)
+	@Query(value = "SELECT COUNT(*) FROM affiliations a LEFT JOIN (SELECT orgunit_uuid, affiliation_id FROM affiliations_workplaces aw WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate() LIMIT 1) workplace ON workplace.affiliation_id = a.id WHERE COALESCE(workplace.orgunit_uuid, a.`alt_orgunit_uuid`, a.`orgunit_uuid`) = ?1 AND deleted = 0 AND (stop_date IS NULL OR CAST(stop_date AS DATE) >= CAST(CURRENT_TIMESTAMP AS DATE))", nativeQuery = true)
 	Long countByOrgUnitAndActive(String orgUnitUuid);
-	
-	// TODO: should this respect force_stop_date?
-	@Query(value = "SELECT * FROM affiliations a WHERE orgunit_uuid = ?1 AND deleted = 0 AND (stop_date IS NULL OR CAST(stop_date AS DATE) >= CAST(CURRENT_TIMESTAMP AS DATE))", nativeQuery = true)
-	List<Affiliation> findByOrgUnitAndActive(String orgUnitUuid);
 
-	@Query(value = "SELECT * FROM affiliations a WHERE ((alt_orgunit_uuid IS NOT NULL AND alt_orgunit_uuid = ?1 ) OR (alt_orgunit_uuid IS NULL AND orgunit_uuid = ?1 )) AND deleted = 0 AND (stop_date IS NULL OR CAST(stop_date AS DATE) >= CAST(CURRENT_TIMESTAMP AS DATE))", nativeQuery = true)
+	@Query(value = """
+			WITH RECURSIVE cte AS (
+				SELECT o.uuid, o.parent_uuid FROM orgunits o WHERE uuid = ?1
+				UNION ALL
+				SELECT o.uuid, o.parent_uuid FROM orgunits o INNER JOIN cte on cte.uuid = o.parent_uuid
+			)
+			SELECT COUNT(*)
+			FROM affiliations a
+			LEFT JOIN affiliations_workplaces aw ON
+				aw.affiliation_id = a.id
+				AND aw.start_date <= curdate()
+				AND aw.stop_date >= curdate()
+			WHERE
+				a.deleted = 0
+				AND (a.stop_date IS NULL OR a.stop_date >= curdate())
+				AND COALESCE(aw.orgunit_uuid, a.alt_orgunit_uuid, a.orgunit_uuid) IN (SELECT uuid FROM cte)
+			""", nativeQuery = true)
+	Long countByOrgUnitAndActiveRecursive(String orgUnitUuid);
+
+	@Query(value = "SELECT * FROM affiliations a LEFT JOIN (SELECT orgunit_uuid, affiliation_id FROM affiliations_workplaces aw WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate() LIMIT 1) workplace ON workplace.affiliation_id = a.id WHERE COALESCE(workplace.orgunit_uuid, a.alt_orgunit_uuid, a.orgunit_uuid) = ?1 AND deleted = 0 AND (stop_date IS NULL OR CAST(stop_date AS DATE) >= CAST(CURRENT_TIMESTAMP AS DATE))", nativeQuery = true)
 	List<Affiliation> findByCalculatedOrgUnitAndActive(String orgUnitUuid);
+
 	@Modifying
 	@Query(value = "DELETE FROM affiliations WHERE date(start_date) = date(stop_date) AND master = 'OPUS'", nativeQuery = true)
 	void deleteInvalidOpusAffiliations();

@@ -1,5 +1,6 @@
 package dk.digitalidentity.sofd.controller.mvc;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -17,10 +18,12 @@ import dk.digitalidentity.sofd.config.RoleConstants;
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.mvc.dto.AccountOrderDTO;
 import dk.digitalidentity.sofd.dao.model.AccountOrder;
+import dk.digitalidentity.sofd.dao.model.AccountOrderApproved;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderStatus;
 import dk.digitalidentity.sofd.security.RequireUserEditOrManager;
 import dk.digitalidentity.sofd.security.SecurityUtil;
+import dk.digitalidentity.sofd.service.AccountOrderApprovedService;
 import dk.digitalidentity.sofd.service.AccountOrderService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
@@ -39,6 +42,9 @@ public class ApproveOrderController {
 	
 	@Autowired
 	private PersonService personService;
+	
+	@Autowired
+	private AccountOrderApprovedService accountOrderApprovedService;
 
 	@GetMapping("/ui/account/order/approve")
 	public String approvePendingOrders(Model model) {
@@ -90,9 +96,18 @@ public class ApproveOrderController {
 		if (!canAccessAllOrders && !canAccess(loggedInPerson, person, accountOrder)) {
 			return ResponseEntity.badRequest().body("Ingen adgang til kontoordre");
 		}
-		
+
 		accountOrder.setStatus(AccountOrderStatus.PENDING);
 		accountOrderService.save(accountOrder);
+
+		AccountOrderApproved approval = new AccountOrderApproved();
+		approval.setApprovedTts(LocalDateTime.now());
+		approval.setApproverName(PersonService.getName(loggedInPerson));
+		approval.setApproverUuid(loggedInPerson.getUuid());
+		approval.setPersonName(PersonService.getName(person));
+		approval.setPersonUuid(person.getUuid());
+		approval.setUserId(accountOrder.getRequestedUserId());
+		accountOrderApprovedService.save(approval);
 		
 		return ResponseEntity.ok().build();
 	}
@@ -125,11 +140,12 @@ public class ApproveOrderController {
 	private boolean canAccess(Person loggedInPerson, Person person, AccountOrder order) {
 		// who are the managers of that person
 		List<Person> allManagers = new ArrayList<>();
+
 		Person manager = PersonService.getManager(person, order.getEmployeeId());
-		if( manager != null )
-		{
+		if (manager != null) {
 			allManagers.add(manager);
 		}
+
 		allManagers.addAll(personService.findAllSofdSubstitutesForManager(person, order.getEmployeeId()));
 
 		// check if the currently logged in person is a manager of this user

@@ -86,18 +86,28 @@
 				</div>
 			</div>
 		</fieldset>
+
+		<fieldset>
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.doNotTransferToFKOrg}"></label>
+				<div class="col-sm-9 row">
+					<div class="col-sm-1 checkbox c-checkbox">
+						<label>
+							<input id="doNotTransferToFKOrgCheckbox" type="checkbox" th:checked="${orgUnit.doNotTransferToFkOrg}" onclick="return confirmDoNotTransferToFKOrgCheckbox(this);"/>
+							<span class="fa fa-check"></span>
+						</label>
+					</div>
+					<div class="col-sm-10" style="margin-top:10px;">
+						<span class="badge badge-warning" th:if="${doNotTransferInherited}" th:text="#{html.entity.orgunit.doNotTransferToFKOrgInherited}"></span>
+					</div>
+				</div>
+			</div>
+		</fieldset>
+
 	</div>
 	
 	<div class="col-lg-6">
 		<fieldset>
-			<div class="row">
-				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.ean}"></label>
-				<div class="col-sm-9">
-					<input th:if="${canEditAll == true}" th:field="${orgUnit.ean}" class="form-control masterTooltip" />
-					<input th:if="${canEditAll == false}" th:field="${orgUnit.ean}" class="form-control masterTooltip" readonly="readonly" />
-				</div>
-			</div>
-	
 			<div class="row">
 				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.cvr}"></label>
 				<div class="col-sm-9">
@@ -195,6 +205,11 @@
 				var selectParentText = [[#{html.fragment.orgunit.core.msg.selectParent.Text}]];
 				var selectParentButtonConfirm = [[#{html.button.yes}]];
 				var selectParentButtonCancel = [[#{html.button.no}]];
+
+				var confirmTransferToFKTitle = [[#{html.fragment.orgunit.core.msg.confirmTransferToFKTitle}]];
+				var confirmTransferToFKText = [[#{html.fragment.orgunit.core.msg.confirmTransferToFKText}]];
+				var confirmTransferToFKConfirm = [[#{html.button.yes}]];
+				var confirmTransferToFKCancel = [[#{html.button.no}]];
 			+]*/
 			
 			var autoCompleteService;
@@ -248,6 +263,30 @@
 			function openSearchPnrModal() {
 				$('#searchPnrModal').modal("show");
 			}
+
+			function confirmDoNotTransferToFKOrgCheckbox(checkbox) {
+				if(!checkbox.checked) {
+					return true;
+				}
+				swal({
+						html : true,
+						title : confirmTransferToFKTitle,
+						text : confirmTransferToFKText,
+						type : "warning",
+						showCancelButton : true,
+						confirmButtonColor : "#DD6B55",
+						confirmButtonText : confirmTransferToFKConfirm,
+						cancelButtonText : confirmTransferToFKCancel,
+						closeOnConfirm : true,
+						closeOnCancel : true
+					},
+					function(isConfirm) {
+						$("#doNotTransferToFKOrgCheckbox").prop( "checked", isConfirm );
+					}
+				);
+				return false;
+			}
+
 
 			function AutoCompleteService() {
 				this.init = function() {

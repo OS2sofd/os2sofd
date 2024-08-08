@@ -25,8 +25,8 @@ public class SecurityLogCleaner {
 	@Autowired
 	private SecurityLogDao securityLogEntryDao;
 
-	// run every night at 03:00 on Saturdays
-	@Scheduled(cron = "0 0 3 * * SAT")
+	// run every night at 03:?? on Saturdays
+	@Scheduled(cron = "#{new java.util.Random().nextInt(60)} #{new java.util.Random().nextInt(60)} 3 * * SAT")
 	public void cleanupAuditLogs() {
 		if (!configuration.getScheduled().isEnabled()) {
 			log.info("Scheduled jobs are disabled on this instance");

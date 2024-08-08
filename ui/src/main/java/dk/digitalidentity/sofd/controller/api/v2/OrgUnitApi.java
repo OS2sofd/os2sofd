@@ -27,11 +27,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import dk.digitalidentity.sofd.controller.api.v2.model.OrgUnitApiRecord;
 import dk.digitalidentity.sofd.controller.api.v2.model.OrgUnitResult;
+import dk.digitalidentity.sofd.dao.model.Ean;
 import dk.digitalidentity.sofd.dao.model.MasteredEntity;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Phone;
 import dk.digitalidentity.sofd.dao.model.Post;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplateType;
+import dk.digitalidentity.sofd.dao.model.mapping.MappableEntity;
 import dk.digitalidentity.sofd.dao.model.mapping.MappedEntity;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPhoneMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPostMapping;
@@ -175,11 +177,6 @@ public class OrgUnitApi {
 			changes = true;
 		}
 
-		if (record.getEan() != null && !Objects.equals(record.getEan(), orgUnit.getEan())) {
-			orgUnit.setEan(record.getEan());
-			changes = true;
-		}
-		
 		if (record.getCvr() != null && !Objects.equals(record.getCvr(), orgUnit.getCvr())) {
 			orgUnit.setCvr(record.getCvr());
 			changes = true;
@@ -255,6 +252,12 @@ public class OrgUnitApi {
 			}
 		}
 
+		if (record.getEanList() != null) {
+			if (this.<Ean>patchCollection(orgUnit, record, OrgUnit.class.getMethod("getEanList"), OrgUnit.class.getMethod("setEanList", List.class))) {
+				changes = true;
+			}
+		}
+
 		if (record.getManager() != null && !Objects.equals(record.getManager(), orgUnit.getManager())) {
 			if (StringUtils.hasLength(record.getManager().getName())) {
 				managerService.sendMail(orgUnit, EmailTemplateType.NEW_MANAGER, record.getManager().getName());
@@ -276,7 +279,7 @@ public class OrgUnitApi {
 	}
 
 	@SuppressWarnings("unchecked")
-	private <T extends MappedEntity> boolean patchCollection(OrgUnit orgUnit, OrgUnit record, Method getCollectionMethod, Method setCollectionMethod) throws Exception {
+	private <T extends MappableEntity> boolean patchCollection(OrgUnit orgUnit, OrgUnit record, Method getCollectionMethod, Method setCollectionMethod) throws Exception {
 		boolean changes = false;
 		
 		// record has no entries, orgUnit does
@@ -315,8 +318,16 @@ public class OrgUnitApi {
 					boolean found = false;
 					
 					for (T orgUnitEntry : orgUnitCollection) {
-						MasteredEntity recordMasteredEntity = recordEntry.getEntity();
-						MasteredEntity orgUnitMasteredEntity = orgUnitEntry.getEntity();
+						MasteredEntity recordMasteredEntity, orgUnitMasteredEntity;
+
+						if (orgUnitEntry instanceof MappedEntity) {
+							recordMasteredEntity = ((MappedEntity)recordEntry).getEntity();
+							orgUnitMasteredEntity = ((MappedEntity)orgUnitEntry).getEntity();
+						}
+						else {
+							recordMasteredEntity = (MasteredEntity) recordEntry;
+							orgUnitMasteredEntity = (MasteredEntity) orgUnitEntry;
+						}
 
 						if (Objects.equals(orgUnitMasteredEntity.getMaster(), recordMasteredEntity.getMaster()) &&
 							Objects.equals(orgUnitMasteredEntity.getMasterId(), recordMasteredEntity.getMasterId())) {
@@ -330,6 +341,9 @@ public class OrgUnitApi {
 								if (patchPostEntityFields((Post) orgUnitMasteredEntity, (Post) recordMasteredEntity)) {
 									changes = true;
 								}
+							}
+							else if (orgUnitMasteredEntity instanceof Ean) {
+								// we never update EAN-numbers because the only field is the masterId(number)
 							}
 
 							found = true;
@@ -350,8 +364,16 @@ public class OrgUnitApi {
 					boolean found = false;
 
 					for (T recordEntry : recordCollection) {
-						MasteredEntity recordMasteredEntity = recordEntry.getEntity();
-						MasteredEntity orgUnitMasteredEntity = orgUnitEntry.getEntity();
+						MasteredEntity recordMasteredEntity, orgUnitMasteredEntity;
+
+						if (recordEntry instanceof MappedEntity) {
+							recordMasteredEntity = ((MappedEntity)recordEntry).getEntity();
+							orgUnitMasteredEntity = ((MappedEntity)orgUnitEntry).getEntity();
+						}
+						else {
+							recordMasteredEntity = (MasteredEntity) recordEntry;
+							orgUnitMasteredEntity = (MasteredEntity) orgUnitEntry;
+						}
 
 						if (Objects.equals(orgUnitMasteredEntity.getMaster(), recordMasteredEntity.getMaster()) &&
 							Objects.equals(orgUnitMasteredEntity.getMasterId(), recordMasteredEntity.getMasterId())) {
@@ -438,4 +460,5 @@ public class OrgUnitApi {
 		
 		return changes;
 	}
+
 }

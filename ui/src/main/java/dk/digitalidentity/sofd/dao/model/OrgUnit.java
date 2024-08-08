@@ -115,9 +115,6 @@ public class OrgUnit implements Loggable {
 	private String cvrName;
 
 	@Column
-	private Long ean;
-
-	@Column
 	private Long senr;
 
 	@Column
@@ -164,6 +161,9 @@ public class OrgUnit implements Loggable {
 	@Column
 	private String email;
 
+	@Column
+	private boolean doNotTransferToFkOrg;
+
 	@BatchSize(size = 100)
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, mappedBy = "orgUnit")
 	@Valid
@@ -195,7 +195,7 @@ public class OrgUnit implements Loggable {
 
 	@Transient
 	@JsonIgnore
-	private String inheritedEan;
+	private boolean inheritedEan;
 
 	@BatchSize(size = 100)
 	@OneToMany(mappedBy = "orgUnit", fetch = FetchType.LAZY)
@@ -227,6 +227,14 @@ public class OrgUnit implements Loggable {
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "orgUnit", orphanRemoval = true)
 	@JsonIgnore
 	private List<SubstituteOrgUnitAssignment> substitutes = new ArrayList<>();
+
+	@BatchSize(size = 100)
+	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, mappedBy = "orgUnit")
+	@Valid
+	private List<Ean> eanList;
+	
+	@Transient
+	private List<Ean> inheritedEanList;
 
 	@JsonIgnore
 	@Override
@@ -292,4 +300,5 @@ public class OrgUnit implements Loggable {
 	public String getEntityName() {
 		return (displayName != null && !displayName.isEmpty()) ? displayName : sourceName;
 	}
+
 }

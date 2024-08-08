@@ -37,5 +37,10 @@ public class SecurityLog {
 
 	@Column(nullable = false)
 	private String ipAddress;
+	
+	@Column
+	private int status;
 
+	@Column
+	private long processedTime;
 }

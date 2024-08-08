@@ -12,6 +12,6 @@ public interface AuditLogDao extends CrudRepository<AuditLog, Long> {
 	AuditLog findById(long id);
 
 	@Modifying
-	@Query(nativeQuery = true, value = "DELETE FROM audit_log WHERE timestamp < ?1")
+	@Query(nativeQuery = true, value = "DELETE FROM audit_log WHERE timestamp < ?1 LIMIT 25000")
 	void deleteByTimestampBefore(Date before);
 }

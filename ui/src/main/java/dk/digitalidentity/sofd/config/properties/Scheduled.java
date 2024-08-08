@@ -12,6 +12,7 @@ public class Scheduled {
 	private FlagCleanup flagCleanup = new FlagCleanup();
 	private CprSync cprSync = new CprSync();
 	private DeleteOldAffiliations deleteOldAffiliations = new DeleteOldAffiliations();
+	private DeleteSubstitutes deleteSubstitutes = new DeleteSubstitutes();
 
 	private boolean enabled;
 	private boolean generateAccountOrdersOnStartupEnabled = false;

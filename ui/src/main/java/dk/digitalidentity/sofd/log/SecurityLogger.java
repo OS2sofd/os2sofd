@@ -17,7 +17,7 @@ public class SecurityLogger {
 	@Autowired
 	private SecurityLogDao securityLogDao;
 
-	public void log(String ipAddress, String method, String request) {
+	public void log(String ipAddress, String method, String request, int status, long processedTime) {
 		if (shouldLog(request)) {
 			SecurityLog entry = new SecurityLog();
 
@@ -35,6 +35,8 @@ public class SecurityLogger {
 			entry.setIpAddress(ipAddress);
 			entry.setMethod(method);
 			entry.setRequest(request);
+			entry.setStatus(status);
+			entry.setProcessedTime(processedTime);
 
 			securityLogDao.save(entry);			
 		}

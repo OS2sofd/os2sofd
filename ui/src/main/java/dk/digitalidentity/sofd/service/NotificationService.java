@@ -112,6 +112,10 @@ public class NotificationService {
 	public void delete(Notification notification) {
 		notificationDao.delete(notification);
 	}
+	
+	public void deleteAll(List<Notification> notifications) {
+		notificationDao.deleteAll(notifications);
+	}
 
 	@Transactional
 	public void deleteAllByNotificationType(NotificationType type) {

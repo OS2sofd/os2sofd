@@ -11,7 +11,6 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
 import javax.validation.constraints.NotNull;
 
-import org.hibernate.annotations.BatchSize;
 import org.hibernate.envers.Audited;
 
 import dk.digitalidentity.sofd.dao.model.MasteredEntity;
@@ -35,7 +34,6 @@ public class PersonPhoneMapping extends MappedEntity {
 	@NotNull
 	private Person person;
 
-	@BatchSize(size = 100)
 	@OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
 	@JoinColumn(name = "phone_id")
 	@NotNull

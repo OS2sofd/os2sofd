@@ -21,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -29,25 +30,31 @@ import org.springframework.web.servlet.ModelAndView;
 import dk.digitalidentity.sofd.config.SessionConstants;
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.mvc.dto.AccountOrderDTO;
+import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderApprovalReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.GenericReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.MultipleAffiliationsReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.PersonsWithActiveSOFDAffiliationsReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.SofdAffiliationsReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.UsersReportXlsView;
 import dk.digitalidentity.sofd.dao.model.AccountOrder;
+import dk.digitalidentity.sofd.dao.model.AccountOrderApproved;
 import dk.digitalidentity.sofd.dao.model.Notification;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.OrgUnitManager;
 import dk.digitalidentity.sofd.dao.model.Person;
+import dk.digitalidentity.sofd.dao.model.Setting;
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderStatus;
+import dk.digitalidentity.sofd.dao.model.enums.CustomerSetting;
 import dk.digitalidentity.sofd.dao.model.enums.ReportType;
 import dk.digitalidentity.sofd.security.RequireControllerWriteAccess;
 import dk.digitalidentity.sofd.security.RequireReadOrManagerAccess;
+import dk.digitalidentity.sofd.service.AccountOrderApprovedService;
 import dk.digitalidentity.sofd.service.AccountOrderService;
 import dk.digitalidentity.sofd.service.NotificationService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.ReportService;
 import dk.digitalidentity.sofd.service.S3Service;
+import dk.digitalidentity.sofd.service.SettingService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -75,6 +82,12 @@ public class ReportController {
 
 	@Autowired
 	private ReportService reportService;
+	
+	@Autowired
+	private AccountOrderApprovedService accountOrderApprovedService;
+	
+	@Autowired
+	private SettingService settingService;
 
 	@GetMapping("/ui/report/accountorders")
 	public String accountOrders(Model model) {
@@ -95,6 +108,29 @@ public class ReportController {
 		model.addAttribute("orders", dtos);
 		
 		return "report/accountorders";
+	}
+	
+	@GetMapping("/ui/report/accountorderapprovals")
+	public String accountOrderApprovals(Model model) {
+		List<AccountOrderApproved> approvals = accountOrderApprovedService.findAll();
+		model.addAttribute("approvals", approvals);
+
+		// this is temporary, and can be removed sometime after the last customer has been updated and 13 months
+		// has passed, so roughly autumn 2025 - it is just to indicate that the report is missing data
+		Setting deployTts  = settingService.getByKey(CustomerSetting.ACCOUNT_APPROVAL_DEPLOYED);
+		if (deployTts != null && StringUtils.hasLength(deployTts.getValue())) {
+			try {
+				LocalDate deployDate = LocalDate.parse(deployTts.getValue());
+				if (deployDate.isAfter(LocalDate.now().minusMonths(13))) {
+					model.addAttribute("deployDate", deployTts.getValue());
+				}
+			}
+			catch (Exception ex) {
+				log.warn("Could not parse: " + deployTts.getValue(), ex);
+			}
+		}
+		
+		return "report/accountorderapprovals";
 	}
 	
 	@GetMapping("/ui/report/accountorders/{id}")
@@ -149,7 +185,7 @@ public class ReportController {
 
 		return "report/reports";
 	}
-
+	
 	@GetMapping("/ui/report/reports/{reportType}")
 	public String getReport(Model model, @PathVariable("reportType") ReportType report) {
 		model.addAttribute("reportType", report);
@@ -219,6 +255,19 @@ public class ReportController {
 		}
 
 		return ResponseEntity.notFound().build();
+	}
+
+	@GetMapping("/ui/report/reports/downloadAccountOrderApprovals")
+	public ModelAndView downloadAccountOrderApprovalReport(HttpServletResponse response, Locale loc) {
+		Map<String, Object> model = new HashMap<>();
+		model.put("locale", loc);
+		model.put("messagesBundle", messageSource);
+		model.put("accountOrderApprovedService", accountOrderApprovedService);
+
+		response.setContentType("application/ms-excel");
+		response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xls\"");
+
+		return new ModelAndView(new AccountOrderApprovalReportXlsView(), model);
 	}
 
 	@GetMapping("/ui/report/reports/{reportType}/download")

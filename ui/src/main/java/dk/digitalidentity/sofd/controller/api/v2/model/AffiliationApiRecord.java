@@ -63,6 +63,7 @@ public class AffiliationApiRecord extends BaseRecord {
 	private String affiliationType;
 	private String positionId;
 	private String positionName;
+	private String positionShort;
 	private String positionTypeId;
 	private String positionTypeName;
 	private Set<String> functions;
@@ -100,6 +101,7 @@ public class AffiliationApiRecord extends BaseRecord {
 		this.affiliationType = (affiliation.getAffiliationType() != null) ? affiliation.getAffiliationType().toString() : null;
 		this.positionId = affiliation.getPositionId();
 		this.positionName = affiliation.getPositionName();
+		this.positionShort = affiliation.getPositionShort();
 		this.positionTypeId = affiliation.getPositionTypeId();
 		this.positionTypeName = affiliation.getPositionTypeName();
 		this.localExtensions = stringToMap(affiliation.getLocalExtensions());
@@ -118,9 +120,9 @@ public class AffiliationApiRecord extends BaseRecord {
 			this.orgUnitUuid = affiliation.getOrgUnit().getUuid();
 		}
 
-		if (affiliation.getAlternativeOrgUnit() != null) {
-			this.alternativeOrgUnitUuid = affiliation.getAlternativeOrgUnit().getUuid();
-		}
+		// pso: here we use the calculated orgunit method so we cover both the alternative orgunit case and the workplaces case
+		// consider refactoring these cases to 2 separate fields in the api or rename it to calculated orgunit, but then onprem agents would need to be updated as well.
+		this.alternativeOrgUnitUuid = affiliation.getCalculatedOrgUnit().getUuid();
 
 		if (affiliation.getManagerFor() != null) {
 			this.managerForUuids = new HashSet<String>();
@@ -160,6 +162,7 @@ public class AffiliationApiRecord extends BaseRecord {
 		affiliation.setPerson(person);
 		affiliation.setPositionId(positionId);
 		affiliation.setPositionName(positionName);
+		affiliation.setPositionShort(positionShort);
 		affiliation.setPositionTypeId(positionTypeId);
 		affiliation.setPositionTypeName(positionTypeName);
 		affiliation.setStartDate((startDate != null) ? toDate(startDate) : null);

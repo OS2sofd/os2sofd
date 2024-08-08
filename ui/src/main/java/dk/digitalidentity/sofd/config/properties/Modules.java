@@ -26,4 +26,6 @@ public class Modules {
 	private OrgUnitSubstitute orgUnitSubstitute = new OrgUnitSubstitute();
 	private ManagerUI managerUI = new ManagerUI();
 	private OrgUnit orgUnit = new OrgUnit();
+	private Students students = new Students();
+	private AffiliationWorkplace affiliationWorkplaces = new AffiliationWorkplace();
 }

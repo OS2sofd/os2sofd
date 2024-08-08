@@ -36,7 +36,7 @@
 									<tr th:each="person : ${persons}">
 										<td th:text="${person.firstname} + ' ' + ${person.surname}"></td>
 										<td th:text="${@personService.maskCpr(person.cpr)}"></td>
-										<td th:text="${person.getPrimeADAccount()}"></td>
+										<td th:text="${person.getActiveADAccounts()}"></td>
 										<td th:text="${@personService.hasAffiliationInWagesSystem(person)} ? #{html.button.yes} : #{html.button.no}"></td>
 										<td>
 											<a th:href="@{/ui/person/view/} + ${person.uuid} + '?backRef=report'"><em class="fa fa-fw fa-search"></em></a>

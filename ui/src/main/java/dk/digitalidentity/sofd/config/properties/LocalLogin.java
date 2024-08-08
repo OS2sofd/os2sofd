@@ -7,6 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class LocalLogin {
+	
 	@FeatureDocumentation(name = "Lokalt login", description = "Mulighed for at logge på SOFD med brugernavn/password uden om IDP")
 	private boolean enabled = false;
 }

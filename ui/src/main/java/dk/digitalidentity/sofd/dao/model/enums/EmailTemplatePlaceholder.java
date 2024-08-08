@@ -22,7 +22,8 @@ public enum EmailTemplatePlaceholder {
 	EMPLOYEE_NUMBER_PLACEHOLDER("{medarbejdernummer}", "html.enum.placeholders.description.employee_number"),
 	FUNCTION_NAME("{funktion}", "html.enum.placeholders.description.function_name"),
 	FUNCTION_LIST("{funktionsliste}", "html.enum.placeholders.description.function_list"),
-	SUBSTITUTE_LIST("{stedfortrædere}", "html.enum.placeholders.description.substitute_list");
+	SUBSTITUTE_LIST("{stedfortrædere}", "html.enum.placeholders.description.substitute_list"),
+	UPN("{upn}", "html.enum.placeholders.description.upn");
 	
 	private String placeholder;
 	private String description;

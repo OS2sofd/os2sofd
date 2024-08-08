@@ -61,7 +61,7 @@ public class UsernameGeneratorService {
 
 	@Autowired
 	private AccountOrderService accountOrderService;
-	
+
 	public String getUsername(Person person, String employeeId, String userType, String linkedUserId) {
 		String userId = null;
 		
@@ -156,7 +156,7 @@ public class UsernameGeneratorService {
 						final String fUserId = userId.toLowerCase();
 						
 						if (!userIdsOfType.stream().anyMatch(u -> fUserId.contains(u))) {
-							log.warn("Failed to retrieve username for " + PersonService.getName(person) + " / " + person.getUuid() + " because userType " + userType + " depends on " + supportedUserType.getUsernameInfixValue() + " and there was a previous reserved username that did not match the existing account");
+							log.warn("Failed to retrieve username for " + getName(person) + " / " + person.getUuid() + " because userType " + userType + " depends on " + supportedUserType.getUsernameInfixValue() + " and there was a previous reserved username that did not match the existing account");
 							return null;
 						}
 					}
@@ -229,8 +229,11 @@ public class UsernameGeneratorService {
 
 	private void reserveUsernames(Person person) {
 
-		if( !person.hasName())
-		{
+		// TODO: nope, this is also called when saving a brand new person, and that triggers a world of hurt
+		// before reserving username, make an update from cpr to ensure we have updated names to generate username from
+		// cprUpdateService.updatePerson(person.getUuid());
+
+		if (!person.hasName()) {
 			log.warn("Did not reserve usernames for person with uuid " + person.getUuid() + " because the person has no name.");
 			return;
 		}
@@ -615,7 +618,7 @@ public class UsernameGeneratorService {
 	}
 
 	private String name23serial(Person person, String userType, String prefix, String suffix) {
-		String personName = PersonService.getName(person);
+		String personName = getName(person);
 		String transliteratedName = Transliteration.transliterate(personName, null);
         String name = sanitize(transliteratedName);
 
@@ -656,7 +659,7 @@ public class UsernameGeneratorService {
 	        serial++;
         }
 
-		log.warn("Unable to generate serial for " + PersonService.getName(person) + " / " + person.getUuid() + " maxed serial out");
+		log.warn("Unable to generate serial for " + getName(person) + " / " + person.getUuid() + " maxed serial out");
 
         return null;
 	}
@@ -679,7 +682,7 @@ public class UsernameGeneratorService {
 	}
 	
 	private String shortName(Person person, String userType, long len, String prefix, String suffix) {
-		String personName = PersonService.getName(person);
+		String personName = getName(person);
 		String transliteratedName = Transliteration.transliterate(personName, null);
         String name = sanitize(transliteratedName);
 
@@ -719,7 +722,7 @@ public class UsernameGeneratorService {
 	}
 
 	private String longName(Person person, String userType, String prefix, String suffix, boolean includeMiddleName) {
-		String personName = PersonService.getName(person);
+		String personName = getName(person);
 		String transliteratedName = Transliteration.transliterate(personName, null);
         String[] splittedName = splitName(transliteratedName, includeMiddleName);
 
@@ -1342,4 +1345,8 @@ public class UsernameGeneratorService {
     		this.value = value;
     	}
     }
+
+	private String getName(Person person) {
+		return configuration.getModules().getAccountCreation().isUseCprNameForUsernameGenerator() ? PersonService.getCprName(person) : PersonService.getName(person);
+	}
 }

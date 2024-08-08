@@ -31,7 +31,7 @@ public class HistoricalReportsOnOrgUnitsTask {
 			log.debug("History on orgUnits is disabled");
 			return;
 		}
-		
+		log.info("Generating historical orgunit report");
 		historicalReportsOnOrgUnitsService.generateOrgunitReport();
 	}
 }

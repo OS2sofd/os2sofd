@@ -9,6 +9,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class OS2sync {
+	
 	@FeatureDocumentation(name = "OS2sync", description = "Synkronisering til FK Organisation")
 	private boolean enabled = false;
 	private boolean cprEnabled = false;
@@ -32,4 +33,6 @@ public class OS2sync {
 
 	@JsonIgnore
 	private String restUrl;
+
+	private boolean sendHiddenPhoneNumbers = true;
 }

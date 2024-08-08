@@ -10,7 +10,10 @@ public enum EntityType {
 	CLIENT("html.enum.entityType.client"), 
 	REPORT("html.enum.entityType.report"),
 	EMAIL("html.enum.entityType.email"),
-	CPR("html.enum.entityType.cpr");
+	CPR("html.enum.entityType.cpr"),
+	SUBSTITUTE_ASSIGNMENT("html.enum.entityType.substituteAssignment"),
+	SUBSTITUTE_ORGUNIT_ASSIGNMENT("html.enum.entityType.substituteOrgunitAssignment");
+
 	
 	private String message;
 	

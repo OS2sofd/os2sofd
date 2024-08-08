@@ -22,7 +22,6 @@ import dk.digitalidentity.sofd.security.RequireDaoWriteAccess;
 import dk.digitalidentity.sofd.security.RequireReadAccess;
 import dk.digitalidentity.sofd.service.OrgUnitService;
 
-@RequireDaoWriteAccess
 @RestController
 public class ManagedTitlesApi {
 

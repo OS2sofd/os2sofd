@@ -18,14 +18,7 @@ public class RequestLoggerConfiguration {
 
 	@Bean
 	public RequestLogger logFilter(SecurityLogger logger) {
-		RequestLogger filter = new RequestLogger(logger);
-		filter.setIncludeQueryString(true);
-		filter.setIncludePayload(false);
-		filter.setIncludeHeaders(false);
-		filter.setBeforeMessagePrefix("");
-		filter.setBeforeMessageSuffix("");
-
-		return filter;
+		return new RequestLogger(logger);
 	}
 	
 	@Bean

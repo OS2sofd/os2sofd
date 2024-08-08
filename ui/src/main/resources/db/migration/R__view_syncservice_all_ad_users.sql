@@ -7,6 +7,7 @@ CREATE OR REPLACE VIEW view_syncservice_all_ad_users AS
     u.user_id,
     u.disabled,
     IF(ad.account_expire_date IS NOT NULL AND ad.account_expire_date <= CURDATE(), 1, 0) AS expired,
+    IF(ad.password_expire_date IS NOT NULL AND ad.password_expire_date > '1970-01-01', ad.password_expire_date, NULL) AS password_expire_date,
     u.prime,
     e.email,
     ad.upn,
@@ -25,7 +26,7 @@ CREATE OR REPLACE VIEW view_syncservice_all_ad_users AS
   ) e ON e.person_uuid = p.uuid AND e.master_id = u.user_id
   -- join upn
   LEFT JOIN (
-    SELECT user_id, upn, kombit_uuid, account_expire_date
+    SELECT user_id, upn, kombit_uuid, account_expire_date, password_expire_date
     FROM active_directory_details
   ) ad ON ad.user_id = u.id
   -- join primary orgunit name

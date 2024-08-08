@@ -29,6 +29,7 @@ public class PersonDTO {
 	private boolean taxedPhone;
 	private Date firstEmploymentDate;
 	private Date anniversaryDate;
+	private String workAddress;
 	private PostDTO registeredPostAddress;
 	private PostDTO residencePostAddress;
 	private Date created;

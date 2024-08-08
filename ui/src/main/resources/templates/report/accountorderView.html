@@ -81,7 +81,8 @@
 										<label th:if="${order.orderType == T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderType).EXPIRE}" class="col-sm-2 control-label" th:text="#{html.page.accountorders.expireTime}"></label>
 										<label th:unless="${order.orderType == T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderType).EXPIRE}" class="col-sm-2 control-label" th:text="#{html.page.accountorders.deactivationTime}"></label>
 										<div class="col-sm-8">
-											<input th:value="${#dates.format(order.endDate, 'yyyy-MM-dd HH:mm')}" class="form-control" readonly="readonly" />
+											<input th:if="${order.orderType == T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderType).EXPIRE}" th:value="${#dates.format(order.endDate, 'yyyy-MM-dd 05:00')}" class="form-control" readonly="readonly" />
+											<input th:unless="${order.orderType == T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderType).EXPIRE}" th:value="${#dates.format(order.endDate, 'yyyy-MM-dd HH:mm')}" class="form-control" readonly="readonly" />
 										</div>
 									</div>
 								</fieldset>

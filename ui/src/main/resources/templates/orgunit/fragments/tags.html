@@ -31,7 +31,7 @@
 				</div>
 			</td>
 			<td>
-				<span style="width:300px;" class="ellipsis" th:id="tagCustomValue+${tag.id}" th:title="${tag.customValueName}" th:if="${tag.customValueEnabled}" th:text="${tag.customValue}"></span>
+				<span style="width:300px;" class="ellipsis" th:id="tagCustomValue+${tag.id}" th:title="${tag.customValue}" th:if="${tag.customValueEnabled}" th:text="${tag.customValue}"></span>
 			</td>
 			<td th:text="${tag.description}" th:attr="data-id=tagDescription + ${tag.id}"></td>
 			<td>

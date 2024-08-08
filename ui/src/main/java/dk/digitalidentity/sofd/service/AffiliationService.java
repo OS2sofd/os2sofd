@@ -74,15 +74,18 @@ public class AffiliationService {
 	}
 
 	public Affiliation save(Affiliation affiliation) {
-		return affiliationDao.save(affiliation);
+
+		var savedAffiliation = affiliationDao.save(affiliation);
+		personService.save(affiliation.getPerson()); // force modification history update
+		return savedAffiliation;
 	}
 
 	public Long countByOrgUnitAndActive(OrgUnit orgUnit) {
 		return affiliationDao.countByOrgUnitAndActive(orgUnit.getUuid());
 	}
 
-	public List<Affiliation> findByOrgUnitAndActive(OrgUnit orgUnit) {
-		return affiliationDao.findByOrgUnitAndActive(orgUnit.getUuid());
+	public Long countByOrgUnitAndActiveRecursive(OrgUnit orgUnit) {
+		return affiliationDao.countByOrgUnitAndActiveRecursive(orgUnit.getUuid());
 	}
 
 	public List<Affiliation> findByCalculatedOrgUnitAndActive(OrgUnit orgUnit) {
@@ -145,7 +148,8 @@ public class AffiliationService {
 	public static List<Affiliation> onlyActiveAffiliations(List<Affiliation> affiliations) {
 		return onlyActiveAffiliations(affiliations, 0);
 	}
-	
+
+	// includes future affiliations
 	public static List<Affiliation> notStoppedAffiliations(List<Affiliation> affiliations) {
 		return CollectionUtils.emptyIfNull(affiliations).stream()
 				.filter(a ->
@@ -153,7 +157,8 @@ public class AffiliationService {
 						(!notActiveAnymore(a)))
 				.collect(Collectors.toList());
 	}
-	
+
+	// only includes affiliations that are active right now
 	public static List<Affiliation> onlyActiveAffiliations(List<Affiliation> affiliations, int offsetDays) {
 		return CollectionUtils.emptyIfNull(affiliations).stream()
 				.filter(a ->

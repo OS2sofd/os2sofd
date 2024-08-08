@@ -7,6 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ContactPlaces {
+	
 	@FeatureDocumentation(name = "Henvendelsessteder", description = "Registrering af henvendelsessteder")
 	private boolean enabled = false;
 }

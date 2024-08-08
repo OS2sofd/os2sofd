@@ -111,6 +111,7 @@ public class ReportService {
 		List<Person> persons = personService.getActiveCached().stream()
 				// Persons that have AD account
 				.filter(p -> PersonService.getUsers(p).stream().anyMatch(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType()) && u.isDisabled() == false))
+
 				// Persons without affiliations or persons that have all deleted or stopped affiliations
 				.filter(p -> p.getAffiliations().isEmpty() ||
 						p.getAffiliations().stream().allMatch(af -> (af.isDeleted()) || (AffiliationService.notActiveAnymore(af)))
@@ -124,6 +125,7 @@ public class ReportService {
 		List<Person> persons = personService.getActiveCached().stream()
 				// Persons that have AD account
 				.filter(p -> PersonService.getUsers(p).stream().anyMatch(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType()) && u.isDisabled() == false))
+
 				// Persons without affiliations or persons that have all deleted or stopped affiliations (or non OPUS affiliations)
 				.filter(p -> p.getAffiliations().stream().allMatch(af -> (!configuration.getModules().getLos().getPrimeAffiliationMaster().equals(af.getMaster()) || af.isDeleted()) || (AffiliationService.notActiveAnymore(af)))
 				)
@@ -426,7 +428,10 @@ public class ReportService {
 		List<PersonWithActiveSOFDAffiliationsReportDTO> activeAffiliationsReportDTO = new ArrayList<>();
 
 		for (Person person : personService.getActiveCached()) {
-			User primeUser = person.getUsers().stream().map(um -> um.getUser()).filter(u -> u.isPrime()).findAny().orElse(null);
+			User primeUser = person.getUsers().stream().map(um -> um.getUser())
+					.filter(u -> u.isPrime() && SupportedUserTypeService.isActiveDirectory(u.getUserType()))
+					.findAny()
+					.orElse(null);
 
 			// filter affiliations
 			List<Affiliation> affiliations = AffiliationService.notStoppedAffiliations(person.getAffiliations())

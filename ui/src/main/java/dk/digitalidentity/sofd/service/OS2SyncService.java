@@ -7,6 +7,7 @@ import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 
 import javax.transaction.Transactional;
 
+import dk.digitalidentity.sofd.dao.model.enums.Visibility;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -91,6 +93,9 @@ public class OS2SyncService {
 	@Autowired(required = false)
 	private JdbcTemplate jdbcTemplate;
 
+	@Autowired
+	private EanService eanService;
+
 	@Transactional
 	public void synchronizeHierarchy() {
 		if (!configuration.getScheduled().isEnabled() || !configuration.getIntegrations().getOs2sync().isEnabled()) {
@@ -111,7 +116,7 @@ public class OS2SyncService {
 		}
 
 		// read all OrgUnits from SOFD Core (active only)
-		List<OrgUnit> sofdOrgUnits = orgUnitService.getAll().stream().filter(o -> o.isDeleted() == false).collect(Collectors.toList());
+		List<OrgUnit> sofdOrgUnits = orgUnitService.getAll().stream().filter(o -> !o.isDeleted() && !o.isDoNotTransferToFkOrg()).toList();
 
 		// read contactPlaces
 		List<ContactPlace> allContactPlaces = (configuration.getModules().getContactPlaces().isEnabled()) ? contactPlaceService.findAll() : null;
@@ -149,8 +154,10 @@ public class OS2SyncService {
 		List<ContactPlace> allContactPlaces = (configuration.getModules().getContactPlaces().isEnabled()) ? contactPlaceService.findAll() : null;
 
 		List<OrgUnit> orgUnits = orgUnitService.getAll();
+		Set<String> doNotTransferToFKOrgUuids = orgUnitService.getDoNotTransferToFKOrgUuids();
+
 		for (OrgUnit orgUnit : orgUnits) {
-			if (orgUnit.isDeleted()) {
+			if (orgUnit.isDeleted() || doNotTransferToFKOrgUuids.contains(orgUnit.getUuid()) ) {
 				deleteOrgUnit(orgUnit.getUuid());
 			}
 			else {
@@ -164,7 +171,7 @@ public class OS2SyncService {
 				deletePerson(person);
 			}
 			else {
-				updatePerson(person);
+				updatePerson(person, doNotTransferToFKOrgUuids);
 			}
 		}
 
@@ -177,25 +184,22 @@ public class OS2SyncService {
 
 		SyncResult syncResult = syncService.getModificationHistory(lastRun, EntityType.ORGUNIT.toString());
 		Set<String> uuids = syncResult.getUuids().stream().map(w -> w.getUuid()).collect(Collectors.toSet());
+		Set<String> doNotTransferToFKOrgUuids = orgUnitService.getDoNotTransferToFKOrgUuids();
 
 		List<ContactPlace> allContactPlaces = null;
 		if (uuids.size() > 0 && configuration.getModules().getContactPlaces().isEnabled()) {
 			allContactPlaces = contactPlaceService.findAll();
 		}
 
+
 		for (String uuid : uuids) {
 			OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
 
-			if (orgUnit == null || orgUnit.isDeleted()) {
+			if (orgUnit == null || orgUnit.isDeleted() || doNotTransferToFKOrgUuids.contains(uuid) ) {
 				deleteOrgUnit(uuid);
 			}
 			else {
 				updateOrgUnit(orgUnit, allContactPlaces);
-
-				// if the orgunit has inherit KLE flagged, we ALSO need to sync all children (and childrens children)
-				if (orgUnit.isInheritKle()) {
-					updateChildren(orgUnit, uuids, allContactPlaces);
-				}
 			}
 		}
 
@@ -216,7 +220,7 @@ public class OS2SyncService {
 				deletePerson(person);
 			}
 			else {
-				updatePerson(person);
+				updatePerson(person, doNotTransferToFKOrgUuids);
 			}
 		}
 
@@ -283,25 +287,6 @@ public class OS2SyncService {
 		}
 	}
 
-	private void updateChildren(OrgUnit orgUnit, Set<String> uuids, List<ContactPlace> contactPlaces) {
-		if (orgUnit.getChildren() == null) {
-			return;
-		}
-
-		for (OrgUnit child : orgUnit.getChildren()) {
-			if (child.isDeleted()) {
-				continue;
-			}
-
-			// no reason to update the child if already have this scheduled
-			if (!uuids.contains(child.getUuid())) {
-				updateOrgUnit(child, contactPlaces);
-			}
-
-			updateChildren(child, uuids, contactPlaces);
-		}
-	}
-
 	public void deletePerson(Person person) {
 		List<FkOrgUuid> entries = fkOrgUuidService.getByPersonUuid(person.getUuid());
 
@@ -312,10 +297,10 @@ public class OS2SyncService {
 		}
 	}
 
-	public void updatePerson(Person person) {
+	public void updatePerson(Person person, Set<String> doNotTransferToFKOrgUuids) {
 
 		List<Affiliation> activeAffiliations = AffiliationService.notStoppedAffiliations(person.getAffiliations()).stream()
-			.filter(a -> a.isDoNotTransferToFkOrg() == false)
+			.filter(a -> a.isDoNotTransferToFkOrg() == false && !doNotTransferToFKOrgUuids.contains(a.getOrgUnit().getUuid()))
 			.collect(Collectors.toList());
 
 		// no active affiliations, just map it to a delete event instead
@@ -325,8 +310,11 @@ public class OS2SyncService {
 		}
 
 		// find mobile phone number
-		Optional<Phone> phone = PersonService.getPhones(person).stream().filter(p -> p.isTypePrime() && p.getPhoneType().equals(PhoneType.MOBILE)).findFirst();
-		final String phoneValue = phone.isPresent() ? phone.get().getPhoneNumber() : null;
+		var phoneValue = PersonService.getPhones(person).stream().filter(p ->
+				p.getPhoneType().equals(PhoneType.MOBILE)
+				&& (p.getVisibility() == Visibility.VISIBLE || configuration.getIntegrations().getOs2sync().isSendHiddenPhoneNumbers())) // only send hidden phonenumbers if configured to do so
+				.sorted(Comparator.comparing(Phone::isTypePrime).reversed().thenComparing(Phone::getPhoneNumber)).findFirst() // sort by typeprime (if present), then by phone number to prevent flip-flopping between multiple valid numbers.
+				.map(Phone::getPhoneNumber).orElse(null);
 
 		// find landline phone number
 		Optional<Phone> landline = PersonService.getPhones(person).stream().filter(p -> p.isTypePrime() && p.getPhoneType().equals(PhoneType.LANDLINE)).findFirst();
@@ -566,7 +554,7 @@ public class OS2SyncService {
 		final String landlineValue = landlineValueTemp;
 
 		// find EAN
-		final String eanValue = (orgUnit.getEan() != null) ? Long.toString(orgUnit.getEan()) : null;
+		String eanValue = eanService.getEan(orgUnit);
 
 		// find KLE
 		List<String> tasks = new ArrayList<>();
@@ -613,11 +601,11 @@ public class OS2SyncService {
 		}
 
 		// find location
-		final String location = orgUnit.getLocation();
+		final String location = StringUtils.hasLength(orgUnit.getLocation()) ? orgUnit.getLocation() : null;
 		// find url
-		final String url = orgUnit.getUrlAddress();
+		final String url = StringUtils.hasLength(orgUnit.getUrlAddress()) ? orgUnit.getUrlAddress() : null;
 		// find email notes
-		final String emailNotes = orgUnit.getEmailNotes();
+		final String emailNotes = StringUtils.hasLength(orgUnit.getEmailNotes()) ? orgUnit.getEmailNotes() : null; 
 
 		// find return address
 		Optional<Post> returnPost = OrgUnitService.getPosts(orgUnit).stream().filter(p -> p.isReturnAddress()).findFirst();
@@ -629,20 +617,19 @@ public class OS2SyncService {
 		final String returnAddress = tempReturnPost;
 
 		// find phone opening hours
-		final String openingHoursPhone = orgUnit.getOpeningHoursPhone();
+		final String openingHoursPhone = StringUtils.hasLength(orgUnit.getOpeningHoursPhone()) ? orgUnit.getOpeningHoursPhone() : null;
 
 		// find "Henvendelsessted"
-		final String contact = (StringUtils.hasLength(orgUnit.getContactAddress()) ? orgUnit.getContactAddress() : null);
+		final String contact = StringUtils.hasLength(orgUnit.getContactAddress()) ? orgUnit.getContactAddress() : null;
 		
 		// for OPUS owned units, supply the losid and shortname as well
 		String losId = null;
 		String losValue = null;
-		if( Objects.equals(orgUnit.getMaster(), "OPUS") ) {
+		if (Objects.equals(orgUnit.getMaster(), "OPUS")) {
 			losId = orgUnit.getMasterId();
 			losValue = orgUnit.getShortname();
 		}
-		else
-		{
+		else {
 			// check if the OrgUnits are tagged with losId or losValue and use those tag values (ie. Odsherred)
 			var losIdTag = orgUnit.getTags().stream().filter(t -> t.getTag().getTagType() == TagType.LOSID).findFirst().orElse(null);
 			losId = losIdTag == null ? null : losIdTag.getCustomValue();
@@ -662,22 +649,24 @@ public class OS2SyncService {
 			List<User> users = PersonService.getUsers(orgUnit.getManager().getManager()).stream().filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType())).toList();
 
 			User managerUser = null;
+
 			// check if a user is mapped to an affiliation in the current OrgUnit
-			for( var user : users ) {
-				if( StringUtils.hasLength(user.getEmployeeId())) {
-					for( var affiliation : orgUnit.getManager().getManager().getAffiliations() ) {
-						if( affiliation.getEmployeeId().equalsIgnoreCase(user.getEmployeeId()) && affiliation.getOrgUnit().getUuid().equalsIgnoreCase(orgUnit.getUuid())) {
+			for (var user : users) {
+				if (StringUtils.hasLength(user.getEmployeeId())) {
+					for (var affiliation : orgUnit.getManager().getManager().getAffiliations()) {
+						if (affiliation.getEmployeeId().equalsIgnoreCase(user.getEmployeeId()) && affiliation.getOrgUnit().getUuid().equalsIgnoreCase(orgUnit.getUuid())) {
 							managerUser = user;
 							break;
 						}
 					}
-					if( managerUser != null ) {
+					
+					if (managerUser != null) {
 						break;
 					}
 				}
 			}
 
-			if( managerUser == null ) {
+			if (managerUser == null) {
 				// fallback to using the prime user
 				managerUser = users.stream().filter(u -> u.isPrime()).findFirst().orElse(null);
 			}
@@ -688,6 +677,8 @@ public class OS2SyncService {
 		}
 		final String managerUuid = tManagerUuid;
 
+		final String emailValue = StringUtils.hasLength(orgUnit.getEmail()) ? orgUnit.getEmail() : null;
+		
 		GeneratedKeyHolder holder = new GeneratedKeyHolder();
 		jdbcTemplate.update(new PreparedStatementCreator() {
 
@@ -700,7 +691,7 @@ public class OS2SyncService {
 				statement.setString(4, parentUuid);
 				statement.setString(5, finalLosValue);
 				statement.setString(6, phoneValue);
-				statement.setString(7, orgUnit.getEmail());
+				statement.setString(7, emailValue);
 				statement.setString(8, eanValue);
 				statement.setString(9, postValue);
 				statement.setString(10, orgUnitType);

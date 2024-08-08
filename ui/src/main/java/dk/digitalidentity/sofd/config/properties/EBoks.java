@@ -9,6 +9,7 @@ import lombok.Setter;
 @Setter
 @Getter
 public class EBoks {
+	
 	@FeatureDocumentation(name = "EBoks", description = "Giver sofd mulighed for at sende EBoks beskeder")
 	private boolean enabled = false;
 	

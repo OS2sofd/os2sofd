@@ -84,6 +84,7 @@ public class PersonApiRecord extends BaseRecord {
 	private String uuid;
 	private String authorizationCode;
 	private String keyWords;
+	private LeaveApiRecord leave;
 
 	public PersonApiRecord(Person person) {
 		this.cpr = person.getCpr();
@@ -134,9 +135,13 @@ public class PersonApiRecord extends BaseRecord {
 				this.authorizationCodes.add(new AuthorizationCodeApiRecord(authorizationCodeMapping.getAuthorizationCode()));
 			}
 		}
+
+		if(person.getLeave()!= null) {
+			this.leave = new LeaveApiRecord(person.getLeave());
+		}
 	}
 
-	public Person toPerson(Person actualPerson) {
+	public Person toPerson(Person actualPerson, String seedPrefix) {
 		Person person = new Person();
 		
 		if (actualPerson == null) {
@@ -181,7 +186,7 @@ public class PersonApiRecord extends BaseRecord {
 			for (UserApiRecord userRecord : users) {
 				PersonUserMapping mapping = new PersonUserMapping();
 				mapping.setPerson(actualPerson);
-				mapping.setUser(userRecord.toUser());
+				mapping.setUser(userRecord.toUser(seedPrefix));
 				
 				person.getUsers().add(mapping);
 			}

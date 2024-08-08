@@ -8,6 +8,6 @@ import lombok.Setter;
 public class Cpr {
 	private String url = "http://cprservice5.digital-identity.dk";
 	private boolean useAddressName = false;
-	private boolean addressEnabled = true;
+	private boolean addressEnabled = false;
 	private boolean showPersonStateInUi = false;
 }

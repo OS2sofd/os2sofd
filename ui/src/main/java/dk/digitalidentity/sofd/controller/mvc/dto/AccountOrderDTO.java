@@ -2,6 +2,8 @@ package dk.digitalidentity.sofd.controller.mvc.dto;
 
 import java.util.Date;
 
+import org.springframework.util.StringUtils;
+
 import dk.digitalidentity.sofd.dao.model.AccountOrder;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderStatus;
@@ -54,5 +56,13 @@ public class AccountOrderDTO {
 		this.modifiedTimestamp = order.getModifiedTimestamp();
 		this.requestedUserId = order.getRequestedUserId();
 		this.actualUserId = order.getActualUserId();
+	}
+	
+	public String getUserId() {
+		if (StringUtils.hasLength(actualUserId)) {
+			return actualUserId;
+		}
+		
+		return requestedUserId;
 	}
 }

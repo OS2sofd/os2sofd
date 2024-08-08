@@ -81,10 +81,10 @@ public class Post extends MasteredEntity {
 
     public String getAsOneLine() {
 		String result = street + ", " + postalCode + " " + city;
-		if( country != null && !country.trim().isEmpty())
-		{
+		if (country != null && !country.trim().isEmpty()) {
 			result += ", " + country;
 		}
+
 		return result;
     }
 }

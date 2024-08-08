@@ -39,7 +39,10 @@ public class FeatureDocumentationController {
 	        for (Field field : fields) {
 	            field.setAccessible(true);
 
-	            if (field.isAnnotationPresent(FeatureDocumentation.class) && field.getType().equals(boolean.class)) {
+	            if (field.getType() instanceof Class && ((Class<?>)field.getType()).isEnum()) {
+	            	; // ignore enums
+	            }
+	            else if (field.isAnnotationPresent(FeatureDocumentation.class) && field.getType().equals(boolean.class)) {
 	            	FeatureDocumentation annotation = field.getAnnotation(FeatureDocumentation.class);
 
 	            	FeatureDTO feature = new FeatureDTO(annotation.name(), annotation.description(), field.getBoolean(object));

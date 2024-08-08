@@ -469,6 +469,7 @@ public class OrgUnitController {
 
 		model.addAttribute("orgUnit", orgUnit);
 		model.addAttribute("employeeCount", affiliationService.countByOrgUnitAndActive(orgUnit));
+		model.addAttribute("employeeCountRecursive", affiliationService.countByOrgUnitAndActiveRecursive(orgUnit));
 
 		return "orgunit/description";
 	}
@@ -574,7 +575,7 @@ public class OrgUnitController {
 		SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
 		List<EmployeeWithUsersDTO> employees = new ArrayList<>();
 
-		for (Affiliation affiliation : affiliationService.findByOrgUnitAndActive(orgUnit)) {
+		for (Affiliation affiliation : affiliationService.findByCalculatedOrgUnitAndActive(orgUnit)) {
 			EmployeeWithUsersDTO employeeDTO = new EmployeeWithUsersDTO();
 			Person person = affiliation.getPerson();
 
@@ -589,6 +590,7 @@ public class OrgUnitController {
 			employeeDTO.setManager(managerName);
 			employeeDTO.setOrgUnitUuid(orgUnit.getUuid());
 			employeeDTO.setEmploymentTerms(affiliation.getEmploymentTermsText());
+			employeeDTO.setInternalReference(affiliation.getInternalReference());
 
 			for (User user : PersonService.getUsers(person)) {
 				SupportedUserType userType = supportedUserTypeService.findByKey(user.getUserType());
@@ -596,8 +598,25 @@ public class OrgUnitController {
 					log.error("person " + person.getUuid() + " has user account with unknown type " + user.getUserType());
 					continue;
 				}
-
-				employeeDTO.getUsers().add(user);
+				if( SupportedUserTypeService.isActiveDirectory(user.getUserType())) {
+					// only add user if mapped to this affiliation or if not mapped at all.
+					if(user.getEmployeeId() == null || user.getEmployeeId().equalsIgnoreCase(affiliation.getEmployeeId()))
+					{
+						employeeDTO.getUsers().add(user);
+						// also add any exchange account that has this user as master
+						var exchangeUser = PersonService.getUsers(person).stream().filter(u -> SupportedUserTypeService.isExchange(u.getUserType()) && u.getMasterId().equalsIgnoreCase(user.getUserId())).findFirst().orElse(null);
+						if( exchangeUser != null ) {
+							employeeDTO.getUsers().add(exchangeUser);
+						}
+					}
+				}
+				else if (SupportedUserTypeService.isExchange(user.getUserType())) {
+					// ignore. This case is handled in the active directory logic above
+				}
+				else
+				{
+					employeeDTO.getUsers().add(user);
+				}
 			}
 
 			employees.add(employeeDTO);
@@ -716,6 +735,7 @@ public class OrgUnitController {
 		}
 
 		model.addAttribute("orgUnit", orgUnit);
+		model.addAttribute("doNotTransferInherited", !orgUnit.isDoNotTransferToFkOrg() && orgUnitService.getDoNotTransferToFKOrgUuids().contains(orgUnit.getUuid()));
 
 		if (type.equals("edit")) {
 			// filter children of selected ou to prevent recursive reference
@@ -762,6 +782,45 @@ public class OrgUnitController {
 		model.addAttribute("orgUnit", orgUnit);
 
 		return "orgunit/fragments/managedTitlesTab :: managedTitlesTab";
+	}
+
+	@GetMapping("/ui/orgunit/{uuid}/fragments/ean")
+	public String getEanFragment(Model model, @PathVariable("uuid") String uuid) {
+		OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
+		if (orgUnit == null) {
+			log.warn("No OrgUnit with uuid " + uuid);
+			return "orgunit/fragments/eanTab :: eanTab";
+		}
+
+		model.addAttribute("orgUnit", orgUnit);
+
+		return "orgunit/fragments/eanTab :: eanTab";
+	}
+
+	@GetMapping("/ui/orgunit/{uuid}/fragments/ean-create-modal")
+	public String getEanCreateModal(Model model, @PathVariable("uuid") String uuid) {
+		OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
+		if (orgUnit == null) {
+			log.warn("No OrgUnit with uuid " + uuid);
+			return "orgunit/fragments/eanTab :: eanCreateModal";
+		}
+
+		model.addAttribute("orgUnit", orgUnit);
+
+		return "orgunit/fragments/eanTab :: eanCreateModal";
+	}
+
+	@GetMapping("/ui/orgunit/{uuid}/fragments/ean-prime-modal")
+	public String getEanPrimeModal(Model model, @PathVariable("uuid") String uuid) {
+		OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
+		if (orgUnit == null) {
+			log.warn("No OrgUnit with uuid " + uuid);
+			return "orgunit/fragments/eanTab :: eanPrimeModal";
+		}
+
+		model.addAttribute("orgUnit", orgUnit);
+
+		return "orgunit/fragments/eanTab :: eanPrimeModal";
 	}
 
 	private Affiliation addAffiliationFromDTO(AffiliationDTO affiliationDTO, Person person, OrgUnit ou) {

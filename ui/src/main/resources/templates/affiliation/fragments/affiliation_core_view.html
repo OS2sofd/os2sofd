@@ -6,10 +6,17 @@
         </div>
     </div>
     <div class="hidden">
-        <button sec:authorize="hasRole('ROLE_USER_ADMIN')" th:if="${@sofdConfiguration.getModules().getPositionDisplayName().isEnabled()}" id="editButton" class="btn btn-lg btn-primary" style="width:auto" onclick="loadEditCoreFragment()">
+        <button sec:authorize="hasRole('ROLE_USER_ADMIN')" id="editButton" class="btn btn-lg btn-primary" style="width:auto" onclick="loadEditCoreFragment()">
             <em class="fa fa-pencil" aria-hidden="true"></em>&nbsp;
             <span>Rediger</span>
         </button>
+
+        <div class="row" id="OURow">
+            <label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.orgunit}"></label>
+            <div class="col-sm-9">
+                <input id="OrgUnit" th:value="${affiliation.orgUnit.name}" class="form-control core-editable" readonly="readonly" />
+            </div>
+        </div>
 
         <div class="row" th:if="${@sofdConfiguration.getModules().getAffiliation().isAlternativeOUAssignable()}" id="altOURow">
             <label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.altorgunit}"></label>
@@ -28,6 +35,9 @@
 
             $('#core-alt-ou').empty();
             $('#core-alt-ou').append($('#altOURow'));
+
+            $('#core-ou').empty();
+            $('#core-ou').append($('#OURow'));
 		});
 	</script>
 </th:block>

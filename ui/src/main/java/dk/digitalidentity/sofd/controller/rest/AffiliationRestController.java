@@ -1,13 +1,14 @@
 package dk.digitalidentity.sofd.controller.rest;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import dk.digitalidentity.sofd.dao.model.OrgUnit;
-import dk.digitalidentity.sofd.security.RequireAdminAccess;
-import dk.digitalidentity.sofd.service.OrgUnitService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
@@ -21,13 +22,17 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import dk.digitalidentity.sofd.dao.model.Affiliation;
+import dk.digitalidentity.sofd.dao.model.OrgUnit;
+import dk.digitalidentity.sofd.dao.model.Workplace;
+import dk.digitalidentity.sofd.dao.model.enums.AffiliationType;
 import dk.digitalidentity.sofd.dao.model.mapping.AffiliationPrimaryKleMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.AffiliationSecondaryKleMapping;
+import dk.digitalidentity.sofd.security.RequireAdminAccess;
 import dk.digitalidentity.sofd.security.RequireControllerWriteAccess;
 import dk.digitalidentity.sofd.security.RequirePersonCreaterOrControllerWriteAccess;
 import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.AffiliationService;
-import dk.digitalidentity.sofd.service.PersonService;
+import dk.digitalidentity.sofd.service.OrgUnitService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -36,8 +41,6 @@ public class AffiliationRestController {
 
 	@Autowired
 	private AffiliationService affiliationService;
-	@Autowired
-	private PersonService personService;
 
 	@Autowired
 	private OrgUnitService orgUnitService;
@@ -133,7 +136,9 @@ public class AffiliationRestController {
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
-	record AffiliationEditRecord(String positionDisplayName, String alternativeOrgUnit) {}
+	record AffiliationEditRecord(String positionDisplayName, String alternativeOrgUnit, String positionName,
+								 String orgUnitUuid, Date startDate, Date stopDate, AffiliationType affiliationType,
+								 String internalReference, String vendor, boolean transferFKOrg) {}
 	
 	@RequireAdminAccess
 	@PostMapping(value = "/rest/affil/core/edit/{uuid}")
@@ -158,9 +163,93 @@ public class AffiliationRestController {
 		}
 
 		affiliation.setPositionDisplayName(body.positionDisplayName);
+		affiliation.setPositionName(body.positionName);
+		OrgUnit orgUnit = OrgUnitService.getInstance().getByUuid(body.orgUnitUuid);
+		if(Objects.equals(null, orgUnit)) {
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+		}
+		affiliation.setOrgUnit(orgUnit);
+		affiliation.setStartDate(body.startDate);
+		affiliation.setStopDate(body.stopDate);
+		affiliation.setAffiliationType(body.affiliationType);
+		affiliation.setInternalReference(StringUtils.hasLength(body.internalReference) ? body.internalReference : null);
+		affiliation.setDoNotTransferToFkOrg(body.transferFKOrg);
+		affiliation.setVendor(StringUtils.hasLength(body.vendor) ? body.vendor : null);
+
 		affiliationService.save(affiliation);
-		personService.save(affiliation.getPerson());
 
 		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
+	record WorkplaceDTO(String affiliationUuid, LocalDate startDate, LocalDate stopDate, String orgUnitUuid) {}
+	@RequireControllerWriteAccess
+	@PostMapping(value = "/rest/affil/workplace/new")
+	@ResponseBody
+	public HttpEntity<String> delete(@RequestBody WorkplaceDTO dto) {
+		Affiliation affiliation = affiliationService.findByUuid(dto.affiliationUuid);
+		if (affiliation == null) {
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+		}
+
+		OrgUnit orgUnit = orgUnitService.getByUuid(dto.orgUnitUuid);
+		if (orgUnit == null) {
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+		}
+
+		if (dto.startDate == null || dto.stopDate == null) {
+			return new ResponseEntity<>("Der skal angives en start- og stopdato", HttpStatus.BAD_REQUEST);
+		}
+
+		if (dto.startDate.isAfter(dto.stopDate)) {
+			return new ResponseEntity<>("Startdatoen skal være efter stopdatoen", HttpStatus.BAD_REQUEST);
+		}
+
+		if (isOverlap(dto.startDate, dto.stopDate, affiliation.getWorkplaces())) {
+			return new ResponseEntity<>("Den valgte periode for arbejdsstedet overlapper med perioden for en af de andre arbejdssteder", HttpStatus.BAD_REQUEST);
+		}
+
+		Workplace workplace = new Workplace();
+		workplace.setStartDate(dto.startDate);
+		workplace.setStopDate(dto.stopDate);
+		workplace.setAffiliation(affiliation);
+		workplace.setOrgUnit(orgUnit);
+
+		if (affiliation.getWorkplaces() == null) {
+			affiliation.setWorkplaces(new ArrayList<>());
+		}
+
+		affiliation.getWorkplaces().add(workplace);
+
+		affiliationService.save(affiliation);
+
+		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
+	record WorkplaceDeleteDTO(String affiliationUuid, long workplaceId) {}
+	@RequireControllerWriteAccess
+	@PostMapping(value = "/rest/affil/workplace/delete")
+	@ResponseBody
+	public HttpEntity<String> delete(@RequestBody WorkplaceDeleteDTO dto) {
+		Affiliation affiliation = affiliationService.findByUuid(dto.affiliationUuid);
+		if (affiliation == null) {
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+		}
+
+		affiliation.getWorkplaces().removeIf(w -> w.getId() == dto.workplaceId);
+		affiliationService.save(affiliation);
+
+		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
+	public boolean isOverlap(LocalDate startDate, LocalDate stopDate, List<Workplace> otherWorkplaces) {
+		for (Workplace workplace : otherWorkplaces) {
+			LocalDate otherStartDate = workplace.getStartDate();
+			LocalDate otherStopDate = workplace.getStopDate();
+
+			if (!(stopDate.isBefore(otherStartDate) || startDate.isAfter(otherStopDate))) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

@@ -40,6 +40,7 @@ import dk.digitalidentity.sofd.controller.rest.model.OrgUnitCoreInfo;
 import dk.digitalidentity.sofd.controller.rest.model.PhoneDTO;
 import dk.digitalidentity.sofd.controller.rest.model.TryAccountOrderRulesResult;
 import dk.digitalidentity.sofd.dao.model.AccountOrder;
+import dk.digitalidentity.sofd.dao.model.Ean;
 import dk.digitalidentity.sofd.dao.model.FunctionType;
 import dk.digitalidentity.sofd.dao.model.ManagedTitle;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
@@ -66,6 +67,7 @@ import dk.digitalidentity.sofd.service.FunctionTypeService;
 import dk.digitalidentity.sofd.service.OrgUnitService;
 import dk.digitalidentity.sofd.service.OrganisationService;
 import dk.digitalidentity.sofd.service.PersonService;
+import dk.digitalidentity.sofd.service.PrimeService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
 import dk.digitalidentity.sofd.service.TagsService;
 import dk.digitalidentity.sofd.service.model.OUTreeFormWithTags;
@@ -100,6 +102,9 @@ public class OrgUnitRestController {
 
 	@Autowired
 	private SofdConfiguration configuration;
+
+	@Autowired
+	private PrimeService primeService;
 
 	@Autowired
 	private ManagerService managerService;
@@ -257,8 +262,17 @@ public class OrgUnitRestController {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
 
+		var kleInheritChanged = false;
+		if( ou.isInheritKle() != inherit ) {
+			kleInheritChanged = true;
+		}
 		ou.setInheritKle(inherit);
 		orgUnitService.save(ou);
+
+		// if inherit was changed we need to force an update on all children
+		if( kleInheritChanged ) {
+			orgUnitService.forceUpdateChildren(ou);
+		}
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
@@ -734,7 +748,6 @@ public class OrgUnitRestController {
 		OrgUnit orgUnit = new OrgUnit();
 		orgUnit.setSourceName(orgUnitDTO.getSourceName());
 		orgUnit.setShortname(orgUnitDTO.getShortname());
-		orgUnit.setEan(orgUnitDTO.getEan());
 		orgUnit.setCvr(orgUnitDTO.getCvr());
 		orgUnit.setSenr(orgUnitDTO.getSenr());
 		orgUnit.setPnr(orgUnitDTO.getPnr());
@@ -744,6 +757,7 @@ public class OrgUnitRestController {
 		orgUnit.setType(orgUnitService.getDepartmentType());
 		orgUnit.setBelongsTo(organisation);
 		orgUnit.setPostAddresses(new ArrayList<>());
+		orgUnit.setDoNotTransferToFkOrg(orgUnitDTO.isDoNotTransferToFKOrg());
 
 		if (orgUnitDTO.getPnr() != null) {
 			Post post = new Post();
@@ -832,7 +846,7 @@ public class OrgUnitRestController {
 
 	@RequireControllerWriteAccess
 	@PostMapping(value = "/rest/orgunit/{uuid}/managedtitles/{id}/delete")
-	public HttpEntity<String> createManagedTitle(@PathVariable("uuid") String uuid, @PathVariable("id") long id) {
+	public HttpEntity<String> deleteManagedTitle(@PathVariable("uuid") String uuid, @PathVariable("id") long id) {
 		OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
 		if (orgUnit == null) {
 			log.warn("No OrgUnit with uuid " + uuid);
@@ -850,6 +864,121 @@ public class OrgUnitRestController {
 		}
 
 		orgUnit.getManagedTitles().remove(titleToDelete);
+		try {
+			orgUnitService.save(orgUnit);
+		}
+		catch (Exception ex) {
+			log.error("Failed to save orgUnit " + orgUnit.getUuid(), ex);
+
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+		}
+
+		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
+	@RequireControllerWriteAccess
+	@PostMapping(value = "/rest/orgunit/{uuid}/ean/create")
+	@ResponseBody
+	public HttpEntity<String> createEAN(@PathVariable("uuid") String uuid, @RequestBody Long number) {
+		OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
+		if (orgUnit == null) {
+			log.warn("No OrgUnit with uuid " + uuid);
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		
+		if (!Objects.equals(orgUnit.getMaster(), "SOFD")) {
+			return new ResponseEntity<>("Kan kun ændre EAN på enheder oprettet i OS2sofd", HttpStatus.BAD_REQUEST);			
+		}
+
+		if (number == null) {
+			return new ResponseEntity<>("EAN kan ikke være tom", HttpStatus.BAD_REQUEST);
+		}
+
+		List<Long> assignedEans = orgUnit.getEanList().stream().map(Ean::getNumber).toList();
+		if (!assignedEans.contains(number)) {
+			Ean ean = new Ean();
+			ean.setMaster("SOFD");
+			ean.setNumber(number);
+			ean.setOrgUnit(orgUnit);
+			ean.setPrime(false);
+
+			orgUnit.getEanList().add(ean);
+			primeService.setPrimeEan(orgUnit);
+			try {
+				orgUnitService.save(orgUnit);
+			}
+			catch (Exception ex) {
+				log.error("Failed to save orgUnit " + orgUnit.getUuid(), ex);
+				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			}
+		}
+		else {
+			return new ResponseEntity<>("Dette EAN nummer er allerede på enheden.", HttpStatus.BAD_REQUEST);
+		}
+
+		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
+	@RequireControllerWriteAccess
+	@PostMapping(value = "/rest/orgunit/{uuid}/ean/setPrime")
+	@ResponseBody
+	public HttpEntity<String> setEanPrime(@PathVariable("uuid") String uuid, @RequestBody int id) {
+		OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
+		if (orgUnit == null) {
+			log.warn("No OrgUnit with uuid " + uuid);
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		
+		if (!Objects.equals(orgUnit.getMaster(), "SOFD")) {
+			return new ResponseEntity<>("Kan kun ændre EAN på enheder oprettet i OS2sofd", HttpStatus.BAD_REQUEST);			
+		}
+
+		Ean ean = orgUnit.getEanList().stream().filter(x -> x.getId() == id).findAny().orElse(null);
+		if (ean == null) {
+			return new ResponseEntity<>("Kunne ikke finde det angive EAN nummer", HttpStatus.BAD_REQUEST);
+		}
+
+		orgUnit.getEanList().forEach(p -> p.setPrime(false));
+		ean.setPrime(true);
+
+		try {
+			orgUnitService.save(orgUnit);
+		}
+		catch (Exception ex) {
+			log.error("Failed to save orgUnit " + orgUnit.getUuid(), ex);
+
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+		}
+
+		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
+	@RequireControllerWriteAccess
+	@PostMapping(value = "/rest/orgunit/{uuid}/ean/{id}/delete")
+	public HttpEntity<String> deleteEAN(@PathVariable("uuid") String uuid, @PathVariable("id") long id) {
+		OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
+		if (orgUnit == null) {
+			log.warn("No OrgUnit with uuid " + uuid);
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+
+		if (!Objects.equals(orgUnit.getMaster(), "SOFD")) {
+			return new ResponseEntity<>("Kan kun ændre EAN på enheder oprettet i OS2sofd", HttpStatus.BAD_REQUEST);			
+		}
+
+		Ean eanToDelete = orgUnit.getEanList().stream().filter(m -> m.getId() == id).findAny().orElse(null);
+		if (eanToDelete == null) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+
+		if (!eanToDelete.getMaster().equals("SOFD")) {
+			log.warn("EAN with id " + id + " is not owned by SOFD!");
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+		}
+
+		orgUnit.getEanList().remove(eanToDelete);
+		primeService.setPrimeEan(orgUnit);
+
 		try {
 			orgUnitService.save(orgUnit);
 		}

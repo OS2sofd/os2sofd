@@ -12,6 +12,7 @@ import org.springframework.util.comparator.NullSafeComparator;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
+import dk.digitalidentity.sofd.dao.model.Ean;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Phone;
@@ -30,7 +31,12 @@ public class PrimeService {
 
 		for (User user : users) {
 			// if for some reason the user account has been disabled, it can no longer be prime
-			if (user.isDisabled() == true) {
+			if (user.isDisabled()) {
+				user.setPrime(false);
+			}
+
+			// if for some reason the user account has expired, it can no longer be prime
+			if (user.isExpired()) {
 				user.setPrime(false);
 			}
 
@@ -42,7 +48,7 @@ public class PrimeService {
 		// if our integration does not make sure there is exactly ONE prime of each type,
 		// then we flag the first non-disabled one of them as prime to make sure data is consistent
 		if (primeCount != 1) {
-			Optional<User> selectedPrimeUser = users.stream().filter(u -> u.isDisabled() == false).findFirst();
+			Optional<User> selectedPrimeUser = users.stream().filter(u -> !u.isDisabled() && !u.isExpired()).findFirst();
 			if (selectedPrimeUser.isPresent()) {
 				selectedPrimeUser.get().setPrime(true);
 
@@ -305,6 +311,26 @@ public class PrimeService {
 
 				for (int i = 1; i < orgUnit.getPostAddresses().size(); i++) {
 					orgUnit.getPostAddresses().get(i).getPost().setPrime(false);
+				}
+			}
+		}
+	}
+
+	public void setPrimeEan(OrgUnit orgUnit) {
+		if (orgUnit.getEanList() != null && orgUnit.getEanList().size() > 0) {
+			int primes = 0;
+
+			for (Ean ean : orgUnit.getEanList()) {
+				if (ean.isPrime()) {
+					primes++;
+				}
+			}
+
+			if (primes != 1) {
+				orgUnit.getEanList().get(0).setPrime(true);
+
+				for (int i = 1; i < orgUnit.getEanList().size(); i++) {
+					orgUnit.getEanList().get(i).setPrime(false);
 				}
 			}
 		}

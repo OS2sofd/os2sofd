@@ -49,7 +49,6 @@ import dk.digitalidentity.sofd.dao.model.ModificationHistory;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.PersonLeave;
 import dk.digitalidentity.sofd.dao.model.Phone;
-import dk.digitalidentity.sofd.dao.model.Post;
 import dk.digitalidentity.sofd.dao.model.SupportedUserType;
 import dk.digitalidentity.sofd.dao.model.User;
 import dk.digitalidentity.sofd.dao.model.UserChangeEmployeeIdQueue;
@@ -67,6 +66,7 @@ import dk.digitalidentity.sofd.security.RequireWriteContactInfoAccess;
 import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.AccountOrderService;
 import dk.digitalidentity.sofd.service.CprService;
+import dk.digitalidentity.sofd.service.CprUpdateService;
 import dk.digitalidentity.sofd.service.FunctionTypeService;
 import dk.digitalidentity.sofd.service.ModificationHistoryService;
 import dk.digitalidentity.sofd.service.PersonService;
@@ -116,6 +116,9 @@ public class PersonRestController {
 
 	@Autowired
 	private ModificationHistoryService modificationHistoryService;
+
+	@Autowired
+	private CprUpdateService cprUpdateService;
 
 	@RequireControllerWriteAccess
 	@PostMapping("/rest/person/{uuid}/leave")
@@ -519,31 +522,8 @@ public class PersonRestController {
 		if (person == null) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		CprLookupDTO cprLookupDTO = cprService.getByCpr(person.getCpr(), true);
-
-		if (cprLookupDTO != null) {
-			person.setFirstname(cprLookupDTO.getFirstname());
-			person.setSurname(cprLookupDTO.getLastname());
-
-			if (cprLookupDTO.hasAddress()) {
-				person.setRegisteredPostAddress(Post.builder()
-						.street(cprLookupDTO.getStreet())
-						.postalCode(cprLookupDTO.getPostalCode())
-						.city(cprLookupDTO.getCity())
-						.localname(cprLookupDTO.getLocalname())
-						.country(cprLookupDTO.getCountry())
-						.addressProtected(cprLookupDTO.isAddressProtected())
-						.master("SOFD")
-						.masterId("SOFD")
-						.build());
-			}
-
-			personService.save(person);
-
-			return new ResponseEntity<>(HttpStatus.OK);
-		}
-
-		return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		cprUpdateService.updatePerson(person.getUuid());
+		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
 	@RequireControllerWriteAccess
@@ -728,9 +708,6 @@ public class PersonRestController {
 
 			if (userDTO.isPresent()) {
 				user.setPrime(userDTO.get().isPrime());
-			}
-			else {
-				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 			}
 		}
 

@@ -5,7 +5,6 @@ public enum OrgUnitAttribute {
     SHORT_NAME("html.entity.orgunit.shortname"),
     TYPE("html.entity.orgunit.orgtype"),
     CVR("html.entity.orgunit.cvr"),
-    EAN("html.entity.orgunit.ean"),
     SENR("html.entity.orgunit.senr"),
     PNR("html.entity.orgunit.pnr"),
     COST_BEARER("html.entity.orgunit.costbearer"),

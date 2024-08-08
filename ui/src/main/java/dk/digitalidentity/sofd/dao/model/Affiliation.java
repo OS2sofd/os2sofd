@@ -1,6 +1,7 @@
 package dk.digitalidentity.sofd.dao.model;
 
 import java.io.Serializable;
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 
@@ -149,6 +150,11 @@ public class Affiliation extends MasteredEntity implements Serializable {
 	private String positionName;
 
 	@Column
+	@NotNull
+	@Size(max = 255)
+	private String positionShort;
+
+	@Column
 	@Size(max = 255)
 	private String positionTypeId;
 
@@ -183,6 +189,7 @@ public class Affiliation extends MasteredEntity implements Serializable {
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, mappedBy = "affiliation")
 	private List<AffiliationSecondaryKleMapping> kleSecondary;
 
+	@BatchSize(size = 50)
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, mappedBy = "affiliation")
 	private List<AffiliationFunctionMapping> functions;
 
@@ -195,6 +202,10 @@ public class Affiliation extends MasteredEntity implements Serializable {
 	@JsonDeserialize(using = LocalExtensionsDeserializer.class)
 	private String localExtensions;
 
+	@BatchSize(size = 50)
+	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, mappedBy = "affiliation")
+	private List<Workplace> workplaces;
+
 	// transient field used by data-control-flow in our EntityListeners
 	@JsonIgnore
 	private transient boolean transientFlagNewAffiliation = false;
@@ -204,6 +215,17 @@ public class Affiliation extends MasteredEntity implements Serializable {
 	}
 
 	public OrgUnit getCalculatedOrgUnit() {
-		return this.alternativeOrgUnit != null ? alternativeOrgUnit : orgUnit;
+		OrgUnit calculatedOrgUnit = this.alternativeOrgUnit != null ? alternativeOrgUnit : orgUnit;
+		
+		if (this.workplaces != null && !this.workplaces.isEmpty()) {
+			LocalDate today = LocalDate.now();
+			Workplace currentWorkplace = this.getWorkplaces().stream().filter(w -> (w.getStartDate().isBefore(today) || w.getStartDate().equals(today)) || (w.getStopDate().isAfter(today) || w.getStopDate().equals(today))).findFirst().orElse(null);
+
+			if (currentWorkplace != null) {
+				calculatedOrgUnit = currentWorkplace.getOrgUnit();
+			}
+		}
+		
+		return calculatedOrgUnit;
 	}
 }

@@ -1,5 +1,18 @@
 package dk.digitalidentity.sofd.service;
 
+import com.azure.identity.ClientSecretCredential;
+import com.azure.identity.ClientSecretCredentialBuilder;
+import com.microsoft.graph.authentication.TokenCredentialAuthProvider;
+import com.microsoft.graph.core.ClientException;
+import com.microsoft.graph.logger.DefaultLogger;
+import com.microsoft.graph.models.*;
+import com.microsoft.graph.requests.AttachmentCollectionPage;
+import com.microsoft.graph.requests.AttachmentCollectionResponse;
+import com.microsoft.graph.requests.GraphServiceClient;
+import okhttp3.Request;
+
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Properties;
 
@@ -36,16 +49,28 @@ public class EmailService {
 	
 	@Autowired
 	private EmailTemplateChildService emailTemplateChildService;
-	
-	public boolean sendMessage(String email, String subject, String message, List<Attachment> attachments, List<InlineImageDTO> inlineImages, EmailTemplateChild templateChild) {
+
+	public boolean sendMessage(String emailTo, String subject, String message, List<Attachment> attachments, List<InlineImageDTO> inlineImages, EmailTemplateChild templateChild) {
 		if (!configuration.getIntegrations().getEmail().isEnabled()) {
-			log.warn("email server is not configured - not sending email to " + email);
+			log.warn("email server is not configured - not sending email to " + emailTo);
 			return false;
 		}
 
+		return switch (configuration.getIntegrations().getEmail().getClientType()) {
+			case SMTP -> sendMessageSMTP(emailTo,subject,message,attachments,inlineImages,templateChild);
+			case GRAPH -> sendMessageGraph(emailTo,subject,message,attachments,inlineImages,templateChild);
+            default -> {
+                log.error("Unknown Email ClientType");
+				yield  false;
+            }
+		};
+	}
+
+	public boolean sendMessageSMTP(String emailTo, String subject, String message, List<Attachment> attachments, List<InlineImageDTO> inlineImages, EmailTemplateChild templateChild) {
+
 		Transport transport = null;
 
-		log.info("Sending email: '" + subject + "' to " + email);
+		log.info("Sending email: '" + subject + "' to " + emailTo + " using smtp");
 
 		try {
 			Properties props = System.getProperties();
@@ -58,7 +83,7 @@ public class EmailService {
 
 			MimeMessage msg = new MimeMessage(session);
 			msg.setFrom(new InternetAddress(configuration.getIntegrations().getEmail().getFrom(), configuration.getIntegrations().getEmail().getFromName()));
-			msg.setRecipient(Message.RecipientType.TO, new InternetAddress(email));
+			msg.setRecipient(Message.RecipientType.TO, new InternetAddress(emailTo));
 
 			if (templateChild != null) {
 				if (templateChild.getRecipientsCC() != null) {
@@ -122,7 +147,7 @@ public class EmailService {
 			transport.sendMessage(msg, msg.getAllRecipients());
 		}
 		catch (Exception ex) {
-			log.error("Failed to send email to '" + email + "'", ex);
+			log.error("Failed to send email to '" + emailTo + "'", ex);
 			
 			return false;
 		}
@@ -139,4 +164,102 @@ public class EmailService {
 		
 		return true;
 	}
+
+	public boolean sendMessageGraph(String emailTo, String subject, String message, List<Attachment> attachments, List<InlineImageDTO> inlineImages, EmailTemplateChild templateChild) {
+
+		try {
+
+			log.info("Sending email: '" + subject + "' to " + emailTo + " using graph");
+
+			var graphClient = initializeGraphAuth();
+			var request = new UserSendMailParameterSet();
+
+			request.message = new com.microsoft.graph.models.Message();
+			request.message.subject = subject;
+			request.message.toRecipients = List.of(toRecipient(emailTo));
+
+			if (templateChild != null) {
+				if (templateChild.getRecipientsCC() != null) {
+					List<String> recipients = emailTemplateChildService.getRecipientsList(templateChild.getRecipientsCC());
+					request.message.ccRecipients = recipients.stream().map(this::toRecipient).toList();
+				}
+
+				if (templateChild.getRecipientsBCC() != null) {
+					List<String> recipients = emailTemplateChildService.getRecipientsList(templateChild.getRecipientsBCC());
+					request.message.bccRecipients = recipients.stream().map(this::toRecipient).toList();
+				}
+			}
+
+			request.message.body = new ItemBody();
+			request.message.body.content = message;
+			request.message.body.contentType = BodyType.HTML;
+
+			var fileAttachments = new ArrayList<com.microsoft.graph.models.Attachment>();
+			if( attachments != null )
+			{
+				for( var attachment : attachments ) {
+					var fileAttachment = new FileAttachment();
+					fileAttachment.name = attachment.getFilename();
+					fileAttachment.contentBytes = attachment.getFile().getContent();
+					fileAttachment.oDataType = "#microsoft.graph.fileAttachment";
+					fileAttachments.add(fileAttachment);
+				}
+			}
+			if( inlineImages != null )
+			{
+				for( var inlineImage : inlineImages ) {
+					var inlineAttachment = new FileAttachment();
+					inlineAttachment.name = inlineImage.getCid();
+					inlineAttachment.contentType = StringUtils.substringBetween(inlineImage.getSrc(), "data:", ";base64,"); // extract data type ( fx dataType = "image/png")
+					inlineAttachment.contentId = inlineImage.getCid();
+					var base64EncodedFileContent = inlineImage.getSrc().replaceFirst("data:.*;base64,", ""); // remove prefix from fileContent String ( fx base64EncodedFileContent = "iVBORw0KGg......etc"
+					inlineAttachment.contentBytes = Base64.getDecoder().decode(base64EncodedFileContent);
+					inlineAttachment.oDataType = "#microsoft.graph.fileAttachment";
+					fileAttachments.add(inlineAttachment);
+				}
+			}
+
+			if(!fileAttachments.isEmpty()) {
+				AttachmentCollectionResponse attachmentCollectionResponse = new AttachmentCollectionResponse();
+				attachmentCollectionResponse.value = fileAttachments;
+				request.message.attachments = new AttachmentCollectionPage(attachmentCollectionResponse, null);
+				request.message.hasAttachments = true;
+			}
+
+			graphClient.users(configuration.getIntegrations().getEmail().getFrom()).sendMail(request).buildRequest().post();
+			return true;
+
+		} catch (Exception ex) {
+			log.warn("Failed to send email to '" + emailTo + "'", ex);
+			return false;
+		}
+	}
+
+	private Recipient toRecipient(String email) {
+		var emailAddress = new EmailAddress();
+		emailAddress.address = email;
+		var recipient = new Recipient();
+		recipient.emailAddress = emailAddress;
+		return recipient;
+	}
+
+	private GraphServiceClient<Request> initializeGraphAuth() throws ClientException {
+		// Create the auth provider
+		final ClientSecretCredential credential = new ClientSecretCredentialBuilder()
+				.tenantId(configuration.getIntegrations().getEmail().getTenantId())
+				.clientId(configuration.getIntegrations().getEmail().getClientId())
+				.clientSecret(configuration.getIntegrations().getEmail().getSecret())
+				.build();
+
+		TokenCredentialAuthProvider authProvider = new TokenCredentialAuthProvider(credential);
+
+		DefaultLogger defaultLogger = new DefaultLogger();
+
+		// Build a Graph client
+		return GraphServiceClient.builder()
+				.authenticationProvider(authProvider)
+				.logger(defaultLogger)
+				.buildClient();
+	}
+
 }
