@@ -3,7 +3,6 @@ CREATE TABLE student (
    uuid                    VARCHAR(36) NOT NULL,
    user_id                 VARCHAR(255) NOT NULL UNIQUE,
    name                    VARCHAR(255) NOT NULL,
-   classes                 VARCHAR(255) NULL,
    cpr                     VARCHAR(10) NULL,
    disabled                BOOLEAN NOT NULL DEFAULT FALSE
 );
@@ -19,14 +18,6 @@ CREATE TABLE student_institution_numbers (
    CONSTRAINT fk_student_institution_numbers_on_student FOREIGN KEY (student_id) REFERENCES student(id) ON DELETE CASCADE
 );
 
-CREATE TABLE student_class_names (
-   id                      BIGINT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-   student_id              BIGINT NOT NULL,
-   class_name              VARCHAR(255) NULL,
-   
-   CONSTRAINT fk_student_class_names_on_student FOREIGN KEY (student_id) REFERENCES student(id) ON DELETE CASCADE
-);
-
 CREATE TABLE institution (
    id                      BIGINT NOT NULL PRIMARY KEY AUTO_INCREMENT,
    uuid                    VARCHAR(36) NOT NULL,
@@ -40,9 +31,8 @@ CREATE TABLE student_aud (
   revtype                  TINYINT DEFAULT NULL,
 
   uuid                     VARCHAR(36) DEFAULT NULL,
-  username                 VARCHAR(255) DEFAULT NULL,
+  user_id                  VARCHAR(255) DEFAULT NULL,
   name                     VARCHAR(255) DEFAULT NULL,
-  classes                  VARCHAR(255) DEFAULT NULL,
   cpr                      VARCHAR(10) DEFAULT NULL,
   disabled                 BOOLEAN DEFAULT NULL,
 

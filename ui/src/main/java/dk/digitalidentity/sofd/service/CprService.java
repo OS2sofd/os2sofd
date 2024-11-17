@@ -54,10 +54,12 @@ public class CprService {
 			ResponseEntity<CprLookupDTO> response = restTemplate.getForEntity(cprResourceUrl, CprLookupDTO.class);
 
 			var result = response.getBody();
+			
 			// remove all address information if addresses are not enabled
-			if( !configuration.getIntegrations().getCpr().isAddressEnabled() ) {
+			if (!configuration.getIntegrations().getCpr().isAddressEnabled()) {
 				result.removeAddressInfo();
 			}
+
 			return result;
 		}
 		catch (RestClientResponseException ex) {

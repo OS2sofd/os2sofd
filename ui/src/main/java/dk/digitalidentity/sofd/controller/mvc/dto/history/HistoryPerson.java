@@ -43,7 +43,7 @@ public class HistoryPerson {
 		this.surname = person.getSurname();
 		this.chosenName = person.getChosenName();
 		this.forceStop = person.isForceStop();
-		this.disableAccountOrders = person.isDisableAccountOrders();		
+		this.disableAccountOrders = person.isDisableAccountOrdersCreate();
 		this.registeredPostAddress = (person.getRegisteredPostAddress() != null) ? new HistoryPost(person.getRegisteredPostAddress()) : null;
 		this.residencePostAddress = (person.getResidencePostAddress() != null) ? new HistoryPost(person.getResidencePostAddress()) : null;
 		this.phones = new ArrayList<HistoryPhone>();

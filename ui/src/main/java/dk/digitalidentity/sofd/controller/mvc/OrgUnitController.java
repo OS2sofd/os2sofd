@@ -178,7 +178,7 @@ public class OrgUnitController {
 		model.put("locale", loc);
 
 		response.setContentType("application/ms-excel");
-		response.setHeader("Content-Disposition", "attachment; filename=\"regler.xls\"");
+		response.setHeader("Content-Disposition", "attachment; filename=\"regler.xlsx\"");
 
 		return new ModelAndView(new AccountOrderRulesXlsView(), model);
 	}
@@ -195,7 +195,7 @@ public class OrgUnitController {
 		model.put("locale", loc);
 
 		response.setContentType("application/ms-excel");
-		response.setHeader("Content-Disposition", "attachment; filename=\"enheder.xls\"");
+		response.setHeader("Content-Disposition", "attachment; filename=\"enheder.xlsx\"");
 
 		return new ModelAndView(new OrgUnitsXlsxView(), model);
 	}
@@ -552,7 +552,9 @@ public class OrgUnitController {
 			employeeDTO.setStopDate(affiliation.getStopDate() != null ? formatter.format(affiliation.getStopDate()) : null);
 			employeeDTO.setLeave(person.getLeave() != null);
 			employeeDTO.setForceStop(person.isForceStop());
-			employeeDTO.setDisableAccountOrders(person.isDisableAccountOrders());
+			employeeDTO.setDisableAccountOrdersCreate(person.isDisableAccountOrdersCreate());
+			employeeDTO.setDisableAccountOrdersDisable(person.isDisableAccountOrdersDisable());
+			employeeDTO.setDisableAccountOrdersDelete(person.isDisableAccountOrdersDelete());
 			employeeDTO.setFictiveCpr(PersonService.isFictionalCpr(person.getCpr()));
 
 			for (User user : PersonService.getUsers(person)) {

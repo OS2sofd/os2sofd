@@ -13,12 +13,9 @@ import javax.validation.constraints.Pattern;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import dk.digitalidentity.sofd.dao.model.Affiliation;
-import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.enums.AffiliationType;
 import dk.digitalidentity.sofd.dao.model.mapping.AffiliationFunctionMapping;
-import dk.digitalidentity.sofd.dao.model.mapping.AffiliationManagerMapping;
-import dk.digitalidentity.sofd.service.AffiliationService;
 import dk.digitalidentity.sofd.service.OrgUnitService;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -67,7 +64,6 @@ public class AffiliationApiRecord extends BaseRecord {
 	private String positionTypeId;
 	private String positionTypeName;
 	private Set<String> functions;
-	private Set<String> managerForUuids;
 
 	// TODO: remove at some point once we no longer manage deleted from our AD integration (which we really should stop doing)
 	private Boolean deleted;
@@ -81,6 +77,7 @@ public class AffiliationApiRecord extends BaseRecord {
 	private Boolean inheritPrivileges;
 	private String personUuid;
 	private String positionDisplayName;
+	private String vendor;
 	
 	public AffiliationApiRecord(Affiliation affiliation) {
 		this.master = affiliation.getMaster();
@@ -107,6 +104,7 @@ public class AffiliationApiRecord extends BaseRecord {
 		this.localExtensions = stringToMap(affiliation.getLocalExtensions());
 		this.prime = affiliation.isPrime();
 		this.positionDisplayName = affiliation.getPositionDisplayName();
+		this.vendor = affiliation.getVendor();
 
 		if (affiliation.getFunctions() != null) {
 			this.functions = new HashSet<String>();
@@ -123,14 +121,6 @@ public class AffiliationApiRecord extends BaseRecord {
 		// pso: here we use the calculated orgunit method so we cover both the alternative orgunit case and the workplaces case
 		// consider refactoring these cases to 2 separate fields in the api or rename it to calculated orgunit, but then onprem agents would need to be updated as well.
 		this.alternativeOrgUnitUuid = affiliation.getCalculatedOrgUnit().getUuid();
-
-		if (affiliation.getManagerFor() != null) {
-			this.managerForUuids = new HashSet<String>();
-
-			for (OrgUnit orgUnit : AffiliationService.getManagerFor(affiliation)) {
-				this.managerForUuids.add(orgUnit.getUuid());
-			}
-		}	
 	}
 
 	public Affiliation toAffiliation(Person person) {		
@@ -178,21 +168,6 @@ public class AffiliationApiRecord extends BaseRecord {
 			affiliation.setStopDate(affiliation.getStartDate());
 		}
 
-		if (managerForUuids != null) {
-			affiliation.setManagerFor(new ArrayList<>());
-
-			for (String uuid : managerForUuids) {
-				OrgUnit ou = OrgUnitService.getInstance().getByUuid(uuid);
-				if (ou != null) {
-					AffiliationManagerMapping managerFor = new AffiliationManagerMapping();
-					managerFor.setAffiliation(actualAffiliation);
-					managerFor.setOrgUnit(ou);
-					
-					affiliation.getManagerFor().add(managerFor);
-				}
-			}
-		}
-		
 		if (functions != null) {
 			affiliation.setFunctions(new ArrayList<>());
 

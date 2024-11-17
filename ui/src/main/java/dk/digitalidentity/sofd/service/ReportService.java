@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import dk.digitalidentity.sofd.controller.mvc.dto.ActiveAffiliationOrActiveADAccountReportDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -136,7 +137,7 @@ public class ReportService {
 	
 	public List<Person> generateAccountOrdersDisabledReport() {
 		List<Person> persons = personService.getActiveCached().stream()
-				.filter(p -> p.isDisableAccountOrders())
+				.filter(p -> p.isDisableAccountOrdersCreate() || p.isDisableAccountOrdersDisable() || p.isDisableAccountOrdersDelete())
 				.collect(Collectors.toList());
 
 		return persons;
@@ -230,7 +231,7 @@ public class ReportService {
 	
 	public List<SofdAffiliationsReportDTO> generateSofdAffiliationsReport() {
 		List<SofdAffiliationsReportDTO> sofdAffiliationsReportDTO = new ArrayList<>();
-		SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-dd");
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
 		for (Person person : personService.getActiveCached()) {
 
@@ -313,6 +314,7 @@ public class ReportService {
 				Person person = personMap.get(personUuid);
 
 				if (person != null) {
+					dto.setPersonUuid(person.getUuid());
 					dto.setName(PersonService.getName(person));
 				}
 			}
@@ -346,6 +348,7 @@ public class ReportService {
 				Person person = personMap.get(personUuid);
 
 				if (person != null) {
+					dto.setPersonUuid(person.getUuid());
 					dto.setName(PersonService.getName(person));
 				}
 			}
@@ -390,6 +393,7 @@ public class ReportService {
 				Person person = personMap.get(personUuid);
 
 				if (person != null) {
+					dto.setPersonUuid(person.getUuid());
 					dto.setName(PersonService.getName(person));
 				}
 			}
@@ -456,4 +460,26 @@ public class ReportService {
 
 		return activeAffiliationsReportDTO;
 	}
+
+	public List<ActiveAffiliationOrActiveADAccountReportDTO> generateActiveAffiliationOrActiveADAccountReport() {
+		List<ActiveAffiliationOrActiveADAccountReportDTO> result = new ArrayList<>();
+
+		for (Person person : personService.getActiveCached()) {
+			var activeADUsers = person.getUsers().stream().map(um -> um.getUser())
+					.filter(u -> !u.isDisabled() && SupportedUserTypeService.isActiveDirectory(u.getUserType())).toList();
+
+			var activeAffiliations = AffiliationService.notStoppedAffiliations(person.getAffiliations()).stream().toList();
+
+			if (!activeAffiliations.isEmpty() || !activeADUsers.isEmpty()) {
+				var resultRow = new ActiveAffiliationOrActiveADAccountReportDTO();
+				resultRow.setUuid(person.getUuid());
+				resultRow.setName(PersonService.getName(person));
+				resultRow.setUsers(activeADUsers.stream().map(User::getUserId).toList());
+				resultRow.setAffiliations(activeAffiliations.stream().map(a -> AffiliationService.getPositionName(a) + " i " + a.getOrgUnit().getName()).toList());
+				result.add(resultRow);
+			}
+		}
+		return result;
+	}
+
 }

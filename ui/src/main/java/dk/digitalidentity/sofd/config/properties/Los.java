@@ -18,4 +18,7 @@ public class Los {
 	private boolean futureOrgsEnabled = false;
 	
 	private String primeAffiliationMaster = "OPUS";
+
+	@FeatureDocumentation(name = "Foretrukket primært Ansættelsesforhold", description = "Mulighed for at angive hvilket Ansættelsesforhold (f.eks. 01 Månedsløn Bagud) der prioriteres højest ved vurdering af primær ansættelse. Normalt prioriteres lavest (00) højest.")
+	private String preferredPrimeEmploymentTerms;
 }

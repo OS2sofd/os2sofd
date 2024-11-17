@@ -1,5 +1,4 @@
 package dk.digitalidentity.sofd.dao.model.enums;
-
 public enum AccountOrderType {
 	CREATE("html.enum.accountOrderStatus.create"),
 	DEACTIVATE("html.enum.accountOrderStatus.deactivate"),

@@ -5,8 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface StudentDao extends JpaRepository<Student, Long> {
 	Student findByCpr(String cpr);
-	Student findByUsername(String username);
+	Student findByUserId(String userId);
 	Student findByUuid(String uuid);
-
-	void deleteByUsername(String username);
 }

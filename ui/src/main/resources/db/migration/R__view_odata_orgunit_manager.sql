@@ -1,9 +1,9 @@
 CREATE OR REPLACE view `view_odata_orgunit_manager`
 AS
-SELECT om.id							       AS id,
-       om.orgunit_uuid						AS org_unit_uuid,
-       om.manager_uuid						AS person_uuid,
-       om.inherited							AS inherited,
-       ifnull(m.chosen_name,concat(m.firstname,' ',m.surname))	AS name
-FROM   orgunits_manager om
-INNER JOIN persons m on m.uuid = om.manager_uuid;
+SELECT ROW_NUMBER() OVER (ORDER BY om.orgunit_uuid)             AS id,
+       om.orgunit_uuid						                    AS org_unit_uuid,
+       om.manager_uuid						                    AS person_uuid,
+       om.inherited							                    AS inherited,
+       om.name                                                  AS name
+FROM   view_orgunits_manager om
+WHERE om.manager_uuid is not null

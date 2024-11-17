@@ -30,8 +30,8 @@ public class EmailQueueTask {
 			return;
 		}
 
-		// don't run during the night - nobody wants messages then - wait till morning
-		if (LocalTime.now().isAfter(LocalTime.of(22, 0)) || LocalTime.now().isBefore(LocalTime.of(5, 30))) {
+		// don't run during the night - unless configured to
+		if (!configuration.getScheduled().isMailDuringNightEnabled() && LocalTime.now().isAfter(LocalTime.of(22, 0)) || LocalTime.now().isBefore(LocalTime.of(5, 30))) {
 			return;
 		}
 

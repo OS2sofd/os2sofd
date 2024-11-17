@@ -9,6 +9,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ADUserReportDTO {
+	private String personUuid;
 	private String name;
 	private String userId;
 	private ADUserStatus status;

@@ -54,7 +54,8 @@ public class EntityListenerService {
 		CHANGED_MANAGER,                  // the orgunit has changed manager
 		DELETED_TRUE,                     // the orgunit has had deleted sat to true             
 		NEW_OR_REACTIVATED_USER,          // the person has new user (or reactivated a disabled one)
-		NEW_AD_USER                       // the person has a completely new AD user
+		NEW_AD_USER,                      // the person has a completely new AD user
+		REMOVED_AD_USER                   // an ad users was removed from the person
 	}
 
 	@Autowired
@@ -130,6 +131,8 @@ public class EntityListenerService {
 		checkForNewOrReactivatedUsers(oldPerson, updatedPerson, change);
 
 		checkForPersonAddedADUser(oldPerson, updatedPerson, change);
+
+		checkForPersonRemovedADUser(oldPerson, updatedPerson, change);
 
 		if (change.getEntityChangeQueueDetails().size() > 0) {
 			entityChangeQueueDao.save(change);
@@ -535,4 +538,29 @@ public class EntityListenerService {
 			change.getEntityChangeQueueDetails().add(entityChangeQueueDetail);
 		}
 	}
+
+	private void checkForPersonRemovedADUser(Person oldPerson, Person updatedPerson, EntityChangeQueue change) {
+		List<User> oldUsers = PersonService.getUsers(oldPerson).stream().filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType())).collect(Collectors.toCollection(ArrayList::new));
+		List<User> newUsers = PersonService.getUsers(updatedPerson).stream().filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType())).collect(Collectors.toCollection(ArrayList::new));
+
+		// remove users that still exist from the list of old users
+		for (Iterator<User> iterator = oldUsers.iterator(); iterator.hasNext();) {
+			User oldUser = iterator.next();
+
+			// see if the user is still there
+			newUsers.stream()
+					.filter(u -> Objects.equals(u.getMaster(), oldUser.getMaster()) && Objects.equals(u.getMasterId(), oldUser.getMasterId()))
+					.findFirst()
+					.ifPresent(newUser -> iterator.remove());
+		}
+
+		for (User user : oldUsers) {
+			EntityChangeQueueDetail entityChangeQueueDetail = new EntityChangeQueueDetail();
+			entityChangeQueueDetail.setChangeType(ChangeType.REMOVED_AD_USER);
+			entityChangeQueueDetail.setOldValue(user.getUserId());
+			entityChangeQueueDetail.setEntityChangeQueue(change);
+			change.getEntityChangeQueueDetails().add(entityChangeQueueDetail);
+		}
+	}
+
 }

@@ -42,7 +42,6 @@ import dk.digitalidentity.sofd.dao.model.User;
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderStatus;
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderType;
 import dk.digitalidentity.sofd.dao.model.mapping.AffiliationFunctionMapping;
-import dk.digitalidentity.sofd.dao.model.mapping.AffiliationManagerMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.MappedEntity;
 import dk.digitalidentity.sofd.dao.model.mapping.PersonPhoneMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.PersonUserMapping;
@@ -641,71 +640,6 @@ public class PersonApi {
 				// supplied empty set, so remove all
 				if (personEntry.getFunctions() != null && personEntry.getFunctions().size() > 0) {
 					for (Iterator<AffiliationFunctionMapping> iterator = personEntry.getFunctions().iterator(); iterator.hasNext();) {
-						iterator.next();
-						iterator.remove();
-					}
-
-					changes = true;
-				}
-			}
-		}
-
-		if (recordEntry.getManagerFor() != null) {
-			if (recordEntry.getManagerFor().size() > 0) {
-				if (personEntry.getManagerFor() == null || personEntry.getManagerFor().size() == 0) {
-					if (personEntry.getManagerFor() == null) {
-						personEntry.setManagerFor(new ArrayList<>());
-					}
-					
-					for (AffiliationManagerMapping managerFor : recordEntry.getManagerFor()) {
-						personEntry.getManagerFor().add(managerFor);
-					}
-
-					changes = true;
-				}
-				else {
-					// complex update case
-
-					// add
-					for (AffiliationManagerMapping recordManagerFor : recordEntry.getManagerFor()) {
-						boolean found = false;
-
-						for (AffiliationManagerMapping personManagerFor : personEntry.getManagerFor()) {
-							if (personManagerFor.getOrgUnit().getUuid().equals(recordManagerFor.getOrgUnit().getUuid())) {
-								found = true;
-								break;
-							}
-						}
-						
-						if (!found) {
-							personEntry.getManagerFor().add(recordManagerFor);
-							changes = true;
-						}
-					}
-					
-					// remove
-					for (Iterator<AffiliationManagerMapping> iterator = personEntry.getManagerFor().iterator(); iterator.hasNext();) {
-						AffiliationManagerMapping personManagerFor = iterator.next();
-						boolean found = false;
-
-						for (AffiliationManagerMapping recordManagerFor : recordEntry.getManagerFor()) {
-							if (personManagerFor.getOrgUnit().getUuid().equals(recordManagerFor.getOrgUnit().getUuid())) {
-								found = true;
-								break;
-							}
-						}
-						
-						if (!found) {
-							iterator.remove();
-							changes = true;
-						}
-					}
-				}
-			}
-			else {
-				// supplied empty set, so remove all
-				if (personEntry.getManagerFor() != null && personEntry.getManagerFor().size() > 0) {
-					for (Iterator<AffiliationManagerMapping> iterator = personEntry.getManagerFor().iterator(); iterator.hasNext();) {
 						iterator.next();
 						iterator.remove();
 					}

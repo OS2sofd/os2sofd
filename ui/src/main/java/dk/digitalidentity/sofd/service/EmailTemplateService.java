@@ -4,20 +4,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import dk.digitalidentity.sofd.dao.model.OrgUnit;
-import dk.digitalidentity.sofd.dao.model.SubstituteOrgUnitAssignment;
-import dk.digitalidentity.sofd.dao.model.enums.EmployeeFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
+import dk.digitalidentity.sofd.config.SofdConfiguration;
+import dk.digitalidentity.sofd.dao.EmailTemplateChildDao;
 import dk.digitalidentity.sofd.dao.EmailTemplateDao;
 import dk.digitalidentity.sofd.dao.model.EmailTemplate;
 import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
+import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.SubstituteAssignment;
+import dk.digitalidentity.sofd.dao.model.SubstituteOrgUnitAssignment;
+import dk.digitalidentity.sofd.dao.model.enums.EmailOrgUnitFilterType;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplateType;
+import dk.digitalidentity.sofd.dao.model.enums.EmployeeFilter;
 import dk.digitalidentity.sofd.dao.model.enums.SendTo;
 
 @Service
@@ -27,7 +30,13 @@ public class EmailTemplateService {
 	private EmailTemplateDao emailTemplateDao;
 
 	@Autowired
+	private SofdConfiguration configuration;
+
+	@Autowired
 	private OrgUnitService orgUnitService;
+
+	@Autowired
+	private EmailTemplateChildDao emailTemplateChildDao;
 
 	public List<EmailTemplate> findAll() {
 		List<EmailTemplate> result = new ArrayList<>();
@@ -82,6 +91,10 @@ public class EmailTemplateService {
 				// følgende er også muligt, men ønskes ikke vist i std skabelonen
 				// Uuid for tilhørsforhold: {tilhørsforholduuid}
 				message = "Kære {modtager}\n<br/>\n<br/>{medarbejder} starter i din afdeling {orgenhed} d. {tidspunkt}.";
+				break;
+			case NEW_EMPLOYEE_DIGITAL_POST:
+				title = "Ny ansættelse";
+				message = "Kære {medarbejder}\n<br/>\n<br/>Velkommen til {orgenhed}";
 				break;
 			case NEW_EMPLOYEE_WELCOME:
 				title = "Velkommen, ny medarbejder";
@@ -151,8 +164,9 @@ public class EmailTemplateService {
 		child.setEnabled(false);
 		child.setEmailTemplate(template);
 		child.setDaysBeforeEvent(daysBeforeEvent);
-		child.setExcludedOrgUnitMappings(new ArrayList<>());
+		child.setOrgUnitFilterMappings(new ArrayList<>());
 		child.setEmployeeFilter(EmployeeFilter.ALL);
+		child.setOrgUnitFilterType(EmailOrgUnitFilterType.INCLUDE);
 		return child;
 	}
 
@@ -239,5 +253,18 @@ public class EmailTemplateService {
 		
 
 		return recipients;
+	}
+
+	public boolean shouldIncludeOrgUnit(EmailTemplateChild child, String orgUnitUuid) {
+		if (orgUnitUuid != null && configuration.getEmailTemplate().isOrgFilterEnabled() && child.getEmailTemplate().getTemplateType().isShowOrgFilter() && child.getOrgUnitFilterMappings().size() > 0) {
+			return switch (child.getOrgUnitFilterType()) {
+				case INCLUDE -> emailTemplateChildDao.isInFilteredSet(child.getId(),orgUnitUuid,false);
+				case INCLUDE_INHERIT -> emailTemplateChildDao.isInFilteredSet(child.getId(),orgUnitUuid,true);
+				case EXCLUDE -> !emailTemplateChildDao.isInFilteredSet(child.getId(),orgUnitUuid,false);
+				case EXCLUDE_INHERIT -> !emailTemplateChildDao.isInFilteredSet(child.getId(),orgUnitUuid,true);
+			};
+		}
+
+		return true;
 	}
 }

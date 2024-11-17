@@ -48,8 +48,37 @@ public interface PersonDao extends JpaRepository<Person, String>, JpaSpecificati
 	
 	<S extends Person> List<S> findByLeaveNotNull();
 
-	// TODO: doubt this works.... what happens if the time part is not 00:00:00 ? what about timezones?
-	List<Person> findByAffiliationsMasterAndAffiliationsStopDate(String master, Date date);
+	@Query(nativeQuery = true, value= """
+				select p.*
+				from persons p
+				inner join affiliations a on
+					a.person_uuid = p.`uuid`
+					and a.master = :master
+					and date(a.stop_date) = date(:stopDate)
+				group by p.uuid
+			""")
+	List<Person> findByAffiliationsMasterAndAffiliationsStopDate(String master, Date stopDate);
+
+	// Search prefixes
+	@Query(nativeQuery = true, value = """
+				select p.*
+				from persons p
+				left join persons_users pu on pu.person_uuid = p.uuid
+				left join users u on u.id = pu.user_id and u.user_type in ('ACTIVE_DIRECTORY','ACTIVE_DIRECTORY_SCHOOL','SCHOOL_EMAIL','EXCHANGE')
+				where
+					p.firstname like concat(:query,'%')
+					or p.surname like concat(:query,'%')
+					or p.chosen_name like concat(:query,'%')
+					or concat (p.firstname,' ',p.surname) like concat(:query,'%')
+					or u.user_id like concat(:query,'%')
+					or (:cprAccess and p.cpr like concat(:query,'%'))
+				group by p.uuid
+				order by ifnull(p.chosen_name,concat(p.firstname,p.surname))
+				limit 10
+			""")
+	List<Person> searchPersons(String query, boolean cprAccess);
+
+	List<Person> findTop10ByCprStartingWith(String prefix);
 
 	Person findByUuid(String uuid);
 	
@@ -57,7 +86,7 @@ public interface PersonDao extends JpaRepository<Person, String>, JpaSpecificati
 	@Query(nativeQuery = true, value = "DELETE FROM persons WHERE uuid IN ?1")
 	void deleteByUuid(Set<String> uuids);
 	
-	@Query(nativeQuery = true, value = "SELECT uuid FROM persons WHERE disable_account_orders = 1")
+	@Query(nativeQuery = true, value = "SELECT uuid FROM persons WHERE disable_account_orders_create = 1")
 	List<String> getUuidsOfDisableAccountOrderPersons();
 
 	@Query(nativeQuery = true, value = "SELECT p.* " +
@@ -69,6 +98,27 @@ public interface PersonDao extends JpaRepository<Person, String>, JpaSpecificati
 			"   OR CONCAT(p.firstname,' ', p.surname) LIKE CONCAT('%',?1,'%'))" +
 			" ORDER BY p.firstname, p.surname LIMIT 10")
 	List<Person> findTop10ByName(@Param("name") String input);
+
+	@Query(nativeQuery = true, value = """
+			select p.*
+			from persons p
+			inner join affiliations a on a.person_uuid = p.`uuid` and a.prime
+			left join persons_leave pl on pl.id = p.leave_id and now() between ifnull(pl.start_date,now()) and ifnull(pl.stop_date,now())
+			where
+				p.deleted = 0
+				and p.force_stop = 0
+				and p.dead = 0
+				and pl.id is null		
+				and (
+					p.firstname like concat('%',?1,'%')
+					or p.surname like concat('%',?1,'%')
+					or p.chosen_name like concat('%',?1,'%')
+					or concat(p.firstname,' ',p.surname) like concat('%',?1,'%')
+				)
+			order by ifnull(p.chosen_name, concat(p.firstname,p.surname))
+			limit 10			
+			""")
+	List<Person> findTop10ValidManagersByName(@Param("name") String name);
 
 	@Query(nativeQuery = true, value = "SELECT p.* " + 
 			"FROM   persons p " + 
@@ -83,22 +133,11 @@ public interface PersonDao extends JpaRepository<Person, String>, JpaSpecificati
 	
 	@Query(nativeQuery = true, value = "SELECT DISTINCT p.* " + 
 			"FROM   persons p " + 
-			"       INNER JOIN orgunits_manager om " +
+			"       INNER JOIN view_orgunits_manager om " +
 			"               ON om.manager_uuid = p.uuid and om.inherited = 0")
 	<S extends Person> List<S> getManagers();
 
 	@Query(nativeQuery = true, value = "SELECT p.* " +
-			"FROM   persons p " +
-			"       INNER JOIN affiliations a " +
-			"               ON a.person_uuid = p.uuid " +
-			"       INNER JOIN affiliations_manager am " +
-			"               ON am.affiliation_id = a.id " +
-			"WHERE  a.deleted = 0 " +
-			"       AND (a.start_date IS NULL OR CAST(a.start_date AS DATE) <= CAST(CURRENT_TIMESTAMP AS DATE))" +
-			"       AND (a.stop_date IS NULL OR CAST(a.stop_date AS DATE) >= CAST(CURRENT_TIMESTAMP AS DATE))")
-	<S extends Person> List<S> getAffiliationManagers();
-
-	@Query(nativeQuery = true, value = "SELECT p.* " + 
 			"FROM   persons p " + 
 			"       INNER JOIN affiliations a " + 
 			"               ON a.person_uuid = p.uuid " + 
@@ -140,7 +179,7 @@ public interface PersonDao extends JpaRepository<Person, String>, JpaSpecificati
 	@Query(nativeQuery = true, value = "DELETE FROM persons_aud WHERE uuid = ?1")
 	void deletePersonLog(String uuid);
 
-	List<Person> findByForceStopTrueOrDisableAccountOrdersTrueOrLeaveNotNull();
+	List<Person> findByForceStopTrueOrDisableAccountOrdersCreateTrueOrLeaveNotNull();
 
 	List<Person> findByPhonesPhoneMasterAndPhonesPhoneMasterId(String master, String masterId);
 }

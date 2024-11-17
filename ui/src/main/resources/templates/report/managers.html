@@ -17,6 +17,8 @@
 								<tr>
 									<th class="col-md-3" th:text="#{html.manager.name}"></th>
 									<th class="col-md-4" th:text="#{html.manager.ous}"></th>
+									<th class="col-md-4" th:text="#{html.manager.source}"></th>
+									<th class="col-md-4" th:text="#{html.manager.inherited}"></th>
 									<th class="col-md-4" th:text="#{html.manager.substitutes}"></th>
 									<th class="col-md-1" th:text="#{html.control.operations}"></th>
 								</tr>
@@ -25,6 +27,9 @@
 								<tr th:each="manager : ${managers}">
 									<td th:text="${manager.name}"></td>
 									<td th:text="${manager.orgUnit.name}"></td>
+									<td th:if="${manager.source == T(dk.digitalidentity.sofd.dao.model.enums.OrgUnitManagerSource).SELECTED}" th:text="#{html.manager.source.selected}"></td>
+									<td th:if="${manager.source == T(dk.digitalidentity.sofd.dao.model.enums.OrgUnitManagerSource).IMPORTED}" th:text="#{html.manager.source.imported}"></td>
+									<td th:text="${manager.inherited} ? 'Ja' : 'Nej'"></td>
 									<td>
 										<ul style="padding-left: 20px;">
 											<li th:each="substitute : ${manager.substitutes}" th:text="${substitute}"></li>

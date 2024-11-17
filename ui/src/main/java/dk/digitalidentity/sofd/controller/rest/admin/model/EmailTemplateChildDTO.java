@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
+import dk.digitalidentity.sofd.dao.model.enums.EmailOrgUnitFilterType;
 import dk.digitalidentity.sofd.dao.model.enums.EmployeeFilter;
 import dk.digitalidentity.sofd.dao.model.enums.SendTo;
 import lombok.AllArgsConstructor;
@@ -36,6 +37,7 @@ public class EmailTemplateChildDTO {
 	private boolean onlyManualRecipients;
 	// read-only
 	private List<String> orgUnitNames = new ArrayList<>();
+	private EmailOrgUnitFilterType orgUnitFilterType;
 	
 	public EmailTemplateChildDTO(EmailTemplateChild child) {
 		this.id = child.getId();
@@ -50,10 +52,11 @@ public class EmailTemplateChildDTO {
 		this.sendTo = child.getSendTo();
 		this.daysBeforeEvent = child.getDaysBeforeEvent();
 		this.domainFilter = child.getDomainFilter();
-		this.orgUnitUuids = child.getExcludedOrgUnitMappings().stream().map(o -> o.getOrgUnit()).map(o -> o.getUuid()).collect(Collectors.toList());
-		this.orgUnitNames = child.getExcludedOrgUnitMappings().stream().map(o -> o.getOrgUnit()).map(o -> o.getName()).collect(Collectors.toList());
+		this.orgUnitUuids = child.getOrgUnitFilterMappings().stream().map(o -> o.getOrgUnit()).map(o -> o.getUuid()).collect(Collectors.toList());
+		this.orgUnitNames = child.getOrgUnitFilterMappings().stream().map(o -> o.getOrgUnit()).map(o -> o.getName()).collect(Collectors.toList());
 		this.adRequired = child.isAdRequired();
 		this.employeeFilter = child.getEmployeeFilter();
 		this.onlyManualRecipients = child.isOnlyManualRecipients();
+		this.orgUnitFilterType = child.getOrgUnitFilterType();
 	}
 }

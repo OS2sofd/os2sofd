@@ -46,8 +46,9 @@ public class PersonDTO {
 
 	private boolean forceStop;
 	private String stopReason;
-	private boolean disableAccountOrders;
-	
+	private boolean disableAccountOrdersCreate;
+	private boolean disableAccountOrdersDisable;
+	private boolean disableAccountOrdersDelete;
 	private List<Affiliation> affiliations;
 	private List<UserDTO> users;
 	private List<PhoneDTO> phones;

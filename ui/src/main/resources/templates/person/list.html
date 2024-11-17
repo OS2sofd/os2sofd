@@ -18,6 +18,7 @@
 						  
 						  <ul class="dropdown-menu" role="menu" id="dataTableDropdown">
 						    <li><a href="#" data-cid="0" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.person.name}"></span></a></li>
+							  <li><a href="#" data-cid="1" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.person.obs}"></span></a></li>
 						    <li><a href="#" data-cid="1" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.person.affiliations}"></span></a></li>
 							<li><a href="#" data-cid="2" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.user.ad_accounts}"></span></a></li>
 						    <li><a href="#" data-cid="3" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.phone.phoneNumber}"></span></a></li>
@@ -55,9 +56,10 @@
 								<thead>
 									<tr>
 										<th class="col-md-3" th:text="#{html.entity.person.name}"></th>
-										<th class="col-md-4" th:text="#{html.entity.person.affiliations}"></th>
+										<th class="col-md-2" th:text="#{html.entity.person.obs}"></th>
+										<th class="col-md-3" th:text="#{html.entity.person.affiliations}"></th>
 										<th class="col-md-2" th:text="#{html.entity.user.ad_accounts}"></th>
-										<th class="col-md-2" th:text="#{html.entity.phone.phoneNumber}"></th>
+										<th class="col-md-1" th:text="#{html.entity.phone.phoneNumber}"></th>
 										<th class="col-md-1" th:text="#{html.control.operations}"></th>
 									</tr>
 								</thead>
@@ -65,7 +67,8 @@
 								<tfoot style="display: table-row-group">
 									<tr>
                                          <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
-                                         <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                         <td class="input-filter" id="customFilter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+										<td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
                                          <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
                                          <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
 										<td>&nbsp;</td>
@@ -143,19 +146,43 @@
 					data : 'name',
 					render: function (data, type, row, meta) {
 						var result = data;
+						return result;
+					}
+				},{
+					name: "obs",
+					data: "reason",
+					render: function (data, type, row, meta) {
+						var result = "";
 						if (row.leave == true) {
-							result += '&nbsp;<span class="badge badge-warning">' + leave_message + '</span>';
+							var date = new Date(row.stopDate)
+							let hoverMessage = row.reasonText;
+							if( row.stopDate != null ) {
+								hoverMessage += "\nStopdato: " + (new Date(row.stopDate)).toLocaleDateString("da-DK");
+							}
+							result += '&nbsp;<span class="badge badge-warning" title="' + hoverMessage +'" data-toggle="tooltip" data-placement="top">' + leave_message + ' - ' + row.reasonTranslated + '</span>';
 						}
 						if (row.forceStop == true) {
-							result += '&nbsp;<span class="badge badge-alert">' + forceStop_message + '</span>';
+							let hoverMessage = row.stopReason == null ? '' : row.stopReason;
+							result += '&nbsp;<span class="badge badge-alert" title="' + hoverMessage + '" data-toggle="tooltip" data-placement="top">' + forceStop_message  + '</span>';
 						}
-						if (row.disableAccountOrders == true) {
-							result += '&nbsp;<span class="badge badge-warning">' + disableAccountOrders_message + '</span>';
+						if (row.disableAccountOrdersCreate || row.disableAccountOrdersDisable || row.disableAccountOrdersDelete) {
+							let hoverMessage = "";
+							if (row.disableAccountOrdersCreate) {
+								hoverMessage += "Undtaget for oprettelse af brugere \n";
+							}
+							if (row.disableAccountOrdersDisable) {
+								hoverMessage += "Undtaget for deaktivering af brugere \n";
+							}
+							if (row.disableAccountOrdersDelete) {
+								hoverMessage += "Undtaget for sletning af brugere \n";
+							}
+
+							result += '&nbsp;<span class="badge badge-warning" title="' + hoverMessage + '" data-toggle="tooltip" data-placement="top">' + disableAccountOrders_message + '</span>';
 						}
 						if (row.fictiveCpr == true) {
 							result += '&nbsp;<span class="badge badge-warning">' + fakeCpr_message + '</span>';
 						}
-						
+
 						if (showPersonState) {
 							if (row.dead == true) {
 								result += '&nbsp;<span class="badge badge-warning">' + dead_message + '</span>';
@@ -164,10 +191,11 @@
 								result += '&nbsp;<span class="badge badge-warning">' + disenfranchised_message + '</span>';
 							}
 						}
-						
+
 						return result;
 					}
-				}, {
+				},
+					{
 					data : 'affiliation',
 					render: function (data, type, row, meta) {
 						if (data == null) {

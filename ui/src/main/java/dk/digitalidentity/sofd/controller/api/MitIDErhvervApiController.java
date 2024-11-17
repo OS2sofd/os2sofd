@@ -26,6 +26,7 @@ import dk.digitalidentity.sofd.service.SupportedUserTypeService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@SuppressWarnings("deprecation")
 @RequireDaoWriteAccess
 @RestController
 public class MitIDErhvervApiController {
@@ -51,8 +52,10 @@ public class MitIDErhvervApiController {
 		long deleteProcessingTime = 0;
 		long otherProcessingTime = 0;
 		long readUsersTime = 0;
+		long saveProcessingTime = 0;
 		long saveCounter = 0;
 		
+		List<Person> toSave = new ArrayList<>();
 		long start = System.currentTimeMillis(), tick = 0, tock = 0;
 		for (Person person : persons) {
 			boolean changes = false;
@@ -130,13 +133,20 @@ public class MitIDErhvervApiController {
 			
 			if (changes) {
 				saveCounter++;
-				personService.save(person);
+				toSave.add(person);
 			}
 		}
-		tock = System.currentTimeMillis();
-		otherProcessingTime = (tock - start) - addUpdateProcessingTime - deleteProcessingTime - readUsersTime;
 		
-		log.info("Finished processing - " + saveCounter + " persons updated taking " + (tock - start) + "ms split into " + addUpdateProcessingTime + "ms on add/update and " + deleteProcessingTime + "ms on delete and " + readUsersTime + "ms on readUsers and " + otherProcessingTime + "ms on other stuff");
+		if (toSave.size() > 0) {
+			long localTick = System.currentTimeMillis();
+			personService.saveAll(toSave);
+			saveProcessingTime = System.currentTimeMillis() - localTick;
+		}
+		
+		tock = System.currentTimeMillis();
+		otherProcessingTime = (tock - start) - addUpdateProcessingTime - deleteProcessingTime - saveProcessingTime - readUsersTime;
+		
+		log.info("Finished processing - " + saveCounter + " persons updated taking " + (tock - start) + "ms split into " + addUpdateProcessingTime + "ms on add/update and " + deleteProcessingTime + "ms on delete and " + readUsersTime + "ms on readUsers and " + saveProcessingTime + "ms on saving and " + otherProcessingTime + "ms on other stuff");
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}

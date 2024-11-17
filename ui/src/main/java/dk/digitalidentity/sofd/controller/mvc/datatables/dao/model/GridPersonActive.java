@@ -2,13 +2,19 @@ package dk.digitalidentity.sofd.controller.mvc.datatables.dao.model;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import dk.digitalidentity.sofd.dao.model.enums.LeaveReason;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.Date;
 
 @Getter
 @Setter
@@ -39,13 +45,32 @@ public class GridPersonActive implements GridPerson {
 
 	@Column
 	private boolean leave;
-	
+
+	@Enumerated(EnumType.STRING)
+	@Column
+	private LeaveReason reason;
+
+	@Transient
+	private String reasonTranslated;
+
+	@Column
+	private String reasonText;
+
 	@Column
 	private boolean forceStop;
-	
+
 	@Column
-	private boolean disableAccountOrders;
-	
+	private String stopReason;
+
+	@Column
+	private boolean disableAccountOrdersCreate;
+
+	@Column
+	private boolean disableAccountOrdersDisable;
+
+	@Column
+	private boolean disableAccountOrdersDelete;
+
 	@Column
 	private boolean dead;
 	
@@ -57,4 +82,7 @@ public class GridPersonActive implements GridPerson {
 
 	@Column
 	private boolean fictiveCpr;
+
+	@Column
+	private Date stopDate;
 }

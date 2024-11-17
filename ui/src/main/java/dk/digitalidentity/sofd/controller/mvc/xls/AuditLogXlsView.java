@@ -14,11 +14,11 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.context.support.ResourceBundleMessageSource;
-import org.springframework.web.servlet.view.document.AbstractXlsView;
 
 import dk.digitalidentity.sofd.dao.model.AuditLog;
+import org.springframework.web.servlet.view.document.AbstractXlsxView;
 
-public class AuditLogXlsView extends AbstractXlsView {
+public class AuditLogXlsView extends AbstractXlsxView {
 
 	@SuppressWarnings("unchecked")
 	@Override

@@ -1,15 +1,5 @@
 package dk.digitalidentity.sofd.controller.mvc.admin;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.rest.admin.model.AttachmentDTO;
 import dk.digitalidentity.sofd.controller.rest.admin.model.EmailTemplateChildDTO;
@@ -23,6 +13,17 @@ import dk.digitalidentity.sofd.service.EmailTemplateService;
 import dk.digitalidentity.sofd.service.OrgUnitService;
 import dk.digitalidentity.sofd.service.model.OUTreeForm;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequireAdminAccess
@@ -41,10 +42,13 @@ public class MailTemplateController {
 	@Autowired
 	private OrgUnitService orgUnitService;
 
+	@Autowired
+	private MessageSource messageSource;
+
 	@GetMapping("/ui/admin/mailtemplates")
-	public String editTemplate(Model model) {
+	public String editTemplate(Model model, Locale locale) {
 		List<EmailTemplate> templates = emailTemplateService.findAll();
-		
+
 		if (!configuration.getModules().getAccountCreation().isEnabled()) {
 			templates = templates.stream()
 					.filter(t -> !t.getTemplateType().isRequireAccountCreation())
@@ -98,7 +102,7 @@ public class MailTemplateController {
 			emailTemplateDTO.setChildren(templateChildDTOs);
 			templateDTOs.add(emailTemplateDTO);
 		}
-		
+		templateDTOs.sort((t1,t2) -> messageSource.getMessage(t1.getTemplateTypeText(),null,locale).compareTo(messageSource.getMessage(t2.getTemplateTypeText(),null,locale)));
 		model.addAttribute("templates", templateDTOs);
 		
 		List<OUTreeForm> allOus = orgUnitService.getAllTree();

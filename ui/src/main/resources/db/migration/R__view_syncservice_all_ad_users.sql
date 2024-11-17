@@ -37,5 +37,4 @@ CREATE OR REPLACE VIEW view_syncservice_all_ad_users AS
     WHERE a.prime = 1
   ) o ON o.person_uuid = p.uuid
   WHERE p.deleted = 0
-    AND p.force_stop = 0
     AND u.user_type = 'ACTIVE_DIRECTORY';

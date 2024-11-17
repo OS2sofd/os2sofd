@@ -15,13 +15,13 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.context.support.ResourceBundleMessageSource;
-import org.springframework.web.servlet.view.document.AbstractXlsView;
 
 import dk.digitalidentity.sofd.controller.mvc.dto.ADUserReportDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.enums.ADUserStatus;
 import dk.digitalidentity.sofd.dao.model.enums.ReportType;
+import org.springframework.web.servlet.view.document.AbstractXlsxView;
 
-public class UsersReportXlsView extends AbstractXlsView {
+public class UsersReportXlsView extends AbstractXlsxView {
 
 	@SuppressWarnings("unchecked")
 	@Override
@@ -43,11 +43,12 @@ public class UsersReportXlsView extends AbstractXlsView {
 		for (ADUserReportDTO row : rows) {
 			Row courseRow = sheet.createRow(rowCount++);
 
-			courseRow.createCell(0).setCellValue(row.getName());
-			courseRow.createCell(1).setCellValue(row.getUserId());
-			courseRow.createCell(2).setCellValue(row.getStatus().equals(ADUserStatus.ACTIVE) ? messageSource.getMessage("xls.usersreport.user.status.active", null, locale) : messageSource.getMessage("xls.usersreport.user.status.closed", null, locale));
-			courseRow.createCell(3).setCellValue(row.getCreated() != null ? formatter.format(row.getCreated()) : "");
-			courseRow.createCell(4).setCellValue(row.getClosed() != null ? formatter.format(row.getClosed()) : "");
+			courseRow.createCell(0).setCellValue(row.getPersonUuid());
+			courseRow.createCell(1).setCellValue(row.getName());
+			courseRow.createCell(2).setCellValue(row.getUserId());
+			courseRow.createCell(3).setCellValue(row.getStatus().equals(ADUserStatus.ACTIVE) ? messageSource.getMessage("xls.usersreport.user.status.active", null, locale) : messageSource.getMessage("xls.usersreport.user.status.closed", null, locale));
+			courseRow.createCell(4).setCellValue(row.getCreated() != null ? formatter.format(row.getCreated()) : "");
+			courseRow.createCell(5).setCellValue(row.getClosed() != null ? formatter.format(row.getClosed()) : "");
 		}
 
 		format(sheet);
@@ -59,9 +60,11 @@ public class UsersReportXlsView extends AbstractXlsView {
 		sheet.autoSizeColumn(2);
 		sheet.autoSizeColumn(3);
 		sheet.autoSizeColumn(4);
+		sheet.autoSizeColumn(5);
 	}
 
 	private void createHeader(Workbook workbook, Sheet sheet, ReportType reportType, ResourceBundleMessageSource messageSource, Locale locale) {
+		String header0 = messageSource.getMessage("xls.usersreport.personUuid", null, locale);
 		String header1 = messageSource.getMessage("xls.usersreport.name", null, locale);
 		String header2 = messageSource.getMessage("xls.usersreport.userId", null, locale);
 		String header3 = messageSource.getMessage("xls.usersreport.status", null, locale);
@@ -75,11 +78,12 @@ public class UsersReportXlsView extends AbstractXlsView {
 		headerStyle.setFont(headerFont);
 
 		Row header = sheet.createRow(0);
-		createCell(header, 0, header1, headerStyle);
-		createCell(header, 1, header2, headerStyle);
-		createCell(header, 2, header3, headerStyle);
-		createCell(header, 3, header4, headerStyle);
-		createCell(header, 4, header5, headerStyle);
+		createCell(header, 0, header0, headerStyle);
+		createCell(header, 1, header1, headerStyle);
+		createCell(header, 2, header2, headerStyle);
+		createCell(header, 3, header3, headerStyle);
+		createCell(header, 4, header4, headerStyle);
+		createCell(header, 5, header5, headerStyle);
 	}
 
 	private static void createCell(Row header, int column, String value, CellStyle style) {

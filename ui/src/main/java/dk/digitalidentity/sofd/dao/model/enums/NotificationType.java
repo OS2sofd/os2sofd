@@ -14,8 +14,10 @@ public enum NotificationType {
 	PERSON_WITH_FUTURE_AD_ACCOUNT_WITH_BAD_EMPLOYEEID("html.enum.notificationtype.future_ad_with_bad_employee_id"),
 	PERSON_DEAD("html.enum.notificationtype.person_dead"),
 	PERSON_DEAD_AD_ONLY("html.enum.notificationtype.person_dead_ad_only", false),
+	PERSON_DEAD_ACTIVE_AD_ONLY("html.enum.notificationtype.person_dead_active_ad_only", false),
 	PERSON_DISENFRANCHISED("html.enum.notificationtype.person_disenfranchised"),
 	PERSON_DISENFRANCHISED_AD_ONLY("html.enum.notificationtype.person_disenfranchised_ad_only", false),
+	PERSON_DISENFRANCHISED_ACTIVE_AD_ONLY("html.enum.notificationtype.person_disenfranchised_active_ad_only", false),
 	NEW_AFFILIATION_SOFD("html.enum.notificationtype.new_affiliation_sofd");
 
 	private String message;

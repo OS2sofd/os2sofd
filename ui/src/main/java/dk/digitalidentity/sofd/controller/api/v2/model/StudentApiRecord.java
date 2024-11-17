@@ -1,17 +1,18 @@
 package dk.digitalidentity.sofd.controller.api.v2.model;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
+import javax.validation.constraints.Size;
+
 import dk.digitalidentity.sofd.dao.model.Student;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
-import javax.validation.constraints.Size;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -32,9 +33,6 @@ public class StudentApiRecord extends BaseRecord {
 	@NotNull
 	private String name;
 
-	@Size(max = 255)
-	private List<String> classes;
-
 	private Boolean disabled;
 	private List<String> institutionNumbers;
 
@@ -46,10 +44,9 @@ public class StudentApiRecord extends BaseRecord {
 		this.id = student.getId();
 		this.cpr = student.getCpr();
 		this.uuid = student.getUuid();
-		this.username = student.getUsername();
+		this.username = student.getUserId();
 		this.name = student.getName();
 		this.disabled = student.isDisabled();
-		this.classes = student.getClasses();
 		this.institutionNumbers = student.getInstitutionNumbers();
 	}
 
@@ -64,10 +61,9 @@ public class StudentApiRecord extends BaseRecord {
 		}
 
 		student.setCpr(cpr);
-		student.setUsername(username);
+		student.setUserId(username);
 		student.setName(name);
 		student.setDisabled(disabled != null ? disabled : false);
-		student.setClasses(classes);
 
 		if (institutionNumbers != null) {
 			student.setInstitutionNumbers(new ArrayList<>());

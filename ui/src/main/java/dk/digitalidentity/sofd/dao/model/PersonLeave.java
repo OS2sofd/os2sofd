@@ -45,7 +45,7 @@ public class PersonLeave {
 
 	@Column
 	private boolean disableAccountOrders;
-	
+
 	@Column
 	private boolean expireAccounts;
 

@@ -57,13 +57,12 @@ public class NewAffiliationListener implements ListenerAdapter {
 		if (person == null) {
 			return;
 		}
-		
+
 		// if a new Person object is created, then ALL affiliations (from the wages system) is a new affiliation
 		if (person.getAffiliations() != null) {
 			List<Affiliation> affiliations = person.getAffiliations().stream()
 					.filter(a -> a.getMaster().equals(configuration.getModules().getLos().getPrimeAffiliationMaster()))
 					.collect(Collectors.toList());
-
 			if (affiliations.size() > 0) {
 				handleNewAffiliations(person, affiliations);
 			}
@@ -130,14 +129,11 @@ public class NewAffiliationListener implements ListenerAdapter {
 			EmailTemplate template = emailTemplateService.findByTemplateType(EmailTemplateType.NEW_EMPLOYEE_WELCOME);
 			for (EmailTemplateChild child : template.getChildren()) {
 				if (child.isEnabled()) {
-					if (configuration.getEmailTemplate().isOrgFilterEnabled() && template.getTemplateType().isShowOrgFilter()) {
-						List<String> excludedOUUuids = child.getExcludedOrgUnitMappings().stream().map(o -> o.getOrgUnit()).map(o -> o.getUuid()).collect(Collectors.toList());
-						if (excludedOUUuids.contains(affiliation.getCalculatedOrgUnit().getUuid())) {
-							log.info("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + affiliation.getUuid() + ". The affiliation OU was in the excluded ous list");
-							continue;
-						}
+					if( !emailTemplateService.shouldIncludeOrgUnit(child,affiliation.getCalculatedOrgUnit().getUuid()) ) {
+						log.debug("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + (affiliation != null ? affiliation.getUuid() : "<null>") + ". The affiliation OU was filtered out.");
+						continue;
 					}
-					
+
 					String message = child.getMessage();
 					message = message.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
 					message = message.replace(EmailTemplatePlaceholder.MANAGER_PLACEHOLDER.getPlaceholder(), PersonService.getName(manager));
@@ -158,14 +154,11 @@ public class NewAffiliationListener implements ListenerAdapter {
 			EmailTemplate templateReminder = emailTemplateService.findByTemplateType(EmailTemplateType.NEW_EMPLOYEE_REMINDER);
 			for (EmailTemplateChild child : templateReminder.getChildren()) {
 				if (child.isEnabled()) {
-					if (configuration.getEmailTemplate().isOrgFilterEnabled() && template.getTemplateType().isShowOrgFilter()) {
-						List<String> excludedOUUuids = child.getExcludedOrgUnitMappings().stream().map(o -> o.getOrgUnit()).map(o -> o.getUuid()).collect(Collectors.toList());
-						if (excludedOUUuids.contains(affiliation.getCalculatedOrgUnit().getUuid())) {
-							log.info("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + affiliation.getUuid() + ". The affiliation OU was in the excluded ous list");
-							continue;
-						}
+					if( !emailTemplateService.shouldIncludeOrgUnit(child,affiliation.getCalculatedOrgUnit().getUuid()) ) {
+						log.debug("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + (affiliation != null ? affiliation.getUuid() : "<null>") + ". The affiliation OU was filtered out.");
+						continue;
 					}
-					
+
 					String messageReminder = child.getMessage();
 					messageReminder = messageReminder.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
 					messageReminder = messageReminder.replace(EmailTemplatePlaceholder.MANAGER_PLACEHOLDER.getPlaceholder(), PersonService.getName(manager));
@@ -180,6 +173,27 @@ public class NewAffiliationListener implements ListenerAdapter {
 					emailRecipients.add(person);
 					
 					emailQueueService.queueEmail(title, messageReminder, secondTts, child, emailRecipients);
+				}
+			}
+
+			EmailTemplate templateDigit = emailTemplateService.findByTemplateType(EmailTemplateType.NEW_EMPLOYEE_DIGITAL_POST);
+			for (EmailTemplateChild child : templateDigit.getChildren()) {
+				if (child.isEnabled()) {
+					if( !emailTemplateService.shouldIncludeOrgUnit(child,affiliation.getCalculatedOrgUnit().getUuid()) ) {
+						log.debug("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + (affiliation != null ? affiliation.getUuid() : "<null>") + ". The affiliation OU was filtered out.");
+						continue;
+					}
+
+					String message = child.getMessage();
+					message = message.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
+					message = message.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), managerResponse.manager().getOrgUnit().getName());
+
+					String title = child.getTitle();
+					title= title.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
+					title = title.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), managerResponse.manager().getOrgUnit().getName());
+
+					long delay = emailQueueService.getEboksDelay(person, child, affiliation);
+					emailQueueService.queueEboks(person, title, message, delay, child);
 				}
 			}
 		}

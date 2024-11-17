@@ -43,6 +43,8 @@
 				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.manager}"></label>
 				<div class="col-sm-9">
 					<input th:value="${orgUnit.manager != null ? orgUnit.manager.name : ''}" class="form-control" readonly="readonly"/>
+					<span th:if="${orgUnit.manager?.inherited == false}" th:text="#{html.entity.orgunit.manager.directText} + ' ' + #{${orgUnit.manager.source.message}}"></span>
+					<span th:if="${orgUnit.manager?.inherited == true}" th:text="#{html.entity.orgunit.manager.inheritedText} + ' ' + #{${orgUnit.manager.source.message}}"></span>
 				</div>
 			</div>
 		</fieldset>

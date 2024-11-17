@@ -100,7 +100,7 @@ public class StudentApi {
 			return new ResponseEntity<>("The student module is disabled in SOFD", HttpStatus.BAD_REQUEST);
 		}
 
-		Student student = studentService.findByUsername(userId);
+		Student student = studentService.findByUserId(userId);
 		if (student == null) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
@@ -124,7 +124,7 @@ public class StudentApi {
 
 	@RequireApiWriteAccess
 	@PostMapping("/api/v2/students")
-	public ResponseEntity<?> createStudent(@Valid @RequestBody StudentApiRecord record, BindingResult bindingResult) {
+	public ResponseEntity<?> createStudent(@Valid @RequestBody StudentApiRecord studentRecord, BindingResult bindingResult) {
 		if (!sofdConfiguration.getModules().getStudents().isEnabled()) {
 			return new ResponseEntity<>("The student module is disabled in SOFD", HttpStatus.BAD_REQUEST);
 		}
@@ -133,18 +133,20 @@ public class StudentApi {
 			return new ResponseEntity<>(bindingResult.getAllErrors(), HttpStatus.BAD_REQUEST);
 		}
 
-		if (studentService.findByUsername(record.getUsername()) != null) {
+		if (studentService.findByUserId(studentRecord.getUsername()) != null) {
+			log.warn("student with userId " + studentRecord.getUsername() + " already exists");
 			return new ResponseEntity<>("Already exists", HttpStatus.CONFLICT);
 		}
 
 		List<String> institutionNumbers = institutionService.getAlInstitutionNumbers();
-		for (String institutionNumber : record.getInstitutionNumbers()) {
+		for (String institutionNumber : studentRecord.getInstitutionNumbers()) {
 			if (!institutionNumbers.contains(institutionNumber)) {
+				log.warn("Student " + studentRecord.getUsername() + " has an institution that does not exist " + institutionNumber);
 				return new ResponseEntity<>("The student has one or more institutions not supported in SOFD", HttpStatus.BAD_REQUEST);
 			}
 		}
 
-		Student student = studentService.save(record.toStudent(null));
+		Student student = studentService.save(studentRecord.toStudent(null));
 		
 		return new ResponseEntity<>(new StudentApiRecord(student), HttpStatus.CREATED);
 	}
@@ -155,7 +157,7 @@ public class StudentApi {
 			return new ResponseEntity<>("The student module is disabled in SOFD", HttpStatus.BAD_REQUEST);
 		}
 
-		Student student = studentService.findByUsername(userId);
+		Student student = studentService.findByUserId(userId);
 		if (student == null) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
@@ -167,27 +169,28 @@ public class StudentApi {
 
 	@RequireApiWriteAccess
 	@PatchMapping("/api/v2/students/{userId}")
-	public ResponseEntity<?> patchStudent(@PathVariable("userId") String userId, @RequestBody StudentApiRecord record, BindingResult bindingResult) throws Exception {
+	public ResponseEntity<?> patchStudent(@PathVariable("userId") String userId, @RequestBody StudentApiRecord studentRecord, BindingResult bindingResult) throws Exception {
 		if (!sofdConfiguration.getModules().getStudents().isEnabled()) {
 			return new ResponseEntity<>("The student module is disabled in SOFD", HttpStatus.BAD_REQUEST);
 		}
 
 		try {
-			Student student = studentService.findByUsername(userId);
+			Student student = studentService.findByUserId(userId);
 			if (student == null) {
 				return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 			}
 
-			if (record.getInstitutionNumbers() != null) {
+			if (studentRecord.getInstitutionNumbers() != null) {
 				List<String> institutionNumbers = institutionService.getAlInstitutionNumbers();
-				for (String institutionNumber : record.getInstitutionNumbers()) {
+				for (String institutionNumber : studentRecord.getInstitutionNumbers()) {
 					if (!institutionNumbers.contains(institutionNumber)) {
+						log.warn("Student " + studentRecord.getUsername() + " has an institution that does not exist " + institutionNumber);
 						return new ResponseEntity<>("The student has one or more institutions not supported in SOFD", HttpStatus.BAD_REQUEST);
 					}
 				}
 			}
 			
-			boolean changes = patch(student, record);
+			boolean changes = patch(student, studentRecord);
 
 			if (changes) {
 				student = studentService.save(student);
@@ -200,7 +203,7 @@ public class StudentApi {
 			return new ResponseEntity<>(new StudentApiRecord(student), HttpStatus.OK);
 		}
 		catch (Exception ex) {
-			log.error("Failed to patch " + userId + " with payload from client " + ((SecurityUtil.getClient() != null) ? SecurityUtil.getClient().getId() : "-1") + " - payload = " + record.toString());
+			log.error("Failed to patch " + userId + " with payload from client " + ((SecurityUtil.getClient() != null) ? SecurityUtil.getClient().getId() : "-1") + " - payload = " + studentRecord.toString());
 			// let Spring map the exception to a HTTP 500
 			throw ex;
 		}
@@ -230,10 +233,6 @@ public class StudentApi {
 		
 		// due to the way patching works, it is not possible "null" a collection using the PATCH operation,
 		// an empty collection must be supplied to "empty" it.
-		if (studentFromRecord.getClasses() != null) {
-			changes = patchClasses(student, studentFromRecord, changes);
-		}
-
 		if (studentFromRecord.getInstitutionNumbers() != null) {
 			changes = patchInstitutionNumbers(student, studentFromRecord, changes);
 		}
@@ -259,30 +258,6 @@ public class StudentApi {
 		List<String> toRemove = student.getInstitutionNumbers().stream().filter(i -> !record.getInstitutionNumbers().contains(i)).collect(Collectors.toList());
 		if (!toRemove.isEmpty()) {
 			student.getInstitutionNumbers().removeIf(toRemove::contains);
-			changes = true;
-		}
-
-		return changes;
-	}
-
-	private static boolean patchClasses(Student student, Student record, boolean changes) {
-		if (student.getClasses() == null) {
-			student.setClasses(new ArrayList<>());
-			changes = true;
-		}
-
-		for (String schoolClass : record.getClasses()) {
-			// add to collection if not contains
-			if (!student.getClasses().contains(schoolClass)) {
-				student.getClasses().add(schoolClass);
-				changes = true;
-			}
-		}
-
-		// remove if not in supplied list
-		List<String> toRemove = student.getClasses().stream().filter(i -> !record.getClasses().contains(i)).collect(Collectors.toList());
-		if (!toRemove.isEmpty()) {
-			student.getClasses().removeIf(toRemove::contains);
 			changes = true;
 		}
 

@@ -66,7 +66,6 @@ public class TelephonyRestController {
 	@Autowired
 	private GridTelephonyPhoneDatatableDao gridTelephonyPhoneDatatableDao;
 
-	@RequireControllerWriteAccess
 	@PostMapping("/rest/telephony/savePhone")
 	@ResponseBody
 	public ResponseEntity<HttpStatus> savePhone(@RequestBody TelephonyPhoneDTO phoneDTO) {
@@ -116,7 +115,6 @@ public class TelephonyRestController {
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
-	@RequireControllerWriteAccess
 	@PostMapping("/rest/telephony/deletePhone")
 	@ResponseBody
 	public ResponseEntity<HttpStatus> deletePhone(@RequestHeader("id") long id) {
@@ -134,7 +132,6 @@ public class TelephonyRestController {
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
-	@RequireControllerWriteAccess
 	@GetMapping(value = "/rest/telephony/search/person")
 	@ResponseBody
 	public ResponseEntity<?> searchPerson(@RequestParam("query") String term) {
@@ -165,7 +162,6 @@ public class TelephonyRestController {
 		return new ResponseEntity<>(result, HttpStatus.OK);
 	}
 
-	@RequireControllerWriteAccess
 	@PostMapping(value = "/rest/telephony/savePerson")
 	@ResponseBody
 	public ResponseEntity<HttpStatus> savePerson(@RequestHeader("phoneID") long phoneID, @RequestBody String personUuid) {
@@ -189,7 +185,6 @@ public class TelephonyRestController {
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
-	@RequireControllerWriteAccess
 	@PostMapping("/rest/telephony/list")
 	public DataTablesOutput<GridTelephonyPhone> list(@Valid @RequestBody DataTablesInput input, BindingResult bindingResult) {
 		if (bindingResult.hasErrors()) {
@@ -202,7 +197,6 @@ public class TelephonyRestController {
 		return gridTelephonyPhoneDatatableDao.findAll(input);
 	}
 
-	@RequireControllerWriteAccess
 	@GetMapping("/rest/telephony/readOrgUnit")
 	@ResponseBody
 	public ResponseEntity<List<String>> readOrgUnit(@RequestHeader("phoneID") long phoneID) {
@@ -216,7 +210,6 @@ public class TelephonyRestController {
 		return new ResponseEntity<>(result, HttpStatus.OK);
 	}
 	
-	@RequireControllerWriteAccess
 	@PostMapping("/rest/telephony/saveOrgUnit")
 	@ResponseBody
 	public ResponseEntity<HttpStatus> saveOrgUnit(@RequestHeader("phoneID") long phoneID, @RequestBody List<String> orgUnitUuids) {
@@ -262,7 +255,6 @@ public class TelephonyRestController {
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
-	@RequireControllerWriteAccess
 	@PostMapping(value = "/rest/telephony/history")
 	@ResponseBody
 	public ResponseEntity<?> historySearch(@RequestBody String term) {

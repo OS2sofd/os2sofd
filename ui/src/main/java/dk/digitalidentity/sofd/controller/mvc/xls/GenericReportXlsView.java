@@ -16,14 +16,14 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.context.support.ResourceBundleMessageSource;
-import org.springframework.web.servlet.view.document.AbstractXlsView;
 
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.enums.ReportType;
 import dk.digitalidentity.sofd.service.PersonService;
+import org.springframework.web.servlet.view.document.AbstractXlsxView;
 
-public class GenericReportXlsView extends AbstractXlsView {
+public class GenericReportXlsView extends AbstractXlsxView {
 
 	@SuppressWarnings("unchecked")
 	@Override
@@ -61,6 +61,7 @@ public class GenericReportXlsView extends AbstractXlsView {
 				case PERSONS_WITH_MULTIPLE_AFFILIATIONS:
 				case PERSONS_WITH_SOFD_AFFILIATIONS:
 				case PERSONS_WITH_ACTIVE_SOFD_AFFILIATIONS:
+				case ACTIVE_AFFILIATION_OR_ACTIVE_AD_ACCOUNT:
 					throw new RuntimeException("Wrong Xls View used");
 				case PERSONS_STOPPED:
 					courseRow.createCell(3).setCellValue(person.getStopReason());
@@ -110,6 +111,7 @@ public class GenericReportXlsView extends AbstractXlsView {
 			case PERSONS_WITH_MULTIPLE_AFFILIATIONS:
 			case PERSONS_WITH_SOFD_AFFILIATIONS:
 			case PERSONS_WITH_ACTIVE_SOFD_AFFILIATIONS:
+			case ACTIVE_AFFILIATION_OR_ACTIVE_AD_ACCOUNT:
 				throw new RuntimeException("Wrong Xls View used");
 			case PERSONS_STOPPED:
 				header4 = messageSource.getMessage("xls.genericreport.person.stopReason", null, locale);

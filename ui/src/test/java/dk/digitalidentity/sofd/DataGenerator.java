@@ -1,7 +1,6 @@
 package dk.digitalidentity.sofd;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -25,7 +24,6 @@ import dk.digitalidentity.sofd.dao.model.enums.AffiliationType;
 import dk.digitalidentity.sofd.dao.model.enums.PhoneType;
 import dk.digitalidentity.sofd.dao.model.enums.VersionStatus;
 import dk.digitalidentity.sofd.dao.model.mapping.AffiliationFunctionMapping;
-import dk.digitalidentity.sofd.dao.model.mapping.AffiliationManagerMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPhoneMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPostMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.PersonPhoneMapping;
@@ -228,7 +226,6 @@ public class DataGenerator {
 			String userId = null;
 			OrgUnit positionOU1 = null;
 			OrgUnit positionOU2 = null;
-			OrgUnit managerOU = null;
 
 			switch (i) {
 				case 0:
@@ -286,7 +283,6 @@ public class DataGenerator {
 					surName = "Sørensen";
 					uuid = user7Uuid;
 					userId = "user7";
-					managerOU = kommune;
 					positionOU1 = omsorg;
 					break;
 				case 7:
@@ -363,15 +359,6 @@ public class DataGenerator {
 				position.setMaster("TEST");
 				position.setMasterId(position.getUuid());
 				person.getAffiliations().add(position);
-			}
-
-			if (managerOU != null) {
-				Affiliation affiliation = person.getAffiliations().iterator().next();
-
-				AffiliationManagerMapping managerFor = new AffiliationManagerMapping();
-				managerFor.setOrgUnit(omsorg);
-				managerFor.setAffiliation(affiliation);
-				affiliation.setManagerFor(Collections.singletonList(managerFor));
 			}
 
 			if (positionOU2 != null) {

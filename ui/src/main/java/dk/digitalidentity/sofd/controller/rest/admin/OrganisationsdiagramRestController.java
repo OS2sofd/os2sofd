@@ -1,11 +1,14 @@
 package dk.digitalidentity.sofd.controller.rest.admin;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import dk.digitalidentity.sofd.dao.model.Organisation;
+import dk.digitalidentity.sofd.service.OrganisationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,7 +27,6 @@ import dk.digitalidentity.sofd.security.RequireAdminAccess;
 import dk.digitalidentity.sofd.service.OrgUnitService;
 import dk.digitalidentity.sofd.service.ChartService;
 import dk.digitalidentity.sofd.service.model.OUTreeForm;
-
 @RequireAdminAccess
 @RestController
 public class OrganisationsdiagramRestController {
@@ -33,6 +35,8 @@ public class OrganisationsdiagramRestController {
 	private ChartService chartService;
 	@Autowired
 	private OrgUnitService orgUnitService;
+    @Autowired
+    private OrganisationService organisationService;
 
 	@GetMapping("/rest/admin/chart/{id}")
 	public ResponseEntity<?> getOrganisationDiagram(@PathVariable("id") long id) {
@@ -62,7 +66,7 @@ public class OrganisationsdiagramRestController {
 		orgDiagram.setHideInheritedManagers(body.isHideInheritedManagers());
 		orgDiagram.setName(body.getName());
 		orgDiagram.setStyle(body.getStyle());
-
+		orgDiagram.setOrganisation(organisationService.getById(body.getOrganisation()));
 		if (body.getOrgUnits() != null) {
 			for (String ou : body.getOrgUnits()) {
 				OrgUnit orgUnit = orgUnitService.getByUuid(ou);
@@ -75,7 +79,6 @@ public class OrganisationsdiagramRestController {
 		}
 
 		orgDiagram.getOrgUnits().removeIf(ou -> !body.getOrgUnits().contains(ou.getUuid()));
-
 		chartService.save(orgDiagram);
 		
 		return ResponseEntity.ok().build();
@@ -93,10 +96,19 @@ public class OrganisationsdiagramRestController {
 		return ResponseEntity.ok().build();
 	}
 
-	@GetMapping("/rest/admin/chart/orgUnitTree/{limit}")
-	public ResponseEntity<?> getOrganisationDiagram(@PathVariable("limit") int limit) {
-		List<OUTreeForm> allOrgUnits = orgUnitService.getAllTree();
-		
+	@GetMapping("/rest/admin/chart/orgUnitTree/{limit}/{id}")
+	public ResponseEntity<?> getOrganisationDiagram(@PathVariable("limit") int limit, @PathVariable("id") long id) {
+		List<OUTreeForm> allOrgUnits;
+		Organisation organisation = id == 0 ? organisationService.getAdmOrg() : organisationService.getById(id);
+
+
+		if (organisation == null) {
+			return ResponseEntity.badRequest().build();
+		}
+		else {
+			allOrgUnits = new ArrayList<>(orgUnitService.getAllTree(organisation));
+		}
+
 		if (limit == 0) {
 			return ResponseEntity.ok(allOrgUnits);
 		}
@@ -105,24 +117,19 @@ public class OrganisationsdiagramRestController {
 
 		for (Iterator<OUTreeForm> iterator = allOrgUnits.iterator(); iterator.hasNext();) {
 			OUTreeForm entry = iterator.next();
-//			System.out.println("Found: " + entry.getId() + "\t"+entry.getText());
 			if (toBeDeleted.contains(entry)) {
-//				System.out.println("Must be deleted.");
 				iterator.remove();
 				continue;
 			}
 
 			try {
 				int parents = countParents(entry, allOrgUnits);
-//				System.out.println("Parents: " + parents);
 				if (parents > limit) {
-//					System.out.println("Removing all children.");
 					removeAllChildren(entry, allOrgUnits, toBeDeleted);
 					iterator.remove();
 				}
 			} catch (Exception e) {
 				//Broken parents chain so we remove
-//				System.out.println("Removing all children.");
 				removeAllChildren(entry, allOrgUnits, toBeDeleted);
 				iterator.remove();
 			}

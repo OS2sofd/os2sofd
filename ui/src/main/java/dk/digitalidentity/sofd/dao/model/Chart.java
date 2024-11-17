@@ -11,6 +11,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
+import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 
 import dk.digitalidentity.sofd.dao.model.enums.DepthLimit;
@@ -56,4 +57,8 @@ public class Chart {
 	@OneToMany
 	@JoinTable(name = "chart_orgunit", joinColumns = @JoinColumn(name = "chart_id"), inverseJoinColumns = @JoinColumn(name = "orgunit_uuid"))
 	private List<OrgUnit> orgUnits;
+
+	@ManyToOne
+	@JoinColumn(name = "organisation_id", nullable = false)
+	private Organisation organisation;
 }

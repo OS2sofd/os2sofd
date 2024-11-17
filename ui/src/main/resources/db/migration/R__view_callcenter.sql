@@ -114,7 +114,7 @@ CREATE OR REPLACE VIEW subview_callcenter_employees AS
 		LEFT JOIN (
         	SELECT orgunit_uuid, affiliation_id
             FROM affiliations_workplaces aw
-            WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate() LIMIT 1
+            WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate()
         ) workplace ON workplace.affiliation_id = af.id
         INNER JOIN orgunits ou ON ou.uuid = COALESCE(workplace.orgunit_uuid, af.alt_orgunit_uuid, af.orgunit_uuid) and ou.deleted = 0
         LEFT JOIN subview_callcenter_prime_orgunit_phone pop ON pop.orgunit_uuid = ou.uuid
@@ -123,7 +123,7 @@ CREATE OR REPLACE VIEW subview_callcenter_employees AS
 		LEFT JOIN subview_callcenter_prime_person_phone ppp ON ppp.person_uuid = p.uuid
 		LEFT JOIN subview_callcenter_person_prime_email ppe ON ppe.person_uuid = p.uuid
 		LEFT JOIN subview_callcenter_person_phone_numbers ppn ON ppn.person_uuid = p.uuid
-		LEFT JOIN orgunits_manager ouman ON ouman.orgunit_uuid = ou.uuid
+		LEFT JOIN view_orgunits_manager ouman ON ouman.orgunit_uuid = ou.uuid
         LEFT JOIN persons mp ON mp.uuid = ouman.manager_uuid
         LEFT JOIN subview_callcenter_prime_person_phone mppp ON mppp.person_uuid = mp.uuid
 );
@@ -152,7 +152,7 @@ CREATE OR REPLACE VIEW subview_callcenter_orgunits AS
         LEFT JOIN subview_callcenter_prime_orgunit_phone pop ON pop.orgunit_uuid = ou.uuid
         LEFT JOIN subview_callcenter_orgunit_prime_post oupp ON oupp.orgunit_uuid = ou.uuid
         LEFT JOIN subview_callcenter_orgunit_phone_numbers oupn ON oupn.orgunit_uuid = ou.uuid
-        LEFT JOIN orgunits_manager ouman ON ouman.orgunit_uuid = ou.uuid
+        LEFT JOIN view_orgunits_manager ouman ON ouman.orgunit_uuid = ou.uuid
         LEFT JOIN persons mp ON mp.uuid = ouman.manager_uuid
         LEFT JOIN subview_callcenter_prime_person_phone mppp ON mppp.person_uuid = mp.uuid
 	WHERE ou.deleted = 0

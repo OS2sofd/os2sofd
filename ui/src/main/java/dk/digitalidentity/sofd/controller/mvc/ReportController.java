@@ -8,10 +8,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import dk.digitalidentity.sofd.controller.mvc.xls.ActiveAffiliationOrActiveAdAccountReportXlsView;
+import dk.digitalidentity.sofd.dao.model.enums.OrgUnitManagerSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -91,7 +94,7 @@ public class ReportController {
 
 	@GetMapping("/ui/report/accountorders")
 	public String accountOrders(Model model) {
-		List<AccountOrder> adAccountOrders = accountOrderService.findAll();
+		List<AccountOrder> adAccountOrders = accountOrderService.findByStatusNotIn(Set.of(AccountOrderStatus.PENDING_APPROVAL));
 		adAccountOrders.sort(Comparator.comparing(AccountOrder::getStatus));
 
 		List<AccountOrderDTO> dtos = new ArrayList<>();
@@ -221,6 +224,9 @@ public class ReportController {
 			case PERSONS_WITH_ACTIVE_SOFD_AFFILIATIONS:
 				model.addAttribute("rows", reportService.generatePersonsWithActiveSOFDAffiliationsReport());
 				return "report/persons_with_active_sofd_affiliations";
+			case ACTIVE_AFFILIATION_OR_ACTIVE_AD_ACCOUNT:
+				model.addAttribute("rows", reportService.generateActiveAffiliationOrActiveADAccountReport());
+				return "report/active_affiliation_or_active_ad_account";
 		}
 
 		return "redirect:/ui/report/reports";
@@ -265,7 +271,7 @@ public class ReportController {
 		model.put("accountOrderApprovedService", accountOrderApprovedService);
 
 		response.setContentType("application/ms-excel");
-		response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xls\"");
+		response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 
 		return new ModelAndView(new AccountOrderApprovalReportXlsView(), model);
 	}
@@ -303,25 +309,31 @@ public class ReportController {
 			case PERSONS_WITH_MULTIPLE_AFFILIATIONS:
 				model.put("rows", reportService.generateMultipleAffiliationsReport());
 				response.setContentType("application/ms-excel");
-				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xls\"");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 
 				return new ModelAndView(new MultipleAffiliationsReportXlsView(), model);
 			case PERSONS_WITH_SOFD_AFFILIATIONS:
 				model.put("rows", reportService.generateSofdAffiliationsReport());
 				response.setContentType("application/ms-excel");
-				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xls\"");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 
 				return new ModelAndView(new SofdAffiliationsReportXlsView(), model);
 			case PERSONS_WITH_ACTIVE_SOFD_AFFILIATIONS:
 				model.put("rows", reportService.generatePersonsWithActiveSOFDAffiliationsReport());
 				response.setContentType("application/ms-excel");
-				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xls\"");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 
 				return new ModelAndView(new PersonsWithActiveSOFDAffiliationsReportXlsView(), model);
+			case ACTIVE_AFFILIATION_OR_ACTIVE_AD_ACCOUNT:
+				model.put("rows", reportService.generateActiveAffiliationOrActiveADAccountReport());
+				response.setContentType("application/ms-excel");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
+
+				return new ModelAndView(new ActiveAffiliationOrActiveAdAccountReportXlsView(), model);
 		}
 
 		response.setContentType("application/ms-excel");
-		response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xls\"");
+		response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 
 		return new ModelAndView(new GenericReportXlsView(), model);
 	}
@@ -360,21 +372,20 @@ public class ReportController {
 		return "report/notificationView";
 	}
 
-	record ManagerDTO(String uuid, String name, OrgUnit orgUnit, List<String> substitutes) {}
+	record ManagerDTO(String uuid, String name, OrgUnit orgUnit, List<String> substitutes, OrgUnitManagerSource source, boolean inherited) {}
 
 	@GetMapping("/ui/report/managers")
 	public String managers(Model model) {
 		List<ManagerDTO> dtos = new ArrayList<>();
 
-		List<OrgUnitManager> managerMapping = personService.findAllManagersWithOrgUnits();
+		var managerMapping = personService.findAllManagersWithOrgUnits().stream().filter(mm -> mm.getManagerUuid() != null).toList();
 		for (OrgUnitManager mapping : managerMapping) {
 			Person manager = mapping.getManager();
 			OrgUnit orgUnit = mapping.getOrgUnit();
 
-			String name = PersonService.getName(manager);
 			List<String> substitutes = manager.getSubstitutes().stream().filter(sub -> sub.getConstraintMappings().isEmpty() || sub.getConstraintMappings().stream().anyMatch(cm -> cm.getOrgUnit().equals(orgUnit)))
 					.map(s -> PersonService.getName(s.getSubstitute()) + " (" + s.getContext().getName() + ")").toList();
-			dtos.add(new ManagerDTO(manager.getUuid(), name, orgUnit, substitutes));
+			dtos.add(new ManagerDTO(manager.getUuid(), mapping.getName(), orgUnit, substitutes, mapping.getSource(),mapping.isInherited()));
 		}
 
 		model.addAttribute("managers", dtos);
@@ -398,7 +409,7 @@ public class ReportController {
 		model.put("rows", reportService.generateADUsersReport(date));
 
 		response.setContentType("application/ms-excel");
-		response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xls\"");
+		response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 
 		return new ModelAndView(new UsersReportXlsView(), model);
 	}

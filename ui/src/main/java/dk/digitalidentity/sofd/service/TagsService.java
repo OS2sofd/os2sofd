@@ -6,6 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import dk.digitalidentity.sofd.dao.TagsDao;
+import dk.digitalidentity.sofd.dao.model.Affiliation;
+import dk.digitalidentity.sofd.dao.model.OrgUnitTag;
+import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Tag;
 
 @Service
@@ -13,7 +16,7 @@ public class TagsService {
 
 	@Autowired
 	private TagsDao tagsDao;
-
+	
 	public List<Tag> findAll() {
 		return tagsDao.findAll();
 	}
@@ -38,4 +41,18 @@ public class TagsService {
 		return tagsDao.existsByValue(value);
 	}
 
+	public String getTagValueForPersonsPrimaryAffiliation(Person person, String tagValue) {
+		Tag tag = tagsDao.findByValue(tagValue);
+		if (tag != null) {
+			Affiliation affiliation = person.getAffiliations().stream().filter(a -> a.isPrime()).findFirst().orElse(null);
+			if (affiliation != null) {
+				OrgUnitTag ouTag = affiliation.getOrgUnit().getTags().stream().filter(t -> t.getTag().getId() == tag.getId()).findFirst().orElse(null);
+				if (ouTag != null) {
+					return ouTag.getCustomValue();
+				}
+			}
+		}
+		
+		return null;
+	}
 }

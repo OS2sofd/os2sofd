@@ -1,5 +1,6 @@
 package dk.digitalidentity.sofd.controller.api;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -7,11 +8,15 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import dk.digitalidentity.sofd.controller.mvc.xls.ActiveAffiliationOrActiveAdAccountReportXlsView;
+import dk.digitalidentity.sofd.controller.mvc.xls.UsersReportXlsView;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderRulesXlsDto;
@@ -28,6 +33,7 @@ import dk.digitalidentity.sofd.service.OrgUnitService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.ReportService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
+import org.springframework.web.servlet.ModelAndView;
 
 @RestController
 @RequireReadAccess
@@ -65,7 +71,7 @@ public class DownloadExcelApi {
 		model.put("locale", loc);
 
 		response.setContentType("application/ms-excel");
-		response.setHeader("Content-Disposition", "attachment; filename=\"regler.xls\"");
+		response.setHeader("Content-Disposition", "attachment; filename=\"regler.xlsx\"");
 
 		new AccountOrderRulesXlsView().render(model, request, response);
 	}
@@ -115,29 +121,52 @@ public class DownloadExcelApi {
 			case PERSONS_WITH_MULTIPLE_AFFILIATIONS:
 				model.put("rows", reportService.generateMultipleAffiliationsReport());
 				response.setContentType("application/ms-excel");
-				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xls\"");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 
 				new MultipleAffiliationsReportXlsView().render(model, request, response);
 				return;
 			case PERSONS_WITH_SOFD_AFFILIATIONS:
 				model.put("rows", reportService.generateSofdAffiliationsReport());
 				response.setContentType("application/ms-excel");
-				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xls\"");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 
 				new SofdAffiliationsReportXlsView().render(model, request, response);
 				return;
 			case PERSONS_WITH_ACTIVE_SOFD_AFFILIATIONS:
 				model.put("rows", reportService.generatePersonsWithActiveSOFDAffiliationsReport());
 				response.setContentType("application/ms-excel");
-				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xls\"");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 
 				new PersonsWithActiveSOFDAffiliationsReportXlsView().render(model, request, response);
+				return;
+			case ACTIVE_AFFILIATION_OR_ACTIVE_AD_ACCOUNT:
+				model.put("rows", reportService.generateActiveAffiliationOrActiveADAccountReport());
+				response.setContentType("application/ms-excel");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
+
+				new ActiveAffiliationOrActiveAdAccountReportXlsView().render(model, request, response);
 				return;
 		}
 
 		response.setContentType("application/ms-excel");
-		response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xls\"");
+		response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 
 		new GenericReportXlsView().render(model, request, response);
 	}
+
+	@GetMapping("/api/excel/adusers")
+	public ModelAndView downloadUsersReport(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date, HttpServletResponse response, Locale loc) throws Exception {
+		Map<String, Object> model = new HashMap<>();
+		model.put("locale", loc);
+		model.put("messagesBundle", messageSource);
+		model.put("personService", personService);
+		model.put("rows", reportService.generateADUsersReport(date));
+
+		response.setContentType("application/ms-excel");
+		response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
+
+		return new ModelAndView(new UsersReportXlsView(), model);
+	}
+
+
 }

@@ -53,6 +53,7 @@ public class OrgUnitApiRecord extends BaseRecord {
 	private Long cvr;
 	private String cvrName;
 	private Long ean;
+	private Long inheritedEan;
 	private Long senr;
 	private Long pnr;
 	private String costBearer;
@@ -139,7 +140,7 @@ public class OrgUnitApiRecord extends BaseRecord {
 			}
 		}
 		
-		if (orgUnit.getEanList() != null) {
+		if (orgUnit.getEanList() != null && !orgUnit.getEanList().isEmpty()) {
 			this.eanList = new HashSet<EanApiRecord>();
 
 			for (Ean ean : orgUnit.getEanList()) {
@@ -150,6 +151,9 @@ public class OrgUnitApiRecord extends BaseRecord {
 
 				this.eanList.add(new EanApiRecord(ean));
 			}
+		}
+		else if( orgUnit.getInheritedEanList() != null && !orgUnit.getInheritedEanList().isEmpty()) {
+			this.inheritedEan = orgUnit.getInheritedEanList().stream().filter(Ean::isPrime).findFirst().map(Ean::getNumber).orElse(null);
 		}
 	}
 
@@ -207,10 +211,6 @@ public class OrgUnitApiRecord extends BaseRecord {
 
 				orgUnit.getPhones().add(mapping);
 			}
-		}
-
-		if (manager != null) {
-			orgUnit.setManager(manager.toOrgUnitManager());
 		}
 
 		// if an eanList is supplied as part of input, that trumps any ean field,

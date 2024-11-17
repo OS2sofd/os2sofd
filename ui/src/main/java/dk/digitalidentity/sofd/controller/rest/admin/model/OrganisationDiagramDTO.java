@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import dk.digitalidentity.sofd.dao.model.Chart;
+import dk.digitalidentity.sofd.dao.model.Organisation;
 import dk.digitalidentity.sofd.dao.model.enums.DepthLimit;
 import dk.digitalidentity.sofd.dao.model.enums.VerticalStart;
 import lombok.AllArgsConstructor;
@@ -39,6 +40,10 @@ public class OrganisationDiagramDTO {
 	
 	private boolean hideInheritedManagers;
 
+	private List<Long> organisations;
+
+	private Long organisation;
+
 	public OrganisationDiagramDTO(Chart orgDiagram) {
 		this.id = orgDiagram.getId();
 		this.uuid = orgDiagram.getUuid();
@@ -52,6 +57,7 @@ public class OrganisationDiagramDTO {
 		this.style = orgDiagram.getStyle();
 		this.orgUnits = orgDiagram.getOrgUnits().stream().map(ou -> ou.getUuid()).collect(Collectors.toList());
 		this.hideInheritedManagers = orgDiagram.isHideInheritedManagers();
+		this.organisation = orgDiagram.getOrganisation().getId();
 	}
 
 }

@@ -33,6 +33,7 @@ import dk.digitalidentity.sofd.dao.model.SubstituteContext;
 import dk.digitalidentity.sofd.dao.model.SubstituteOrgUnitAssignment;
 import dk.digitalidentity.sofd.dao.model.User;
 import dk.digitalidentity.sofd.security.RequireDaoWriteAccess;
+import dk.digitalidentity.sofd.security.RequireReadAccess;
 import dk.digitalidentity.sofd.service.OrgUnitService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.SubstituteAssignmentService;
@@ -41,7 +42,7 @@ import dk.digitalidentity.sofd.service.SubstituteOrgUnitAssignmentService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
 import dk.digitalidentity.sofd.telephony.controller.rest.dto.AutoCompleteResult;
 
-@RequireDaoWriteAccess
+@RequireReadAccess
 @RestController
 @Slf4j
 public class SubstituteApiController {
@@ -154,13 +155,6 @@ public class SubstituteApiController {
 		
 		return new ResponseEntity<>(result, HttpStatus.OK);
 	}
-
-	private User personGetPrimeUser(Person person) {
-		return PersonService.getUsers(person).stream()
-				.filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType()) && u.isPrime())
-				.findFirst()
-				.orElse(null);
-	}
 	
 	@GetMapping("/api/substitutes/assignments/{uuid}")
 	public ResponseEntity<?> getSubstituteAssignments(@PathVariable String uuid) {
@@ -263,6 +257,7 @@ public class SubstituteApiController {
 		return new ResponseEntity<>(managedOrgUnits, HttpStatus.OK);
 	}
 
+	@RequireDaoWriteAccess
 	@PostMapping(value = "/api/substitutes/assignments/create")
 	public ResponseEntity<?> createSubstituteAssignment(@RequestBody SubstituteAssignmentCreateDTO dto) {
 		Person person = personService.getByUuid(dto.getPersonUuid());
@@ -316,6 +311,8 @@ public class SubstituteApiController {
 	}
 
 	record AddOrgUnitSubstituteDTO(long substituteContextId, String substitutePersonUuid, String orgUnitUuid, String userId) {}
+	
+	@RequireDaoWriteAccess
 	@PostMapping(value = "/api/substitutes/orgunit/assignments/create")
 	public ResponseEntity<?> createSubstituteAssignment(@RequestBody AddOrgUnitSubstituteDTO dto) {
 		OrgUnit orgUnit = orgUnitService.getByUuid(dto.orgUnitUuid());
@@ -348,6 +345,8 @@ public class SubstituteApiController {
 	}
 
 	record EditSubstituteDTO(List<String> constraintOUUuids, String userId) {}
+	
+	@RequireDaoWriteAccess
 	@PostMapping(value = "/api/substitutes/assignments/{assignmentId}/edit")
 	public ResponseEntity<?> editSubstituteAssignment(@PathVariable long assignmentId, @RequestBody EditSubstituteDTO dto ) {
 		SubstituteAssignment assignment = substituteAssignmentService.getById(assignmentId);
@@ -387,6 +386,8 @@ public class SubstituteApiController {
 	}
 
 	record deleteSubstituteDTO(long assignmentId, String userId) {}
+	
+	@RequireDaoWriteAccess
 	@PostMapping(value = "/api/substitutes/{assignmentId}/delete")
 	public ResponseEntity<?> deleteSubstituteAssignemnt(@RequestBody deleteSubstituteDTO dto) {
 		SubstituteAssignment assignment = substituteAssignmentService.getById(dto.assignmentId());
@@ -403,6 +404,8 @@ public class SubstituteApiController {
 	}
 
 	record deleteOrgUnitSubstituteDTO(long assignmentId, String userId) {}
+	
+	@RequireDaoWriteAccess
 	@PostMapping(value = "/api/substitutes/orgunit/{assignmentId}/delete")
 	public ResponseEntity<?> deleteSubstituteOrgUnitAssignemnt(@RequestBody deleteOrgUnitSubstituteDTO dto) {
 		SubstituteOrgUnitAssignment assignment = substituteOrgUnitAssignmentService.getById(dto.assignmentId());
@@ -417,7 +420,6 @@ public class SubstituteApiController {
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
-
 
 	private void addManagedOrgUnitsRecursive(List<String> addedUuids, List<OUConstraintDTO> managedOrgUnits, OrgUnit current) {
 		if (!addedUuids.contains(current.getUuid())) {
@@ -449,5 +451,12 @@ public class SubstituteApiController {
 		for (OrgUnit child : current.getChildren()) {
 			addInheritedManagedOrgUnitsRecursive(orgUnits, addedUuids, child);
 		}
+	}
+	
+	private User personGetPrimeUser(Person person) {
+		return PersonService.getUsers(person).stream()
+				.filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType()) && u.isPrime())
+				.findFirst()
+				.orElse(null);
 	}
 }

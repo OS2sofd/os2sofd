@@ -22,7 +22,7 @@ CREATE OR REPLACE VIEW view_syncservice_orgunits AS
     kpa.kle_values AS kle_primary_values,
     ksa.kle_values AS kle_secondary_values
   FROM orgunits o
-  LEFT JOIN orgunits_manager m ON m.orgunit_uuid = o.uuid
+  LEFT JOIN view_orgunits_manager m ON m.orgunit_uuid = o.uuid
   -- join manager ad account
   LEFT JOIN (
 	SELECT pu.person_uuid, ad.kombit_uuid

@@ -25,6 +25,7 @@ import javax.validation.constraints.Size;
 import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -182,16 +183,20 @@ public class OrgUnit implements Loggable {
 	@BatchSize(size = 50)
 	@OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "orgUnit", orphanRemoval = true)
 	@Valid
+	@NotAudited
 	private OrgUnitManager manager;
 
 	@OneToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "orgunit_type_id")
 	private OrgUnitType type;
 
-	// used for update task, do not expose through API
-	@Transient
-	@JsonIgnore
-	private OrgUnitManager newManager;
+	// used for imports from external systems (OPUS, SD)
+	@Column
+	private String importedManagerUuid;
+
+	// used for manually selected managers (API or GUI)
+	@Column
+	private String selectedManagerUuid;
 
 	@Transient
 	@JsonIgnore

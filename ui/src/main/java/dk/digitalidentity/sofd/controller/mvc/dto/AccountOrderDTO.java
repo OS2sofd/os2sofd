@@ -25,6 +25,9 @@ public class AccountOrderDTO {
 	private String personName;
 	private String employeeId;
 
+	// for custom approval, a token might be send
+	private String token;
+	
 	// details on the actual order
 	
 	private String userType;

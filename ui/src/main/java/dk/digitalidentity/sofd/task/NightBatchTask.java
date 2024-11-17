@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
+import dk.digitalidentity.sofd.service.ManagerService;
 import dk.digitalidentity.sofd.service.SubstituteAssignmentService;
 import dk.digitalidentity.sofd.service.SubstituteOrgUnitAssignmentService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -96,6 +97,8 @@ public class NightBatchTask {
 	@Autowired
 	private SubstituteOrgUnitAssignmentService substituteOrgUnitAssignmentService;
 
+	@Autowired
+	private ManagerService managerService;
 
 	@EventListener(ApplicationReadyEvent.class)
 	public void init() {
@@ -259,6 +262,17 @@ public class NightBatchTask {
 
 					return true;
 				}).build());
+
+		// generate reminders about expiring WAGES affiliations (05:15 - 05:45)
+		batchJobs.add(BatchJob.builder()
+				.name("Ensure Valid Managers Task")
+				.time(LocalTime.of(5, random.nextInt(30) + 15))
+				.function(() -> {
+					managerService.ensureValidManagers();
+
+					return true;
+				}).build());
+
 
 		// load KLE from external source every Saturday morning (09:00 to 09:55)
 		batchJobs.add(BatchJob.builder()

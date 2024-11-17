@@ -28,18 +28,25 @@ public class AccountOrderDTO {
 	private String userId;
 	private String linkedUserId;
 	private String status;
-	
+
+	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+	private Date activationTimestamp;
+
 	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 	private Date endDate;
+	
+	private String optionalJson;
 
-	public AccountOrderDTO(AccountOrder order, Person person, long userIdLength) {
+	public AccountOrderDTO(AccountOrder order, Person person, boolean encodeCpr) {
 		this.id = order.getId();
-		this.person = new PersonDTO(person, order.getEmployeeId());
+		this.person = new PersonDTO(person, order.getEmployeeId(), encodeCpr);
 		this.userType = order.getUserType();
 		this.orderType = order.getOrderType();
+		this.activationTimestamp = order.getActivationTimestamp();
 		this.endDate = order.getEndDate();
 		this.userId = order.getRequestedUserId();
 		this.linkedUserId = order.getLinkedUserId();
 		this.status = order.getStatus().name();
+		this.optionalJson = order.getToken();
 	}
 }

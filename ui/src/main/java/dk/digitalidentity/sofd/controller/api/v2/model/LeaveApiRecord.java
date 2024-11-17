@@ -18,6 +18,8 @@ public class LeaveApiRecord extends BaseRecord{
     private LeaveReason reason;
     private String reasonText;
     private boolean disableAccountOrders;
+    private boolean disableAccountOrdersDisable;
+    private boolean disableAccountOrdersDelete;
     private boolean expireAccounts;
 
     public LeaveApiRecord(PersonLeave leave) {

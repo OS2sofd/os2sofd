@@ -15,12 +15,12 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.context.support.ResourceBundleMessageSource;
-import org.springframework.web.servlet.view.document.AbstractXlsView;
 
 import dk.digitalidentity.sofd.dao.model.AccountOrderApproved;
 import dk.digitalidentity.sofd.service.AccountOrderApprovedService;
+import org.springframework.web.servlet.view.document.AbstractXlsxView;
 
-public class AccountOrderApprovalReportXlsView extends AbstractXlsView {
+public class AccountOrderApprovalReportXlsView extends AbstractXlsxView {
 	
 	@Override
 	protected void buildExcelDocument(Map<String, Object> model, Workbook workbook, HttpServletRequest request, HttpServletResponse response) throws Exception {

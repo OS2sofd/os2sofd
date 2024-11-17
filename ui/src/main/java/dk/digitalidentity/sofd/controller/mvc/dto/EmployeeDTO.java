@@ -19,7 +19,9 @@ public class EmployeeDTO {
 	private String stopDate;
 	private boolean leave;
 	private boolean forceStop;
-	private boolean disableAccountOrders;
+	private boolean disableAccountOrdersCreate;
+	private boolean disableAccountOrdersDisable;
+	private boolean disableAccountOrdersDelete;
 	private boolean fictiveCpr;
 	private List<Pair<String, Boolean>> accounts;
 }

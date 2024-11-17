@@ -92,6 +92,166 @@
 						</div>
 					</li>
 				</ul>
+
+				<ul class="nav navbar-nav navbar-right" sec:authorize="isAuthenticated()">
+					<div class="form-group" style="width: 400px; margin-bottom: 0px; margin-top: 10px; margin-right: 10px;">
+						<div class="input-group">
+							<input class="form-control" oninput="onSearch()" id="searchBar" placeholder="Søg..."
+								   onkeydown="handleKeyNavigation(event)" onclick="triggerSearchOnClick()">
+							<span class="input-group-addon">
+               					 <span class="fa fa-search">
+								</span>
+							</span>
+						</div>
+
+						<!-- Results container -->
+						<div id="searchResults" class="list-group" style="position: absolute; width: 400px; z-index: 1000;"></div>
+					</div>
+				</ul>
+				<script>
+					var token = $("meta[name='_csrf']").attr("content");
+					var currentIndex = -1;
+					var resultsHidden = false;
+
+					function onSearch() {
+						if ($('#searchBar').val().length > 1) {
+							$.ajax({
+								url: "/rest/search/" + $('#searchBar').val(),
+								headers: {
+									'X-CSRF-TOKEN': token
+								},
+								type: 'GET',
+								contentType: 'application/json',
+								success: function (data, textStatus, jQxhr) {
+									displayResults(data);
+								}
+							});
+						} else {
+							$('#searchResults').empty();
+							currentIndex = -1;
+						}
+					}
+
+					function displayResults(data) {
+						const iconMap = {
+							"Person": "fa fa-user",
+							"Enhed": "fa fa-users",
+							"Status": "fa fa-recycle",
+							"Hat": "fa fa-graduation-cap",
+							"Forward": "fa fa-fast-forward",
+							"Marker": "fa fa-map-marker",
+							"University": "fa fa-university",
+							"Tag": "fa fa-tag",
+							"Ban": "fa fa-ban",
+							"Sitemap": "fa fa-sitemap",
+							"Puzzle": "fa fa-puzzle-piece",
+							"Exclamation": "fa fa-exclamation",
+							"Cog": "fa fa-fw fa-cog",
+							"Multiple": "fa fa-cogs",
+							"Clock": "fa fa-clock-o",
+							"Mail": "fa fa-envelope",
+							"Book": "fa fa-fw fa-book",
+							"Tasks": "fa fa-tasks",
+							"Bell": "fa fa-bell-o",
+							"List": "fa fa-list",
+							"Paper": "fa fa-paper-plane",
+							"Table": "fa fa-table"
+						};
+						var resultsContainer = $('#searchResults');
+
+						// Clear and reset before getting new results
+						resultsContainer.empty();
+						currentIndex = -1;
+						resultsHidden = false;
+
+						if (data && data.length > 0) {
+							// Show 10 results max
+							data.slice(0, 10).forEach(function (item, index) {
+								var title;
+								var icon;
+
+								// Pre-process the text to add icons
+								for (const [key, iconClass] of Object.entries(iconMap)) {
+									if (item.name.includes(key)) {
+										title = item.name.replace(`(${key})`, "");
+										icon = `<i class="${iconClass}"></i>`;
+										break;
+									}
+								}
+
+								var resultItem = $('<a>')
+										.addClass('list-group-item list-group-item-action')
+										.attr('href', item.url)
+										.attr('data-index', index)
+										.html(`<span>` + icon + `</span> &nbsp;` + title);
+
+								resultsContainer.append(resultItem);
+							});
+							resultsContainer.show();
+						} else {
+							resultsContainer.append(
+									$('<div>').addClass('list-group-item').text('No results found.')
+							);
+							resultsContainer.show();
+						}
+					}
+
+					function handleKeyNavigation(event) {
+						var resultsItems = $('#searchResults .list-group-item-action');
+						// When we hide the results and press arrow, we initialise the search again
+						if (resultsHidden && (event.key === 'ArrowDown' || event.keyCode == 40)) {
+							onSearch();
+							return;
+						}
+
+						if (resultsItems.length === 0) return;
+
+						if (event.key === 'ArrowDown' || event.keyCode == 40) {
+							event.preventDefault();
+							if (currentIndex < resultsItems.length - 1) {
+								currentIndex++;
+								highlightItem(resultsItems);
+							}
+						}
+						else if (event.key === 'ArrowUp' || event.keyCode == 38) {
+							event.preventDefault();
+							if (currentIndex > 0) {
+								currentIndex--;
+								highlightItem(resultsItems);
+							}
+						}
+						else if ((event.key === 'Enter' || event.keyCode == 13) && currentIndex > -1) {
+							event.preventDefault();
+							window.location.href = $(resultsItems[currentIndex]).attr('href');
+						}
+						else if (event.key === 'Escape' || event.keyCode == 27) {
+							$('#searchResults').hide();
+							resultsHidden = true;
+							currentIndex = -1;
+						}
+					}
+
+					function highlightItem(resultsItems) {
+						// Clear highliting made prior
+						resultsItems.removeClass('active');
+						$(resultsItems[currentIndex]).addClass('active');
+					}
+
+					function triggerSearchOnClick() {
+						if ($('#searchBar').val().length > 1) {
+							onSearch();
+						}
+					}
+
+					$('#searchBar').on("keyup change", function (e) {
+						if (e.key == "Escape" || e.keyCode == 27) {
+							$('#searchResults').hide();
+							resultsHidden = true;
+							currentIndex = -1;
+						}
+					});
+				</script>
+
 			</div>
 		</nav>
 	</header>

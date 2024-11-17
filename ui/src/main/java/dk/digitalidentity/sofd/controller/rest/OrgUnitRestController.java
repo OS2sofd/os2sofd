@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 
 import javax.validation.Valid;
 
-import dk.digitalidentity.sofd.service.ManagerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
@@ -105,9 +104,6 @@ public class OrgUnitRestController {
 
 	@Autowired
 	private PrimeService primeService;
-
-	@Autowired
-	private ManagerService managerService;
 
 	@RequireAdminAccess
 	@DeleteMapping(value = "/rest/orgunit/{uuid}")
@@ -295,7 +291,7 @@ public class OrgUnitRestController {
 
 			// don't count orders for persons with disabled ordering
 			Person person = personService.getByUuid(order.getPersonUuid());
-			if (person != null && person.isDisableAccountOrders()) {
+			if (person != null && person.isDisableAccountOrdersCreate()) {
 				continue;
 			}
 
@@ -343,8 +339,13 @@ public class OrgUnitRestController {
 		if (orgUnit == null) {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
-
-		orgUnitService.updateCoreInformation(orgUnit, coreInfoDTO);
+		try {
+			orgUnitService.updateCoreInformation(orgUnit, coreInfoDTO);
+		}
+		catch( Exception e ){
+			log.warn("Failed to update core information", e);
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
@@ -672,7 +673,7 @@ public class OrgUnitRestController {
 			return ResponseEntity.badRequest().build();
 		}
 
-		Optional<OrgUnitTag> exisingTag = orgUnit.getTags().stream().filter(t -> t.getTag().getId().equals(tag.getId())).findFirst();
+		Optional<OrgUnitTag> exisingTag = orgUnit.getTags().stream().filter(t -> t.getTag().getId() == tag.getId()).findFirst();
 		OrgUnitTag orgUnitTag;
 		if (exisingTag.isPresent()) {
 			orgUnitTag = exisingTag.get();
@@ -776,8 +777,6 @@ public class OrgUnitRestController {
 
 			orgUnit.getPostAddresses().add(mapping);
 		}
-
-		managerService.checkAndSetManager(orgUnit);
 
 		OrgUnit newOrgUnit = orgUnitService.save(orgUnit);
 

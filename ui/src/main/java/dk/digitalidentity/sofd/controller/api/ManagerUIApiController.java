@@ -1,12 +1,19 @@
 package dk.digitalidentity.sofd.controller.api;
 
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import dk.digitalidentity.sofd.dao.OrgUnitDao;
+import dk.digitalidentity.sofd.dao.model.enums.OrgUnitManagerSource;
+import dk.digitalidentity.sofd.service.ManagerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
@@ -16,25 +23,30 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
+import dk.digitalidentity.sofd.controller.api.dto.AccountOrderDTO;
 import dk.digitalidentity.sofd.controller.api.dto.LoginContextDTO;
 import dk.digitalidentity.sofd.controller.api.dto.LoginContextResultDTO;
 import dk.digitalidentity.sofd.controller.api.dto.LoginContextRole;
 import dk.digitalidentity.sofd.dao.model.AccountOrder;
+import dk.digitalidentity.sofd.dao.model.AccountOrderApproved;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.PersonLeave;
 import dk.digitalidentity.sofd.dao.model.SubstituteAssignment;
 import dk.digitalidentity.sofd.dao.model.SubstituteOrgUnitAssignment;
+import dk.digitalidentity.sofd.dao.model.enums.AccountOrderStatus;
 import dk.digitalidentity.sofd.dao.model.enums.EventType;
 import dk.digitalidentity.sofd.dao.model.enums.LeaveReason;
 import dk.digitalidentity.sofd.log.AuditLogger;
 import dk.digitalidentity.sofd.security.RequireDaoWriteAccess;
+import dk.digitalidentity.sofd.service.AccountOrderApprovedService;
 import dk.digitalidentity.sofd.service.AccountOrderService;
 import dk.digitalidentity.sofd.service.AffiliationService;
 import dk.digitalidentity.sofd.service.OrgUnitService;
@@ -42,11 +54,18 @@ import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.SubstituteAssignmentService;
 import dk.digitalidentity.sofd.service.SubstituteOrgUnitAssignmentService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
+import lombok.extern.slf4j.Slf4j;
+
+import static dk.digitalidentity.sofd.util.DateConverter.toLocalDate;
+import static dk.digitalidentity.sofd.util.NullChecker.getValue;
 
 @RequireDaoWriteAccess
 @RestController
+@Slf4j
 public class ManagerUIApiController {
-	
+	@Autowired
+	private OrgUnitDao orgUnitDao;
+
 	@Autowired
 	private PersonService personService;
 	
@@ -73,6 +92,12 @@ public class ManagerUIApiController {
 
 	@Autowired
 	private MessageSource messageSource;
+
+	@Autowired
+	private AccountOrderApprovedService accountOrderApprovedService;
+
+	@Autowired
+	private ManagerService managerService;
 
 	private Locale locale = new Locale("da-DK");
 
@@ -206,7 +231,7 @@ public class ManagerUIApiController {
 	}
 
 	private record PausablePersonDTO(String uuid, String personName, LeaveDTO leaveDTO, List<String> positions) {}
-	private record LeaveDTO(@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")  Date startDate, @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd") Date stopDate, String leaveReasonValue, String leaveReasonMessage, String reasonText, boolean disableAccountOrders, boolean expireAccounts) {}
+	private record LeaveDTO(@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd") LocalDate startDate, @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd") LocalDate stopDate, String leaveReasonValue, String leaveReasonMessage, String reasonText, boolean disableAccountOrders, boolean expireAccounts) {}
 	@GetMapping("/api/manager/{uuid}/pausablepeople")
 	public ResponseEntity<?> getPausablePeople(@PathVariable String uuid) {
 		Person person = personService.getByUuid(uuid);
@@ -220,7 +245,9 @@ public class ManagerUIApiController {
 			for (Person pausablePerson : pausablePeople) {
 				LeaveDTO leaveDTO = null;
 				if (pausablePerson.getLeave() != null) {
-					leaveDTO = new LeaveDTO(pausablePerson.getLeave().getStartDate(), pausablePerson.getLeave().getStopDate(), pausablePerson.getLeave().getReason().toString(), messageSource.getMessage(pausablePerson.getLeave().getReason().getMessage(), null, locale), pausablePerson.getLeave().getReasonText(), pausablePerson.getLeave().isDisableAccountOrders(), pausablePerson.getLeave().isExpireAccounts());
+					var startDate = toLocalDate(() -> pausablePerson.getLeave().getStartDate());
+					var stopDate = toLocalDate(() -> pausablePerson.getLeave().getStopDate());
+					leaveDTO = new LeaveDTO(startDate, stopDate, pausablePerson.getLeave().getReason().toString(), messageSource.getMessage(pausablePerson.getLeave().getReason().getMessage(), null, locale), pausablePerson.getLeave().getReasonText(), pausablePerson.getLeave().isDisableAccountOrders(), pausablePerson.getLeave().isExpireAccounts());
 				}
 
 				List<String> positions = new ArrayList<>();
@@ -329,13 +356,16 @@ public class ManagerUIApiController {
 					// the UI enforces this, but lets make sure
 					disableAccountOrders = true;
 				}
-
-				match.getLeave().setDisableAccountOrders(dto.disableAccountOrders());
+				if (dto.disableAccountOrders) {
+					match.getLeave().setDisableAccountOrders(true);
+				}
 
 				// the leaveForm can order the setting of this flag (it can be removed from the usual dialogue though
 				// so this is just an easy way to do two things in one go)
 				if (disableAccountOrders) {
-					match.setDisableAccountOrders(true);
+					match.setDisableAccountOrdersCreate(true);
+					match.setDisableAccountOrdersDelete(true);
+					match.setDisableAccountOrdersDisable(true);
 				}
 			}
 
@@ -361,12 +391,116 @@ public class ManagerUIApiController {
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
+	@GetMapping("/api/manager/{uuid}/accountorders")
+	public ResponseEntity<?> getAccountOrders(@PathVariable String uuid) {
+		//checks if the manager (account performing the approval) exists
+		Person manager = personService.getByUuid(uuid);
+		if (manager == null) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		//finds all PENDNG_APPROVAL orders
+		List<AccountOrder> orders = accountOrderService.findByStatusIn(Set.of(AccountOrderStatus.PENDING_APPROVAL));
+
+		//Filters the orders, that the manager is allowed to approve and add them to the list in the ResponseEntity
+		List<AccountOrderDTO> orderDTOs = new ArrayList<>();
+		for (AccountOrder order : orders) {
+			Person orderedPerson = personService.getByUuid(order.getPersonUuid());
+			if (orderedPerson == null) {
+				log.warn("Could not find person with uuid: " + order.getPersonUuid());
+				continue;
+			}
+			//Adds to list if Person manager (from above) is the same manager of the order
+			if (PersonService.getManager(personService.getByUuid(order.getPersonUuid()),order.getEmployeeId()) == manager) {
+				orderDTOs.add(new AccountOrderDTO(order, orderedPerson, true));
+			}
+		}
+		return new ResponseEntity<>(orderDTOs, HttpStatus.OK);
+	}
+
+	@PostMapping("/api/manager/{uuid}/accountorders/approve/{id}")
+	public ResponseEntity<?> approveAccountOrders(@PathVariable String uuid, @PathVariable long id) {
+		//checks if the manager (account performing the approval) exists
+		Person manager = personService.getByUuid(uuid);
+		if (manager == null) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+
+		//checks if order exists
+		AccountOrder order = accountOrderService.findById(id);
+		if (order == null) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+
+		//changes accountOrderStatus and saves order
+		order.setStatus(AccountOrderStatus.PENDING);
+		accountOrderService.save(order);
+
+		//Logging
+		AccountOrderApproved approval = new AccountOrderApproved();
+		approval.setApprovedTts(LocalDateTime.now());
+		approval.setApproverName(PersonService.getName(manager));
+		approval.setApproverUuid(manager.getUuid());
+		approval.setPersonName(PersonService.getName(personService.getByUuid(order.getPersonUuid())));
+		approval.setPersonUuid(order.getPersonUuid());
+		approval.setUserId(order.getRequestedUserId());
+		accountOrderApprovedService.save(approval);
+
+		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
+
+	private record OrgUnitManagerDto(String orgUnitUuid, String parentOrgUnitUuid, String orgUnitName, boolean managerExists, String managerUuid, String managerName, OrgUnitManagerSource source, boolean inherited) {}
+	@GetMapping("/api/manager/orgUnitManagers")
+	public ResponseEntity<?> getManagers() {
+		var orgUnits = orgUnitService.getAll().stream().filter(o -> !o.isDeleted());
+		var result = orgUnits.map(o -> new OrgUnitManagerDto(
+				o.getUuid()
+				,getValue(() -> o.getParent().getUuid())
+				,o.getName()
+				,o.getManager() != null
+				,getValue(() -> o.getManager().getManagerUuid())
+				,getValue(() -> o.getManager().getName())
+				,getValue(() -> o.getManager().getSource())
+				,getValue(() -> o.getManager().isInherited(),false)
+			)).toList();
+		return new ResponseEntity<>(result, HttpStatus.OK);
+	}
+
+	public record SetOrgUnitManagerDto(String orgUnitUuid, String managerUuid) {};
+	@PostMapping("/api/manager/orgUnitManagers")
+	public ResponseEntity<?> setOrgUnitManager(@RequestBody SetOrgUnitManagerDto setOrgUnitManagerDto ) {
+		try {
+			var orgUnit = orgUnitService.getByUuid(setOrgUnitManagerDto.orgUnitUuid);
+			var changed = managerService.editSelectedManager(orgUnit, setOrgUnitManagerDto.managerUuid);
+			if( changed ) {
+				orgUnitService.save(orgUnit);
+			}
+			return new ResponseEntity<>(HttpStatus.OK);
+		}
+		catch (Exception e) {
+			return new ResponseEntity<>(e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	public record ManagerSuggestion(String uuid, String display) {}
+	@GetMapping("/api/manager/searchManagers")
+	public ResponseEntity<?> searchManagers(@RequestParam String query) {
+		var validManagers = personService.searchValidMangers(query);
+		var result = validManagers.stream().map(m -> new ManagerSuggestion(
+				m.getUuid()
+				,PersonService.getName(m) + " (" + AffiliationService.getPositionName(m.getPrimeAffiliation()) + " i " + m.getPrimeAffiliation().getOrgUnit().getName() + ")"
+		)).toList();
+
+		return new ResponseEntity<>(result, HttpStatus.OK);
+	}
+
+
 	private List<Affiliation> getEditableAffiliationsForManager(Person manager) {
 		List<OrgUnit> managerOus = orgUnitService.getAllWhereManagerIs(manager);
 		List<Affiliation> result = new ArrayList<>();
 		for (OrgUnit ou : managerOus) {
 			List<Affiliation> affiliationsForOu = affiliationService.findByOrgUnit(ou);
-			result.addAll(affiliationsForOu.stream().filter(a -> a.getMaster().equals("SOFD")).collect(Collectors.toList()));
+			result.addAll(affiliationsForOu.stream().filter(a -> !a.isDeleted() && a.getMaster().equals("SOFD")).toList());
 		}
 
 		return result;

@@ -32,8 +32,8 @@ public class StudentService {
 		return studentDao.findByCpr(cpr);
 	}
 
-	public Student findByUsername(String userId) {
-		return studentDao.findByUsername(userId);
+	public Student findByUserId(String userId) {
+		return studentDao.findByUserId(userId);
 	}
 	
 	public Student getByUuid(String uuid) {

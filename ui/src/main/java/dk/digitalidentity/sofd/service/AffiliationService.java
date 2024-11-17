@@ -126,14 +126,6 @@ public class AffiliationService {
 		
 		return affiliation.getKleSecondary().stream().map(k -> k.getKleValue()).collect(Collectors.toList());
 	}
-	
-	public static List<OrgUnit> getManagerFor(Affiliation affiliation) {
-		if (affiliation.getManagerFor() == null) {
-			return new ArrayList<>();
-		}
-		
-		return affiliation.getManagerFor().stream().map(a -> a.getOrgUnit()).collect(Collectors.toList());
-	}
 
 	public static String getPositionName(Affiliation affiliation) {
 		if (affiliation.getPositionDisplayName() != null && affiliation.getPositionDisplayName().length() > 0) {
@@ -293,15 +285,12 @@ public class AffiliationService {
 				log.warn("OrgUnit " + affiliation.getCalculatedOrgUnit().getName() + " does not have a manager");
 				continue;
 			}
-			
-			if (configuration.getEmailTemplate().isOrgFilterEnabled() && template.getTemplateType().isShowOrgFilter()) {
-				List<String> excludedOUUuids = child.getExcludedOrgUnitMappings().stream().map(o -> o.getOrgUnit()).map(o -> o.getUuid()).collect(Collectors.toList());
-				if (excludedOUUuids.contains(affiliation.getCalculatedOrgUnit().getUuid())) {
-					log.info("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + affiliation.getUuid() + ". The affiliation OU was in the excluded ous list");
-					continue;
-				}
+
+			if( !emailTemplateService.shouldIncludeOrgUnit(child,affiliation.getCalculatedOrgUnit().getUuid()) ) {
+				log.debug("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + (affiliation != null ? affiliation.getUuid() : "<null>") + ". The affiliation OU was filtered out.");
+				continue;
 			}
-			
+
 			if (configuration.getEmailTemplate().isAdUserFilterEnabled() && template.getTemplateType().isShowADUserFilter() && child.isAdRequired()) {
 				Person person = affiliation.getPerson();
 				List<User> adUsers = person.getUsers().stream().map(m -> m.getUser()).filter(u -> !u.isDisabled() && SupportedUserTypeService.isActiveDirectory(u.getUserType())).collect(Collectors.toList());
@@ -523,5 +512,9 @@ public class AffiliationService {
 	private List<Affiliation> getActiveAffiliationsThatShouldBePrime() {
 		List<Affiliation> affiliations = affiliationDao.findByUseAsPrimaryWhenActiveTrue();
 		return onlyActiveAffiliations(affiliations);
+	}
+
+	public boolean anyAffiliationWithMasterInExisted(String personUuid, List<String> masters) {
+		return affiliationDao.anyAffiliationWithMasterInExisted(personUuid,masters);
 	}
 }

@@ -17,6 +17,8 @@ import javax.persistence.TemporalType;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
 
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderStatus;
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderType;
@@ -25,6 +27,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Audited
 @Entity(name = "account_orders")
 public class AccountOrder {
 
@@ -101,6 +104,10 @@ public class AccountOrder {
 	@OneToOne
 	@JoinColumn(name = "depends_on")
 	private AccountOrder dependsOn;
+	
+	@NotAudited
+	@Column
+	private String token;
 
 	// used for removing duplicate order entries in AccountOrderService
     public boolean logicalEquals(AccountOrder other) {

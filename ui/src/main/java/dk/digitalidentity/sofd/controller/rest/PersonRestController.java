@@ -1,20 +1,29 @@
 package dk.digitalidentity.sofd.controller.rest;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import javax.persistence.criteria.Predicate;
 import java.util.stream.Collectors;
 
 import javax.validation.Valid;
 
+import dk.digitalidentity.sofd.controller.mvc.datatables.dao.model.GridPersonActive;
+import dk.digitalidentity.sofd.controller.rest.model.DisableAccountOrderDTO;
+import dk.digitalidentity.sofd.dao.model.enums.LeaveReason;
 import org.joda.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+import org.springframework.data.jpa.datatables.mapping.Column;
 import org.springframework.data.jpa.datatables.mapping.DataTablesInput;
 import org.springframework.data.jpa.datatables.mapping.DataTablesOutput;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
@@ -120,6 +129,9 @@ public class PersonRestController {
 	@Autowired
 	private CprUpdateService cprUpdateService;
 
+	@Autowired
+	MessageSource messageSource;
+
 	@RequireControllerWriteAccess
 	@PostMapping("/rest/person/{uuid}/leave")
 	@ResponseBody
@@ -147,7 +159,9 @@ public class PersonRestController {
 
 				// can only be modified on creation of leave
 				person.getLeave().setExpireAccounts(leaveDTO.isExpireAccounts());
-				person.getLeave().setDisableAccountOrders(leaveDTO.isDisableAccountOrders());
+				if (leaveDTO.isDisableAccountOrders()) {
+					person.getLeave().setDisableAccountOrders(true);
+				}
 				person.getLeave().setStartDate(startDate);
 
 				if (leaveDTO.isExpireAccounts()) {
@@ -165,7 +179,9 @@ public class PersonRestController {
 				// the leaveForm can order the setting of this flag (it can be removed from the usual dialogue though
 				// so this is just an easy way to do two things in one go)
 				if (leaveDTO.isDisableAccountOrders()) {
-					person.setDisableAccountOrders(true);
+					person.setDisableAccountOrdersCreate(true);
+					person.setDisableAccountOrdersDisable(true);
+					person.setDisableAccountOrdersDelete(true);
 				}
 			}
 
@@ -256,7 +272,10 @@ public class PersonRestController {
 		person.setForceStop(!person.isForceStop());
 
 		// follows forceStop setting
-		person.setDisableAccountOrders(person.isForceStop());
+		person.setDisableAccountOrdersCreate(person.isForceStop());
+		person.setDisableAccountOrdersDisable(person.isForceStop());
+		person.setDisableAccountOrdersDelete(person.isForceStop());
+
 
 		if (person.isForceStop()) {
 			person.setStopReason(reason);
@@ -292,16 +311,40 @@ public class PersonRestController {
 	@RequireControllerWriteAccess
 	@PostMapping("/rest/person/{uuid}/disableAccountOrders")
 	@ResponseBody
-	public ResponseEntity<String> flipDisableAccountOrders(@PathVariable("uuid") String uuid) {
+	public ResponseEntity<String> flipDisableAccountOrders(@PathVariable("uuid") String uuid, @RequestBody DisableAccountOrderDTO disableAccountOrderDTO) {
 		Person person = personService.getByUuid(uuid);
 		if (person == null) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 
-		person.setDisableAccountOrders(!person.isDisableAccountOrders());
-		personService.save(person);
-
-		auditLogger.log(person, EventType.PERSON_CHANGED, (person.isDisableAccountOrders()) ? "Undtagelsesmarkering er sat på person" : "Undtagelsesmarkering er fjernet fra person");
+		var changes = false;
+		if (person.isDisableAccountOrdersCreate() != disableAccountOrderDTO.isCreate()) {
+			person.setDisableAccountOrdersCreate(disableAccountOrderDTO.isCreate());
+			changes = true;
+		}
+		if (person.isDisableAccountOrdersDisable() != disableAccountOrderDTO.isDisable()) {
+			person.setDisableAccountOrdersDisable(disableAccountOrderDTO.isDisable());
+			changes = true;
+		}
+		if (person.isDisableAccountOrdersDelete() != disableAccountOrderDTO.isDelete()) {
+			person.setDisableAccountOrdersDelete(disableAccountOrderDTO.isDelete());
+			changes = true;
+		}
+		if( changes ) {
+			personService.save(person);
+			var disableSettings = new ArrayList<String>();
+			if (person.isDisableAccountOrdersCreate()) {
+				disableSettings.add("opret");
+			}
+			if (person.isDisableAccountOrdersDisable()) {
+				disableSettings.add("deaktiver");
+			}
+			if (person.isDisableAccountOrdersDelete()) {
+				disableSettings.add("slet");
+			}
+			var auditMessage = disableSettings.isEmpty() ? "Alle undtagelsesmarkeringer fjernet" : "Undtagelsesmarkeringer sat (" + String.join(",",disableSettings) + ")";
+			auditLogger.log(person, EventType.PERSON_CHANGED, auditMessage);
+		}
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
@@ -471,7 +514,7 @@ public class PersonRestController {
 				null,
 				false,
 				configuration.getModules().getAccountCreation().isForceSetEmployeeId(),
-				false);
+				true);
 
 		accountOrderService.save(order);
 	}
@@ -652,7 +695,7 @@ public class PersonRestController {
 	// read access is fine here, used by datatables
 	@SuppressWarnings("unchecked")
 	@PostMapping("/rest/person/list")
-	public DataTablesOutput<GridPerson> list(@Valid @RequestBody DataTablesInput input, BindingResult bindingResult, @RequestHeader("show-inactive") boolean showInactive) {
+	public DataTablesOutput<GridPerson> list(@Valid @RequestBody DataTablesInput input, BindingResult bindingResult, @RequestHeader("show-inactive") boolean showInactive, Locale locale) {
 		if (bindingResult.hasErrors()) {
 			DataTablesOutput<GridPerson> error = new DataTablesOutput<>();
 			error.setError(bindingResult.toString());
@@ -661,17 +704,29 @@ public class PersonRestController {
 		}
 
 		DataTablesOutput<?> result = new DataTablesOutput<>();
-
 		boolean userHasCPRAccess = SecurityUtil.getUserRoles().contains(RoleConstants.USER_ROLE_CPR_ACCESS);
 		if (userHasCPRAccess) {
 			input.addColumn("cpr", true, false, "");
+		}
+		String searchValue = "";
+		if (input != null && input.getColumns() != null)  {
+			Optional<Column> obsColumnOpt = input.getColumns().stream().filter(column -> "obs".equalsIgnoreCase(column.getName())).findAny();
+			if (obsColumnOpt.isPresent()) {
+				Column obsColumn = obsColumnOpt.get();
+				if (obsColumn.getSearch() != null && obsColumn.getSearch().getValue() != null && !obsColumn.getSearch().getValue().isEmpty()) {
+					searchValue = obsColumn.getSearch().getValue();
+					obsColumn.getSearch().setValue("");
+				}
+			}
 		}
 
 		if (showInactive) {
 			result = personDeletedDao.findAll(input);
 		}
 		else {
-			result = personDatatableDao.findAll(input);
+			var activeResult = personDatatableDao.findAll(input, getObsByInput(searchValue, locale));
+			activeResult.getData().forEach(y -> y.setReasonTranslated(y.getReason() == null ? "" : messageSource.getMessage(y.getReason().getMessage(), null, locale)));
+			result = activeResult;
 		}
 
 		DataTablesOutput<GridPerson> output = new DataTablesOutput<>();
@@ -682,6 +737,41 @@ public class PersonRestController {
 		output.setData((List<GridPerson>) result.getData());
 
 		return output;
+	}
+
+	private Specification<GridPersonActive> getObsByInput(String searchValue, Locale locale) {
+		// Lowercase the input, just to be consistent
+		String input = searchValue.toLowerCase();
+		Specification<GridPersonActive> specification = (root, query, criteriaBuilder) -> {
+			if( !StringUtils.hasText(input)) {
+				return criteriaBuilder.and();
+			}
+			Predicate finalPredicate = criteriaBuilder.or();
+
+			var leavePredicate = criteriaBuilder.equal(root.get("leave"), true);
+			if ("pause".startsWith(input) || "på pause".startsWith(input)) {
+				finalPredicate = criteriaBuilder.or(finalPredicate,leavePredicate);
+			}
+			for (LeaveReason value : LeaveReason.values()) {
+				var translatedReason = messageSource.getMessage(value.getMessage(), null, locale).toLowerCase();
+                if (translatedReason.startsWith(input)) {
+					var leaveReasonPredicate = criteriaBuilder.and(leavePredicate,criteriaBuilder.equal(root.get("reason"), value));
+					finalPredicate = criteriaBuilder.or(finalPredicate,leaveReasonPredicate);
+                }
+			}
+
+			if ("stoppet".startsWith(input)) {
+				var stopPredicate = criteriaBuilder.equal(root.get("forceStop"), true);
+				finalPredicate = criteriaBuilder.or(finalPredicate,stopPredicate);
+			}
+
+			if ("undtaget".startsWith(input) || "undtagelsmarkeringer".startsWith(input)) {
+				var idmPredicate = criteriaBuilder.or(criteriaBuilder.equal(root.get("disableAccountOrdersCreate"), true), criteriaBuilder.equal(root.get("disableAccountOrdersDelete"), true), criteriaBuilder.equal(root.get("disableAccountOrdersDisable"), true));
+				finalPredicate = criteriaBuilder.or(finalPredicate,idmPredicate);
+			}
+			return finalPredicate;
+		};
+		return specification;
 	}
 
 	@RequireControllerWriteAccess

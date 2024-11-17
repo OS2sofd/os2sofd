@@ -158,9 +158,19 @@
 
 	$(document).ready(function () {
 		$("#retryButton").on('click', function() {
-			var userId = $("#userIdField").val();
-
-			window.location = url + "/" + userId;
+			if($("#userIdField").val() && $("#userIdField").val() != "") {
+				var userId = $("#userIdField").val();
+				window.location = url + "/" + userId;
+			}
+			else {
+				$("#userIdField").css("background-color", "#FFD6E4");
+				swal({
+				 title: "Udfyld kontonavn",
+				 text: "Ønsket kontonavn skal udfyldes",
+				 timer: 1500,
+				 showConfirmButton: false
+				 });
+			}
 		});
 	});
 	

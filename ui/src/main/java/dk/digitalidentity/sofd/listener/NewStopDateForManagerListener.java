@@ -58,14 +58,14 @@ public class NewStopDateForManagerListener implements ListenerAdapter {
 		for (EntityChangeQueueDetail change : affiliationChanges) {
 			if ((change.getOldValue() == null && change.getNewValue() != null) || (change.getOldValue() != null && !change.getOldValue().equals(change.getNewValue()))) {
 				Affiliation affiliation = person.getAffiliations().stream().filter(a -> configuration.getModules().getLos().getPrimeAffiliationMaster().equals(a.getMaster()) && Objects.equals(a.getEmployeeId(), change.getChangeTypeDetails())).findFirst().orElse(null);
-				if (affiliation != null && !affiliation.getManagerFor().isEmpty()) {
+				if (affiliation != null && personService.isManager(affiliation.getPerson())) {
 					sendMail(person, affiliation);
 				}
 			}
 		}
 	}
 
-	private void sendMail(Person person, Affiliation oAffiliation) {
+	private void sendMail(Person person, Affiliation affiliation) {
 		EmailTemplate template = emailTemplateService.findByTemplateType(EmailTemplateType.MANAGER_STOPS);
 		for (EmailTemplateChild child : template.getChildren()) {
 			if (!child.isEnabled()) {
@@ -76,24 +76,20 @@ public class NewStopDateForManagerListener implements ListenerAdapter {
 			if (recipients.isEmpty()) {
 				continue;
 			}
-			
-			if (configuration.getEmailTemplate().isOrgFilterEnabled() && template.getTemplateType().isShowOrgFilter()) {
-				List<String> excludedOUUuids = child.getExcludedOrgUnitMappings().stream().map(o -> o.getOrgUnit()).map(o -> o.getUuid()).collect(Collectors.toList());
-				if (excludedOUUuids.contains(oAffiliation.getCalculatedOrgUnit().getUuid())) {
-					log.info("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + oAffiliation.getUuid() + ". The affiliation OU was in the excluded ous list");
-					continue;
-				}
+			if( !emailTemplateService.shouldIncludeOrgUnit(child,affiliation.getCalculatedOrgUnit().getUuid()) ) {
+				log.debug("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + (affiliation != null ? affiliation.getUuid() : "<null>") + ". The affiliation OU was filtered out.");
+				continue;
 			}
 
 			for (String recipient : recipients) {
 				String message = child.getMessage();
 				message = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
-				message = message.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), oAffiliation.getCalculatedOrgUnit().getName());
+				message = message.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), affiliation.getCalculatedOrgUnit().getName());
 				message = message.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
 				
 				String title = child.getTitle();
 				title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
-				title = title.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), oAffiliation.getCalculatedOrgUnit().getName());
+				title = title.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), affiliation.getCalculatedOrgUnit().getName());
 				title = title.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
 
 				emailQueueService.queueEmailToSystemMailbox(recipient, title, message, 0, child);

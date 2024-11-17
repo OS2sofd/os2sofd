@@ -42,12 +42,6 @@ public class Student {
 
 	@NotAudited
 	@ElementCollection
-	@CollectionTable(name = "student_class_names", joinColumns = @JoinColumn(name = "student_id"))
-	@Column(name = "class_name")
-	private List<String> classes;
-
-	@NotAudited
-	@ElementCollection
 	@CollectionTable(name = "student_institution_numbers", joinColumns = @JoinColumn(name = "student_id"))
 	@Column(name = "institution_number")
 	private List<String> institutionNumbers;

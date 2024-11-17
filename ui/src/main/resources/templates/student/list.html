@@ -19,9 +19,8 @@
 								<thead>
 									<tr>
 										<th class="col-md-4" th:text="#{html.entity.student.name}"></th>
-										<th class="col-md-2" th:text="#{html.entity.student.username}"></th>
-										<th class="col-md-3" th:text="#{html.entity.student.institutions}"></th>
-										<th class="col-md-3" th:text="#{html.entity.student.classes}"></th>
+										<th class="col-md-3" th:text="#{html.entity.student.username}"></th>
+										<th class="col-md-5" th:text="#{html.entity.student.institutions}"></th>
 									</tr>
 								</thead>
 								
@@ -30,7 +29,6 @@
                                          <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
                                          <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
 										 <td>&nbsp;</td>
-										 <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
 									</tr>
 								</tfoot>
 
@@ -87,7 +85,7 @@
 				columns : [{
 					data : 'name',
 				}, {
-					data : 'username',
+					data : 'userId',
 					render: function (data, type, row, meta) {
 						if (row.disabled){
 							return '<span>' + data + '</span>' + '&nbsp;<span class="badge badge-warning">' + disabledText + '</span>';
@@ -114,8 +112,6 @@
 						}
 						return '';
 					}
-				}, {
-					data : 'classes'
 				}],
 				'paging':    true,
 				'ordering':  true,

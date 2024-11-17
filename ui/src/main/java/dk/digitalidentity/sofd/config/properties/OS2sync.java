@@ -22,6 +22,9 @@ public class OS2sync {
 	private boolean useObjectGuidAsKombitUuid = true;
 	private boolean doNotSendCprForSubstitutes = true;
 	
+	// default - can be overriden in some municipalities
+	private String substituteRegex = "^vik\\d+$";
+	
 	@JsonIgnore
 	private String datasourceUrl;
 	

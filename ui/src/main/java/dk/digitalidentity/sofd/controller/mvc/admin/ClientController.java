@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import javax.validation.Valid;
 
+import dk.digitalidentity.sofd.service.KnownNetworkService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -28,6 +29,7 @@ import dk.digitalidentity.sofd.dao.model.enums.AccessRole;
 import dk.digitalidentity.sofd.dao.model.enums.VersionStatus;
 import dk.digitalidentity.sofd.security.RequireAdminAccess;
 import dk.digitalidentity.sofd.service.ClientService;
+import org.springframework.web.bind.annotation.RequestBody;
 
 @RequireAdminAccess
 @Controller
@@ -43,6 +45,9 @@ public class ClientController {
 	public void initClientBinder(WebDataBinder binder) {
 		binder.setValidator(clientDTOValidator);
 	}
+
+	@Autowired
+	private KnownNetworkService knownNetworkService;
 
 	@GetMapping(path = { "/ui/client", "/ui/client/list" })
 	public String list(Model model) {
@@ -122,6 +127,7 @@ public class ClientController {
 		}
 
 		ClientDTO clientDTO = new ClientDTO();
+		clientDTO.setId(client.getId());
 		clientDTO.setName(client.getName());
 		clientDTO.setApiKey(client.getApiKey());
 		clientDTO.setAccessRole(client.getAccessRole().getMessageId());
@@ -142,6 +148,7 @@ public class ClientController {
 		model.addAttribute("client", clientDTO);
 		model.addAttribute("ouFieldList", orgUnitAccessEntityFieldList);
 		model.addAttribute("userFieldList", userAccessEntityFieldList);
+		model.addAttribute("clientNetworks", knownNetworkService.getAllByClient(client));
 
 		return "admin/client/view";
 	}
@@ -175,6 +182,7 @@ public class ClientController {
 		model.addAttribute("accessRoles", AccessRole.values());
 		model.addAttribute("ouFields", AccessEntityField.getAllOrgunitFields());
 		model.addAttribute("userFields", AccessEntityField.getAllPersonFields());
+		model.addAttribute("clientNetworks", knownNetworkService.getAllByClient(client));
 
 		return "admin/client/edit";
 	}
@@ -219,6 +227,13 @@ public class ClientController {
 		client = clientService.save(client);
 
 		return "redirect:/ui/client/list";
+	}
+
+	@GetMapping("ui/client/knownnetworks/edit/{clientId}")
+	public String knownNetworksEdit(Model model, @PathVariable long clientId) {
+		model.addAttribute("clientId", clientId);
+		model.addAttribute("knownNetworks", knownNetworkService.getAllByClient(clientService.getClientById(clientId)));
+		return "admin/client/editNetworks";
 	}
 
 	@GetMapping("/ui/client/delete/{clientId}")

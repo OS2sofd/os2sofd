@@ -27,8 +27,8 @@ public class JdbcTemplateConfiguration {
 			HikariConfig config = new HikariConfig();
 			config.setConnectionTestQuery("SELECT 1");
 			config.setDriverClassName("com.mysql.cj.jdbc.Driver");
-			config.setMinimumIdle(1);
-			config.setMaximumPoolSize(5);
+			config.setMinimumIdle(0);
+			config.setMaximumPoolSize(2);
 			config.setJdbcUrl(configuration.getIntegrations().getOs2sync().getDatasourceUrl());
 			config.setPassword(configuration.getIntegrations().getOs2sync().getDatasourcePassword());
 			config.setUsername(configuration.getIntegrations().getOs2sync().getDatasourceUsername());

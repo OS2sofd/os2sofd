@@ -172,14 +172,14 @@ public class EmailTemplateRestController {
 				List<InlineImageDTO> inlineImages = isEboks ? null : transformImages(emailTemplateChildDTO);
 
 				var message = emailTemplateChildDTO.getMessage();
+				
 				// perform placeholder replacement so you can verify that the template replacement worked.
-				for( var placeholder : templateChild.getEmailTemplate().getTemplateType().getEmailTemplatePlaceholders() )
-				{
+				for (var placeholder : templateChild.getEmailTemplate().getTemplateType().getEmailTemplatePlaceholders()) {
 					message = message.replace(placeholder.getPlaceholder(), placeholder.getPlaceholder().replaceAll("[\\{\\}]",""));
 				}
 
-				if( isEboks ) {
-					eboksService.sendMessageWithAttachments(person.getCpr(),emailTemplateChildDTO.getTitle(),message, attachments);
+				if (isEboks) {
+					eboksService.sendMessageWithAttachments(person.getCpr(),emailTemplateChildDTO.getTitle(),message, attachments, templateChild.isRawTemplate());
 					return new ResponseEntity<>("Digital Post sendt til " + PersonService.getName(person), HttpStatus.OK);
 				}
 				else {
@@ -234,8 +234,8 @@ public class EmailTemplateRestController {
 			}
 			
 			if (templateChild.getEmailTemplate().getTemplateType().isShowOrgFilter() && configuration.getEmailTemplate().isOrgFilterEnabled() && !emailTemplateChildDTO.getOrgUnitUuids().isEmpty()) {
-				if (!templateChild.getExcludedOrgUnitMappings().isEmpty()) {
-					templateChild.getExcludedOrgUnitMappings().clear();
+				if (!templateChild.getOrgUnitFilterMappings().isEmpty()) {
+					templateChild.getOrgUnitFilterMappings().clear();
 				}
 				
 				for (String uuid : emailTemplateChildDTO.getOrgUnitUuids()) {
@@ -243,8 +243,9 @@ public class EmailTemplateRestController {
 					if (ou == null) {
 						continue;
 					}
-					templateChild.getExcludedOrgUnitMappings().add(new EmailTemplateChildOrgUnitMapping(templateChild, ou));
+					templateChild.getOrgUnitFilterMappings().add(new EmailTemplateChildOrgUnitMapping(templateChild, ou));
 				}
+				templateChild.setOrgUnitFilterType(emailTemplateChildDTO.getOrgUnitFilterType());
 			}
 			
 			if (templateChild.getEmailTemplate().getTemplateType().isShowADUserFilter() && configuration.getEmailTemplate().isAdUserFilterEnabled()) {

@@ -35,7 +35,7 @@ public class ExemptIdmApi {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
 
-		return new ResponseEntity<>(person.isDisableAccountOrders(), HttpStatus.OK);
+		return new ResponseEntity<>(person.isDisableAccountOrdersCreate(), HttpStatus.OK);
 	}
 	
 	@GetMapping("/api/account/lock/enabled")
@@ -53,7 +53,10 @@ public class ExemptIdmApi {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
 
-		person.setDisableAccountOrders(true);
+		person.setDisableAccountOrdersCreate(true);
+		person.setDisableAccountOrdersDisable(true);
+		person.setDisableAccountOrdersDelete(true);
+
 		personService.save(person);
 		accountOrderService.deletePendingCreateOrders(person);
 
@@ -68,7 +71,10 @@ public class ExemptIdmApi {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
 
-		person.setDisableAccountOrders(false);
+		person.setDisableAccountOrdersCreate(false);
+		person.setDisableAccountOrdersDisable(false);
+		person.setDisableAccountOrdersDelete(false);
+
 		personService.save(person);
 
 		return new ResponseEntity<>(HttpStatus.OK);

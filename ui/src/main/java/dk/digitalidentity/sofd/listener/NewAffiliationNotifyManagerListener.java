@@ -110,12 +110,9 @@ public class NewAffiliationNotifyManagerListener implements ListenerAdapter {
 
 			SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd-MM-yyyy");
 			for (Affiliation affiliation : affiliations) {
-				if (configuration.getEmailTemplate().isOrgFilterEnabled() && template.getTemplateType().isShowOrgFilter()) {
-					List<String> excludedOUUuids = child.getExcludedOrgUnitMappings().stream().map(o -> o.getOrgUnit()).map(o -> o.getUuid()).collect(Collectors.toList());
-					if (excludedOUUuids.contains(affiliation.getCalculatedOrgUnit().getUuid())) {
-						log.info("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + affiliation.getUuid() + ". The affiliation OU was in the excluded ous list");
-						continue;
-					}
+				if( !emailTemplateService.shouldIncludeOrgUnit(child,affiliation.getCalculatedOrgUnit().getUuid()) ) {
+					log.debug("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + (affiliation != null ? affiliation.getUuid() : "<null>") + ". The affiliation OU was filtered out.");
+					continue;
 				}
 
 				var managerResponse = PersonService.getManagerDifferentFromPerson(affiliation.getPerson(), affiliation.getEmployeeId());

@@ -9,15 +9,11 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,12 +33,10 @@ import org.springframework.util.StringUtils;
 
 import dk.digitalidentity.sofd.config.RoleConstants;
 import dk.digitalidentity.sofd.config.SofdConfiguration;
-import dk.digitalidentity.sofd.dao.ActiveDirectoryDetailsDao;
 import dk.digitalidentity.sofd.dao.OrgUnitManagerDao;
 import dk.digitalidentity.sofd.dao.PersonDao;
 import dk.digitalidentity.sofd.dao.ReservedUsernameDao;
 import dk.digitalidentity.sofd.dao.model.AccountOrder;
-import dk.digitalidentity.sofd.dao.model.ActiveDirectoryDetails;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.EmailTemplate;
 import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
@@ -122,9 +116,6 @@ public class PersonService {
 	private AffiliationService affiliationService;
 
 	@Autowired
-	private ActiveDirectoryDetailsDao activeDirectoryDetailsDao;
-
-	@Autowired
 	private SettingService settingService;
 
 	@Autowired
@@ -135,6 +126,13 @@ public class PersonService {
 
 	@Autowired
 	private ReservedUsernameDao reservedUsernameDao;
+	
+	@Autowired
+	private PrimeService primeService;
+
+	public boolean isManager(Person person) {
+		return orgUnitManagerDao.existsByManagerUuid(person.getUuid());
+	}
 
 	public List<Person> findByUserType(String userType) {
 		return personDao.findDistinctByUsersUserUserTypeAndDeletedFalse(userType);
@@ -174,69 +172,6 @@ public class PersonService {
 
 	public List<Person> getByPhoneMasterAndMasterId(String master, String masterId) {
 		return personDao.findByPhonesPhoneMasterAndPhonesPhoneMasterId(master, masterId);
-	}
-
-	// TODO: can remove this once RKSK is migrated
-	@Transactional
-	public void migrateUuids() {
-		List<ActiveDirectoryDetails> toSave = new ArrayList<>();
-
-		for (Person person : getAll()) {
-			List<User> users = PersonService.getUsers(person)
-					.stream()
-					.filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType()))
-					.collect(Collectors.toList());
-
-			if (users.size() == 0) {
-				continue;
-			}
-
-			if (users.size() == 1) {
-				// if there is only a single user, we always copy, even if that is not prime (because it is disabled)
-				User user = users.get(0);
-
-				user.getActiveDirectoryDetails().setKombitUuid(person.getUuid());
-				toSave.add(user.getActiveDirectoryDetails());
-			}
-			else {
-				Set<String> seenUuids = new HashSet<>();
-
-				// Handle prime user first
-				Collections.sort(users, new Comparator<User>() {
-					public int compare(User u1, User u2) {
-						return Boolean.compare(u2.isPrime(), u1.isPrime());
-					};
-				});
-
-				for (User user : users) {
-					if (!StringUtils.hasLength(user.getActiveDirectoryDetails().getKombitUuid())) {
-						String uuidCandidate = null;
-
-						if (user.isPrime()) {
-							// SOFDs current UUID
-							uuidCandidate = person.getUuid();
-						}
-						else {
-							// ObjectGuid from AD
-							uuidCandidate = user.getMasterId();
-						}
-
-						// if the UUID has already been used, pick a random one (there is a special corner case where the persons UUID matches one
-						// of the non-prime AD accounts UUID, which results in duplicates)
-						if (seenUuids.contains(uuidCandidate)) {
-							uuidCandidate = UUID.randomUUID().toString();
-						}
-
-						seenUuids.add(uuidCandidate);
-						user.getActiveDirectoryDetails().setKombitUuid(uuidCandidate);
-
-						toSave.add(user.getActiveDirectoryDetails());
-					}
-				}
-			}
-		}
-
-		activeDirectoryDetailsDao.saveAll(toSave);
 	}
 
 	@Cacheable(value = "activePersons")
@@ -287,13 +222,10 @@ public class PersonService {
 	}
 
 	public List<OrgUnitManager> findAllManagersWithOrgUnits() {
-		return orgUnitManagerDao.findByInheritedFalse();
-	}
+		// return orgUnitManagerDao.findByInheritedFalse();
 
-	// this method should ONLY be used in the SynchronizeOrgUnitManagersTask that synchronizes affiliation managers to orgunit managers
-	// other methods should use the findAllManagers method instead
-	public List<Person> findAllAffiliationManagers() {
-		return personDao.getAffiliationManagers();
+		// if we do not return them all - we miss information about substitutes in the UI, if the substitutes are constrainted to inherited OU's
+		return orgUnitManagerDao.findAll();
 	}
 
 	public List<Person> findAllTRs() {
@@ -310,6 +242,38 @@ public class PersonService {
 
 	public Person save(Person person) {
 		return personDao.save(person);
+	}
+	
+	// TODO: actually implement our interceptors to take care of the saveAll() method, so we can get rid of this hack :)
+	//
+	// please don't use this method - it bypasses all our save interceptors - so only use it in places where we don't need our interceptors
+	// to run, which is basically nowhere (except for MitID import, because Brian says so ;))
+	// and NEVER use this for creating new persons, only for updates....
+	@Deprecated
+	public void saveAll(List<Person> persons) {
+		// perform a mini-intercept, just to make sure the basics are covered
+		for (Person person : persons) {
+			if (person.getUuid() == null) {
+				throw new RuntimeException("Do not use saveAll() for creating persons - actually never use this method!");
+			}
+
+			// always needed
+			person.setLastChanged(new Date());
+			
+			// to make sure any MitID Erhverv accounts are flagged as prime where needed
+			if (person.getUsers() != null) {
+				for (String userType : supportedUserTypeService.getAllUserTypes()) {
+					List<User> users = PersonService.getUsers(person).stream().filter(u -> u.getUserType().equals(userType)).collect(Collectors.toList());
+					
+					if (users != null && users.size() > 0) {
+						primeService.setPrimeUser(users);
+					}
+				}
+			}
+
+		}
+		
+		personDao.saveAll(persons);
 	}
 
 	public static List<User> getUsers(Person person) {
@@ -355,6 +319,64 @@ public class PersonService {
 		return person.getFirstname() + " " + person.getSurname();
 	}
 
+	// all other prime flags are automatically set when calling save(), but
+	// both users and affiliations have an expire-date, so we need to check
+	// that daily, and update the prime flag in case the prime field is expired
+	@Transactional(rollbackFor = Exception.class)
+	public void setPrimeAffiliationPrimeUserAndDeleted() {
+		log.info("Executing setPrimeAffiliationPrimeUserAndDeleted task");
+
+		SecurityUtil.fakeLoginSession();
+
+		List<Person> persons = getAll();
+		List<String> allUserTypes = supportedUserTypeService.getAllUserTypes();
+		List<Person> toSave = new ArrayList<>();
+		
+		int counter = 0, saveCounter = 0;
+		for (Person person : persons) {
+			counter ++;
+			if (counter % 500 == 0) {
+				log.info("Handling person " + counter + " of " + persons.size());
+			}
+
+			boolean changes = primeService.setPrimeAffilation(person);
+			
+			if (person.getUsers() != null) {
+				for (String userType : allUserTypes) {
+					List<User> users = PersonService.getUsers(person).stream().filter(u -> u.getUserType().equals(userType)).collect(Collectors.toList());
+					
+					if (users != null && users.size() > 0) {
+						changes = changes || primeService.setPrimeUser(users);
+					}
+				}
+			}
+			
+			// if the person does not have any users, and does not have any prime affiliations (i.e. no active affiliations), then flip the delete flag
+			boolean shouldBeDeleted = (person.getUsers().size() == 0 && !person.getAffiliations().stream().anyMatch(a -> a.isPrime()));
+			if (shouldBeDeleted && !person.isDeleted()) {
+				person.setDeleted(true);
+				changes = true;
+			}
+			else if (!shouldBeDeleted && person.isDeleted()) {
+				person.setDeleted(false);
+				changes = true;
+			}
+
+			if (changes) {
+				saveCounter++;
+				person.setLastChanged(new Date());
+				toSave.add(person);
+			}
+		}
+
+		// bypass interceptors - which is okay as we handle consistency here, and also set the lastChanged field
+		if (toSave.size() > 0) {
+			personDao.saveAll(toSave);
+		}
+
+		log.info("Finished executing setPrimeAffiliationPrimeUserAndDeleted task - with " + saveCounter + " saves");
+	}
+	
 	@Transactional
 	public void cleanupDeletedPersons() {
 		int months = 0;
@@ -406,7 +428,7 @@ public class PersonService {
 			SecurityUtil.fakeLoginSession();
 		}
 
-		if( post != null ) {
+		if (post != null) {
 			if (person.getRegisteredPostAddress() != null) {
 				person.getRegisteredPostAddress().setAddressProtected(post.isAddressProtected());
 				person.getRegisteredPostAddress().setCity(post.getCity());
@@ -423,13 +445,22 @@ public class PersonService {
 		}
 
 		if (!Objects.equals(person.isDead(), dead)) {
-			person.setDead(dead);
-
-			if (dead) {
-				sendDeadOrDisenfranchisedNotification(person, NotificationType.PERSON_DEAD, "Personen er blevet meldt død eller bortkommet i cpr registeret");
-
-				if( person.getUsers().stream().anyMatch(u -> SupportedUserTypeService.isActiveDirectory(u.getUser().getUserType())) ) {
-					sendDeadOrDisenfranchisedNotification(person, NotificationType.PERSON_DEAD_AD_ONLY, "Personen er registreret med en AD-konto og er blevet meldt død eller bortkommet i cpr registeret");
+			if (!dead) {
+				// I want a trace of this - not sure why this happeneded, but we want to know about it, and what triggered it
+				log.error("Blocking resurrecting of " + person.getUuid(), new RuntimeException());
+			}
+			else {
+				person.setDead(dead);
+	
+				if (dead) {
+					sendDeadOrDisenfranchisedNotification(person, NotificationType.PERSON_DEAD, "Personen er blevet meldt død eller bortkommet i cpr registeret");
+	
+					if( person.getUsers().stream().anyMatch(u -> SupportedUserTypeService.isActiveDirectory(u.getUser().getUserType())) ) {
+						sendDeadOrDisenfranchisedNotification(person, NotificationType.PERSON_DEAD_AD_ONLY, "Personen er registreret med en AD-konto og er blevet meldt død eller bortkommet i cpr registeret");
+					}
+					if( person.getUsers().stream().anyMatch(u -> !u.getUser().isDisabled() && SupportedUserTypeService.isActiveDirectory(u.getUser().getUserType())) ) {
+						sendDeadOrDisenfranchisedNotification(person, NotificationType.PERSON_DEAD_ACTIVE_AD_ONLY, "Personen er registreret med en aktiv AD-konto og er blevet meldt død eller bortkommet i cpr registeret");
+					}
 				}
 			}
 		}
@@ -443,6 +474,9 @@ public class PersonService {
 				if( person.getUsers().stream().anyMatch(u -> SupportedUserTypeService.isActiveDirectory(u.getUser().getUserType())) ) {
 					sendDeadOrDisenfranchisedNotification(person, NotificationType.PERSON_DISENFRANCHISED_AD_ONLY, "Personen er registreret med en AD-konto og er blevet meldt umyndiggjort i cpr registeret");
 				}
+				if( person.getUsers().stream().anyMatch(u -> !u.getUser().isDisabled() && SupportedUserTypeService.isActiveDirectory(u.getUser().getUserType())) ) {
+					sendDeadOrDisenfranchisedNotification(person, NotificationType.PERSON_DISENFRANCHISED_ACTIVE_AD_ONLY, "Personen er registreret med en aktiv AD-konto og er blevet meldt umyndiggjort i cpr registeret");
+				}
 			};
 		}
 
@@ -453,7 +487,7 @@ public class PersonService {
 			List<AccountOrder> orders = generateExpireOrders(person, new Date(), new Date());
 			newOrders.addAll(orders);
 
-			person.setDisableAccountOrders(true);
+			person.setDisableAccountOrdersCreate(true);
 
 			// we have to loop (there won't be many) as the saveAll method has some nasty side-effects
 			for (AccountOrder order : newOrders) {
@@ -590,6 +624,19 @@ public class PersonService {
 		}
 
 		return null;
+	}
+
+	// finds persons that are valid as managers
+	public List<Person> searchValidMangers(String query) {
+		return personDao.findTop10ValidManagersByName(query);
+	}
+
+	public List<Person> searchPersons(String query, boolean cprAccess) {
+		return personDao.searchPersons(query, cprAccess);
+	}
+
+	public List<Person> findByCPRStartingWith(String query) {
+		return personDao.findTop10ByCprStartingWith(query);
 	}
 
 	// we use this method in case the person is the manager himself
@@ -783,12 +830,9 @@ public class PersonService {
 							continue;
 						}
 
-						if (configuration.getEmailTemplate().isOrgFilterEnabled() && reminder.getTemplateType().isShowOrgFilter()) {
-							List<String> excludedOUUuids = child.getExcludedOrgUnitMappings().stream().map(o -> o.getOrgUnit()).map(o -> o.getUuid()).collect(Collectors.toList());
-							if (excludedOUUuids.contains(affiliation.getCalculatedOrgUnit().getUuid())) {
-								log.info("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + affiliation.getUuid() + ". The affiliation OU was in the excluded ous list");
-								continue;
-							}
+						if( !emailTemplateService.shouldIncludeOrgUnit(child,affiliation.getCalculatedOrgUnit().getUuid()) ) {
+							log.debug("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + (affiliation != null ? affiliation.getUuid() : "<null>") + ". The affiliation OU was filtered out.");
+							continue;
 						}
 
 						processAffiliation(child, dateFormat, person, affiliation);
@@ -903,7 +947,9 @@ public class PersonService {
 
 		// if the disable flag was set during leave, then remove it
 		if (person.getLeave().isDisableAccountOrders()) {
-			person.setDisableAccountOrders(false);
+			person.setDisableAccountOrdersCreate(false);
+			person.setDisableAccountOrdersDelete(false);
+			person.setDisableAccountOrdersDisable(false);
 		}
 
 		// bye bye leave flag
@@ -972,11 +1018,12 @@ public class PersonService {
 				}
 
 				SupportedUserType supportedUserType = supportedUserTypeService.findByKey(user.getUserType());
+				var linkedUserId = SupportedUserTypeService.isExchange(user.getUserType()) ? user.getMasterId() : null;
 				AccountOrder order = accountOrderService.createAccountOrder(
 						person,
 						supportedUserType,
 						user.getUserId(),
-						null,
+						linkedUserId,
 						user.getEmployeeId(),
 						new Date(),
 						EndDate.NO,
@@ -1074,7 +1121,7 @@ public class PersonService {
 		c1.add(Calendar.DATE, -10);
 		Date date10daysAgo = c1.getTime();
 
-		List<Person> persons = personDao.findByForceStopTrueOrDisableAccountOrdersTrueOrLeaveNotNull();
+		List<Person> persons = personDao.findByForceStopTrueOrDisableAccountOrdersCreateTrueOrLeaveNotNull();
 		if (persons.isEmpty()) {
 			return;
 		}
@@ -1086,7 +1133,7 @@ public class PersonService {
 
 			if (affiliations.stream().allMatch(aff -> aff.getStopDate() != null && aff.getStopDate().before(date10daysAgo))) {
 				person.setForceStop(false);
-				person.setDisableAccountOrders(false);
+				person.setDisableAccountOrdersCreate(false);
 				person.setLeave(null);
 
 				self.save(person);

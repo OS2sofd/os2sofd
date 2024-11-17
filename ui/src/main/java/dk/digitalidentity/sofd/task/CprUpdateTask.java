@@ -31,7 +31,7 @@ public class CprUpdateTask {
         }
     }
 
-    @Scheduled(cron = "0 #{new java.util.Random().nextInt(55)} 2 * * ?")
+    @Scheduled(cron = "0 #{new java.util.Random().nextInt(55)} 21 * * ?")
     public void updateFromCpr() {
         if (!configuration.getScheduled().isEnabled() || !configuration.getScheduled().getCprSync().isEnabled()) {
             log.debug("Scheduled update of addresses are disabled on this instance");

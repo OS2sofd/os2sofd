@@ -21,8 +21,8 @@ import lombok.Setter;
 @Setter
 @ConfigurationProperties(prefix = "sofd")
 public class SofdConfiguration {
-	private String version = "2024 r1";
-	private String latestVersion = "2024 r1";
+	private String version = "2024 r2";
+	private String latestVersion = "2024 r2";
 	
 	private Modules modules = new Modules();
 	private Customer customer = new Customer();

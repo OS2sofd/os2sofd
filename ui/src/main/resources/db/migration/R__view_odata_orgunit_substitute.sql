@@ -62,7 +62,7 @@ FROM
             FROM
                orgunits o
                INNER JOIN
-                  orgunits_manager om
+                  view_orgunits_manager om
                   ON om.orgunit_uuid = o.uuid
                INNER JOIN
                   substitute_assignment a

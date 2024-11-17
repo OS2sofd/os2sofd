@@ -116,13 +116,14 @@
 				'name': name,
 				'number': number,
 			}),
-			success: function( data, textStatus, jQxhr ){
-					location.reload(true);
+			success: function( data, textStatus, jQxhr ) {
+			    location.reload(true);
 			},
-			error: function( jqXhr, textStatus, errorThrown ){
+			error: function( jqXhr, textStatus, errorThrown ) {
 				$.notify({
 					message: saveErrorMsg
-				}, {
+				},
+				{
 					status: 'danger',
 					autoHideDelay: 4000
 				});

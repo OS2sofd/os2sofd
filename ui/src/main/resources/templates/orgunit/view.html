@@ -131,7 +131,7 @@
                                                     	&nbsp;
                                                     	<span class="badge badge-alert" th:text="#{html.entity.person.forceStop}"></span>
                                                     </th:block>
-                                                    <th:block th:if="${employee.disableAccountOrders == true}">
+                                                    <th:block th:if="${employee.disableAccountOrdersDelete == true || employee.disableAccountOrdersCreate == true || employee.disableAccountOrdersDisable == true}">
                                                     	&nbsp;
                                                     	<span class="badge badge-warning" th:text="#{html.entity.person.disableAccountOrders}"></span>
                                                     </th:block>
@@ -178,13 +178,13 @@
 
                                     <ul class="nav nav-tabs">
 		                                <li class="active">
+		                                    <a data-toggle="tab" href="#kle_tertiary_menu" th:text="#{html.page.orgunit.view.kletertiary}"></a>
+		                                </li>
+		                                <li>
 		                                    <a data-toggle="tab" href="#kle_performing_menu" th:text="#{html.page.person.view.kleperform}"></a>
 		                                </li>
 		                                <li>
 		                                    <a data-toggle="tab" href="#kle_interest_menu" th:text="#{html.page.person.view.kleinterest}"></a>
-		                                </li>
-		                                <li>
-		                                    <a data-toggle="tab" href="#kle_tertiary_menu" th:text="#{html.page.orgunit.view.kletertiary}"></a>
 		                                </li>
 		                            </ul>
 
@@ -365,6 +365,11 @@
 			var orgDeleteTitle = [[#{html.page.orgunit.delete.title}]];
 			var orgDeleteMessage = [[#{html.page.orgunit.delete.message}]];
 			var orgDeleteFailure = [[#{html.page.orgunit.delete.failure}]];
+
+			var confirmEditKLETitle = [[#{html.page.orgunit.kle.confirmEditKLETitle}]];
+			var confirmEditKLEText = [[#{html.page.orgunit.kle.confirmEditKLEText}]];
+			var confirmEditKLEButtonText = [[#{html.page.orgunit.kle.confirmEditKLEButtonText}]];
+			var cancelEditKLEButtonText = [[#{html.page.orgunit.kle.cancelEditKLEButtonText}]];
 
 		+]*/
 		var token = $("meta[name='_csrf']").attr("content");
@@ -571,7 +576,6 @@
 				},
 				error: function(response) {
 					setValidationMessages(response.responseJSON);
-
 					$.notify({
 						message: msgUpdateFail
 					}, {
@@ -598,9 +602,11 @@
 		}
 
 		function setValidationMessages(errors) {
-			for (var i = 0; i < errors.length; i++) {
-				$('#' + errors[i].field + "-validationMessage").show();
-				$('#' + errors[i].field + "-validationMessage").text(errors[i].defaultMessage);
+			if( errors ) {
+				for (var i = 0; i < errors.length; i++) {
+					$('#' + errors[i].field + "-validationMessage").show();
+					$('#' + errors[i].field + "-validationMessage").text(errors[i].defaultMessage);
+				}
 			}
 		}
 
@@ -832,6 +838,32 @@
 		}
 
 		function saveChanges(id) {
+			if( id != "KleTertiary" ) {
+				commitChanges(id);
+			}
+			else {
+				swal({
+						html : true,
+						title : confirmEditKLETitle,
+						text : confirmEditKLEText,
+						type : "warning",
+						showCancelButton : true,
+						confirmButtonColor : "#DD6B55",
+						confirmButtonText : confirmEditKLEButtonText,
+						cancelButtonText : cancelEditKLEButtonText,
+						closeOnConfirm : true,
+						closeOnCancel : true
+					},
+					function(isConfirm) {
+						if( isConfirm ) {
+							commitChanges(id);
+						}
+					}
+				);
+			}
+		}
+
+		function commitChanges(id) {
 			var codes = $('#' + id).jstree('get_top_selected')
 			$.ajax({
 				contentType: 'application/json',

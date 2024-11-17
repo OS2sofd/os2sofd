@@ -155,10 +155,11 @@ public class AccountOrderApiController {
 		for (AccountOrder order : allOrders) {
 			Person person = personService.getByUuid(order.getPersonUuid());
 			if (person != null) {
-				AccountOrderDTO dto = new AccountOrderDTO(order, person, 0);
+				AccountOrderDTO dto = new AccountOrderDTO(order, person, configuration.getModules().getAccountCreation().isEncodeCpr());
 				result.add(dto);
 			}
 		}
+
 		return new ResponseEntity<List<AccountOrderDTO>>(result, HttpStatus.OK);
 	}
 
@@ -177,7 +178,6 @@ public class AccountOrderApiController {
 
 		AccountOrderResponseDTO responseDTO = new AccountOrderResponseDTO();
 		responseDTO.setSingleAccount(supportedUserType.isSingleUserMode());
-		long userIdLength = 0;
 
 		List<AccountOrder> pendingOrders = accountOrderService.getPendingOrders(userType, type);
 
@@ -187,7 +187,7 @@ public class AccountOrderApiController {
 		for (AccountOrder order : pendingOrders) {
 			Person person = personService.getByUuid(order.getPersonUuid());
 			if (person != null) {
-				AccountOrderDTO dto = new AccountOrderDTO(order, person, userIdLength);
+				AccountOrderDTO dto = new AccountOrderDTO(order, person, configuration.getModules().getAccountCreation().isEncodeCpr());
 
 				responseDTO.getPendingOrders().add(dto);
 			}

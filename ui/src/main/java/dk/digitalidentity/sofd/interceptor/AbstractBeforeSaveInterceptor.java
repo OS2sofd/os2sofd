@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.interceptor;
 
+import static dk.digitalidentity.sofd.util.NullChecker.getValue;
+
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
@@ -210,7 +212,7 @@ public class AbstractBeforeSaveInterceptor {
 		// we only do this when saving persons, not OrgUnits, because the order-account-settings are not part
 		// of the actual OrgUnit data-structure, and editing those will not trigger this event. Instead we
 		// also call this method from the actual service that sets these values on the OrgUnit
-		if (person.getAffiliations() != null && person.isDisableAccountOrders() == false) {
+		if (person.getAffiliations() != null && person.isDisableAccountOrdersCreate() == false) {
 			List<AccountOrder> orderAccounts = accountOrderService.getAccountsToCreate(person.getAffiliations(), true, false);
 
 			if (orderAccounts != null && orderAccounts.size() > 0) {
@@ -304,13 +306,8 @@ public class AbstractBeforeSaveInterceptor {
 	public OrgUnit loadOldOrgUnit(String uuid) {
 		OrgUnit orgUnit = orgUnitDao.findByUuid(uuid);
 		if (orgUnit != null) {
-			if (orgUnit.getParent() != null) {
-				orgUnit.getParent().getName();
-			}
-			
-			if (orgUnit.getManager() != null) {
-				orgUnit.getManager().getManager().getCpr();
-			}
+			getValue(() -> orgUnit.getParent().getName());
+			getValue(() -> orgUnit.getManager().getManager().getCpr());
 		}
 
 		return orgUnit;

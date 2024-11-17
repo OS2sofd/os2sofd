@@ -37,7 +37,7 @@
 
 										<td th:text="${@supportedUserTypeService.getPrettyName(order.getUserType())}"></td>
 										<td>
-											<a href="#" onclick="accountOrderDatatableService.approve(this);" th:attr="data-orderid=${order.id}"><em class="fa fa-fw fa-check"></em></a>
+											<a href="#" onclick="accountOrderDatatableService.approve(this);" th:attr="data-orderid=${order.id},data-personuuid=${order.personUuid}"><em class="fa fa-fw fa-check"></em></a>
 											<a href="#" onclick="accountOrderDatatableService.reject(this);" th:attr="data-orderid=${order.id}"><em class="fa fa-fw fa-times"></em></a>
 										</td>
 									</tr>
@@ -46,6 +46,7 @@
 									<tr>
 										<th th:text="#{html.page.accountorders.activationTime}"></th>
 										<th th:text="#{html.page.accountorders.personName}"></th>
+										<th th:text="#{html.page.accountorders.userId}"></th>
 										<th th:text="#{html.page.accountorders.userType}"></th>
 										<th class="disabled"></th>
 									</tr>
@@ -58,9 +59,17 @@
 		</section>
 	</div>
 
+    <th:block th:if="${customApprovalForm}">
+	<div th:replace="custom/customform :: approvalFormFragment"></div>
+	</th:block>
+
 	<nav th:replace="fragments/footer :: footer"></nav>
 	
 	<script th:replace="fragments/datatables :: datatables(autoLoad=false) "></script>
+
+    <th:block th:if="${customApprovalForm}">	
+	<script th:if="${customApprovalForm}" th:replace="custom/customform :: approvalJavascriptFragment"></script>
+	</th:block>
 	
 	<script th:inline="javascript">
 	
@@ -78,15 +87,74 @@
 			var rejectUrl = [[@{/ui/account/order/reject}]];
 			
 			var changeStatusErrorMsg = [[#{html.setting.update.msg.failed}]];
+			
+			var customApprovalForm = [[${customApprovalForm}]];
 		+]*/
 
 		var token = $("meta[name='_csrf']").attr("content");
 
 		var accountOrderDatatableService;
+		var approveService;
 		$(document).ready(function () {
 			accountOrderDatatableService = new AccountOrderDatatableService();
 			accountOrderDatatableService.init();
+			
+			approveService = new ApproveService();
 		});
+
+		// for custom approval form
+		function ApproveService() {
+			function convertFormToJSON(form) {
+				const json = {};
+
+				form.find(":input").each(function() {
+					json[this.name] = $(this).val();
+				});
+				
+				return json;
+			}
+
+			this.submit = function() {
+				var formData = convertFormToJSON($('#approvalForm'));
+				var payload = { 'id' : formData.id, 'token': JSON.stringify(formData) };
+				
+				$.ajax({
+					url: approveUrl,
+					headers: {
+						'X-CSRF-TOKEN': token
+					},
+					type: 'post',
+					contentType: 'application/json',
+					data: JSON.stringify(payload),
+					success: function(data, textStatus, jQxhr) {
+						location.reload();
+					},
+					error: function(jqXhr, textStatus, errorThrown) {
+						$.notify({
+							message: changeStatusErrorMsg
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					}
+				});
+			}
+			
+			this.close = function() {
+				$('#modal-approve').modal("toggle");
+			}
+			
+			this.open = function(orderId, personUuid) {
+				$('#approvalForm #id').val(orderId);
+
+				$('#modal-approve').modal({
+				    backdrop: 'static',
+				    keyboard: false
+				});
+				
+				customFormService.init(personUuid);
+			}
+		}
 
 		function AccountOrderDatatableService() {
 			this.init = function() {
@@ -149,6 +217,12 @@
 			
 			this.approve = function(elem) {
 				var orderId = elem.dataset.orderid;
+				var personUuid = elem.dataset.personuuid;
+
+				if (customApprovalForm) {
+					approveService.open(orderId, personUuid);
+					return;
+				}
 				
 				swal({
 					html : true,

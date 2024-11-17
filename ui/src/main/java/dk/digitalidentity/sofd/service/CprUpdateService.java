@@ -46,7 +46,7 @@ public class CprUpdateService {
 		for (Person person : activePersons) {
 			BadStateDTO badState = badStateMap.get(person.getCpr());
 			if (badState != null) {
-				if (person.isDead() != badState.isDead() || person.isDisenfranchised() != badState.isDisenfranchised()) {
+				if ((!person.isDead() && badState.isDead()) || (!person.isDisenfranchised() && badState.isDisenfranchised())) {
 					
 					log.info("Bad state detected on " + PersonService.getName(person) + " / " + person.getUuid());
 					

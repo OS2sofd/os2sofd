@@ -20,6 +20,7 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import org.checkerframework.checker.units.qual.C;
 import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.envers.Audited;
@@ -114,10 +115,16 @@ public class Person implements Loggable {
 	
 	@Column
 	private boolean forceStop;
-	
+
 	@Column
-	private boolean disableAccountOrders;
-	
+	private boolean disableAccountOrdersCreate;
+
+	@Column
+	private boolean disableAccountOrdersDisable;
+
+	@Column
+	private boolean disableAccountOrdersDelete;
+
 	@Column
 	private boolean dead;
 	

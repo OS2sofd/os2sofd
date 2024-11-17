@@ -19,8 +19,8 @@
 										<th class="col-md-3" th:text="#{html.entity.client.name}"></th>
 										<th class="col-md-3" th:text="#{html.entity.client.ApiKey}"></th>
 										<th class="col-md-3" th:text="#{html.entity.client.accessRole}"></th>
-										<th class="col-md-2" th:text="#{html.entity.client.version}"></th>
-										<th class="col-md-1" th:text="#{html.control.operations}"></th>
+										<th class="col-md-1" th:text="#{html.entity.client.version}"></th>
+										<th class="col-md-2" th:text="#{html.control.operations}"></th>
 									</tr>
 								</thead>
 					
@@ -34,9 +34,10 @@
 										<td th:text="#{__${client.accessRole.messageId}__}"></td>
 										<td th:text="${client.version}"></td>
 										<td>
-											<a th:href="@{/ui/client/view/} + ${client.id}"><em class="fa fa-fw fa-search"></em></a>
-											<a th:href="@{/ui/client/edit/} + ${client.id}"><em class="fa fa-fw fa-pencil"></em></a>
-											<a href="#" onclick="handleDelete(this.getAttribute('data-client-id'));" th:data-client-id="${client.id}"><em class="fa fa-fw fa-remove"></em></a>
+											<a th:href="@{/ui/client/view/} + ${client.id}" title="Se klient"><em class="fa fa-fw fa-search"></em></a>
+											<a th:href="@{/ui/client/edit/} + ${client.id}" title="Rediger klient"><em class="fa fa-fw fa-pencil"></em></a>
+											<a th:href="@{/ui/client/knownnetworks/edit/} + ${client.id}" title="Rediger netværk"><em class="fa fa-fw fa-link"></em></a>
+											<a href="#" onclick="handleDelete(this.getAttribute('data-client-id'));" th:data-client-id="${client.id}" title="Slet klient"><em class="fa fa-fw fa-remove"></em></a>
 										</td>
 									</tr>
 								</tbody>

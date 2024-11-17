@@ -78,11 +78,11 @@ public class OrgUnitService {
 		FROM orgunits o
 		LEFT JOIN orgunits_tags ot ON ot.orgunit_uuid = o.uuid
 		LEFT JOIN tags t ON ot.tag_id = t.id
-		LEFT JOIN orgunits_manager m ON m.orgunit_uuid = o.uuid
+		LEFT JOIN view_orgunits_manager m ON m.orgunit_uuid = o.uuid
 		LEFT JOIN persons mp on mp.uuid = m.manager_uuid
 		WHERE o.deleted = 0 AND o.belongs_to = ?;
 	*/
-	private static final String SELECT_THIN_ORGUNITS_SQL_WITH_TAGS_AND_MANAGER = "SELECT o.uuid, o.name AS name, o.parent_uuid, t.id AS tag_id, ifnull(mp.chosen_name,concat(mp.firstname ,' ',mp.surname)) AS manager, ot.custom_value AS tag_value FROM orgunits o LEFT JOIN orgunits_tags ot ON ot.orgunit_uuid = o.uuid LEFT JOIN tags t ON ot.tag_id = t.id LEFT JOIN orgunits_manager m ON m.orgunit_uuid = o.uuid LEFT JOIN persons mp on mp.uuid = m.manager_uuid WHERE o.deleted = 0 AND o.belongs_to = ?;";
+	private static final String SELECT_THIN_ORGUNITS_SQL_WITH_TAGS_AND_MANAGER = "SELECT o.uuid, o.name AS name, o.parent_uuid, t.id AS tag_id, ifnull(mp.chosen_name,concat(mp.firstname ,' ',mp.surname)) AS manager, ot.custom_value AS tag_value FROM orgunits o LEFT JOIN orgunits_tags ot ON ot.orgunit_uuid = o.uuid LEFT JOIN tags t ON ot.tag_id = t.id LEFT JOIN view_orgunits_manager m ON m.orgunit_uuid = o.uuid LEFT JOIN persons mp on mp.uuid = m.manager_uuid WHERE o.deleted = 0 AND o.belongs_to = ?;";
 
 
 	/*
@@ -224,9 +224,14 @@ public class OrgUnitService {
 		return orgUnitDao.findByBelongsTo(organisation);
 	}
 
-	@Cacheable(value = "activeOrgUnits")
+
 	public List<OrgUnit> getAllActiveCached() {
-		var result = getAllActive(organisationService.getAdmOrg());
+		return self.getAllActiveCached(organisationService.getAdmOrg());
+	}
+
+	@Cacheable(value = "activeOrgUnits")
+	public List<OrgUnit> getAllActiveCached(Organisation organisation) {
+		var result = getAllActive(organisation);
 		// force load type
 		result.forEach(o -> o.getType().getKey());
 		return result;
@@ -259,6 +264,30 @@ public class OrgUnitService {
 
 	public List<OUTreeForm> getAllTree() {
 		return getAllTree(organisationService.getAdmOrg());
+	}
+
+	public List<OUTreeForm> getAllExceptAdmOrg() {
+		List<OUTreeForm> result = new ArrayList<>();
+		for (Organisation organisation : organisationService.getAllExceptAdmOrg()) {
+			result.addAll(jdbcTemplate.query(SELECT_THIN_ORGUNITS_SQL, new Object[] { organisation.getId()},(RowMapper<OUTreeForm>) (rs, rownum) -> {
+				OUTreeForm ou = new OUTreeForm();
+
+				ou.setId(rs.getString("uuid"));
+				ou.setText(rs.getString("name"));
+
+				String parent_uuid = rs.getString("parent_uuid");
+				if (parent_uuid != null && !parent_uuid.isEmpty()) {
+					ou.setParent(parent_uuid);
+				}
+				else {
+					ou.setParent("#");
+				}
+
+				return ou;
+			}));
+		}
+		result.sort(Comparator.comparing(OUTreeForm::getText));
+		return result;
 	}
 
 	public List<OUTreeFormWithTags> getAllTreeWithTags() {
@@ -588,6 +617,12 @@ public class OrgUnitService {
 			changes = true;
 		}
 
+		// changing manager is allowed even though los module is not enabled
+		log.trace("configuration.getModules().getManager().isEditEnabled(): " + configuration.getModules().getManager().isEditEnabled());
+		if (configuration.getModules().getManager().isEditEnabled() && managerService.editSelectedManager(orgUnit, coreInfoDTO.getManager())) {
+			changes = true;
+		}
+
 		if (!Objects.equals(orgUnit.isDoNotTransferToFkOrg(), coreInfoDTO.isDoNotTransferToFKOrg())) {
 			orgUnit.setDoNotTransferToFkOrg(coreInfoDTO.isDoNotTransferToFKOrg());
 			changes = true;
@@ -703,10 +738,6 @@ public class OrgUnitService {
 					changes = true;
 				}
 
-				if (configuration.getModules().getManager().isEditEnabled() && managerService.editManager(orgUnit, coreInfoDTO.getManager())) {
-					changes = true;
-				}
-
 				if (orgUnit.getParent() == null && StringUtils.hasLength(coreInfoDTO.getParent())) {
 					log.warn("Tried to move a root OrgUnit.");
 				}
@@ -725,7 +756,6 @@ public class OrgUnitService {
 						else {
 							if (!orgUnit.getParent().getUuid().equals(newParent.getUuid())) {
 								orgUnit.setParent(newParent);
-								managerService.checkAndSetManager(orgUnit);
 								changes = true;
 							}
 						}
@@ -737,6 +767,7 @@ public class OrgUnitService {
 
 		if (changes) {
 			// use autowired instance to ensure interceptors are called
+			log.trace("Saving orgunit " + orgUnit.getUuid() + ", selectedManager: " + orgUnit.getSelectedManagerUuid() + ", importedManager: " + orgUnit.getImportedManagerUuid());
 			self.save(orgUnit);
 
 			// if changes was made to the fk org transfer setting we also need to update children to respect inheritance
@@ -994,7 +1025,7 @@ public class OrgUnitService {
 	public List<OrgUnit> getByOrgUnitTypeId(Long orgUnitTypeId) {
 		return orgUnitDao.findByOrgTypeId(orgUnitTypeId);
 	}
-	
+
 	public void delete(OrgUnit orgUnit) {
 		ModificationHistory modificationHistory = new ModificationHistory();
 		modificationHistory.setEntity(EntityType.ORGUNIT);
@@ -1051,5 +1082,9 @@ public class OrgUnitService {
 			modificationHistoryService.insert(modificationHistory);
 			forceUpdateChildren(child);
 		});
+	}
+
+	public List<OrgUnit> searchOrgUnits(String query) {
+		return orgUnitDao.searchOrgUnits(query);
 	}
 }

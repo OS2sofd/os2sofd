@@ -40,7 +40,7 @@
 								</td>
 								<td>
 									<a th:href="@{/chart/{uuid}(uuid=${diag.uuid})}" target="_blank"><em class="fa fa-fw fa-search" th:title="#{html.mouseover.view}"></em></a>
-									<a onclick="editDiagram(this);" href="#" th:attr="data-id=${diag.id}"><em class="fa fa-fw fa-pencil" th:title="#{html.mouseover.edit}"></em></a>
+									<a onclick="editDiagram(this);" href="#" th:attr="data-id=${diag.id}, data-orgId=${diag.organisation.id}"><em class="fa fa-fw fa-pencil" th:title="#{html.mouseover.edit}"></em></a>
 									<a onclick="handleDelete(this);" href="#" th:attr="data-id=${diag.id}"><em class="fa fa-fw fa-remove" th:title="#{html.mouseover.delete}"></em></a>
 								</td>
 							</tr>
@@ -71,6 +71,15 @@
 						<label th:text="#{html.entity.organisationsdiagram.name}" class="col-sm-3 control-label"></label>
 						<div class="col-sm-9">
 							<input id="editDiagramName" class="form-control" />
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label th:text="#{html.entity.organisationsdiagram.choices}" class="col-sm-3 control-label"></label>
+						<div class="col-sm-9">
+							<select id="editSelectOu" class="form-control m-b" onchange="onSelectChange()">
+								<option th:each="ou : ${organisations}" th:value="${ou.id}" th:text="${ou.name}"></option>
+							</select>
 						</div>
 					</div>
 
@@ -213,7 +222,6 @@
 				iconBase: 'fa',
 				tickIcon: 'fa-check text-success'
 			});
-
 			initCodeMirror();
 
 			getOrgUnits(0);
@@ -244,6 +252,16 @@
 
 		function editDiagram(obj) {
 			var id = $(obj).attr('data-id');
+			var orgId = $(obj).attr('data-orgId');
+			if (orgId) {
+				$('#editSelectOu').val(orgId).change();
+			} else {
+				// Destroy the tree, initialise it again... Weird case when creating and closing before saving
+				$('#ou-tree').jstree("destroy");
+				getOrgUnits(0);
+				$("#fakeOrgUnits").empty();
+				$('#editSelectOu option:first').prop('selected', true);
+			}
 
 			$.ajax({
 				url: restUrl + '/' + id,
@@ -259,30 +277,32 @@
 					$('#editDiagramInheritEnabled').prop("checked", data.inheritEnabled);
 					$('#editDiagramLeaderEnabled').prop("checked", data.leaderEnabled);
 					$("#editDiagramHideInheritedManagers").prop("checked", data.hideInheritedManagers);
-					
+
 					if (data.leaderEnabled) {
 						$("#hideInheritedManagersGroup").show();
 					} else {
 						$("#hideInheritedManagersGroup").hide();
 						$('#editDiagramHideInheritedManagers').prop("checked", false);
 					}
-					
 					editor.getDoc().setValue(data.style);
-					
-					
-					//Set selected OUs
-					$('#ou-tree').jstree("deselect_all");
-					$('#ou-tree').jstree('select_node', data.orgUnits);
+					$('#ou-tree').jstree("deselect_all", true);
 
-					var selectedOUs = $('#ou-tree').jstree('get_selected', true);
+					// Instead of using a timeout we wait for the tree to refresh as it caused issues when opening modals over and over
+					$('#ou-tree')
+							.on('refresh.jstree', function () {
+								$('#ou-tree').jstree('select_node', data.orgUnits);
 
-					$("#orgUnits").empty();
-					$("#fakeOrgUnits").empty();
-					for (var i=0; i < selectedOUs.length; i++) {
-						$("#orgUnits").append('<option value=\"'+selectedOUs[i].id+'\" selected="selected">'+selectedOUs[i].text+"</option>");
-						$("#fakeOrgUnits").append('<option>'+selectedOUs[i].text+"</option>");
-					}
-					
+								var selectedOUs = $('#ou-tree').jstree('get_selected', true);
+								$("#orgUnits").empty();
+								$("#fakeOrgUnits").empty();
+								for (var i = 0; i < selectedOUs.length; i++) {
+									$("#orgUnits").append('<option value="' + selectedOUs[i].id + '" selected="selected">' + selectedOUs[i].text + '</option>');
+									$("#fakeOrgUnits").append('<option>' + selectedOUs[i].text + '</option>');
+								}
+
+								$(this).off('refresh.jstree');
+							})
+							.jstree(true) ? $('#ou-tree').jstree(true).refresh() : $('#ou-tree').jstree();
 					$('#editDiagramModal').modal("show");
 				},
 				error: function(jqXhr, textStatus, errorThrown) {
@@ -294,9 +314,7 @@
 					$('#editDiagramLeaderEnabled').prop("checked", false);
 					$('#editDiagramHideInheritedManagers').prop("checked", false);
 					$("#hideInheritedManagersGroup").hide();
-					
 					editor.getDoc().setValue(defaultStyle);
-					
 					$('#editDiagramModal').modal("show");
 				}
 			});
@@ -333,7 +351,8 @@
 					'inheritEnabled' : $('#editDiagramInheritEnabled').prop("checked"),
 					'leaderEnabled' : $('#editDiagramLeaderEnabled').prop("checked"),
 					'style' : editor.getValue(),
-					'hideInheritedManagers' : $("#editDiagramHideInheritedManagers").prop("checked")
+					'hideInheritedManagers' : $("#editDiagramHideInheritedManagers").prop("checked"),
+					'organisation' : $('#editSelectOu').val()
 				}),
 				success: function(data, textStatus, jQxhr) {
 					//setTimeout(() => location.reload(true), 500);
@@ -408,9 +427,9 @@
 			});
 		}
 
-		function getOrgUnits(level) {
+		function getOrgUnits(level, id=0) {
 			$.ajax({
-				url: restUrl + '/orgUnitTree/' + level,
+				url: restUrl + '/orgUnitTree/' + level + '/' + id,
 				headers: {
 					'X-CSRF-TOKEN': token
 				},
@@ -468,6 +487,11 @@
 				}, 400);
 			});
 		};
+
+		function onSelectChange() {
+			$("#ou-tree").jstree('destroy');
+			getOrgUnits(0, $('#editSelectOu').val());
+		}
 
 		function chooseOU() {
 			$('#modal-ou').modal('show');

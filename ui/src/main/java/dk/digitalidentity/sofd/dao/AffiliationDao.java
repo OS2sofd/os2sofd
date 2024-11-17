@@ -20,10 +20,10 @@ public interface AffiliationDao extends CrudRepository<Affiliation, Long> {
 
 	List<Affiliation> findByOrgUnit(OrgUnit orgUnit);
 
-	@Query(value = "SELECT * FROM affiliations a LEFT JOIN (SELECT orgunit_uuid, affiliation_id FROM affiliations_workplaces aw WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate() LIMIT 1) workplace ON workplace.affiliation_id = a.id WHERE COALESCE(workplace.orgunit_uuid, a.`alt_orgunit_uuid`, a.`orgunit_uuid`)  = ?1", nativeQuery = true)
+	@Query(value = "SELECT * FROM affiliations a LEFT JOIN (SELECT orgunit_uuid, affiliation_id FROM affiliations_workplaces aw WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate()) workplace ON workplace.affiliation_id = a.id WHERE COALESCE(workplace.orgunit_uuid, a.`alt_orgunit_uuid`, a.`orgunit_uuid`)  = ?1", nativeQuery = true)
 	List<Affiliation> findByCalculatedOrgUnit(String orgUnitUuid);
 
-	@Query(value = "SELECT COUNT(*) FROM affiliations a LEFT JOIN (SELECT orgunit_uuid, affiliation_id FROM affiliations_workplaces aw WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate() LIMIT 1) workplace ON workplace.affiliation_id = a.id WHERE COALESCE(workplace.orgunit_uuid, a.`alt_orgunit_uuid`, a.`orgunit_uuid`) = ?1 AND deleted = 0 AND (stop_date IS NULL OR CAST(stop_date AS DATE) >= CAST(CURRENT_TIMESTAMP AS DATE))", nativeQuery = true)
+	@Query(value = "SELECT COUNT(*) FROM affiliations a LEFT JOIN (SELECT orgunit_uuid, affiliation_id FROM affiliations_workplaces aw WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate()) workplace ON workplace.affiliation_id = a.id WHERE COALESCE(workplace.orgunit_uuid, a.`alt_orgunit_uuid`, a.`orgunit_uuid`) = ?1 AND deleted = 0 AND (stop_date IS NULL OR CAST(stop_date AS DATE) >= CAST(CURRENT_TIMESTAMP AS DATE))", nativeQuery = true)
 	Long countByOrgUnitAndActive(String orgUnitUuid);
 
 	@Query(value = """
@@ -45,7 +45,7 @@ public interface AffiliationDao extends CrudRepository<Affiliation, Long> {
 			""", nativeQuery = true)
 	Long countByOrgUnitAndActiveRecursive(String orgUnitUuid);
 
-	@Query(value = "SELECT * FROM affiliations a LEFT JOIN (SELECT orgunit_uuid, affiliation_id FROM affiliations_workplaces aw WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate() LIMIT 1) workplace ON workplace.affiliation_id = a.id WHERE COALESCE(workplace.orgunit_uuid, a.alt_orgunit_uuid, a.orgunit_uuid) = ?1 AND deleted = 0 AND (stop_date IS NULL OR CAST(stop_date AS DATE) >= CAST(CURRENT_TIMESTAMP AS DATE))", nativeQuery = true)
+	@Query(value = "SELECT * FROM affiliations a LEFT JOIN (SELECT orgunit_uuid, affiliation_id FROM affiliations_workplaces aw WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate()) workplace ON workplace.affiliation_id = a.id WHERE COALESCE(workplace.orgunit_uuid, a.alt_orgunit_uuid, a.orgunit_uuid) = ?1 AND deleted = 0 AND (stop_date IS NULL OR CAST(stop_date AS DATE) >= CAST(CURRENT_TIMESTAMP AS DATE))", nativeQuery = true)
 	List<Affiliation> findByCalculatedOrgUnitAndActive(String orgUnitUuid);
 
 	@Modifying
@@ -57,4 +57,19 @@ public interface AffiliationDao extends CrudRepository<Affiliation, Long> {
 
 	List<Affiliation> findByEmployeeId(String employeeId);
 	List<Affiliation> findByUseAsPrimaryWhenActiveTrue();
+
+	@Query(nativeQuery = true, value = """
+			select
+				case when count(*) > 0 then 'true' else 'false' end
+			from
+			(
+				select person_uuid,master from affiliations
+				union
+				select person_uuid,master from affiliations_aud
+			) sub
+			where
+				sub.person_uuid = :personUuid
+				and sub.master in (:masters)
+			""")
+	boolean anyAffiliationWithMasterInExisted(String personUuid, List<String> masters);
 }

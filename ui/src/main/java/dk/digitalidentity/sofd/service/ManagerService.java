@@ -1,28 +1,34 @@
 package dk.digitalidentity.sofd.service;
 
-import static dk.digitalidentity.sofd.util.NullChecker.*;
-
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-
 import dk.digitalidentity.sofd.config.SofdConfiguration;
+import dk.digitalidentity.sofd.dao.OrgUnitDao;
+import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.EmailTemplate;
 import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
-import dk.digitalidentity.sofd.dao.model.OrgUnitManager;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplatePlaceholder;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplateType;
+import dk.digitalidentity.sofd.dao.model.enums.OrgUnitManagerSource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.util.List;
+import java.util.Objects;
+
+import static dk.digitalidentity.sofd.util.NullChecker.getValue;
 
 @Slf4j
 @Service
 public class ManagerService {
+	@Autowired
+	private OrgUnitDao orgUnitDao;
+
+	@Autowired
+	OrgUnitService orgUnitService;
 
 	@Autowired
 	private PersonService personService;
@@ -39,90 +45,154 @@ public class ManagerService {
 	@Autowired
 	private SofdConfiguration configuration;
 
-	public void checkAndSetManager(OrgUnit orgUnit) {
-		Person parentManager = orgUnit.getParent() != null && orgUnit.getParent().getManager() != null ? orgUnit.getParent().getManager().getManager() : null;
-		setManagerOnOrgUnitRecursive(orgUnit, parentManager);
+	// todo: only used once per municipality - remove once all are migrated
+	@Transactional
+	public void migrateManagers() {
+		if( configuration.getModules().getManager().isEditEnabled() ) {
+			orgUnitDao.migrateSelectedManagers();
+		}
+		else
+		{
+			orgUnitDao.migrateImportedManagers();
+		}
 	}
 
-	public boolean editManager(OrgUnit orgUnit, String managerUuid) {
+	@Transactional
+	public void ensureValidManagers() {
+		var allOrgUnits = orgUnitService.getAll();
+		for( var orgUnit : allOrgUnits ) {
+			try {
+				// cleanup imported managers
+				if(orgUnit.getImportedManagerUuid() != null ) {
+					var validManager = getValidManager(orgUnit.getImportedManagerUuid());
+					if( validManager == null )
+					{
+						var previousManager = orgUnit.getImportedManagerUuid();
+						// manager is no longer valid, remove it
+						log.info("Removing invalid imported manager " + previousManager + " from orgunit " + orgUnit.getName() + " (" + orgUnit.getUuid() + ")");
+						orgUnit.setImportedManagerUuid(null);
+						orgUnitService.save(orgUnit);
+						// if orgunit has no selected manager, this change should trigger email templates
+						if(orgUnit.getSelectedManagerUuid() != null ) {
+							sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, previousManager);
+						}
+					}
+				}
 
-		if (orgUnit.getManager() != null && !StringUtils.hasText(managerUuid)) {
-			Person parentManager = orgUnit.getParent() != null && orgUnit.getParent().getManager() != null ? orgUnit.getParent().getManager().getManager() : null;
-
-			String previousManager = orgUnit.getManager().getName();
-
-			if (parentManager != null) {
-				orgUnit.setManager(new OrgUnitManager(orgUnit, parentManager, true));
+				// cleanup selected managers
+				if(orgUnit.getSelectedManagerUuid() != null ) {
+					var validManager = getValidManager(orgUnit.getSelectedManagerUuid());
+					if( validManager == null )
+					{
+						var previousManager = orgUnit.getSelectedManagerUuid();
+						// manager is no longer valid, remove it
+						log.info("Removing invalid selected manager " + previousManager + " from orgunit " + orgUnit.getName() + " (" + orgUnit.getUuid() + ")");
+						orgUnit.setSelectedManagerUuid(null);
+						// since we prefer selected over imported managers this removal should always trigger email templates
+						sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, previousManager);
+					}
+				}
 			}
-			else {
-				orgUnit.setManager(null);
+			catch(Exception e) {
+				log.error("Failed to ensure valid manager for orgunit " + orgUnit.getName() + " (" + orgUnit.getUuid() + ")", e);
 			}
+		}
+	}
 
-			for (OrgUnit child : orgUnit.getChildren()) {
-				setManagerOnOrgUnitRecursive(child, parentManager);
+	public record OrgUnitManagerDto(String orgunitUuid, String managerUuid ) { }
+	public void importManagers(List<OrgUnitManagerDto> importManagers) {
+		var allOrgUnits = orgUnitService.getAll();
+		for( var orgUnit : allOrgUnits ) {
+			try {
+				var importedManagerUuid = importManagers.stream().filter(o -> o.orgunitUuid.equalsIgnoreCase(orgUnit.getUuid())).map(o -> o.managerUuid).findFirst().orElse(null);
+				var validManager = importedManagerUuid != null ? getValidManager(importedManagerUuid) : null;
+				var validManagerUuid = validManager != null ? validManager.getUuid() : null;
+				if( !Objects.equals(orgUnit.getImportedManagerUuid(),validManagerUuid) ) {
+					var previousManager = orgUnit.getImportedManagerUuid();
+					orgUnit.setImportedManagerUuid(validManagerUuid);
+					orgUnitService.save(orgUnit);
+					// if orgUnit does not have a selected manager, this change should trigger email templates
+					if( orgUnit.getSelectedManagerUuid() == null && !orgUnit.isDeleted() ) {
+						if( orgUnit.getImportedManagerUuid() == null ) {
+							// the manager was removed
+							sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, previousManager);
+						}
+						else
+						{
+							// the manager was changed or added
+							sendMail(orgUnit, EmailTemplateType.NEW_MANAGER, PersonService.getName(validManager));
+						}
+					}
+				}
 			}
+			catch (Exception e) {
+				log.error("Failed to set manager on orgunit: " + orgUnit.getUuid(), e);
+			}
+		}
+	}
 
-			sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, previousManager);
-
+	public boolean editSelectedManager(OrgUnit orgUnit, String managerUuid) throws Exception {
+		log.trace("editSelectedManager, orgUnit: " + orgUnit + ", managerUuid: " + managerUuid);
+		if( !StringUtils.hasLength(managerUuid)) {
+			managerUuid = null;
+		}
+		var validManager = managerUuid != null ? getValidManager(managerUuid) : null;
+		if( managerUuid != null && validManager == null ) {
+			throw new Exception("Person with uuid " + managerUuid + " is not a valid manager");
+		}
+		var validManagerUuid = validManager != null ? validManager.getUuid() : null;
+		log.trace("validManagerUuid: " + validManagerUuid);
+		// the selected manager matches the imported manager - we just remove the previously manually selected one if it exists
+		if( orgUnit.getManager() != null && orgUnit.getManager().getSource() == OrgUnitManagerSource.IMPORTED && Objects.equals(orgUnit.getManager().getManagerUuid(), validManagerUuid ))
+		{
+			if( orgUnit.getSelectedManagerUuid() != null ) {
+				var previousManager = orgUnit.getSelectedManagerUuid();
+				log.trace("Clearing selected manager");
+				orgUnit.setSelectedManagerUuid(null);
+				if( !Objects.equals(previousManager,validManagerUuid) ) {
+					// the manager was removed
+					sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, previousManager);
+				}
+				return true;
+			}
+		}
+		// selected manager matches already selected manager (either directly or inherited)
+		else if( orgUnit.getManager() != null && orgUnit.getManager().getSource() == OrgUnitManagerSource.SELECTED && Objects.equals(orgUnit.getManager().getManagerUuid(), validManagerUuid )) {
+			// ignore and return no changes
+			return false;
+		}
+		else if( !Objects.equals(orgUnit.getSelectedManagerUuid(), validManagerUuid ) ) {
+			// this is a change and since we prefer selected over imported managers this change should always trigger email templates
+			var previousManager = orgUnit.getManager();
+			log.trace("Setting selected manager to " + validManagerUuid);
+			orgUnit.setSelectedManagerUuid(validManagerUuid);
+			if( orgUnit.getSelectedManagerUuid() == null && previousManager != null) {
+				// the manager was removed
+				sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, orgUnit.getManager().getName());
+			}
+			else
+			{
+				// the manager was changed or added
+				sendMail(orgUnit, EmailTemplateType.NEW_MANAGER, PersonService.getName(validManager));
+			}
 			return true;
 		}
-		else if (managerWasAddedOrRemoved(orgUnit, managerUuid)) {
-			Person person = personService.getByUuid(managerUuid);
-
-			OrgUnitManager manager = new OrgUnitManager(orgUnit, person, false);
-			orgUnit.setManager(manager);
-
-			for (OrgUnit child : orgUnit.getChildren()) {
-				setManagerOnOrgUnitRecursive(child, person);
-			}
-
-			sendMail(orgUnit, EmailTemplateType.NEW_MANAGER, PersonService.getName(person));
-
-			return true;
-		}
-
 		return false;
 	}
 
-	private void setManagerOnOrgUnitRecursive(OrgUnit orgUnit, Person person) {
-
-		if (orgUnit.getManager() != null && orgUnit.getManager().isInherited() == false) {
-			// break the recursion
-			return;
+	private Person getValidManager(String managerUuid) {
+		var person = personService.getByUuid(managerUuid);
+		var isValid = person != null
+				&& !person.isForceStop()
+				&& !person.isDead()
+				&& !person.isDeleted()
+				&& !person.isOnActiveLeave()
+				&& person.getAffiliations().stream().anyMatch(Affiliation::isPrime);
+		if( !isValid ) {
+			log.warn("Invalid managerUuid: " + managerUuid );
+			return null;
 		}
-		else {
-
-			// set manager
-			if (person == null) {
-				orgUnit.setManager(null);
-				log.info("Removing Manager on " + orgUnit.getName());
-			}
-			else {
-				OrgUnitManager manager = new OrgUnitManager(orgUnit, person, true);
-				orgUnit.setManager(manager);
-				log.info("Setting Manager on " + orgUnit.getName());
-			}
-		}
-
-		if( orgUnit.getChildren() != null ) {
-			for (OrgUnit child : orgUnit.getChildren()) {
-				setManagerOnOrgUnitRecursive(child, person);
-			}
-		}
-	}
-
-	private boolean managerWasAddedOrRemoved(OrgUnit orgUnit, String managerUuid) {
-
-		// Add scenario
-		if (orgUnit.getManager() == null && StringUtils.hasText(managerUuid)) {
-			return true;
-		}
-		// Modify scenario
-		else if (orgUnit.getManager() != null && !Objects.equals(orgUnit.getManager().getManager().getUuid(), managerUuid)) {
-			return true;
-		}
-
-		return false;
+		return person;
 	}
 
 	private String getSubstituteReplacementString(OrgUnit orgUnit) {
@@ -172,13 +242,9 @@ public class ManagerService {
 				continue;
 			}
 
-			if (configuration.getEmailTemplate().isOrgFilterEnabled() && template.getTemplateType().isShowOrgFilter()) {
-				List<String> excludedOUUuids = child.getExcludedOrgUnitMappings().stream().map(o -> o.getOrgUnit()).map(o -> o.getUuid()).collect(Collectors.toList());
-
-				if (excludedOUUuids.contains(orgUnit.getUuid())) {
-					log.info("Not sending email for email template child with id " + child.getId() + " for orgUnit with uuid " + orgUnit.getUuid() + ". The OU was in the excluded ous list");
-					continue;
-				}
+			if( !emailTemplateService.shouldIncludeOrgUnit(child,orgUnit.getUuid()) ) {
+				log.debug("Not sending email for email template child with id " + child.getId() + ". The OU was filtered out.");
+				continue;
 			}
 
 			for (String recipient : recipients) {

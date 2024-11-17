@@ -27,13 +27,13 @@ public class InstitutionRestController {
 	@ResponseBody
 	public ResponseEntity<String> saveInstitution(@RequestBody InstitutionDTO institutionDTO) {
 		if (!StringUtils.hasLength(institutionDTO.name()) || !StringUtils.hasLength(institutionDTO.number())) {
-			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			return new ResponseEntity<>("Udfyld både navn og institutionsnummer", HttpStatus.BAD_REQUEST);
 		}
 
 		Institution institution = new Institution();
 		institution.setUuid(UUID.randomUUID().toString());
-		institution.setInstitutionNumber(institutionDTO.number());
-		institution.setName(institutionDTO.name());
+		institution.setInstitutionNumber(institutionDTO.number().trim());
+		institution.setName(institutionDTO.name().trim());
 		institutionService.save(institution);
 
 		return new ResponseEntity<>(HttpStatus.OK);

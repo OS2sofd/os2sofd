@@ -49,10 +49,11 @@ public class EmployeesInformationXlsView extends AbstractXlsxStreamingView {
 				courseRow.createCell(5).setCellValue(employeeWithUsersDTO.getStopDate());
 				courseRow.createCell(6).setCellValue("");
 				courseRow.createCell(7).setCellValue("");
-				courseRow.createCell(8).setCellValue(employeeWithUsersDTO.getOrgUnitUuid());
-				courseRow.createCell(9).setCellValue(employeeWithUsersDTO.getOrgUnitName());
-				courseRow.createCell(10).setCellValue(employeeWithUsersDTO.getManager());
-				courseRow.createCell(11).setCellValue(employeeWithUsersDTO.getInternalReference());
+				courseRow.createCell(8).setCellValue("");
+				courseRow.createCell(9).setCellValue(employeeWithUsersDTO.getOrgUnitUuid());
+				courseRow.createCell(10).setCellValue(employeeWithUsersDTO.getOrgUnitName());
+				courseRow.createCell(11).setCellValue(employeeWithUsersDTO.getManager());
+				courseRow.createCell(12).setCellValue(employeeWithUsersDTO.getInternalReference());
 			}
 			else {
 				for (User user : employeeWithUsersDTO.getUsers()) {
@@ -64,11 +65,12 @@ public class EmployeesInformationXlsView extends AbstractXlsxStreamingView {
 					courseRow.createCell(4).setCellValue(employeeWithUsersDTO.getStartDate());
 					courseRow.createCell(5).setCellValue(employeeWithUsersDTO.getStopDate());
 					courseRow.createCell(6).setCellValue(user.getUserId());
-					courseRow.createCell(7).setCellValue(supportedUserTypeService.getPrettyName(user.getUserType()));
-					courseRow.createCell(8).setCellValue(employeeWithUsersDTO.getOrgUnitUuid());
-					courseRow.createCell(9).setCellValue(employeeWithUsersDTO.getOrgUnitName());
-					courseRow.createCell(10).setCellValue(employeeWithUsersDTO.getManager());
-					courseRow.createCell(11).setCellValue(employeeWithUsersDTO.getInternalReference());
+					courseRow.createCell(7).setCellValue(user.getActiveDirectoryDetails() != null ? user.getActiveDirectoryDetails().getKombitUuid() : "");
+					courseRow.createCell(8).setCellValue(supportedUserTypeService.getPrettyName(user.getUserType()));
+					courseRow.createCell(9).setCellValue(employeeWithUsersDTO.getOrgUnitUuid());
+					courseRow.createCell(10).setCellValue(employeeWithUsersDTO.getOrgUnitName());
+					courseRow.createCell(11).setCellValue(employeeWithUsersDTO.getManager());
+					courseRow.createCell(12).setCellValue(employeeWithUsersDTO.getInternalReference());
 				}
 			}
 		}
@@ -87,6 +89,7 @@ public class EmployeesInformationXlsView extends AbstractXlsxStreamingView {
 		String hEmploymentTerms = messageSource.getMessage("xls.employees.header.employment_terms", null, locale);
 		String hOrgUnitUuid = messageSource.getMessage("xls.employees.header.orgunit_uuid", null, locale);
 		String hInternalReference = messageSource.getMessage("xls.employees.header.internal_reference", null, locale);
+		String hKombitUuid = messageSource.getMessage("xls.employees.header.kombit_uuid", null, locale);
 
 		Font headerFont = workbook.createFont();
 		headerFont.setBold(true);
@@ -102,11 +105,12 @@ public class EmployeesInformationXlsView extends AbstractXlsxStreamingView {
 		createCell(header, 4, hStartDate, headerStyle);
 		createCell(header, 5, hStopDate, headerStyle);
 		createCell(header, 6, hUserName, headerStyle);
-		createCell(header, 7, hUserType, headerStyle);
-		createCell(header, 8, hOrgUnitUuid, headerStyle);
-		createCell(header, 9, hOrgUnit, headerStyle);
-		createCell(header, 10, hManager, headerStyle);
-		createCell(header, 11, hInternalReference, headerStyle);
+		createCell(header, 7, hKombitUuid, headerStyle);
+		createCell(header, 8, hUserType, headerStyle);
+		createCell(header, 9, hOrgUnitUuid, headerStyle);
+		createCell(header, 10, hOrgUnit, headerStyle);
+		createCell(header, 11, hManager, headerStyle);
+		createCell(header, 12, hInternalReference, headerStyle);
 	}
 
 	private static void createCell(Row header, int column, String value, CellStyle style) {

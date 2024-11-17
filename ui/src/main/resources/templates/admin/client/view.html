@@ -73,8 +73,81 @@
 				</div>
 			</div>
 		</section>
+
+		<section>
+			<div class="content-wrapper">
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<div class="row">
+							<div class="col-lg-12">
+								<div class="panel-heading" style="text-align: right;">
+									<a th:href="@{/ui/client/knownnetworks/edit/} + ${client.id}" class="btn btn-primary">
+										<em class="fa fa-pencil"></em>
+										&nbsp;
+										Redigér
+									</a>
+								</div>
+								<p>
+									Nedenfor kan der vedligeholdes en liste af kendte whitelist'ede netværk til klienten. Dette gøres via <a href="https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing">CIDR/slash notation</a> (eksempel: 192.0.2.0/24).
+									Såfremt ingen netværk opgives, vil alle netværk være tilladt.
+								</p>
+
+								<div class="table-responsive">
+									<table id="knownNetworks" class="table table-striped table-bordered table-hover" >
+										<thead>
+										<tr>
+											<th>Kendte netværk</th>
+										</tr>
+										</thead>
+
+										<tbody>
+										<tr th:each="network : ${clientNetworks}">
+											<td th:text="${network.ip}"></td>
+										</tr>
+										</tbody>
+
+									</table>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+
 	</div>
 
 	<div th:replace="fragments/footer :: footer"></div>
+	<script th:inline="javascript">
+
+		/*<![CDATA[*/
+
+        /*[+
+        +]*/
+
+        var token = $("meta[name='_csrf']").attr("content");
+
+        $(document).ready(function() {
+            $('#knownNetworks').DataTable({
+                "bSort": false,
+                "paging": false,
+                "responsive": true,
+                "dom": "<'row'<'col-sm-12'tr>>",
+                "language": {
+                    "info":         "Viser _START_ til _END_ af _TOTAL_ netværk",
+                    "zeroRecords":  "Ingen netværk...",
+                    "infoEmpty":    "Ingen netværk...",
+                    "paginate": {
+                        "previous": "Forrige",
+                        "next": "Næste"
+                    }
+                }
+            });
+        });
+
+    /*]]>*/
+	</script>
+
 </body>
 </html>

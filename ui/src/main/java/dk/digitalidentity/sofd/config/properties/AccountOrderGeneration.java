@@ -9,4 +9,5 @@ import lombok.Setter;
 @Setter
 public class AccountOrderGeneration {
 	private List<String> masters;
+	private boolean ignoreDeleteOrdersIfNoAffiliations = true;
 }

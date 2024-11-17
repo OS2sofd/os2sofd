@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import dk.digitalidentity.sofd.dao.model.Organisation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -43,12 +44,15 @@ public class ChartController {
 		}
 		
 		// convert orgUnits to chart dtos. Every ChartDTO in the charts list is a diagram in the ui
-		List<OrgUnit> allOus = orgUnitService.getAllActiveCached();
-		OrgUnit rootOU = allOus.stream().filter(o -> o.getParent() == null).findFirst().orElse(null);
-		List<ChartDTO> charts = new ArrayList<>();
 		List<String> uuidsInChart = new ArrayList<>();
-		getChildrenRecursive(allOus, chart, rootOU, charts, false, null, 1, uuidsInChart);
-		
+		List<ChartDTO> charts = new ArrayList<>();
+        if (!chart.getOrgUnits().isEmpty()) {
+			OrgUnit orgUnit = chart.getOrgUnits().get(0);
+			Organisation belongsTo = orgUnit.getBelongsTo();
+			List<OrgUnit> allOus = orgUnitService.getAllActiveCached(belongsTo);
+			OrgUnit rootOU = allOus.stream().filter(o -> o.getParent() == null).findFirst().orElse(null);
+			getChildrenRecursive(allOus, chart, rootOU, charts, false, null, 1, uuidsInChart);
+        }
 		// maybe filter out managers that are inherited
 		if (chart.isLeaderEnabled()) {
 			for (ChartDTO dto : charts) {

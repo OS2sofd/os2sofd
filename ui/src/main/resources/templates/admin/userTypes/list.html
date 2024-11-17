@@ -352,7 +352,7 @@
 				$("#infixStrategyUserTypeBlock").show();
 				$("#infixStrategyValueBlock").hide();
 			}
-			else if (strategy == 'RANDOM' || strategy == 'FROM_NAME' || strategy == 'NUMBER' ) {
+			else if (strategy == 'RANDOM' || strategy == 'FROM_NAME' || strategy == 'NUMBER' || strategy == 'FROM_NAME_SERIAL') {
 				$("#infixStrategyUserTypeBlock").hide();
 				$("#infixStrategyValueBlock").show();
 			}
@@ -435,7 +435,7 @@
 			
 			$('#infixStrategyUserType').val(infixValue);
 		}
-		else if (infix == 'RANDOM' || infix == 'FROM_NAME' || infix == 'FROM_NAME_LONG' || infix == 'FROM_NAME_FULL' || infix == 'NUMBER' || infix == 'NAME23SERIAL' ) {
+		else if (infix == 'RANDOM' || infix == 'FROM_NAME' || infix == 'FROM_NAME_LONG' || infix == 'FROM_NAME_FULL' || infix == 'NUMBER' || infix == 'NAME23SERIAL' || infix == 'FROM_NAME_SERIAL') {
 			$("#infixStrategyValue").val(infixValue);
 		}
 		else {
@@ -495,7 +495,7 @@
 		if (infix == 'SAME_AS_OTHER') {
 			infixValue = $('#infixStrategyUserType').val();
 		}
-		else if (infix == 'RANDOM' || infix == 'FROM_NAME' || infix == 'FROM_NAME_LONG' || infix == 'FROM_NAME_FULL' || infix == 'NUMBER' || infix == 'NAME23SERIAL') {
+		else if (infix == 'RANDOM' || infix == 'FROM_NAME' || infix == 'FROM_NAME_LONG' || infix == 'FROM_NAME_FULL' || infix == 'NUMBER' || infix == 'NAME23SERIAL' || infix == 'FROM_NAME_SERIAL') {
 			infixValue = $("#infixStrategyValue").val();
 		}
 

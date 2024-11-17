@@ -103,13 +103,10 @@ public class RolePostProcesser implements SamlLoginPostProcessor {
 				newAuthorities.add(new SamlGrantedAuthority(RoleConstants.USER_ROLE_EDIT, null, null));
 				newAuthorities.add(new SamlGrantedAuthority(RoleConstants.USER_ROLE_READ, null, null));
 				newAuthorities.add(new SamlGrantedAuthority(RoleConstants.USER_ROLE_EDIT_CONTACT_INFO, null, null));
+				newAuthorities.add(new SamlGrantedAuthority(RoleConstants.USER_ROLE_TELEPHONY, null, null));
 				
 				if (configuration.getModules().getLos().isEnabled()) {
 					newAuthorities.add(new SamlGrantedAuthority(RoleConstants.USER_ROLE_LOS_ADMIN, null, null));
-				}
-
-				if (configuration.getModules().getTelephony().isEnabled()) {
-					newAuthorities.add(new SamlGrantedAuthority(RoleConstants.USER_ROLE_TELEPHONY, null, null));
 				}
 
 				canSeeNotifications = true;

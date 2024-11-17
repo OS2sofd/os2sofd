@@ -2,9 +2,11 @@ package dk.digitalidentity.sofd.config;
 
 import java.io.IOException;
 import java.security.cert.X509Certificate;
+import java.util.Collections;
 
 import javax.net.ssl.SSLContext;
 
+import dk.digitalidentity.sofd.interceptor.RequestResponseLoggingInterceptor;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -14,6 +16,7 @@ import org.apache.http.ssl.TrustStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.util.ResourceUtils;
@@ -25,6 +28,9 @@ public class RestTemplateConfiguration {
 
 	@Autowired
 	private SofdConfiguration configuration;
+
+	@Autowired
+	RequestResponseLoggingInterceptor responseLoggingInterceptor;
 
 	@Bean(name = "defaultRestTemplate")
 	public RestTemplate restTemplate() {
@@ -63,10 +69,10 @@ public class RestTemplateConfiguration {
 						.build();
 		}
 
-		HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory();
-		requestFactory.setHttpClient(client);
+		BufferingClientHttpRequestFactory requestFactory = new BufferingClientHttpRequestFactory(new HttpComponentsClientHttpRequestFactory(client));
 
 		RestTemplate restTemplate = new RestTemplate(requestFactory);
+		restTemplate.setInterceptors(Collections.singletonList(new RequestResponseLoggingInterceptor()));
 		restTemplate.setErrorHandler(new ResponseErrorHandler() {
 			
 			@Override

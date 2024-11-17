@@ -17,6 +17,10 @@ AS
          `persons`.`key_words`                  AS `key_words`,
          `persons`.`notes`                      AS `notes`,
          `persons`.`taxed_phone`                AS `taxed_phone`,
-         `persons`.`disable_account_orders`     AS `disable_account_orders`,
+         `persons`.`disable_account_orders_create`  AS `disable_account_orders_create`,
+         `persons`.`disable_account_orders_disable`  AS `disable_account_orders_disable`,
+         `persons`.`disable_account_orders_delete`  AS `disable_account_orders_delete`,
+         (`persons`.`disable_account_orders_delete` OR `persons`.`disable_account_orders_disable` OR `persons`.`disable_account_orders_delete`)
+             AS `disable_account_orders`,
          `persons`.`force_stop`                 AS `force_stop`
   FROM   `persons`;

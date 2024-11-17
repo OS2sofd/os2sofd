@@ -52,6 +52,11 @@ public class SyncController {
 		return syncService.getADGridAllAD();
 	}
 	
+	@GetMapping("/api/sync/adgrid/allazure")
+	public Collection<ADGridAD> adGridAllAzure() {
+		return syncService.getADGridAllAzure();
+	}
+
 	@GetMapping("/api/sync/adgrid/orgunits")
 	public Collection<ADGridOrgUnit> adGridOrgUnits() {
 		return syncService.getADGridOrgUnits();

@@ -27,7 +27,6 @@ import dk.digitalidentity.sofd.dao.model.Workplace;
 import dk.digitalidentity.sofd.dao.model.enums.AffiliationType;
 import dk.digitalidentity.sofd.dao.model.mapping.AffiliationPrimaryKleMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.AffiliationSecondaryKleMapping;
-import dk.digitalidentity.sofd.security.RequireAdminAccess;
 import dk.digitalidentity.sofd.security.RequireControllerWriteAccess;
 import dk.digitalidentity.sofd.security.RequirePersonCreaterOrControllerWriteAccess;
 import dk.digitalidentity.sofd.security.SecurityUtil;
@@ -140,7 +139,7 @@ public class AffiliationRestController {
 								 String orgUnitUuid, Date startDate, Date stopDate, AffiliationType affiliationType,
 								 String internalReference, String vendor, boolean transferFKOrg) {}
 	
-	@RequireAdminAccess
+	@RequirePersonCreaterOrControllerWriteAccess
 	@PostMapping(value = "/rest/affil/core/edit/{uuid}")
 	@ResponseBody
 	public HttpEntity<String> edit(@PathVariable("uuid") String uuid, @RequestBody AffiliationEditRecord body) {

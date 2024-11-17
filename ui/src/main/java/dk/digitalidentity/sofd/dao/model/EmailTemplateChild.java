@@ -17,6 +17,7 @@ import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 
+import dk.digitalidentity.sofd.dao.model.enums.EmailOrgUnitFilterType;
 import org.hibernate.annotations.BatchSize;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -79,6 +80,10 @@ public class EmailTemplateChild {
 	@Column
 	private boolean onlyManualRecipients;
 
+	@Enumerated(EnumType.STRING)
+	@Column
+	private EmailOrgUnitFilterType orgUnitFilterType;
+
 	@JsonBackReference
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "email_template_id")
@@ -86,10 +91,13 @@ public class EmailTemplateChild {
 	
 	@BatchSize(size = 50)
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, mappedBy = "emailTemplateChild")
-	private List<EmailTemplateChildOrgUnitMapping> excludedOrgUnitMappings;
+	private List<EmailTemplateChildOrgUnitMapping> orgUnitFilterMappings;
 	
 	@OneToMany(mappedBy = "emailTemplateChild", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
 	private List<Attachment> attachments;
+
+	@Column
+	private boolean rawTemplate;
 
 	// when sending emails, it is done Async, so on another thread, with no session open
 	public void forceLoadAttachments() {

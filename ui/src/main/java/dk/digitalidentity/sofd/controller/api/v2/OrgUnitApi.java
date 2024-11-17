@@ -258,18 +258,6 @@ public class OrgUnitApi {
 			}
 		}
 
-		if (record.getManager() != null && !Objects.equals(record.getManager(), orgUnit.getManager())) {
-			if (StringUtils.hasLength(record.getManager().getName())) {
-				managerService.sendMail(orgUnit, EmailTemplateType.NEW_MANAGER, record.getManager().getName());
-			}
-
-			orgUnit.setManager(record.getManager());
-
-			// we need to set a reference back to this orgUnit
-			orgUnit.getManager().setOrgUnit(orgUnit);
-			changes = true;
-		}
-
 		// if there are changes, flip any delete flag (unless the change was an actual delete of course ;))
 		if (changes && !record.isDeleted()) {
 			orgUnit.setDeleted(false);

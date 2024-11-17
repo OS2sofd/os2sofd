@@ -6,6 +6,7 @@ import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -18,11 +19,8 @@ import dk.digitalidentity.sofd.security.RequireDaoWriteAccess;
 public interface OrgUnitDao extends JpaRepository<OrgUnit, String> {
 
 	List<OrgUnit> findByManagerManager(Person manager);
-
 	List<OrgUnit> findByDeletedFalseAndBelongsTo(Organisation organisation);
-
 	List<OrgUnit> findByBelongsTo(Organisation organisation);
-
 	Page<OrgUnit> findByBelongsTo(Organisation organisation, Pageable pageable);
 
 	OrgUnit findByMasterId(String masterId);
@@ -113,4 +111,35 @@ public interface OrgUnitDao extends JpaRepository<OrgUnit, String> {
 		""")
 	Set<String> getDoNotTransferToFKOrgUuids();
 
+	// todo: only used once per municipality from OrgUnitManagerMigrationOneOff - remove once all are migrated
+	@Modifying
+	@Query(nativeQuery = true, value = """
+				update orgunits o
+				left join orgunits_manager om on om.orgunit_uuid = o.uuid and om.inherited = 0
+				set o.selected_manager_uuid = om.manager_uuid
+			""")
+	void migrateSelectedManagers();
+
+	// todo: only used once per municipality from OrgUnitManagerMigrationOneOff - remove once all are migrated
+	@Modifying
+	@Query(nativeQuery = true, value = """
+				update orgunits o
+				left join orgunits_manager om on om.orgunit_uuid = o.uuid and om.inherited = 0
+				set o.imported_manager_uuid = om.manager_uuid
+			""")
+	void migrateImportedManagers();
+
+	@Query(nativeQuery = true, value = """
+				select * from orgunits o
+				where
+					o.name like concat(:query,'%')
+					or o.shortname like concat(:query,'%')
+					or o.display_name like concat(:query,'%')
+					or o.source_name like concat(:query,'%')
+					or o.pnr like concat(:query,'%')
+					or o.cvr like concat(:query,'%')
+				order by ifnull(o.display_name,o.name)
+				limit 10
+			""")
+	List<OrgUnit> searchOrgUnits(@Param("query") String query);
 }

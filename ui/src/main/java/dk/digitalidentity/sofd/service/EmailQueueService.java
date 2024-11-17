@@ -3,12 +3,15 @@ package dk.digitalidentity.sofd.service;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import javax.transaction.Transactional;
 
+import dk.digitalidentity.sofd.dao.model.Affiliation;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -138,6 +141,42 @@ public class EmailQueueService {
 			emailQueueDao.save(mail);
 		}
 	}
+
+	// this method is for eboks messages. Here child.getMinutesDelay is days and not minutes :)
+	public long getEboksDelay(Person person, EmailTemplateChild child, Affiliation affiliation) {
+		long delay = 0;
+
+		if( affiliation == null ) {
+			// find an affiliation to base delay on
+			affiliation = AffiliationService.notStoppedAffiliations(person.getAffiliations()).stream().min(Comparator.comparing(Affiliation::getStartDate)).orElse(null);
+		}
+
+		if (affiliation != null && affiliation.getStartDate() != null) {
+			Date today = new Date();
+
+			// child.getMinutesDelay = 0 means that we will send immediately
+			if (child.getMinutesDelay() > 0) {
+				if (AffiliationService.notActiveYet(affiliation, (int) child.getMinutesDelay())) {
+					// the affiliation starts in more than x (child.getMinutesDelay()) days
+					Date startDate = affiliation.getStartDate();
+					Calendar cal = Calendar.getInstance();
+					cal.setTime(startDate);
+					cal.add(Calendar.DATE, (int) (-1 * child.getMinutesDelay()));
+					Date dateToSend = cal.getTime();
+
+					long diff = dateToSend.getTime() - today.getTime();
+					delay = TimeUnit.MILLISECONDS.toMinutes(diff);
+
+					// should not happen
+					if (delay < 0) {
+						delay = 0;
+					}
+				}
+			}
+		}
+
+		return delay;
+	}
 	
 	public void queueEboks(Person person, String title, String message, long delay, EmailTemplateChild templateChild) {
 		if (!isCpr(person.getCpr())) {
@@ -206,10 +245,10 @@ public class EmailQueueService {
 			boolean success = false;
 			if (StringUtils.hasLength(email.getCpr())) {
 				if (attachments != null) {
-					success = eBoksService.sendMessageWithAttachments(email.getCpr(), email.getTitle(), email.getMessage(), attachments);
+					success = eBoksService.sendMessageWithAttachments(email.getCpr(), email.getTitle(), email.getMessage(), attachments, templateChild.isRawTemplate());
 				}
 				else {
-					success = eBoksService.sendMessage(email.getCpr(), email.getTitle(), email.getMessage());
+					success = eBoksService.sendMessage(email.getCpr(), email.getTitle(), email.getMessage(), templateChild.isRawTemplate());
 				}
 				
 				if (success) {

@@ -16,4 +16,7 @@ public class EmailTemplateConfiguration {
 	
 	@FeatureDocumentation(name = "AD-filter på mailskabeloner", description = "Giver mulighed for at have et AD-filter på visse mailskabeloner, så beskeder kun bliver sendt, hvis der er en aktiv AD-bruger")
 	private boolean adUserFilterEnabled = false;
+	
+	// allows inputting a raw HTML template
+	private boolean rawTemplatesSupported = false;
 }

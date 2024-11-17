@@ -1,5 +1,34 @@
 package dk.digitalidentity.sofd.service;
 
+import dk.digitalidentity.sofd.config.SofdConfiguration;
+import dk.digitalidentity.sofd.dao.model.Affiliation;
+import dk.digitalidentity.sofd.dao.model.ContactPlace;
+import dk.digitalidentity.sofd.dao.model.FkOrgUuid;
+import dk.digitalidentity.sofd.dao.model.Kle;
+import dk.digitalidentity.sofd.dao.model.OrgUnit;
+import dk.digitalidentity.sofd.dao.model.Person;
+import dk.digitalidentity.sofd.dao.model.Phone;
+import dk.digitalidentity.sofd.dao.model.Post;
+import dk.digitalidentity.sofd.dao.model.Setting;
+import dk.digitalidentity.sofd.dao.model.User;
+import dk.digitalidentity.sofd.dao.model.enums.CustomerSetting;
+import dk.digitalidentity.sofd.dao.model.enums.EntityType;
+import dk.digitalidentity.sofd.dao.model.enums.PhoneType;
+import dk.digitalidentity.sofd.dao.model.enums.TagType;
+import dk.digitalidentity.sofd.dao.model.enums.Visibility;
+import dk.digitalidentity.sofd.dao.model.mapping.ContactPlaceOrgUnitMapping;
+import dk.digitalidentity.sofd.service.model.SyncResult;
+import dk.digitalidentity.sofd.service.os2sync.dto.FKOU;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementCreator;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
+import javax.transaction.Transactional;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -17,37 +46,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import javax.transaction.Transactional;
-
-import dk.digitalidentity.sofd.dao.model.enums.Visibility;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementCreator;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-
-import dk.digitalidentity.sofd.config.SofdConfiguration;
-import dk.digitalidentity.sofd.dao.model.Affiliation;
-import dk.digitalidentity.sofd.dao.model.ContactPlace;
-import dk.digitalidentity.sofd.dao.model.FkOrgUuid;
-import dk.digitalidentity.sofd.dao.model.Kle;
-import dk.digitalidentity.sofd.dao.model.OrgUnit;
-import dk.digitalidentity.sofd.dao.model.Person;
-import dk.digitalidentity.sofd.dao.model.Phone;
-import dk.digitalidentity.sofd.dao.model.Post;
-import dk.digitalidentity.sofd.dao.model.Setting;
-import dk.digitalidentity.sofd.dao.model.User;
-import dk.digitalidentity.sofd.dao.model.enums.CustomerSetting;
-import dk.digitalidentity.sofd.dao.model.enums.EntityType;
-import dk.digitalidentity.sofd.dao.model.enums.PhoneType;
-import dk.digitalidentity.sofd.dao.model.enums.TagType;
-import dk.digitalidentity.sofd.dao.model.mapping.ContactPlaceOrgUnitMapping;
-import dk.digitalidentity.sofd.service.model.SyncResult;
-import dk.digitalidentity.sofd.service.os2sync.dto.FKOU;
-import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
@@ -191,7 +189,6 @@ public class OS2SyncService {
 			allContactPlaces = contactPlaceService.findAll();
 		}
 
-
 		for (String uuid : uuids) {
 			OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
 
@@ -213,6 +210,7 @@ public class OS2SyncService {
 		for (String uuid : uuids) {
 			Person person = personService.getByUuid(uuid);
 			if (person == null) {
+				log.debug("Skipping " + uuid + " because no person exists");
 				continue;
 			}
 
@@ -288,6 +286,8 @@ public class OS2SyncService {
 	}
 
 	public void deletePerson(Person person) {
+		log.debug("Deleting " + person.getUuid());
+		
 		List<FkOrgUuid> entries = fkOrgUuidService.getByPersonUuid(person.getUuid());
 
 		for (FkOrgUuid entry : entries) {
@@ -298,7 +298,8 @@ public class OS2SyncService {
 	}
 
 	public void updatePerson(Person person, Set<String> doNotTransferToFKOrgUuids) {
-
+		log.debug("Updating " + person.getUuid());
+		
 		List<Affiliation> activeAffiliations = AffiliationService.notStoppedAffiliations(person.getAffiliations()).stream()
 			.filter(a -> a.isDoNotTransferToFkOrg() == false && !doNotTransferToFKOrgUuids.contains(a.getOrgUnit().getUuid()))
 			.collect(Collectors.toList());
@@ -352,7 +353,9 @@ public class OS2SyncService {
 		List<User> adUsers = PersonService.getUsers(person)
 				.stream()
 				.filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType())
-					|| (configuration.getIntegrations().getOs2sync().isSchoolEnabled() && SupportedUserTypeService.isActiveDirectorySchool(u.getUserType())))
+					|| (configuration.getIntegrations().getOs2sync().isSchoolEnabled() &&
+							// OBS! We currently assume that AzureAD is always from a school domain (that will bite us later ;))
+							(SupportedUserTypeService.isActiveDirectorySchool(u.getUserType()) || SupportedUserTypeService.isAzureAd(u.getUserType()))))
 				.collect(Collectors.toList());
 
 		// filter out affiliations that are linked to a single user account
@@ -367,6 +370,8 @@ public class OS2SyncService {
 		List<FkOrgUuid> entries = fkOrgUuidService.getByPersonUuid(person.getUuid());
 
 		for (User adUser : adUsers) {
+			log.debug("Looking at " + adUser.getUserId() + " for update");
+
 			// what set of affiliations are we going to use for this specific AD account?
 			List<Affiliation> filteredAffiliations;
 			if (StringUtils.hasLength(adUser.getEmployeeId())) {
@@ -397,12 +402,16 @@ public class OS2SyncService {
 
 				emailValue = (emailUser.isPresent()) ? emailUser.get().getUserId() : null;
 			}
-			else if( SupportedUserTypeService.isActiveDirectorySchool(adUser.getUserType())) {
+			else if (SupportedUserTypeService.isActiveDirectorySchool(adUser.getUserType())) {
 				Optional<User> emailUser = PersonService.getUsers(person).stream()
 						.filter(u -> SupportedUserTypeService.isSchoolEmail(u.getUserType()) && Objects.equals(u.getMasterId(), adUser.getUserId()))
 						.findFirst();
 
 				emailValue = (emailUser.isPresent()) ? emailUser.get().getUserId() : null;
+			}
+			else if (SupportedUserTypeService.isAzureAd(adUser.getUserType())) {
+				// in Azure, the userId is actually an email address
+				emailValue = adUser.getUserId();
 			}
 
 			boolean blankCpr = false;
@@ -423,9 +432,12 @@ public class OS2SyncService {
 
 			// because the "adUser" might be a STIL user, we need to allow the person.uuid to be used here (though that introduces a bunch of issues
 			// at a later point, should that school-employee switch to being an administrative employee *sigh*
-			final String finalUuid = (adUser.getActiveDirectoryDetails() != null && StringUtils.hasLength(adUser.getActiveDirectoryDetails().getKombitUuid())) ? adUser.getActiveDirectoryDetails().getKombitUuid() : person.getUuid();
+			final String finalUuid = (adUser.getActiveDirectoryDetails() != null && StringUtils.hasLength(adUser.getActiveDirectoryDetails().getKombitUuid()))
+					? adUser.getActiveDirectoryDetails().getKombitUuid()
+					: (SupportedUserTypeService.isAzureAd(adUser.getUserType()) ? adUser.getMasterId() : person.getUuid());
+			
 			final String finalEmailValue = emailValue;
-			final String finalUserId = adUser.getUserId();
+			final String finalUserId = (SupportedUserTypeService.isAzureAd(adUser.getUserType()) ? getEmailSuffix(adUser.getUserId()) : adUser.getUserId());
 
 			// we want to fasttrack sync of substitute users (vikXXXX)
 			final long priority = (UserService.isSubstituteUser(adUser)) ? 8 : 10;
@@ -440,6 +452,8 @@ public class OS2SyncService {
 				}
 			}
 			else {
+				log.debug("Transfering " + adUser.getUserId() + " to OS2sync");
+				
 				GeneratedKeyHolder holder = new GeneratedKeyHolder();
 				jdbcTemplate.update(new PreparedStatementCreator() {
 
@@ -448,12 +462,12 @@ public class OS2SyncService {
 						PreparedStatement statement = con.prepareStatement(updateUserSQL, Statement.RETURN_GENERATED_KEYS);
 						statement.setString(1, finalUuid);
 						statement.setString(2, finalUserId);
-						statement.setString(3, phoneValue);
+						statement.setString(3, StringUtils.hasText(phoneValue) ? phoneValue : null);
 						statement.setString(4, finalEmailValue);
 						statement.setString(5, kspCicsValue);
 						statement.setString(6, nameValue);
 						statement.setString(7, cprValue);
-						statement.setString(8, landlineValue);
+						statement.setString(8, StringUtils.hasText(landlineValue) ? landlineValue : null);
 						statement.setString(9, configuration.getCustomer().getCvr());
 						statement.setLong(10, priority);
 
@@ -502,6 +516,19 @@ public class OS2SyncService {
 		}
 	}
 
+	private String getEmailSuffix(String userId) {
+		if (!StringUtils.hasLength(userId)) {
+			return userId;
+		}
+		
+		int idx = userId.indexOf("@");
+		if (idx < 0) {
+			return userId;
+		}
+
+		return userId.substring(0, idx);
+	}
+
 	private void updateOrgUnit(OrgUnit orgUnit, List<ContactPlace> contactPlaces) {
 
 		// find name
@@ -510,48 +537,60 @@ public class OS2SyncService {
 		// find parent
 		final String parentUuid = (orgUnit.getParent() != null) ? orgUnit.getParent().getUuid() : null;
 
-		// find mobile phone number
-		Optional<Phone> phone = OrgUnitService.getPhones(orgUnit).stream().filter(p -> p.isTypePrime() && p.getPhoneType().equals(PhoneType.MOBILE)).findFirst();
 		String phoneValueTemp = null;
-		if (!phone.isPresent()) {
-			Optional<Phone> prime = OrgUnitService.getPhones(orgUnit).stream().filter(p -> p.isPrime()).findFirst();
-
-			if (!prime.isPresent()) {
-				phoneValueTemp = null;
-			}
-			else {
-				phoneValueTemp = prime.get().getPhoneNumber();
-			}
-		}
-		else {
-			phoneValueTemp = phone.get().getPhoneNumber();
-		}
-		final String phoneValue = phoneValueTemp;
-
-		// find landline phone number
-		Optional<Phone> landline = OrgUnitService.getPhones(orgUnit).stream().filter(p -> p.isTypePrime() && p.getPhoneType().equals(PhoneType.LANDLINE)).findFirst();
 		String landlineValueTemp = null;
-		if (!landline.isPresent()) {
-			Optional<Phone> ip = OrgUnitService.getPhones(orgUnit).stream().filter(p -> p.isTypePrime() && p.getPhoneType().equals(PhoneType.IP)).findFirst();
+		// special handling of phone transfers to FK Org for orgunits tagged with SOR
+		if( orgUnit.getTags().stream().anyMatch(t -> t.getTag().getTagType() == TagType.SOR)) {
+			// No value is sent to FK Org "Telefonnummer" felt => the FK Org->SOR sync will use "Fastnetnummer" as fallback
+			phoneValueTemp = null; // yeah, redundant line...here for readability
+			// The primary phone number regardless of type is sent to FK Org "Fastnetnummer" and from there to SOR Telefonnummer
+			landlineValueTemp = OrgUnitService.getPhones(orgUnit).stream().filter(Phone::isPrime).findFirst().map(Phone::getPhoneNumber).orElse(null);
+		}
+		// normal handling of phone transfers (orgunits not tagged with SOR)
+		else
+		{
+			// find mobile phone number
+			Optional<Phone> phone = OrgUnitService.getPhones(orgUnit).stream().filter(p -> p.isTypePrime() && p.getPhoneType().equals(PhoneType.MOBILE)).findFirst();
+			if (!phone.isPresent()) {
+				Optional<Phone> prime = OrgUnitService.getPhones(orgUnit).stream().filter(p -> p.isPrime()).findFirst();
 
-			if (!ip.isPresent()) {
-				Optional<Phone> broadBand = OrgUnitService.getPhones(orgUnit).stream().filter(p -> p.isTypePrime() && p.getPhoneType().equals(PhoneType.BROADBAND)).findFirst();
-
-				if (!broadBand.isPresent()) {
-					landlineValueTemp = null;
+				if (!prime.isPresent()) {
+					phoneValueTemp = null;
 				}
 				else {
-					landlineValueTemp = broadBand.get().getPhoneNumber();
+					phoneValueTemp = prime.get().getPhoneNumber();
 				}
 			}
 			else {
-				landlineValueTemp = ip.get().getPhoneNumber();
+				phoneValueTemp = phone.get().getPhoneNumber();
+			}
+
+			// find landline phone number
+			Optional<Phone> landline = OrgUnitService.getPhones(orgUnit).stream().filter(p -> p.isTypePrime() && p.getPhoneType().equals(PhoneType.LANDLINE)).findFirst();
+			if (!landline.isPresent()) {
+				Optional<Phone> ip = OrgUnitService.getPhones(orgUnit).stream().filter(p -> p.isTypePrime() && p.getPhoneType().equals(PhoneType.IP)).findFirst();
+
+				if (!ip.isPresent()) {
+					Optional<Phone> broadBand = OrgUnitService.getPhones(orgUnit).stream().filter(p -> p.isTypePrime() && p.getPhoneType().equals(PhoneType.BROADBAND)).findFirst();
+
+					if (!broadBand.isPresent()) {
+						landlineValueTemp = null;
+					}
+					else {
+						landlineValueTemp = broadBand.get().getPhoneNumber();
+					}
+				}
+				else {
+					landlineValueTemp = ip.get().getPhoneNumber();
+				}
+			}
+			else {
+				landlineValueTemp = landline.get().getPhoneNumber();
 			}
 		}
-		else {
-			landlineValueTemp = landline.get().getPhoneNumber();
-		}
+		final String phoneValue = phoneValueTemp;
 		final String landlineValue = landlineValueTemp;
+
 
 		// find EAN
 		String eanValue = eanService.getEan(orgUnit);
@@ -588,7 +627,7 @@ public class OS2SyncService {
 
 		// open hours for this orgUnit
 		final String contactOpenHours;
-		if (StringUtils.hasLength(orgUnit.getOpeningHours())) {
+		if (StringUtils.hasText(orgUnit.getOpeningHours())) {
 			if (orgUnit.getOpeningHours().length() > 200) {
 				contactOpenHours = orgUnit.getOpeningHours().substring(0, 200);
 			}
@@ -601,11 +640,11 @@ public class OS2SyncService {
 		}
 
 		// find location
-		final String location = StringUtils.hasLength(orgUnit.getLocation()) ? orgUnit.getLocation() : null;
+		final String location = StringUtils.hasText(orgUnit.getLocation()) ? orgUnit.getLocation() : null;
 		// find url
-		final String url = StringUtils.hasLength(orgUnit.getUrlAddress()) ? orgUnit.getUrlAddress() : null;
+		final String url = StringUtils.hasText(orgUnit.getUrlAddress()) ? orgUnit.getUrlAddress() : null;
 		// find email notes
-		final String emailNotes = StringUtils.hasLength(orgUnit.getEmailNotes()) ? orgUnit.getEmailNotes() : null; 
+		final String emailNotes = StringUtils.hasText(orgUnit.getEmailNotes()) ? orgUnit.getEmailNotes() : null; 
 
 		// find return address
 		Optional<Post> returnPost = OrgUnitService.getPosts(orgUnit).stream().filter(p -> p.isReturnAddress()).findFirst();
@@ -617,10 +656,10 @@ public class OS2SyncService {
 		final String returnAddress = tempReturnPost;
 
 		// find phone opening hours
-		final String openingHoursPhone = StringUtils.hasLength(orgUnit.getOpeningHoursPhone()) ? orgUnit.getOpeningHoursPhone() : null;
+		final String openingHoursPhone = StringUtils.hasText(orgUnit.getOpeningHoursPhone()) ? orgUnit.getOpeningHoursPhone() : null;
 
 		// find "Henvendelsessted"
-		final String contact = StringUtils.hasLength(orgUnit.getContactAddress()) ? orgUnit.getContactAddress() : null;
+		final String contact = StringUtils.hasText(orgUnit.getContactAddress()) ? orgUnit.getContactAddress() : null;
 		
 		// for OPUS owned units, supply the losid and shortname as well
 		String losId = null;
@@ -652,7 +691,7 @@ public class OS2SyncService {
 
 			// check if a user is mapped to an affiliation in the current OrgUnit
 			for (var user : users) {
-				if (StringUtils.hasLength(user.getEmployeeId())) {
+				if (StringUtils.hasText(user.getEmployeeId())) {
 					for (var affiliation : orgUnit.getManager().getManager().getAffiliations()) {
 						if (affiliation.getEmployeeId().equalsIgnoreCase(user.getEmployeeId()) && affiliation.getOrgUnit().getUuid().equalsIgnoreCase(orgUnit.getUuid())) {
 							managerUser = user;
@@ -677,7 +716,7 @@ public class OS2SyncService {
 		}
 		final String managerUuid = tManagerUuid;
 
-		final String emailValue = StringUtils.hasLength(orgUnit.getEmail()) ? orgUnit.getEmail() : null;
+		final String emailValue = StringUtils.hasText(orgUnit.getEmail()) ? orgUnit.getEmail() : null;
 		
 		GeneratedKeyHolder holder = new GeneratedKeyHolder();
 		jdbcTemplate.update(new PreparedStatementCreator() {

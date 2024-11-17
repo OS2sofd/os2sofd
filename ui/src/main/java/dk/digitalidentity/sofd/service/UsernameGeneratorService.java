@@ -106,7 +106,8 @@ public class UsernameGeneratorService {
 			// and special check, to make sure there are no pending orders for this username (not checked by the generator, because it relies on the
 			// reservation system to ensure this)
 			if (accountOrderService.countByUserTypeAndOrderTypeAndRequestedUserId(userType, AccountOrderType.CREATE, userId) > 0) {
-				throw new RuntimeException("Brugernavngeneratoren valgte '" + userId + "' som brugerId, men der ligger allerede en afventendre ordre med det brugernavn - vælg det ønskede brugernavn og kør ordren igen");
+				log.warn("Brugernavngeneratoren valgte '" + userId + "' som brugerId, men der ligger allerede en afventendre ordre med det brugernavn - vælg det ønskede brugernavn og kør ordren igen");
+				return null;
 			}
 		}
 		
@@ -207,7 +208,8 @@ public class UsernameGeneratorService {
 			User user = userService.findByUserIdAndUserType(reservedUsername.getUserId(), userType);
 			
 			if (user != null && !user.isDisabled()) {
-				String generatedUsername = generateUsername(supportedUserType, new Affiliation(), person, reservedUsernameDao.findByPersonUuid(person.getUuid()));
+				var affiliation = person.getAffiliations().stream().filter(a -> a.getEmployeeId().equalsIgnoreCase(employeeId)).findFirst().orElse(new Affiliation());
+				String generatedUsername = generateUsername(supportedUserType, affiliation, person, reservedUsernameDao.findByPersonUuid(person.getUuid()));
 				ReservedUsername username = new ReservedUsername();
 				username.setEmployeeId(employeeId);
 				username.setUserId(generatedUsername);
@@ -504,6 +506,9 @@ public class UsernameGeneratorService {
 			case NUMBER:
 				infix = number(userType.getKey(), getLong(userType.getUsernameInfixValue(), 5), prefix, suffix);
 				break;
+			case FROM_NAME_SERIAL:
+				infix = shortNameSerial(person, userType.getKey(), getLong(userType.getUsernameInfixValue(), 3), prefix, suffix);
+				break;
 			case NAME23SERIAL:
 				infix =  name23serial(person, userType.getKey(), prefix, suffix);
 				break;
@@ -681,6 +686,51 @@ public class UsernameGeneratorService {
 		return "" + serial;
 	}
 	
+	private String shortNameSerial(Person person, String userType, long len, String prefix, String suffix) {
+		String personName = getName(person);
+		String transliteratedName = Transliteration.transliterate(personName, null);
+        String name = sanitize(transliteratedName);
+
+        List<KeyValuePair> state = initialState(name, len);
+        List<String> triedNames = new ArrayList<String>();
+
+        int attempt = 0;
+        do {
+            String username = generate(state);
+            if (username == null) {
+            	log.warn("Failed to generate username for '" + name + "' from state on attempt " + attempt + ", skipping this try");
+            }
+            else {
+	            if (!triedNames.contains(username)) {
+	            	
+	            	// fillers, not the best solution, but needed for very short names
+	                while (username.length() < len) {
+	                    username += "x";
+	                }
+
+	                for (int i = 1; i < 100; i++) {
+	        			String paddedNumber = String.format("%02d", i);
+	        			String paddedUsername = username + paddedNumber;
+	                	
+		                if (!isRejected(paddedUsername, userType, prefix, suffix)) {
+		                    return paddedUsername;
+		                }
+	                }
+	
+	                triedNames.add(username);
+	            }
+	
+	            if (state.size() == 1) {
+	                return null;
+	            }
+            }
+
+            FuzzState(state, ++attempt, len);
+        } while (attempt < 14);
+
+        return null;
+	}
+
 	private String shortName(Person person, String userType, long len, String prefix, String suffix) {
 		String personName = getName(person);
 		String transliteratedName = Transliteration.transliterate(personName, null);

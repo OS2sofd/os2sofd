@@ -33,7 +33,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import dk.digitalidentity.sofd.dao.model.enums.AffiliationType;
 import dk.digitalidentity.sofd.dao.model.mapping.AffiliationFunctionMapping;
-import dk.digitalidentity.sofd.dao.model.mapping.AffiliationManagerMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.AffiliationPrimaryKleMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.AffiliationSecondaryKleMapping;
 import dk.digitalidentity.sofd.serializer.LocalExtensionsDeserializer;
@@ -46,7 +45,7 @@ import lombok.Setter;
 @Entity(name = "affiliations")
 @Getter
 @Setter
-@EqualsAndHashCode(exclude = "person", callSuper = true)
+@EqualsAndHashCode(exclude = { "person", "orgUnit", "alternativeOrgUnit" }, callSuper = true)
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Affiliation extends MasteredEntity implements Serializable {
 	private static final long serialVersionUID = -1443788795789576943L;
@@ -193,10 +192,6 @@ public class Affiliation extends MasteredEntity implements Serializable {
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, mappedBy = "affiliation")
 	private List<AffiliationFunctionMapping> functions;
 
-	@BatchSize(size = 50)
-	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, mappedBy = "affiliation")
-	private List<AffiliationManagerMapping> managerFor;
-
 	@Column
 	@JsonSerialize(using = LocalExtensionsSerializer.class)
 	@JsonDeserialize(using = LocalExtensionsDeserializer.class)
@@ -219,7 +214,7 @@ public class Affiliation extends MasteredEntity implements Serializable {
 		
 		if (this.workplaces != null && !this.workplaces.isEmpty()) {
 			LocalDate today = LocalDate.now();
-			Workplace currentWorkplace = this.getWorkplaces().stream().filter(w -> (w.getStartDate().isBefore(today) || w.getStartDate().equals(today)) || (w.getStopDate().isAfter(today) || w.getStopDate().equals(today))).findFirst().orElse(null);
+			Workplace currentWorkplace = this.getWorkplaces().stream().filter(w -> (w.getStartDate().isBefore(today) || w.getStartDate().equals(today)) && (w.getStopDate().isAfter(today) || w.getStopDate().equals(today))).findFirst().orElse(null);
 
 			if (currentWorkplace != null) {
 				calculatedOrgUnit = currentWorkplace.getOrgUnit();

@@ -57,7 +57,7 @@ public class AuditLogController {
 		model.put("messagesBundle", messageSource);
 
 		response.setContentType("application/ms-excel");
-		response.setHeader("Content-Disposition", "attachment; filename=\"Auditlog.xls\"");
+		response.setHeader("Content-Disposition", "attachment; filename=\"Auditlog.xlsx\"");
 
 		return new ModelAndView(new AuditLogXlsView(), model);
 	}

@@ -99,6 +99,12 @@
 			<version>2.4.0</version>
 		</dependency>
 
+                <dependency>
+                        <groupId>dk.digitalidentity</groupId>
+                        <artifactId>downdetector-module-java17</artifactId>
+                        <version>1.0.2</version>
+                </dependency>
+
 		<dependency>
 			<groupId>com.mysql</groupId>
 			<artifactId>mysql-connector-j</artifactId>
@@ -236,10 +242,16 @@
 	</dependencies>
 
 	<repositories>
-		<repository>
-			<id>shared-resources</id>
-			<name>Shared Resources</name>
-			<url>https://mvn.digital-identity.dk/release</url>
-		</repository>
+                <repository>
+                        <id>1-maven-repository</id>
+                        <name>Maven Repository</name>
+                        <url>https://repo.maven.apache.org/maven2/</url>
+                 </repository>
+
+                <repository>
+                        <id>2-shared-resources</id>
+                        <name>Shared Resources</name>
+                        <url>https://mvn.digital-identity.dk/release</url>
+                </repository>
 	</repositories>
 </project>

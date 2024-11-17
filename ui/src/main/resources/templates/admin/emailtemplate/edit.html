@@ -103,6 +103,10 @@
 										<div class="form-group" th:id="'orgFilter' + ${child.id}">
 											<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.orgFilter}"></label>
 											<div class="col-sm-8">
+												<select name="orgUnitFilterType" class="form-control">
+													<option th:each="option : ${T(dk.digitalidentity.sofd.dao.model.enums.EmailOrgUnitFilterType).values()}" th:text="#{${option.title}}" th:value="${option}" th:selected="${option == child.orgUnitFilterType}">
+												</select>
+
 												<select name="orgUnitUuids" th:id="'orgUnits' + ${child.id}" multiple="multiple" class="form-control hidden">
 													<option th:each="uuid : ${child.orgUnitUuids}" th:value="${uuid}" selected="selected">
 												</select>

@@ -17,6 +17,7 @@ import javax.persistence.PersistenceContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
@@ -57,6 +58,9 @@ public class OrgUnitFutureChangesService {
 
 	@PersistenceContext
 	private EntityManager entityManager;
+
+	@Autowired
+	private OrgUnitFutureChangesService self;
 
 	public List<OUTreeForm> getAllTreeFutureOrgUnits(List<OUTreeForm> ouTreeForms, Date date) {
 		List<OrgUnitFutureChange> oUsChangesTillDate = getAllChangesTillDateAndNotApplied(date);
@@ -185,7 +189,6 @@ public class OrgUnitFutureChangesService {
 		}
 	}
 
-	@Transactional(rollbackFor = Exception.class)
 	public void mergeFutureChanges() {
 		if (countByAppliedStatus(AppliedStatus.ERROR) > 0) {
 			log.error("Cannot apply changes because there are errors");
@@ -193,36 +196,34 @@ public class OrgUnitFutureChangesService {
 		}
 
 		Date today = new Date();
-		List<OrgUnitFutureChange> changes = new ArrayList<>();
+		var changes = getAllChangesTillDateAndNotApplied(today);
+		for (OrgUnitFutureChange change : changes) {
+			var success = self.mergeFutureChange(change);
+			if( !success ) {
+				// stop doing more changes
+				break;
+			}
+		}
+	}
 
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	public boolean mergeFutureChange(OrgUnitFutureChange change) {
+		var today = new Date();
 		try {
-			changes = getAllChangesTillDateAndNotApplied(today);
-
-			// Collect list of changed OU's
-			List<OrgUnit> changedOUs = new ArrayList<>();
-			for (OrgUnitFutureChange change : changes) {
-				changedOUs.add(getFutureOrgUnit(change.getOrgunitUuid(), today));
-			}
-
-			// Merge changed OU's
-			for (OrgUnit orgUnit : changedOUs) {
-				entityManager.merge(orgUnit);
-			}
-
-			changes.stream().forEach(change -> {
-				change.setAppliedStatus(AppliedStatus.APPLIED);
-				change.setAppliedDate(today);
-				save(change);
-			});
+			var changedOU = getFutureOrgUnit(change.getOrgunitUuid(), today);
+			entityManager.merge(changedOU);
+			change.setAppliedStatus(AppliedStatus.APPLIED);
+			change.setAppliedDate(today);
+			save(change);
+			entityManager.flush();
+			return true;
 		}
 		catch (Exception ex) {
-			changes.stream().forEach(change -> {
-				change.setAppliedStatus(AppliedStatus.ERROR);
-				change.setAppliedDate(today);
-				save(change);
-			});
-
-			log.error("Failed to apply futureChanges", ex);
+			change.setAppliedStatus(AppliedStatus.ERROR);
+			change.setAppliedDate(today);
+			save(change);
+			log.error("Failed to apply futureChange", ex);
+			return false;
 		}
 	}
 
@@ -499,13 +500,14 @@ public class OrgUnitFutureChangesService {
 					orgUnit.setMasterId(UUID.randomUUID().toString());
 					orgUnit.setType(orgUnitService.getDepartmentType());
 					orgUnit.setDisplayName(change.getDisplayName());
-					
+
 					String futureManagerUuid = coreInfoMap.get(OrgUnitAttribute.MANAGER);
 					if (StringUtils.hasLength(futureManagerUuid)) {
 						Person futureManager = personService.getByUuid(futureManagerUuid);
 						if (futureManager != null) {
 							OrgUnitManager futureManagerMapping = new OrgUnitManager(orgUnit, futureManager, false);
-							orgUnit.setManager(futureManagerMapping);
+							orgUnit.setManager(futureManagerMapping); // needed for display purposes in UI
+							orgUnit.setSelectedManagerUuid(futureManager.getUuid()); // needed to update database
 						} else {
 							log.warn("Unable to find future Manager with uuid" + futureManagerUuid + " when applying changes to OrgUnit (CREATE scenario)");
 						}
@@ -562,7 +564,8 @@ public class OrgUnitFutureChangesService {
 						Person futureManager = personService.getByUuid(change.getAttributeValue());
 						if (futureManager != null) {
 							OrgUnitManager futureManagerMapping = new OrgUnitManager(orgUnit, futureManager, false);
-							orgUnit.setManager(futureManagerMapping);
+							orgUnit.setManager(futureManagerMapping); // needed for display purposes in UI
+							orgUnit.setSelectedManagerUuid(futureManager.getUuid()); // needed to update database
 						} else {
 							log.warn("Unable to find future Manager with uuid" + change.getAttributeValue() + " when applying changes to OrgUnit (UPDATE scenario)");
 						}

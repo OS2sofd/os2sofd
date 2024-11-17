@@ -5,14 +5,13 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+// read-only API class
 @Getter
 @Setter
 @ToString
 public class InstitutionApiRecord {
 	private String name;
 	private String institutionNumber;
-
-	// read-only
 	private String uuid;
 
 	public InstitutionApiRecord(Institution institution) {

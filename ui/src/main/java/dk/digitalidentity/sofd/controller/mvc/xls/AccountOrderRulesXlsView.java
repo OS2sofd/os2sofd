@@ -13,15 +13,15 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.context.support.ResourceBundleMessageSource;
-import org.springframework.web.servlet.view.document.AbstractXlsView;
 
 import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderRulesXlsDto.Pair;
 import dk.digitalidentity.sofd.dao.model.OrgUnitAccountOrderType;
 import dk.digitalidentity.sofd.dao.model.OrgUnitAccountOrderTypePosition;
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderRule;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
+import org.springframework.web.servlet.view.document.AbstractXlsxView;
 
-public class AccountOrderRulesXlsView extends AbstractXlsView {
+public class AccountOrderRulesXlsView extends AbstractXlsxView {
 
 	@Override
 	protected void buildExcelDocument(Map<String, Object> model, Workbook workbook, HttpServletRequest request, HttpServletResponse response) throws Exception {

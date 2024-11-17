@@ -7,11 +7,11 @@
     </div>
 
     <div class="hidden">
-        <button sec:authorize="hasRole('ROLE_USER_ADMIN')" id="saveButton" class="btn btn-lg btn-primary" style="width:auto; margin-right:10px;" onclick="saveCoreChanges()">
+        <button sec:authorize="hasRole('ROLE_USER_EDIT') or hasRole('ROLE_USER_PERSON_CREATER')" id="saveButton" class="btn btn-lg btn-primary" style="width:auto; margin-right:10px;" onclick="saveCoreChanges()">
             <em class="fa fa-save" aria-hidden="true"></em>&nbsp;
             <span th:text="#{html.control.button.save}"></span>
         </button>
-        <button sec:authorize="hasRole('ROLE_USER_ADMIN')" id="cancelButton" class="btn btn-lg btn-danger" style="width:auto" onclick="loadViewCoreFragment()">
+        <button sec:authorize="hasRole('ROLE_USER_EDIT') or hasRole('ROLE_USER_PERSON_CREATER')" id="cancelButton" class="btn btn-lg btn-danger" style="width:auto" onclick="loadViewCoreFragment()">
             <em class="fa fa-times" aria-hidden="true"></em>
             <span th:text="#{html.control.button.cancel}"></span>
         </button>

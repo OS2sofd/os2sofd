@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,9 +53,9 @@ public class ApproveOrderController {
 			return "redirect:/";
 		}
 		
-		List<AccountOrder> adAccountOrders = accountOrderService.findAll().stream()
-				.filter(ao -> SupportedUserTypeService.isActiveDirectory(ao.getUserType()) && ao.getStatus() == AccountOrderStatus.PENDING_APPROVAL)
-				.collect(Collectors.toList());
+		List<AccountOrder> adAccountOrders = accountOrderService.findByStatusIn(Set.of(AccountOrderStatus.PENDING_APPROVAL)).stream()
+				.filter(ao -> SupportedUserTypeService.isActiveDirectory(ao.getUserType()))
+				.toList();
 
 		boolean canAccessAllOrders = SecurityUtil.getUserRoles().contains(RoleConstants.USER_ROLE_EDIT);
 
@@ -75,6 +76,7 @@ public class ApproveOrderController {
 		}
 
 		model.addAttribute("orders", dtos);
+		model.addAttribute("customApprovalForm", sofdConfiguration.getModules().getAccountCreation().isCustomApprovalForm());
 
 		return "report/account_orders_approve";
 	}
@@ -90,7 +92,7 @@ public class ApproveOrderController {
 		if (person == null) {
 			return ResponseEntity.badRequest().body("Ukendt bruger");
 		}
-
+		
 		boolean canAccessAllOrders = SecurityUtil.getUserRoles().contains(RoleConstants.USER_ROLE_EDIT);
 		Person loggedInPerson = personService.getLoggedInPerson();
 		if (!canAccessAllOrders && !canAccess(loggedInPerson, person, accountOrder)) {
@@ -98,6 +100,7 @@ public class ApproveOrderController {
 		}
 
 		accountOrder.setStatus(AccountOrderStatus.PENDING);
+		accountOrder.setToken(body.getToken());
 		accountOrderService.save(accountOrder);
 
 		AccountOrderApproved approval = new AccountOrderApproved();

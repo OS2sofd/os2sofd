@@ -158,7 +158,7 @@ public class HistoricalReportsOnOrgUnitsService {
 
         Workbook workbook = buildExcelDocument(sortedOrgUnits);
 
-        String filename = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + " SOFD Organisation.xls";
+        String filename = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + " SOFD Organisation.xlsx";
 
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();

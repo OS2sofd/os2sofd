@@ -13,6 +13,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import dk.digitalidentity.sofd.service.IpWhitelistService;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
@@ -25,10 +26,12 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ApiSecurityFilter implements Filter {
-	private ClientService clientService;
+	private final ClientService clientService;
+	private final IpWhitelistService ipWhitelistService;
 
-	public ApiSecurityFilter(ClientService clientService) {
+	public ApiSecurityFilter(ClientService clientService, IpWhitelistService ipWhitelistService) {
 		this.clientService = clientService;
+		this.ipWhitelistService = ipWhitelistService;
 	}
 
 	@Override
@@ -58,6 +61,11 @@ public class ApiSecurityFilter implements Filter {
 			Client client = clientService.getClientByApiKey(authHeader);
 			if (client == null) {
 				unauthorized(response, "Invalid ApiKey header", authHeader);
+				return;
+			}
+
+			if(!ipWhitelistService.isWhitelisted(client)) {
+				unauthorized(response, "IP not whitelisted for ApiKey", authHeader);
 				return;
 			}
 

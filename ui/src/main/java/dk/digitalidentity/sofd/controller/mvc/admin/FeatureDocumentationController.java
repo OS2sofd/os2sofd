@@ -42,11 +42,16 @@ public class FeatureDocumentationController {
 	            if (field.getType() instanceof Class && ((Class<?>)field.getType()).isEnum()) {
 	            	; // ignore enums
 	            }
-	            else if (field.isAnnotationPresent(FeatureDocumentation.class) && field.getType().equals(boolean.class)) {
-	            	FeatureDocumentation annotation = field.getAnnotation(FeatureDocumentation.class);
-
-	            	FeatureDTO feature = new FeatureDTO(annotation.name(), annotation.description(), field.getBoolean(object));
-	            	features.add(feature);
+	            else if (field.isAnnotationPresent(FeatureDocumentation.class)) {
+					FeatureDocumentation annotation = field.getAnnotation(FeatureDocumentation.class);
+					if( field.getType().equals(boolean.class) ) {
+						FeatureDTO feature = new FeatureDTO(annotation.name(), annotation.description(), field.getBoolean(object));
+						features.add(feature);
+					}
+					else if(field.getType().equals(String.class)) {
+						FeatureDTO feature = new FeatureDTO(annotation.name(), annotation.description(), field.get(object) != null);
+						features.add(feature);
+					}
 			    }
 	            else {
 			    	if (field.getType().getPackageName().startsWith("dk.")) {

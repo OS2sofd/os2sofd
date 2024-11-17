@@ -12,6 +12,8 @@ public interface OrganisationDao extends JpaRepository<Organisation, Long> {
 
 	void deleteAll();
 
+	List<Organisation> findByShortNameNot(String shortName);
+
 	<S extends Organisation> List<S> save(Iterable<S> entities);
 
 	<S extends Organisation> S save(S entity);

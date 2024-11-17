@@ -75,7 +75,8 @@ public class OrgUnitApiController {
         }
 
         try {
-            Map<String, String> map = mapper.readValue(localExtension, Map.class);
+            @SuppressWarnings("unchecked")
+			Map<String, String> map = (Map<String, String>) mapper.readValue(localExtension, Map.class);
 
             // return sorted
             return new TreeMap<>(map);

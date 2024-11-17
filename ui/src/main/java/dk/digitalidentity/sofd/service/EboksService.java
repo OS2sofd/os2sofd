@@ -44,11 +44,11 @@ public class EboksService {
 	@Autowired
 	private PersonService personService;
 	
-	public boolean sendMessage(String cpr, String subject, String message) {
-		return sendMessageWithAttachments(cpr, subject, message, null);
+	public boolean sendMessage(String cpr, String subject, String message, boolean rawTemplate) {
+		return sendMessageWithAttachments(cpr, subject, message, null, rawTemplate);
 	}
 	
-	public boolean sendMessageWithAttachments(String cpr, String subject, String message, List<Attachment> attachments) {
+	public boolean sendMessageWithAttachments(String cpr, String subject, String message, List<Attachment> attachments, boolean rawTemplate) {
 		if (!configuration.getIntegrations().getEboks().isEnabled()) {
 			log.warn("e-boks server is not configured - not sending digital post!");
 			
@@ -57,7 +57,7 @@ public class EboksService {
 		}
 
 		var person = personService.findByCpr(cpr);
-		if ( person == null || person.isDead()) {
+		if (person == null || person.isDead()) {
 			log.warn("Person not found or person is dead - not sending digital post: " + cpr);
 			// return true to get the message removed from the queue
 			return true;
@@ -97,7 +97,7 @@ public class EboksService {
 				}
 			}
 
-			var pdf = generatePDF(subject, message);
+			byte[] pdf = generatePDF(subject, message, (rawTemplate && configuration.getEmailTemplate().isRawTemplatesSupported()));
 			eBoks.setContent(Base64.getEncoder().encodeToString(pdf));
 			eBoks.setMunicipalityName(configuration.getIntegrations().getEboks().getSenderName());
 
@@ -145,12 +145,18 @@ public class EboksService {
 		}
 	}
 
-	private byte[] generatePDF(String subject, String message) {
+	private byte[] generatePDF(String subject, String message, boolean raw) {
 		Context ctx = new Context();
 		ctx.setVariable("subject", subject);
 		ctx.setVariable("message", message);
 
-		String htmlContent = templateEngine.process("pdf/template", ctx);
+		String htmlContent = null;
+		if (raw) {
+			htmlContent = templateEngine.process("pdf/template_raw", ctx);
+		}
+		else {
+			htmlContent = templateEngine.process("pdf/template", ctx);
+		}
 
 		htmlContent = htmlContent.replace("&nbsp;", "&#160;");
 		htmlContent = htmlContent.replace("<br>", "<br />");

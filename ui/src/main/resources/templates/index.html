@@ -35,7 +35,7 @@
 													<div class="h2 mt0" th:text="#{html.constant.never}"></div>
 												</th:block>
 												<div>
-													<span class="text-uppercase" th:text="${client.name} + ' (' + ${client.version} + ') '"></span>
+													<span class="text-uppercase" th:text="${client.name} + (${client.version != null } ? ' (' + ${client.version} + ')' : '')"></span>
 													<em th:if="${client.outdated}" class="fa fa-warning" th:title="#{html.index.version.outdated}"></em>
 												</div>
 											</div>

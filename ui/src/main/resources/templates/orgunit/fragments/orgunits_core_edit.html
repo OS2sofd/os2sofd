@@ -62,7 +62,7 @@
 			<div class="row">
 				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.manager}"></label>
 				<div class="col-sm-9">
-					<input id="manager" th:value="${orgUnit.manager != null ? orgUnit.manager.manager.uuid : ''}" class="hidden" readonly="readonly"/>
+					<input id="manager" th:value="${orgUnit.manager?.managerUuid}" class="hidden" readonly="readonly"/>
 					<th:block th:switch="${orgUnit.manager != null and orgUnit.manager.inherited eq false and @sofdConfiguration.modules.manager.editEnabled}">
 						<div th:case="${true}" class="input-group">
 							<input class="form-control"  th:value="${orgUnit.manager != null ? orgUnit.manager.name : ''}" id="search_person" onclick="return false;"/>

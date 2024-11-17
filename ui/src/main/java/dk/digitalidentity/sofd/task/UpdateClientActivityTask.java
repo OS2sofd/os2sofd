@@ -40,10 +40,6 @@ public class UpdateClientActivityTask {
 		}
 
 		for (Client client : clientDao.findAll()) {
-			if (!client.isMonitorForActivity()) {
-				continue;
-			}
-
 			Date date = securityLogDao.getLastTimestampByClientId(client.getId());
 			clientDao.setLastActive(date, client.getId());
 		}

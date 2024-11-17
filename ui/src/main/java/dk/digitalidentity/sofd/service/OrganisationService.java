@@ -41,4 +41,8 @@ public class OrganisationService {
     public Organisation getAdmOrg() {
         return organisationDao.findByShortName("ADMORG");
     }
+
+    public List<Organisation> getAllExceptAdmOrg() {
+        return organisationDao.findByShortNameNot("ADMORG");
+    }
 }

@@ -313,17 +313,17 @@
 							</div>
 
 							<th:block sec:authorize="hasRole('ROLE_USER_EDIT') and hasRole('ROLE_MODULE_ACCOUNT_CREATION')">
-								<a href="#" onclick="flagService.changeDisableAccountOrders();">
-									<th:block th:if="${person.disableAccountOrders == true}">
+								<a href="#" th:data-one="${person.isDisableAccountOrdersCreate}" th:data-two="${person.isDisableAccountOrdersDelete}" th:data-three="${person.isDisableAccountOrdersDisable}" onclick="flagService.openChangeFlagModal(this);">
+									<th:block th:if="${person.isDisableAccountOrdersDisable == true || person.isDisableAccountOrdersDelete == true || person.isDisableAccountOrdersCreate == true}">
 										<div style="width:220px" class="btn btn-lg btn-warning">
 											<i class="fa fa-fw fa-ban" aria-hidden="true"></i>&nbsp;
-											<span th:text="#{html.entity.person.disableAccountOrders.remove}"></span>
+											<span id="hoverSpan" th:text="#{html.entity.person.disableAccountOrders.remove}" data-toggle="tooltip" data-placement="top"></span>
 										</div>
 									</th:block>
-									<th:block th:if="${person.disableAccountOrders == false}">
+									<th:block th:if="${person.isDisableAccountOrdersDisable == false && person.isDisableAccountOrdersDelete == false && person.isDisableAccountOrdersCreate == false}">
 										<div style="width:220px" class="btn btn-lg btn-primary">
 											<i class="fa fa-fw fa-ban" aria-hidden="true"></i>&nbsp;
-											<span th:text="#{html.entity.person.disableAccountOrders.add}"></span>
+											<span th:text="#{html.entity.person.disableAccountOrders}"></span>
 										</div>
 									</th:block>
 								</a>
@@ -688,7 +688,7 @@
 						</div>
 					</div>
 				</div>
-				
+
 				<div class="form-group">
 					<label class="col-sm-2 control-label">
 						<span th:text="#{html.page.person.view.modal.leave.expireADAccounts}"></span>
@@ -942,6 +942,58 @@
 	</div>
 </div>
 
+<!-- Flag change Modal -->
+<div class="modal fade" id="modal-user-flag-change" role="dialog">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h4 th:text="#{html.entity.person.disableAccountOrders}"></h4>
+				<h3 th:text="#{html.entity.person.disableAccountOrders.text}"></h3>
+			</div>
+			<div class="modal-body">
+				<form>
+					<div class="row" style="display: flex; align-items: center;">
+						<label class="col-sm-5 control-label" style="text-align: left; margin-bottom: 0; padding-right: 15px;" th:text="#{html.entity.person.disableAccountOrdersCreate.add}"></label>
+						<div class="col-sm-5">
+							<div class="checkbox c-checkbox">
+								<label>
+									<input th:id="isCreateCheck" type="checkbox" th:checked="${person.isDisableAccountOrdersCreate}" style="margin: 0; vertical-align: middle; margin-top: 2px;"/>
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+						</div>
+					</div>
+					<div class="row" style="display: flex; align-items: center;">
+						<label class="col-sm-5 control-label" style="text-align: left; margin-bottom: 0; padding-right: 15px;" th:text="#{html.entity.person.disableAccountOrdersDisable.add}"></label>
+						<div class="col-sm-5">
+							<div class="checkbox c-checkbox">
+								<label>
+									<input th:id="isDisableCheck" type="checkbox" th:checked="${person.isDisableAccountOrdersDisable}" style="margin: 0; vertical-align: middle; margin-top: 2px;"/>
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+						</div>
+					</div>
+					<div class="row" style="display: flex; align-items: center;">
+						<label class="col-sm-5 control-label" style="text-align: left; margin-bottom: 0; padding-right: 15px;" th:text="#{html.entity.person.disableAccountOrdersDelete.add}"></label>
+						<div class="col-sm-5">
+							<div class="checkbox c-checkbox">
+								<label>
+									<input th:id="isDeleteCheck" type="checkbox" th:checked="${person.isDisableAccountOrdersDelete}" style="margin: 0; vertical-align: middle; margin-top: 2px;"/>
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+						</div>
+					</div>
+				</form>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-primary" th:text="#{html.control.button.save}"  onclick="flagService.changeFlag()" data-dismiss="modal"></button>
+				<button type="button" class="btn btn-danger" th:text="#{html.control.button.close}" onclick="flagService.closeChangeFlagModal()" data-dismiss="modal"></button>
+			</div>
+		</div>
+	</div>
+</div>
 
 <!-- Edit phone modal -->
 <div th:replace="fragments/phoneTab :: phoneModal"></div>
@@ -1007,7 +1059,10 @@
 			var uuid = [[${person.uuid}]];
 			var phones = [[${person.phones}]];
 			var allUserTypes = [[${allUserTypes}]];
-			
+			var one = [[${person.isDisableAccountOrdersCreate}]];
+			var two = [[${person.isDisableAccountOrdersDelete}]];
+			var three = [[${person.isDisableAccountOrdersDisable}]];
+
 			var personMaster = [[${person.master}]];
 			var affiliations = [[${affiliations}]];
 			
@@ -1148,6 +1203,21 @@
 				},
 				preventBadQueries: true,
 				triggerSelectOnValidInput: false
+			});
+
+			$("[data-toggle=tooltip]").hover(function (obj) {
+				let stringValue = "";
+
+				if (one) {
+					stringValue += "Undtaget for oprettelse af brugere \n";
+				}
+				if (two) {
+					stringValue += "Undaget for sletning af brugere \n";
+				}
+				if (three) {
+					stringValue += "Undtaget for deaktivering af brugere \n"
+				}
+				$(this).attr('title', stringValue);
 			});
 		});
 
@@ -1583,19 +1653,18 @@
 		function FlagService() {
 		/*[+
 			var url = [[@{/rest/person/} + ${person.uuid}]];
-		    var disableAccountOrders = [[${person.disableAccountOrders}]];
+
 		    var forceStop = [[${person.forceStop}]];
-		    var stopReason = [[${person.stopReason}]];
+		    var stopReason = [[${#objects.nullSafe(person.stopReason,'')}]];
+
 		    var onLeave = [[${person.leave}]];
 		    
 		    var swalForceStopAddTitle = [[#{html.entity.person.stop.add}]];
 		    var swalForceStopRemoveTitle = [[#{html.entity.person.stop.remove}]];
 		    var swalForceStopText = [[#{html.entity.person.stop.text}]];
-		    
-		    var swalDisableAccountOrdersAddTitle = [[#{html.entity.person.disableAccountOrders.add}]];
-		    var swalDisableAccountOrdersRemoveTitle = [[#{html.entity.person.disableAccountOrders.remove}]];
-		    var swalDisableAccountOrdersText = [[#{html.entity.person.disableAccountOrders.text}]];
-		    
+		    var swalAddDescription = [[#{html.entity.person.stop.addDescription}]];
+		    var swalRemoveDescription = [[#{html.entity.person.stop.removeDescription}]];
+
 		    var swalBtnConfirm = [[#{html.button.yes}]];
 		    var swalBtnCancelCancel = [[#{html.button.cancel}]];
 		    var swalFailureMsg = [[#{html.generic.msg.failedupdate}]];
@@ -1609,11 +1678,11 @@
 			};
 
 			this.changeStopFlag = function() {
-				var content = swalForceStopText;
+				var content = "";
 				if (forceStop) {
-					content += '</br></br><p style="text-align:left; margin-bottom: 6px;">Årsag til STOP markering:</p><textarea class="form-control" rows="5" id="stopReason" readonly>' + stopReason + '</textarea>';
+					content += swalRemoveDescription + '</br></br><p style="text-align:left; margin-bottom: 6px;">Årsag til STOP markering:</p><textarea class="form-control" rows="5" id="stopReason" readonly>' + stopReason + '</textarea>';
 				} else {
-					content += '</br></br><textarea class="form-control" rows="5" placeholder="Angiv en begrundelse" id="stopReason"></textarea>';
+					content += swalAddDescription + '</br></br><textarea class="form-control" rows="5" placeholder="Angiv en begrundelse. Henvis evt. til en sag og undlad følsomme oplysninger i dette felt." id="stopReason"></textarea>';
 				}
 				
 				swal({
@@ -1656,37 +1725,45 @@
 				});
 			};
 
-			this.changeDisableAccountOrders = function() {
-				swal({
-					title : (disableAccountOrders) ? swalDisableAccountOrdersRemoveTitle : swalDisableAccountOrdersAddTitle,
-					text : swalDisableAccountOrdersText,
-					type : "warning",
-					showCancelButton : true,
-					confirmButtonColor : "#DD6B55",
-					confirmButtonText : swalBtnConfirm,
-					cancelButtonText : swalBtnCancelCancel,
-					closeOnConfirm : true,
-					closeOnCancel : true
-				},
-				function(isConfirm) {
-					if (isConfirm) {
-						$.ajax({
-							method: 'POST',
-							url: url + '/disableAccountOrders',
-							headers: {
-								'X-CSRF-TOKEN': token
-							},
-							success: function(data, textStatus, jQxhr) {
-								location.reload(true);
-							},
-							error: function(jqXhr, textStatus, errorThrown) {
-								$.notify({
-									message: swalFailureMsg
-								}, {
-									status: 'danger',
-									autoHideDelay: 4000
-								});
-							}
+
+			this.openChangeFlagModal = function (obj) {
+				$('#modal-user-flag-change').modal("show");
+				$('#isCreateCheck').prop("checked", $(obj).data("one"));
+				$('#isDeleteCheck').prop("checked", $(obj).data("two"));
+				$('#isDisableCheck').prop("checked", $(obj).data("three"));
+
+			}
+
+			this.closeChangeFlagModal = function () {
+				$('#modal-user-flag-change').modal("hide");
+			}
+
+			this.changeFlag = function () {
+
+				var data = {
+					"create" : $('#isCreateCheck').prop("checked"),
+					"disable" : $('#isDisableCheck').prop("checked"),
+					"delete" : $('#isDeleteCheck').prop("checked")
+				}
+
+				$.ajax({
+					method: 'POST',
+					url: url + '/disableAccountOrders',
+					headers: {
+						'X-CSRF-TOKEN': token,
+						"content-type": "application/json",
+					},
+					data: JSON.stringify(data),
+
+					success: function(data, textStatus, jQxhr) {
+						location.reload(true);
+					},
+					error: function(jqXhr, textStatus, errorThrown) {
+						$.notify({
+							message: errorThrown
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
 						});
 					}
 				});

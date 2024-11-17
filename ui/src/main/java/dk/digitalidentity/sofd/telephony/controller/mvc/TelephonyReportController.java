@@ -43,7 +43,7 @@ public class TelephonyReportController {
 		model.put("locale", loc);
 
 		response.setContentType("application/ms-excel");
-		response.setHeader("Content-Disposition", "attachment; filename=\"stoppede.xls\"");
+		response.setHeader("Content-Disposition", "attachment; filename=\"stoppede.xlsx\"");
 
 		return new ModelAndView(new TelephonyPersonsXlsView(), model);
 	}
@@ -58,7 +58,7 @@ public class TelephonyReportController {
 		model.put("locale", loc);
 
 		response.setContentType("application/ms-excel");
-		response.setHeader("Content-Disposition", "attachment; filename=\"beskattede.xls\"");
+		response.setHeader("Content-Disposition", "attachment; filename=\"beskattede.xlsx\"");
 
 		return new ModelAndView(new TelephonyPersonsXlsView(), model);
 	}

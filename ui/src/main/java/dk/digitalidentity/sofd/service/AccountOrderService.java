@@ -5,7 +5,6 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,7 +14,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -168,7 +166,8 @@ public class AccountOrderService {
 			}
 
 			// delete old ones (of the same type)
-			accountOrderDao.deleteByStatusAndPersonUuidInAndOrderTypeIn(AccountOrderStatus.PENDING, personUuids, types);
+			accountOrderDao.deleteByStatusInAndPersonUuidInAndOrderTypeIn(Set.of(AccountOrderStatus.PENDING,AccountOrderStatus.PENDING_APPROVAL), personUuids, types);
+
 
 			// create new ones
 			for (AccountOrder account : accounts) {
@@ -231,8 +230,9 @@ public class AccountOrderService {
 
 									OrgUnitManager orgUnitManager = PersonService.getOrgUnitManager(person, order.getEmployeeId());
 									if (orgUnitManager != null) {
-										emailRecipients.add(orgUnitManager.getManager());
-										emailRecipients.addAll(personService.findAllSofdSubstitutesForManager(person, order.getEmployeeId()));
+
+										Person manager = orgUnitManager.getManager();
+										emailRecipients = emailTemplateService.getManagerOrSubstitutes(child, manager, orgUnitManager.getOrgunitUuid());
 
 										message = message.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnitManager.getOrgUnit().getName());
 										title = title.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnitManager.getOrgUnit().getName());
@@ -282,15 +282,24 @@ public class AccountOrderService {
 		return accountOrderDao.findByUserType(userType);
 	}
 
+	@Transactional
+	public void deleteOldNotPending(Date before) {
+		accountOrderDao.deleteOldNotPending(before);
+	}
+	
 	/**
 	 * Get all pending orders (that are ready to be processed) of a specific type
 	 */
 	public List<AccountOrder> getPendingOrders(String userType, AccountOrderType orderType) {
 		return accountOrderDao.findByStatusAndUserTypeAndOrderTypeAndActivationTimestampBefore(AccountOrderStatus.PENDING, userType, orderType, new Date());
 	}
+	
+	public List<AccountOrder> findByStatusIn(Set<AccountOrderStatus> statuses) {
+		return accountOrderDao.findByStatusIn(statuses);
+	}
 
-	public List<AccountOrder> findAll() {
-		return accountOrderDao.findAll();
+	public List<AccountOrder> findByStatusNotIn(Set<AccountOrderStatus> statuses) {
+		return accountOrderDao.findByStatusNotIn(statuses);
 	}
 
 	private List<AccountOrder> findAllCreateOrders() {
@@ -368,10 +377,7 @@ public class AccountOrderService {
 		accountOrder.setPersonUuid(person.getUuid());
 		accountOrder.setUserType(userType);
 		accountOrder.setRequestedUserId(userIdToDeactivateOrDelete);
-
-		if (SupportedUserTypeService.isOpus(userType) || !supportedUserTypeService.findByKey(userType).isSingleUserMode()) {
-			accountOrder.setEmployeeId(employeeId);
-		}
+		accountOrder.setEmployeeId(employeeId);
 
 		if (StringUtils.hasLength(apiUserId)) {
 			accountOrder.setRequesterApiUserId(apiUserId);
@@ -634,9 +640,9 @@ public class AccountOrderService {
 					.filter(a -> masters.contains(a.getMaster()))
 					.collect(Collectors.toList());
 
-			// if the person has no affiliations controlled by masters that are used in
-			// the IdM process (or the person has no affiliations at all), we skip deactivation
-			if (affiliations.size() == 0) {
+			// if the person never had affiliations controlled by masters that are used in the IdM process (including aud table)
+			// we skip deactivation - unless configured to generate those delete orders anyway
+			if (configuration.getScheduled().getAccountOrderGeneration().isIgnoreDeleteOrdersIfNoAffiliations() && !affiliationService.anyAffiliationWithMasterInExisted(person.getUuid(),masters)) {
 				continue;
 			}
 
@@ -694,13 +700,13 @@ public class AccountOrderService {
 					}
 
 					// no reason to deactivate already deactivated users ;)
-					if (user.isDisabled() == false && deactivateDate != null) {
+					if (user.isDisabled() == false && deactivateDate != null && !person.isDisableAccountOrdersDisable()) {
 						AccountOrder accountOrder = deactivateOrDeleteAccountOrder(AccountOrderType.DEACTIVATE, person, user.getEmployeeId(), user.getUserType(), user.getUserId(), deactivateDate);
 						accountOrder.setLinkedUserId(linkedUserId);
 						accountDeletesResult.add(accountOrder);
 					}
 
-					if (deleteDate != null) {
+					if (deleteDate != null && !person.isDisableAccountOrdersDelete()) {
 						AccountOrder accountOrder = deactivateOrDeleteAccountOrder(AccountOrderType.DELETE, person, user.getEmployeeId(), user.getUserType(), user.getUserId(), deleteDate);
 						accountOrder.setLinkedUserId(linkedUserId);
 						accountDeletesResult.add(accountOrder);
@@ -827,7 +833,7 @@ public class AccountOrderService {
 		// filter out affiliations that are not of the supported type
 		List<String> masters = configuration.getScheduled().getAccountOrderGeneration().getMasters();
 		affiliations = affiliations.stream()
-								   .filter(a -> masters.contains(a.getMaster()) && a.getPerson().isDisableAccountOrders() == false)
+								   .filter(a -> masters.contains(a.getMaster()) && a.getPerson().isDisableAccountOrdersCreate() == false)
 								   .collect(Collectors.toList());
 
 		if (affiliations.size() == 0) {
@@ -1124,7 +1130,7 @@ public class AccountOrderService {
 		Map<String, Person> allPersons = persons.stream().collect(Collectors.toMap(Person::getUuid, Function.identity()));
 
 		affiliations = affiliations.stream()
-				.filter(a -> masters.contains(a.getMaster()) && a.getPerson().isDisableAccountOrders() == false)
+				.filter(a -> masters.contains(a.getMaster()) && a.getPerson().isDisableAccountOrdersCreate() == false)
 				.collect(Collectors.toList());
 		affiliations = AffiliationService.notStoppedAffiliations(affiliations);
 
@@ -1162,8 +1168,8 @@ public class AccountOrderService {
 				continue;
 			}
 
-			// skip cleanup on any where status != PENDING
-			if (!existingOrder.getStatus().equals(AccountOrderStatus.PENDING)) {
+			// skip cleanup on non-pending
+			if (existingOrder.getStatus() != AccountOrderStatus.PENDING && existingOrder.getStatus() != AccountOrderStatus.PENDING_APPROVAL  ) {
 				continue;
 			}
 
@@ -1222,8 +1228,8 @@ public class AccountOrderService {
 				continue;
 			}
 
-			// the purpose is only to cleanup no-longer-relevant pending orders, so skip non-pending
-			if (!existingOrder.getStatus().equals(AccountOrderStatus.PENDING)) {
+			// skip cleanup on non-pending
+			if (existingOrder.getStatus() != AccountOrderStatus.PENDING && existingOrder.getStatus() != AccountOrderStatus.PENDING_APPROVAL) {
 				continue;
 			}
 
@@ -1241,13 +1247,26 @@ public class AccountOrderService {
 				}
 			}
 
-			boolean noMatch = newDeleteOrders.stream()
-					 .noneMatch(newOrder -> newOrder.getPersonUuid().equals(existingOrder.getPersonUuid()) &&
-							 				newOrder.getOrderType().equals(existingOrder.getOrderType()) &&
-							 				Objects.equals(newOrder.getEmployeeId(), existingOrder.getEmployeeId()) &&
-							 				newOrder.getUserType().equals(existingOrder.getUserType()));
+			var shouldDeleteOrder = false;
+			var personOfOrder = personService.getByUuid(existingOrder.getPersonUuid());
+			if( existingOrder.getOrderType() == AccountOrderType.DEACTIVATE && personOfOrder.isDisableAccountOrdersDisable() ) {
+				// delete the deactivate-order if person is exempt from deactivate-orders
+				shouldDeleteOrder = true;
+			}
+			else if( existingOrder.getOrderType() == AccountOrderType.DELETE && personOfOrder.isDisableAccountOrdersDelete() ) {
+				// delete the delete-order if person is exempt from delete-orders
+				shouldDeleteOrder = true;
+			}
+			else {
+				// delete the order if it is no longer relevant (no match in newDeleteOrders)
+				shouldDeleteOrder = newDeleteOrders.stream()
+						.noneMatch(newOrder -> newOrder.getPersonUuid().equals(existingOrder.getPersonUuid()) &&
+								newOrder.getOrderType().equals(existingOrder.getOrderType()) &&
+								Objects.equals(newOrder.getEmployeeId(), existingOrder.getEmployeeId()) &&
+								newOrder.getUserType().equals(existingOrder.getUserType()));
+			}
 
-			if (noMatch) {
+			if (shouldDeleteOrder) {
 				log.info("Removing account order that is no longer relevant: " + existingOrder.getOrderType() + " on " + existingOrder.getRequestedUserId());
 				removedDeleteOrders++;
 				delete(existingOrder);
@@ -1285,12 +1304,12 @@ public class AccountOrderService {
 
 	@Transactional(rollbackFor = Exception.class)
 	public void deletePendingCreateOrders(Person person) {
-		accountOrderDao.deleteByStatusAndPersonUuidInAndOrderTypeIn(AccountOrderStatus.PENDING, Collections.singleton(person.getUuid()), Collections.singletonList(AccountOrderType.CREATE));
+		accountOrderDao.deleteByStatusInAndPersonUuidInAndOrderTypeIn(Set.of(AccountOrderStatus.PENDING, AccountOrderStatus.PENDING_APPROVAL), Collections.singleton(person.getUuid()), Collections.singletonList(AccountOrderType.CREATE));
 	}
 
 	@Transactional(rollbackFor = Exception.class)
 	public void deletePendingExpireOrders(Person person) {
-		accountOrderDao.deleteByStatusAndPersonUuidInAndOrderTypeIn(AccountOrderStatus.PENDING, Collections.singleton(person.getUuid()), Collections.singletonList(AccountOrderType.EXPIRE));
+		accountOrderDao.deleteByStatusInAndPersonUuidInAndOrderTypeIn(Set.of(AccountOrderStatus.PENDING, AccountOrderStatus.PENDING_APPROVAL), Collections.singleton(person.getUuid()), Collections.singletonList(AccountOrderType.EXPIRE));
 	}
 
 	// assumes that all orders are of the same userType and all have status PENDING
@@ -1378,12 +1397,9 @@ public class AccountOrderService {
 
 							for (EmailTemplateChild child : template.getChildren()) {
 								if (child.isEnabled()) {
-									if (orgUnitUuid != null && configuration.getEmailTemplate().isOrgFilterEnabled() && template.getTemplateType().isShowOrgFilter()) {
-										List<String> excludedOUUuids = child.getExcludedOrgUnitMappings().stream().map(o -> o.getOrgUnit()).map(o -> o.getUuid()).collect(Collectors.toList());
-										if (excludedOUUuids.contains(orgUnitUuid)) {
-											log.info("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + (affiliation != null ? affiliation.getUuid() : "<null>") + ". The affiliation OU was in the excluded ous list. Email template type " + EmailTemplateType.AD_CREATE_MANAGER.toString());
-											continue;
-										}
+									if( !emailTemplateService.shouldIncludeOrgUnit(child,orgUnitUuid) ) {
+										log.debug("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + (affiliation != null ? affiliation.getUuid() : "<null>") + ". The affiliation OU was filtered out.");
+										continue;
 									}
 									List<Person> recipients = emailTemplateService.getManagerOrSubstitutes(child, manager, orgUnitUuid);
 
@@ -1423,7 +1439,7 @@ public class AccountOrderService {
 								title = title.replace(EmailTemplatePlaceholder.ACCOUNT_PLACEHOLDER.getPlaceholder(), order.getActualUserId());
 								title = title.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnitName);
 
-								long delay = getEboksDelay(person, child);
+								long delay = emailQueueService.getEboksDelay(person, child, null);
 
 								if (isAdAndExchangeEmailTemplateActive()) {
 									SupportedUserType exchangeSettings = supportedUserTypeService.findByKey(SupportedUserTypeService.getExchangeUserType());
@@ -1505,17 +1521,17 @@ public class AccountOrderService {
 								message = message.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
 								message = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
 								message = message.replace(EmailTemplatePlaceholder.EXCHANGE_ACCOUNT_PLACEHOLDER.getPlaceholder(), order.getActualUserId());
-								message = message.replace(EmailTemplatePlaceholder.ACCOUNT_PLACEHOLDER.getPlaceholder(), order.getLinkedUserId());
+								message = message.replace(EmailTemplatePlaceholder.ACCOUNT_PLACEHOLDER.getPlaceholder(), (order.getLinkedUserId() != null) ? order.getLinkedUserId() : "");
 								message = message.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnitName);
 
 								String title = child.getTitle();
 								title = title.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
 								title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
 								title = title.replace(EmailTemplatePlaceholder.EXCHANGE_ACCOUNT_PLACEHOLDER.getPlaceholder(), order.getActualUserId());
-								title = title.replace(EmailTemplatePlaceholder.ACCOUNT_PLACEHOLDER.getPlaceholder(), order.getLinkedUserId());
+								title = title.replace(EmailTemplatePlaceholder.ACCOUNT_PLACEHOLDER.getPlaceholder(), (order.getLinkedUserId() != null) ? order.getLinkedUserId() : "");
 								title = title.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnitName);
 
-								long delay = getEboksDelay(person, child);
+								long delay = emailQueueService.getEboksDelay(person, child, null);
 
 								emailQueueService.queueEboks(person, title, message, delay, child);
 							}
@@ -1687,40 +1703,6 @@ public class AccountOrderService {
 		}
 
 		return orgUnitName;
-	}
-
-	// this method is for eboks messages. Here child.getMinutesDelay is days and not minutes :)
-	private long getEboksDelay(Person person, EmailTemplateChild child) {
-		long delay = 0;
-
-		// find an affiliation to base delay on
-		var affiliation = AffiliationService.notStoppedAffiliations(person.getAffiliations()).stream().min(Comparator.comparing(Affiliation::getStartDate)).orElse(null);
-
-		if (affiliation != null && affiliation.getStartDate() != null) {
-			Date today = new Date();
-
-			// child.getMinutesDelay = 0 means that we will send immediately
-			if (child.getMinutesDelay() > 0) {
-				if (AffiliationService.notActiveYet(affiliation, (int) child.getMinutesDelay())) {
-					// the affiliation starts in more than x (child.getMinutesDelay()) days
-					Date startDate = affiliation.getStartDate();
-					Calendar cal = Calendar.getInstance();
-					cal.setTime(startDate);
-					cal.add(Calendar.DATE, (int) (-1 * child.getMinutesDelay()));
-					Date dateToSend = cal.getTime();
-
-					long diff = dateToSend.getTime() - today.getTime();
-					delay = TimeUnit.MILLISECONDS.toMinutes(diff);
-
-					// should not happen
-					if (delay < 0) {
-						delay = 0;
-					}
-				}
-			}
-		}
-
-		return delay;
 	}
 
 	private boolean accountWasRecentlyEnabled(AccountOrder order) {

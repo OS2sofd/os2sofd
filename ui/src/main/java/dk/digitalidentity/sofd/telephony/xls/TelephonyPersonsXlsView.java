@@ -15,14 +15,14 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.context.support.ResourceBundleMessageSource;
-import org.springframework.web.servlet.view.document.AbstractXlsView;
 
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Phone;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.telephony.TelephonyConstants;
+import org.springframework.web.servlet.view.document.AbstractXlsxView;
 
-public class TelephonyPersonsXlsView extends AbstractXlsView {
+public class TelephonyPersonsXlsView extends AbstractXlsxView {
 
 	@SuppressWarnings("unchecked")
 	@Override

@@ -9,7 +9,7 @@ CREATE OR REPLACE VIEW subview_datatables_affiliations AS SELECT
      LEFT JOIN (
         SELECT aw.orgunit_uuid, aw.affiliation_id
         FROM affiliations_workplaces aw
-        WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate() LIMIT 1
+        WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate()
      ) workplace ON workplace.affiliation_id = a.id
    WHERE prime = 1;
 
@@ -21,8 +21,14 @@ CREATE OR REPLACE VIEW view_datatables_persons AS SELECT
     phs.phone_number,
     p.cpr,
     IF (l.start_date IS NOT NULL AND l.start_date < CURRENT_TIMESTAMP, 1, 0) AS `leave`,
+    l.reason,
+    l.reason_text,
+    l.stop_date,
     p.force_stop,
-    p.disable_account_orders,
+    p.disable_account_orders_create,
+    p.disable_account_orders_delete,
+    p.disable_account_orders_disable,
+    p.stop_reason,
     GROUP_CONCAT(usrs.user_id ORDER BY usrs.prime DESC, usrs.user_id) AS user_ids,
     STR_TO_DATE(LEFT(p.cpr, 6), '%d%m%y') IS NULL AS fictive_cpr,
     p.dead AS dead,
@@ -52,8 +58,12 @@ CREATE OR REPLACE VIEW view_datatables_persons_deleted AS SELECT
     NULL AS phone_number,
     p.cpr,
     0 AS `leave`,
+    NULL as reason,
+    NULL as reason_text,
     0 AS force_stop,
-    0 AS disable_account_orders,
+    0 AS disable_account_orders_create,
+    0 AS disable_account_orders_disable,
+    0 AS disable_account_orders_delete,
     GROUP_CONCAT(usrs.user_id ORDER BY usrs.prime DESC, usrs.user_id) AS user_ids,
     0 AS fictive_cpr,
     p.dead AS dead,
@@ -68,13 +78,11 @@ CREATE OR REPLACE VIEW view_datatables_persons_deleted AS SELECT
   GROUP BY p.uuid;
 
 CREATE OR REPLACE VIEW view_datatables_students AS SELECT
-    s.uuid,
+    s.id,
     s.name,
     s.disabled,
-    s.username,
-    GROUP_CONCAT(sin.institution_number) AS institution_numbers,
-    GROUP_CONCAT(scn.class) AS classes
+    s.user_id,
+    GROUP_CONCAT(sin.institution_number) AS institution_numbers
   FROM student s
   LEFT JOIN student_institution_numbers sin ON s.id = sin.student_id
-  LEFT JOIN student_class_names scn ON s.id = scn.student_id
   GROUP BY s.id;

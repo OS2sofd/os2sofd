@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.comparator.BooleanComparator;
 import org.springframework.util.comparator.NullSafeComparator;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
@@ -131,13 +132,24 @@ public class PrimeService {
 				  .collect(Collectors.toList());
 
 		if (opusAffiliations.size() > 0) {
-			// rule 2: LOWEST employmentTerms, and if equal, fallback to HIGHEST working hours, and finally LOWEST employeeId
+			// rule 2: Preferred employmentTerms if configured or LOWEST employmentTerms, and if equal, fallback to HIGHEST working hours, and finally LOWEST employeeId
+			var preferredPrimeEmploymentTerms = configuration.getModules().getLos().getPreferredPrimeEmploymentTerms();
 			Optional<Affiliation> affiliation = opusAffiliations.stream().max((a1, a2)
-					-> (Objects.equals(a1.getEmploymentTerms(),a2.getEmploymentTerms())
-						? (Objects.equals(a1.getWorkingHoursNumerator(),a2.getWorkingHoursNumerator())
-						? a2.getEmployeeId().compareTo(a1.getEmployeeId())
-						: a1.getWorkingHoursNumerator().compareTo(a2.getWorkingHoursNumerator()))
-						: Objects.compare(a2.getEmploymentTerms(), a1.getEmploymentTerms(), new NullSafeComparator<String>(String::compareTo,true))));
+					-> (
+							Objects.equals(a1.getEmploymentTerms(),a2.getEmploymentTerms()) ?
+									(Objects.equals(a1.getWorkingHoursNumerator(),a2.getWorkingHoursNumerator()) ?
+										a2.getEmployeeId().compareTo(a1.getEmployeeId())
+
+									:
+										a1.getWorkingHoursNumerator().compareTo(a2.getWorkingHoursNumerator()))
+
+							:
+									preferredPrimeEmploymentTerms != null ?
+										Objects.compare(preferredPrimeEmploymentTerms.equalsIgnoreCase(a2.getEmploymentTerms()), preferredPrimeEmploymentTerms.equalsIgnoreCase(a1.getEmploymentTerms()), new BooleanComparator(true))
+									:
+										Objects.compare(a2.getEmploymentTerms(), a1.getEmploymentTerms(), new NullSafeComparator<String>(String::compareTo,true))
+					)
+			);
 
 			if (affiliation.isPresent()) {
 				Affiliation aPrime = affiliation.get();

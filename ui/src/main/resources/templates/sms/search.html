@@ -20,7 +20,7 @@
 										<label class="col-sm-2 control-label" th:text="#{html.page.sms.search.orgunits}"></label>
 										<div class="col-sm-8">
 											<select th:field="*{orgUnits}" multiple="multiple" class="form-control hidden"></select>
-											<select id="fakeOrgUnits" multiple="multiple" class="form-control"></select>
+											<select id="fakeOrgUnits" multiple="multiple" class="form-control" style="resize:vertical;"></select>
 										</div>
 									</div>
 
@@ -234,6 +234,7 @@
 							return (node.text.toUpperCase().includes(str.toUpperCase()));
 						}
 					},
+					"checkbox": {cascade: "down", three_state: false},
 					"plugins" : ["search", "checkbox"]
 			});
 

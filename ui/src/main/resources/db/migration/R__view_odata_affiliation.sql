@@ -28,7 +28,7 @@ AS
   LEFT JOIN (
         SELECT aw.orgunit_uuid, aw.affiliation_id
         FROM affiliations_workplaces aw
-        WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate() LIMIT 1
+        WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate()
   ) workplace ON workplace.affiliation_id = affiliations.id
   JOIN   orgunits ON orgunits.uuid = affiliations.orgunit_uuid
   INNER JOIN view_adm_organisation ON view_adm_organisation.id = orgunits.belongs_to;
