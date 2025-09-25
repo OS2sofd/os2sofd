@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.w3.org/1999/html">
+<head th:replace="fragments/header :: header (title=#{html.orgunits.addEmployees.headline})"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'orgunits', subpage='phonebook')"></aside>
+
+	<section>
+		<div class="content-wrapper">
+			<h3 th:text="#{html.orgunits.addEmployees.headline}"></h3>
+			<div class="panel panel-default">
+				<div class="panel-heading"></div>
+				<div class="panel-body">
+					<div class="row col-md-12" style="padding: 0px 75px 0px 20px;">
+						
+						<label class="control-label" th:text="#{html.action.search}" style="margin-top: 10px;"></label>
+						<input class="form-control" id='orgUnitTreeSearchField' autofocus="autofocus" style="margin-bottom: 40px;" />
+						
+						<div id="ouWrapper" style="margin-bottom: 40px;">
+							<div th:id='orgUnitTreeHierarchy'></div>
+						</div>
+						
+						<div class="col-sm-12">
+							<a id="addLink">
+								<span class="btn btn-lg btn-primary" th:text="#{html.action.addAllEmployees}"></span>
+							</a>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<style>
+div .affix {
+	position: fixed;
+	right: 0;
+	padding-left: 50px;
+	margin-left: -15px;
+	margin-right: -15px;
+	padding-right: 50px;
+	top: 100px;
+}
+
+.jstree-disabled{
+	color: #D3D3D3 !important;
+}
+</style>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+
+<script th:inline="javascript">
+		/*<![CDATA[*/
+		/*[+
+            var orgUnits = [[${orgUnits}]];
+			var orgUnitUuid = [[${orgUnit.uuid}]];
+            var addUrl = [[@{/ui/orgunit/affiliations/}]];
+		+]*/
+		
+		$(document).ready(function() {
+			
+			initOrgUnitTree(orgUnits);
+			
+			$("#orgUnitTreeHierarchy").on("select_node.jstree", function(e, data) {
+				$( "#addLink" ).attr("href", addUrl + orgUnitUuid + "/" + data.node.id );
+			});
+		});
+
+        function initOrgUnitTree(orgUnits) {
+            $('#orgUnitTreeHierarchy').jstree('destroy');
+
+            var config = {
+                "core": {
+                    "data": orgUnits,
+                    "themes": {
+                        "icons": false
+                    }
+                },
+                "search" : {
+                    "show_only_matches": true,
+                    "search_callback": function(str, node) {
+                        return (node.text.toUpperCase().includes(str.toUpperCase()));
+                    }
+                },
+                "plugins" : [
+                    "wholerow", "search"
+                ]
+            };
+            
+            config.plugins.push("state");
+            
+            // Init OrgUnitTree
+			$('#orgUnitTreeHierarchy').jstree(config);
+
+            // searching in the JSTree
+            var to = false;
+            $('#orgUnitTreeSearchField').keyup(function() {
+                if (to) {
+                    clearTimeout(to);
+                }
+
+                to = setTimeout(function() {
+                    var v = $('#orgUnitTreeSearchField').val();
+
+                    $('#orgUnitTreeHierarchy').jstree(true).search(v);
+                }, 400);
+            });
+            
+            $('#orgUnitTreeHierarchy').on('close_node.jstree', function(e, data) {
+            	if (data.node.parent == '#') {
+            		$('#orgUnitTreeHierarchy').jstree("close_all");
+            	}
+            });
+        }
+
+		/*]]>*/
+	</script>
+</body>
+</html>

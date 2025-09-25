@@ -1,0 +1,20 @@
+<th:block th:fragment="chooseParentModal" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<div class="modal fade" id="chooseParentModal" role="dialog">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-body">
+					<div class="form-horizontal">
+						<div class="form-group" style="padding: 0px 75px 0px 20px;">
+							<th:block th:replace="orgunit/fragments/orgunit_tree :: orgUnitTree(namespace='parent')"></th:block>
+						</div>
+					</div>
+				</div>
+
+				<div class="modal-footer">
+					<button type="button" class="btn btn-primary" th:text="#{html.control.button.save}" onclick="selectParent()"></button>
+					<button type="button" class="btn btn-danger" th:text="#{html.action.abortChanges}" data-dismiss="modal"></button>
+				</div>
+			</div>
+		</div>
+	</div>
+</th:block>

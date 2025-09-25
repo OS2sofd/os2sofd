@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<body>
+	<script th:fragment="datatables" th:inline="javascript">
+	/*<![CDATA[*/
+
+	/*[+
+		var searchTxt = [[#{html.datatables.search}]];
+		var dropdownTxt = [[#{html.datatables.dropdown}]];
+		var infoDefaultTxt = [[#{html.datatables.info.default}]];
+		var infoEmptyTxt = [[#{html.datatables.info.empty}]];
+		var infoFilteredTxt = [[#{html.datatables.info.filtered}]];
+		var prevTxt = [[#{html.datatables.prev}]];
+		var nextTxt = [[#{html.datatables.next}]];
+		var paging = [[${paging}]];
+		var autoLoad = [[${autoLoad}]];
+		var pageLength = [[${pageLength}]];
+
+	+]*/
+
+		if (paging == null) {
+			paging = true;
+		}
+	
+		if (autoLoad == null) {
+			autoLoad = true;
+		}
+		
+		if (pageLength == null) {
+			pageLength = 25;
+		}			
+		
+		function loadDataTables() {
+		    $('.listTable').DataTable({
+		    	"bDestroy": true,
+		        'paging':   paging,
+		        'ordering': true,
+		        'info':     true,
+				'pageLength': pageLength,
+		        'language': {
+		            "search":       searchTxt,
+		            "lengthMenu":   dropdownTxt,
+		            "info":         infoDefaultTxt,
+		            "zeroRecords":  infoEmptyTxt,
+		            "infoEmpty":    "",
+		            "infoFiltered": infoFilteredTxt,
+		            "paginate": {
+		            	"next": nextTxt,
+		            	"previous": prevTxt
+		            }
+		        }
+		    });
+		}
+		
+		function loadDataTable(jQueryElem) {
+			jQueryElem.DataTable({
+		    	"bDestroy": true,
+		        'paging':   paging,
+		        'ordering': true,
+		        'info':     true,
+				'pageLength': 25,
+		        'language': {
+		            "search":       searchTxt,
+		            "lengthMenu":   dropdownTxt,
+		            "info":         infoDefaultTxt,
+		            "zeroRecords":  infoEmptyTxt,
+		            "infoEmpty":    "",
+		            "infoFiltered": infoFilteredTxt,
+		            "paginate": {
+		            	"next": nextTxt,
+		            	"previous": prevTxt
+		            }
+		        }
+		    });
+		}
+		
+		var currentTable;
+		function loadDataTableWithState(jQueryElem, stateKey, hideColumns, dropDownElemSelector) {
+			if (jQueryElem.hasClass("nodatatables")) {
+				return;
+			}
+
+			stateKey = "dataTablesKey-" + stateKey;
+
+			currentTable = jQueryElem.DataTable({
+		    	"bDestroy": true,
+		        'paging':   paging,
+		        'ordering': true,
+		        'stateSave': true,
+		        'stateDuration': 0,
+		        'info':     true,
+				'pageLength': 25,
+				'columnDefs': [
+			        { "targets": hideColumns, visible: false },
+			        { "targets": "_all", visible: true }
+			    ],
+			    'buttons': [
+			        "copy", "excel", "pdf"
+			    ],
+		        'language': {
+		            "search":       searchTxt,
+		            "lengthMenu":   dropdownTxt,
+		            "info":         infoDefaultTxt,
+		            "zeroRecords":  infoEmptyTxt,
+		            "infoEmpty":    "",
+		            "infoFiltered": infoFilteredTxt,
+		            "paginate": {
+		            	"next": nextTxt,
+		            	"previous": prevTxt
+		            }
+		        },
+				'stateSaveCallback': function(settings, data) {
+			        localStorage.setItem(stateKey, JSON.stringify(data));
+			    },
+			    'stateLoadCallback': function() {
+			        try {
+			            return JSON.parse(localStorage.getItem(stateKey));
+			        }
+			        catch (e) {
+			        	console.log(e);
+			        }
+                },
+		    });
+			
+			dataTablesRefreshIcons($(dropDownElemSelector));
+		}
+		
+		function dataTablesToggleColumn(elem) {
+			if (!currentTable) {
+				return false;
+			}
+			
+			var cId = $(elem).data("cid");
+
+			currentTable.column(cId).visible(!currentTable.column(cId).visible());
+			
+			var dropDownElem = $(elem).parent();
+			dataTablesRefreshIcons(dropDownElem);
+
+			return false;
+		}
+
+		function dataTablesRefreshIcons(dropDownElem) {
+			if (!currentTable) {
+				return false;
+			}
+			
+			dropDownElem.find("a").each(function() {
+				var cId = $(this).data("cid");
+			
+				if (currentTable.column(cId).visible()) {
+					$(this).find("em").addClass("fa-check");
+					$(this).find("em").removeClass("fa-minus");
+				}
+				else {
+					$(this).find("em").addClass("fa-minus");
+					$(this).find("em").removeClass("fa-check");
+				}
+			});
+		}
+
+		$(document).ready(function() {
+			if (autoLoad) {
+				loadDataTables();
+			}
+		});
+		/*]]>*/
+	</script>
+</body>
+</html>

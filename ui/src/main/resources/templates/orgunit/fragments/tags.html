@@ -1,0 +1,271 @@
+<th:block th:fragment="tags" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<style>
+		.ellipsis {
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          overflow: hidden;
+          display:inline-block;
+        }
+	</style>
+	<table id="orgUnitTagsTable" class="table table-striped table-hover listTable">
+		<thead>
+			<th class="col-md-1" th:text="#{html.page.orgunit.view.tag.value}"></th>
+			<th class="col-md-1" th:text="#{html.page.orgunit.view.tag.chosen}"></th>
+			<th class="col-md-4" th:text="#{html.page.orgunit.view.tag.customTagValue}"></th>
+			<th class="col-md-5" th:text="#{html.page.orgunit.view.tag.description}"></th>
+			<th class="col-md-1" th:text="#{html.control.operations}"></th>
+		</thead>
+
+		<tbody>
+		<tr th:each="tag : ${tags}">
+			<td th:text="${tag.value}" th:attr="data-id=tagValue + ${tag.id}"></td>
+			<td>
+				<div class="checkbox c-checkbox">
+					<label>
+						<input th:if="${(orgUnit != null && @securityUtil.canEditOrgUnit(orgUnit.uuid)) || orgUnit == null}" th:id="tagCheckbox+${tag.id}" sec:authorize="hasRole('ROLE_USER_EDIT')" class="checkbox-tags" type="checkbox"
+							   th:attr="data-value=${tag.value},data-customValueEnabled=${tag.customValueEnabled},data-customValueName=${tag.customValueName},data-customValueRegex=${tag.customValueRegex}"
+							   th:value="${tag.id}" th:checked="${tag.selected}" data-objtype="role"/>
+						<input sec:authorize="not hasRole('ROLE_USER_EDIT')" class="checkbox-tags" type="checkbox" th:value="${tag.id}" th:checked="${tag.selected}" data-objtype="role" disabled="disabled" />
+						<span class="fa fa-check"></span>
+					</label>
+				</div>
+			</td>
+			<td>
+				<span style="width:300px;" class="ellipsis" th:id="tagCustomValue+${tag.id}" th:title="${tag.customValue}" th:if="${tag.customValueEnabled}" th:text="${tag.customValue}"></span>
+			</td>
+			<td th:text="${tag.description}" th:attr="data-id=tagDescription + ${tag.id}"></td>
+			<td>
+				<em th:hidden="${!tag.customValueEnabled} OR ${!tag.selected}" th:id="'edit-btn-' + ${tag.id}" th:attr="data-id=${tag.id}" class="fa fa-fw fa-pencil editTagBtn"></em>
+			</td>
+		</tr>
+		</tbody>
+	</table>
+	<style>
+		.checkbox-tags {
+			position: absolute !important;
+		}
+		.wrap-text{
+			-webkit-line-clamp: 5;
+			text-overflow: ellipsis;
+			overflow: hidden;
+			-webkit-box-orient: vertical;
+			display: -webkit-box;
+			margin-bottom: 1em;
+			padding-bottom: 0px !important;
+		}
+	</style>
+</th:block>
+
+<th:block th:fragment="tagsScript" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+			var tagDeleteTitle = [[#{html.fragment.tag.msg.delete.Title}]];
+			var tagDeleteText = [[#{html.fragment.tag.msg.delete.Text}]];
+			var tagInvalidText = [[#{html.fragment.tag.msg.tag.invalid}]];
+			var tagTooLongText = [[#{html.fragment.tag.msg.tag.tooLong}]];
+			
+			var tagDeleteButtonConfirm = [[#{html.button.yes}]];
+			var tagDeleteButtonCancel = [[#{html.button.cancel}]];
+			
+		+]*/
+
+		function addCheckboxListeners() {
+			$('.checkbox-tags').off( "change" );
+			$('.checkbox-tags').change(tagCheckboxChanged);
+		}
+
+		function addEditTagBtnListeners() {
+			$('.editTagBtn').off( "click" );
+			$('.editTagBtn').click(editBtnClicked);
+		}
+
+		addCheckboxListeners();
+		addEditTagBtnListeners();
+
+		$('#listTable1').on( 'draw.dt', function () {
+			addCheckboxListeners();
+			addEditTagBtnListeners();
+		});
+
+		function saveTag(tagId, customTagValue)
+		{
+			var checkbox = $("#tagCheckbox" + tagId );
+			var customValue = $("#tagCustomValue" + tagId );
+			var tagData = {id: tagId, customValue: customTagValue};
+			$.ajax({
+				url: restUrl + "/" + uuid + "/saveTag",
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				type: 'post',
+				contentType: 'application/json',
+				data: JSON.stringify(tagData),
+				success: function(response) {
+					checkbox.prop('checked', true);
+					customValue.text(tagData.customValue);			
+					$.notify({
+						message: msgFieldUpdated
+					}, {
+						status: 'success',
+						autoHideDelay: 2000
+					});
+
+					if (customTagValue != null) {
+						$("#edit-btn-" + tagId).show();
+					}
+				},
+				error: function(response) {
+					checkbox.prop('checked', false);
+					customValue.text('');
+					$.notify({
+						message: msgUpdateFail + '<br>' + response.responseText
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});					
+				}
+			});
+		}
+
+		function setTag(tagId)
+		{
+			var checkbox = $("#tagCheckbox" + tagId );
+			var customValueEnabled = checkbox.attr("data-customValueEnabled") == "true";
+			if( !customValueEnabled )
+			{
+				saveTag(tagId, null);
+			}
+			else
+			{
+				var tagValue = checkbox.attr("data-value")
+				var customValueName = checkbox.attr("data-customValueName");
+				var customValueRegex = RegExp(checkbox.attr("data-customValueRegex"));
+				swal({
+				  title: tagValue,
+				  text: customValueName,
+				  type: "input",
+				  showCancelButton: true,
+				  closeOnConfirm: false,
+				  inputPlaceholder: ""
+				}, function (inputValue) {
+					if (inputValue===false) {
+						checkbox.prop('checked', false);
+						checkbox.checked = false;
+						return false;
+					}
+					else if(inputValue.length > 500) {
+						swal.showInputError(tagTooLongText);
+						checkbox.prop('checked', false);
+						return false
+					}
+					else if (!customValueRegex.test(inputValue)) {
+						swal.showInputError(tagInvalidText);
+						checkbox.prop('checked', false);
+						return false
+					}
+					else
+					{
+						saveTag(tagId, inputValue);
+						swal.close();
+					}				  
+				});
+				}
+		}
+
+		function editBtnClicked() {
+			var tagId = $(this).attr("data-id");
+			var checkbox = $("#tagCheckbox" + tagId );
+			var tagValue = checkbox.attr("data-value")
+			var customValueName = checkbox.attr("data-customValueName");
+			var customValueRegex = RegExp(checkbox.attr("data-customValueRegex"));
+			var customValue = $("#tagCustomValue" + tagId ).text();
+
+			swal({
+			  title: tagValue,
+			  text: customValueName,
+			  type: "input",
+			  inputValue: customValue,
+			  showCancelButton: true,
+			  closeOnConfirm: false,
+			  inputPlaceholder: ""
+			}, function (inputValue) {
+				if (inputValue===false) {
+					return false;
+				}
+				else if(inputValue.length > 500) {
+					swal.showInputError(tagInvalidText);
+					return false
+				}
+				else if (!customValueRegex.test(inputValue)) {
+					swal.showInputError(tagInvalidText);
+					return false
+				}
+				else
+				{
+					saveTag(tagId, inputValue);
+					swal.close();
+				}
+			});
+		}
+
+		function tagCheckboxChanged() {
+			var thisCheckbox = this;			
+			var tagId = $(this).val();
+			var customValue = $("#tagCustomValue" + tagId );
+
+			if(this.checked) {
+				setTag(tagId);
+			} else {
+				swal({
+					html : true,
+					title : tagDeleteTitle,
+					text : tagDeleteText,
+					type : "warning",
+					showCancelButton : true,
+					confirmButtonColor : "#DD6B55",
+					confirmButtonText : tagDeleteButtonConfirm,
+					cancelButtonText : tagDeleteButtonCancel,
+					closeOnConfirm : true,
+					closeOnCancel : true
+				},
+				function(isConfirm) {
+					if (isConfirm) {
+						$.ajax({
+							method : "POST",
+							url: restUrl + "/deleteTag",
+							headers: {
+								"content-type": "application/json",
+								"uuid": uuid,
+								"id": tagId,
+								'X-CSRF-TOKEN': token
+							}
+						}).done(function (data) {
+							$.notify({
+								message: msgFieldUpdated
+							}, {
+								status: 'success',
+								autoHideDelay: 2000
+							});
+							customValue.text('');
+
+							// hide edit btn
+							$("#edit-btn-" + tagId).hide();
+						}).fail(function (jqXHR, textStatus, errorThrown) {
+							$.notify({
+								message: msgUpdateFail
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						});
+					} else {
+						thisCheckbox.checked = !this.checked;						
+					}
+				});
+			}
+		}
+		/*]]>*/
+	</script>
+</th:block>

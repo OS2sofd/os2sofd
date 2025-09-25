@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'accountcreation')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'list', subpage = 'accountcreation')"></aside>
+ 
+		<section>
+			<div class="content-wrapper">
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<h3 th:text="#{html.page.accountcreation.error.title}"></h3>
+
+						<th:block th:switch="${cause}">
+							<th:block th:case="'affiliation'">
+								<p th:text="#{html.page.accountcreation.error.affiliation}"></p>
+							</th:block>
+							<th:block th:case="'exchange'">
+								<p th:text="#{html.page.accountcreation.error.exchange}"></p>
+							</th:block>
+						</th:block>
+						
+						<a class="button btn btn-lg btn-primary" th:text="#{html.button.ok}" th:href="@{/ui/person/view/} + ${uuid}"></a>
+					</div>
+				</div>
+	        </div>
+	    </section>
+	</div>
+	
+	<nav th:replace="fragments/footer :: footer"></nav>
+</body>
+</html>

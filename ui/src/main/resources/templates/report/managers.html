@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'report')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'managerSubstitutes', subpage = 'report')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.managers.list.headline}"></h3>
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<table id="table" class="listTable table table-responsive table-striped">
+							<thead>
+								<tr>
+									<th class="col-md-3" th:text="#{html.manager.name}"></th>
+									<th class="col-md-4" th:text="#{html.manager.ous}"></th>
+									<th class="col-md-4" th:text="#{html.manager.source}"></th>
+									<th class="col-md-4" th:text="#{html.manager.inherited}"></th>
+									<th class="col-md-4" th:text="#{html.manager.substitutes}"></th>
+									<th class="col-md-1" th:text="#{html.control.operations}"></th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr th:each="manager : ${managers}">
+									<td th:text="${manager.name}"></td>
+									<td th:text="${manager.orgUnit.name}"></td>
+									<td th:if="${manager.source == T(dk.digitalidentity.sofd.dao.model.enums.OrgUnitManagerSource).SELECTED}" th:text="#{html.manager.source.selected}"></td>
+									<td th:if="${manager.source == T(dk.digitalidentity.sofd.dao.model.enums.OrgUnitManagerSource).IMPORTED}" th:text="#{html.manager.source.imported}"></td>
+									<td th:text="${manager.inherited} ? 'Ja' : 'Nej'"></td>
+									<td>
+										<ul style="padding-left: 20px;">
+											<li th:each="substitute : ${manager.substitutes}" th:text="${substitute}"></li>
+										</ul>
+									</td>
+									<td>
+										<em th:attr="data-id=${manager.uuid}" class="fa fa-fw fa-pencil clickable"></em>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+	
+	<nav th:replace="fragments/footer :: footer"></nav>
+	<script th:replace="fragments/datatables :: datatables"></script>
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+
+		+]*/
+
+		$(document).ready(function() {
+			$('.clickable').on("click", function() {
+				var uuid = $(this).data("id");
+				localStorage.setItem(uuid, "#substitutes_menu");
+				window.location.href = '/ui/person/view/' + uuid;
+			});
+
+			//assign listeners again on page change
+			$('#table').on('draw.dt', function() {
+				$('.clickable').off('click');
+
+				$('.clickable').on("click", function() {
+					var uuid = $(this).data("id");
+					localStorage.setItem(uuid, "#substitutes_menu");
+					window.location.href = '/ui/person/view/' + uuid;
+				});
+			});
+		});
+		/*]]>*/
+	</script>
+</body>
+</html>

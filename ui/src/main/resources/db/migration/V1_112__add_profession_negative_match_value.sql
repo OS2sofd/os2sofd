@@ -1,0 +1,1 @@
+ALTER TABLE profession_mappings ADD COLUMN match_type varchar(64) NOT NULL DEFAULT 'POSITIVE';

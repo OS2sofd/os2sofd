@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'mailtemplates', subpage = 'admin')"></aside>
+ 
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.page.email_template.edit.headline}"></h3>
+
+				<div class="panel panel-default">
+					<div class="panel-body">
+						<div class="row" style="margin-bottom: 30px;">
+							<div class="col-lg-10 col-lg-offset-1">
+								<h3 style="margin-top: 0px;" th:text="#{html.page.email_template.header}"></h3>
+								<p th:text="#{html.page.email_template.intro}"></p>
+							</div>
+						</div>
+						
+						<div class="row" th:style="${#httpServletRequest.requestURI.contains('/edit') ? 'display: none;' : ''}">
+							<div class="col-lg-12">
+								<form class="form-horizontal">
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.template}"></label>
+
+										<div class="col-sm-8">
+											<select class="form-control m-b col-sm-8" id="templateDropdown">
+												<option th:each="template : ${templates}" th:value="${template.id}" th:text="#{__${template.templateTypeText}__}" th:attr="data-template=${template.emailTemplateType}"></option>
+											</select>
+										</div>
+									</div>
+								</form>
+							</div>
+						</div>
+
+						<div class="row">
+							<div class="col-lg-12 templateForm" th:each="template : ${templates}" th:id="'template' + ${template.id}" style="display: none;">
+								<div class="row" style="display: none;">
+									<div class="col-lg-12">
+										<form class="form-horizontal">
+											<div class="form-group">	
+												<div class="col-sm-7">
+													<select class="form-control m-b col-sm-8 childDropdown" th:id="'childDropdown' + ${template.id}" >
+														<option th:each="child : ${template.children}" th:value="${child.id}" th:text="${child.title}" th:attr="data-title=${child.title}"></option>
+													</select>
+												</div>
+											</div>
+										</form>
+									</div>
+								</div>
+
+								<form th:each="child : ${template.children}" class="form-horizontal childForm" th:id="'child' + ${template.id} + '00' + ${child.id}" style="display: none;">
+									<input type="hidden" name="id" th:value="${child.id}"/>
+									<input type="hidden" name="templateId" th:value="${child.templateId}"/>
+									<input type="hidden" name="enabled" th:value="${child.enabled}"/>
+									<input type="hidden" name="adRequired" th:value="${child.adRequired}"/>
+									<input type="hidden" name="onlyManualRecipients" th:value="${child.onlyManualRecipients}"/>
+									
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.enabled}"></label>
+										<div class="col-sm-8">
+											<div class="checkbox c-checkbox">
+												<label>
+													<input class="checkboxEnabled" th:checked="${child.enabled}" type="checkbox" />
+													<span class="fa fa-check"></span>
+												</label>
+											</div>
+										</div>
+									</div>
+
+									<div class="form-group" th:id="'delay' + ${child.id}">
+										<label class="col-sm-2 control-label" th:unless="${template.emailTemplateType.eboks}" th:utext="#{html.entity.email_template.minutes_delay}"></label>
+										<label class="col-sm-2 control-label" th:if="${template.emailTemplateType.eboks}" th:utext="#{html.entity.email_template.days_delay}"></label>
+										<div class="col-sm-8">
+											<input name="minutesDelay" th:value="${child.minutesDelay}" class="form-control" />
+										</div>
+									</div>
+									
+									<div class="form-group" th:id="'domainFilter' + ${child.id}" th:if="${template.emailTemplateType.showDomainFilter and @sofdConfiguration.emailTemplate.domainFilterEnabled}">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.domainFilter}"></label>
+										<div class="col-sm-8">
+											<input name="domainFilter" th:value="${child.domainFilter}" class="form-control"/>
+										</div>
+									</div>
+									
+									<div class="form-group" th:id="'daysBeforeEvent' + ${child.id}" th:if="${template.emailTemplateType.allowDaysBeforeEvent}">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.daysBeforeEvent}"></label>
+										<div class="col-sm-8">
+											<input type="number" name="daysBeforeEvent" th:value="${child.daysBeforeEvent}" class="form-control"/>
+										</div>
+									</div>
+									
+									<div th:if="${template.emailTemplateType.showOrgFilter and @sofdConfiguration.emailTemplate.orgFilterEnabled}">
+										<div class="form-group" th:id="'orgFilter' + ${child.id}">
+											<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.orgFilter}"></label>
+											<div class="col-sm-8">
+												<select name="orgUnitFilterType" class="form-control">
+													<option th:each="option : ${T(dk.digitalidentity.sofd.dao.model.enums.EmailOrgUnitFilterType).values()}" th:text="#{${option.title}}" th:value="${option}" th:selected="${option == child.orgUnitFilterType}">
+												</select>
+
+												<select name="orgUnitUuids" th:id="'orgUnits' + ${child.id}" multiple="multiple" class="form-control hidden">
+													<option th:each="uuid : ${child.orgUnitUuids}" th:value="${uuid}" selected="selected">
+												</select>
+												<select th:id="'fakeOrgUnits' + ${child.id}" multiple="multiple" class="form-control">
+													<option th:each="name : ${child.orgUnitNames}" th:text="${name}">
+												</select>
+											</div>
+										</div>
+										
+										<div class="form-group">
+											<label class="col-sm-2 control-label"></label>
+											<div class="col-sm-8">
+												<button type="button" th:attr="data-id=${child.id}" class="ouBtn btn btn-primary" th:text="#{html.page.sms.search.hiearchy}"></button>
+											</div>
+										</div>
+									</div>
+									
+									<div class="form-group" th:id="'adRequired' + ${child.id}" th:if="${template.emailTemplateType.showADUserFilter and @sofdConfiguration.emailTemplate.adUserFilterEnabled}">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.adFilter}"></label>
+										<div class="col-sm-8">
+											<div class="checkbox c-checkbox">
+												<label>
+													<input class="checkboxADRequired" th:checked="${child.adRequired}" type="checkbox" />
+													<span class="fa fa-check"></span>
+												</label>
+											</div>
+										</div>
+									</div>
+									
+									<div class="form-group" th:id="'sendTo' + ${child.id}" th:if="${template.emailTemplateType.sendToManager}">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.send_to}"></label>
+										<div class="col-sm-8">
+											<select name="sendTo" class="form-control" th:disabled="${child.onlyManualRecipients}">
+													<option th:each="option : ${T(dk.digitalidentity.sofd.dao.model.enums.SendTo).values()}" th:text="#{${option.title}}" th:value="${option}" th:selected="${option == child.sendTo}">
+											</select>
+										</div>
+									</div>
+									
+									<div class="form-group" th:id="'employeeFilter' + ${child.id}" th:if="${template.emailTemplateType.showEmployeeFilter}">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.employeeFilter}"></label>
+										<div class="col-sm-8">
+											<select name="employeeFilter" class="form-control" th:disabled="${child.onlyManualRecipients}">
+													<option th:each="option : ${T(dk.digitalidentity.sofd.dao.model.enums.EmployeeFilter).values()}" th:text="#{${option.message}}" th:value="${option}" th:selected="${option == child.employeeFilter}">
+											</select>
+										</div>
+									</div>
+
+									<div class="form-group" th:id="'onlyManualRecipients' + ${child.id}" th:if="${template.emailTemplateType.showTO}">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.only_manual_recipients}"></label>
+										<div class="col-sm-8">
+											<div class="checkbox c-checkbox">
+												<label>
+													<input class="checkboxOnlyManualRecipients" th:checked="${child.onlyManualRecipients}" type="checkbox" />
+													<span class="fa fa-check"></span>
+												</label>
+											</div>
+										</div>
+									</div>
+
+
+									<div class="form-group" th:id="'recipients' + ${child.id}" th:if="${template.emailTemplateType.showTO}">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.recipients}"></label>
+										<div class="col-sm-8">
+											<input name="recipients" th:value="${child.recipients}" class="form-control" />
+										</div>
+									</div>
+
+									<div class="form-group" th:id="'recipientsCC' + ${child.id}" th:if="${template.emailTemplateType.showCC}">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.recipientsCC}"></label>
+										<div class="col-sm-8">
+											<input name="recipientsCC" th:value="${child.recipientsCC}" class="form-control"/>
+										</div>
+									</div>
+
+									<div class="form-group" th:id="'recipientsBCC' + ${child.id}" th:if="${template.emailTemplateType.showCC}">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.recipientsBCC}"></label>
+										<div class="col-sm-8">
+											<input name="recipientsBCC" th:value="${child.recipientsBCC}" class="form-control"/>
+										</div>
+									</div>
+									
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.name}"></label>
+										<div class="col-sm-8">
+											<input name="title" th:value="${child.title}" th:maxlength="${template.emailTemplateType.eboks ? 50 : 255}" class="form-control" />
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.message}"></label>
+										<div class="col-sm-8">
+											<textarea name="message" th:text="${child.message}" class="mb-0 preformat" rows="10" style="width:100%;"></textarea>
+										</div>
+									</div>
+									
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.attachment}"></label>
+										<div class="col-sm-8">
+											<button class="btn btn-primary" onclick="addAttachment(this.getAttribute('data-child-id')); return false;" th:data-child-id="${child.id}" th:text="#{html.entity.email_template.attachment.button}" style="margin-bottom: 10px;"></button>
+
+											<ul style="list-style: none; padding-left: 0px;" th:id="'listOfFiles-' + ${child.id}">
+												<li th:each="attachment : ${child.attachments}" th:id="'attachment-' + ${attachment.id}">
+													<a style="color: black;" th:attr="onclick=|removeAttachment(${child.id},${attachment.id});|">
+														<em class="fa fa-fw fa-remove"></em>
+													</a>
+													<span th:text="${attachment.filename}"></span>
+												</li>
+											</ul>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<div class="col-sm-offset-2 col-sm-10">
+											<!-- onclick: switch back to non-codeview due to bug in summernote that causes data to not be updated until view is changed -->
+											<button type="button" onclick="$('.btn-codeview.active').click()" style="margin-right: 5px;" class="btn btn-lg btn-primary col-xs-2 buttonSubmit" th:text="#{html.control.button.save}"></button>
+											<button type="button" onclick="window.location.href='/ui/admin/mailtemplates'" style="margin-right: 5px;" class="btn btn-lg btn-secondary col-xs-2" th:text="#{html.control.button.cancel}"></button>
+											<button type="button" style="margin-right: 5px;" class="btn btn-lg btn-danger col-xs-2 buttonDelete" th:text="#{html.control.button.delete}"></button>
+											<button type="button" onclick="$('.btn-codeview.active').click()" style="margin-right: 5px;" class="btn btn-lg btn-warning col-xs-2 buttonTest" th:text="#{html.page.email_template.test}"></button>
+										</div>
+									</div>
+									
+									<div class="form-group">
+										<div class="col-sm-offset-2 col-sm-8">
+											<h4 th:text="#{html.entity.email_template.placeholders}"></h4>
+											<p th:text="#{html.entity.email_template.placeholders.intro}"></p>
+											<table class="table">
+					                            <thead>
+						                            <tr>
+						                                <th th:text="#{html.entity.email_template.placeholders.placeholder}" style="width: 250px;"/>
+						                                <th th:text="#{html.entity.email_template.placeholders.description}"/>
+						                                <th th:text="#{html.entity.email_template.placeholders.example}"/>
+						                            </tr>
+					                            </thead>
+					                            <tbody>
+						                            <tr th:each="placeholder : ${template.emailTemplateType.emailTemplatePlaceholders}">
+						                                <td th:text="${placeholder.placeholder}"/>
+						                                <td th:text="#{${placeholder.description}}"/>
+						                                <td th:text="#{${placeholder.example}}"/>
+						                            </tr>
+					                            </tbody>
+					                        </table>
+										</div>
+									</div>
+									
+								</form>								
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+	
+	<!-- attachment modal -->
+	<div class="modal fade" id="modal-attachment" role="dialog">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h4 th:text="#{html.entity.email_template.modal.header}"></h4>
+				</div>
+	
+				<div class="modal-body">
+					<div th:text="#{html.entity.email_template.modal.body}"></div>
+	
+					<div>
+						<form method="POST" id="uploadFileForm" enctype="multipart/form-data" name="attachment">
+							<input type="hidden" name="templateId" id="uploadFileFormTemplateChildId"></input>
+							<input type="file" name="file" id="fileUpload" style="padding-top: 20px; padding-bottom: 20px;"></input>
+							<br/>
+							<a onclick="uploadAttachment();" class="btn btn-primary btn-lg" th:text="#{html.entity.email_template.modal.button}"></a>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<!-- orgUnit modal -->
+	<div class="modal fade bd-example-modal-lg" id="modal-ou" role="dialog">
+		<div class="modal-dialog modal-lg">
+	
+			<!-- Modal content-->
+			<div class="modal-content">
+				<input id="orgUnitModalTemplateChildId" hidden>
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 th:text="#{html.page.person.new.affiliation.orgunit.choose}"></h4>
+				</div>
+	
+				<div class="modal-body">
+					<input class="form-control" id="ou-tree-search" style="margin-bottom: 5px;" th:placeholder="#{html.action.search}"/>
+					<div id="ou-tree"></div>
+				</div>
+	
+				<div class="modal-footer">
+					<button type="button" class="btn btn-primary" onclick="orgUnitService.saveOUs()" th:text="#{html.control.button.save}"></button>
+					<button type="button" class="btn btn-danger" data-dismiss="modal" th:text="#{html.control.button.cancel}"></button>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<div th:replace="fragments/footer :: footer"></div>
+
+	<script th:inline="javascript">
+	/*<![CDATA[*/
+
+	/*[+
+		var addChildUrl = [[@{/ui/admin/mailtemplates/addchild/}]];
+		var restUrl = [[@{/rest/mailtemplates}]];
+		var baseUrl = [[@{/}]];
+		var msgSuccess = [[#{html.page.email_template.success}]];
+		var msgFail = [[#{html.page.email_template.failure}]];
+		var msgFailDeleteChild = [[#{html.page.email_template.child.delete.failure}]];
+		var msgFailDelete = [[#{html.page.email_template.failure.removeattachment}]];
+		var msgFailAttachment = [[#{html.page.email_template.failure.addattachment}]];
+		
+		var swalImageTitle = [[#{html.page.email_template.swal.image.title}]];
+		var swalImageText = [[#{html.page.email_template.swal.image.text}]];
+		var btnOk = [[#{html.button.ok}]];
+		
+		var childDeleteTitle = [[#{html.page.email_template.swal.child.title}]];
+		var childDeleteText = [[#{html.page.email_template.swal.child.text}]];
+		var btnYes = [[#{html.button.yes}]];
+		var btnNo = [[#{html.button.no}]];
+		
+		var allOus = [[${allOus}]];
+	+]*/
+	
+		var token = $("meta[name='_csrf']").attr("content");
+		var orgUnitService;
+		$(document).ready(function () {
+			orgUnitService = new OrgUnitService();
+			orgUnitService.init();
+			
+			$('#templateDropdown').change(function() {
+				// hide all
+				$('.templateForm').hide();
+				
+				
+				// show chosen
+				$('#template' + $("#templateDropdown").val()).show();
+				
+				//handle child
+				$('.childForm').hide();
+				$('#child' + $("#templateDropdown").val() + '00' + $("#childDropdown" + $("#templateDropdown").val()).val()).show();
+			});
+			
+			$('.childDropdown').change(function() {
+				// hide all
+				$('.childForm').hide();
+				
+				// show chosen
+				$('#child' + $("#templateDropdown").val() + '00' + $("#childDropdown" + $("#templateDropdown").val()).val()).show();
+			});
+						
+			$('.buttonSubmit').click(function() {
+				var oForm = $('#child' + $("#templateDropdown").val() + '00' + $("#childDropdown" + $("#templateDropdown").val()).val());
+				var data = getFormData(oForm);
+				
+				save(data, false);
+			});
+			
+			$('.buttonTest').click(function() {
+				var oForm = $('#child' + $("#templateDropdown").val() + '00' + $("#childDropdown" + $("#templateDropdown").val()).val());
+				var data = getFormData(oForm);
+
+				save(data, true);
+			});
+			
+			$('.buttonDelete').click(function() {
+				var childId =  $("#childDropdown" + $("#templateDropdown").val()).val();
+				deleteChild(childId);
+			});
+			
+			$('.checkboxEnabled').change(function() {
+				var oForm = $('#child' + $("#templateDropdown").val() + '00' + $("#childDropdown" + $("#templateDropdown").val()).val());
+				var checkboxValue = oForm.find('.checkboxEnabled')[0].checked;
+				
+				oForm.find("input[name=enabled]")[0].value = checkboxValue;
+			});
+			
+			$('.checkboxADRequired').change(function() {
+				var oForm = $('#child' + $("#templateDropdown").val() + '00' + $("#childDropdown" + $("#templateDropdown").val()).val());
+				var checkboxValue = oForm.find('.checkboxADRequired')[0].checked;
+				
+				oForm.find("input[name=adRequired]")[0].value = checkboxValue;
+			});
+
+			$('.checkboxOnlyManualRecipients').change(function() {
+				var oForm = $('#child' + $("#templateDropdown").val() + '00' + $("#childDropdown" + $("#templateDropdown").val()).val());
+				var checkboxValue = oForm.find('.checkboxOnlyManualRecipients')[0].checked;
+
+				oForm.find("input[name=onlyManualRecipients]")[0].value = checkboxValue;
+
+				//finds the value of the relevant "send kun til angivne modtagere" checkbox and disables "Modtagere" & "Modtagere (adskilt af;)" accordantly 
+				let onlyManualChecked = $('#onlyManualRecipients' + ($("#childDropdown" +$("#templateDropdown").val()).val())).find("input").prop('checked');
+				$('#sendTo' + ($("#childDropdown" +$("#templateDropdown").val()).val())).find("select").prop("disabled", onlyManualChecked);
+				$('#employeeFilter' + ($("#childDropdown" +$("#templateDropdown").val()).val())).find("select").prop("disabled", onlyManualChecked);
+			});
+
+
+			// display currently chosen template
+			$('#template' + $("#templateDropdown").val()).show();
+			
+			// display currently chosen templateChild
+			$('#child' + $("#templateDropdown").val() + '00' + $("#childDropdown" + $("#templateDropdown").val()).val()).show();
+
+			var PdfButton = function (context) {
+    			var ui = $.summernote.ui;
+				// create button
+				var button = ui.button({
+					contents: '<i class="fa fa-file"/>',
+					tooltip: 'Pdf',
+					click: function () {						
+						var oForm = $('#child' + $("#templateDropdown").val() + '00' + $("#childDropdown" + $("#templateDropdown").val()).val());
+						var dtoData = getFormData(oForm);
+						var xhr = new XMLHttpRequest();
+						xhr.open('POST', restUrl + '/htmlToPdf', true);
+						xhr.responseType = 'arraybuffer';
+						xhr.setRequestHeader("content-type", "application/json")
+						xhr.setRequestHeader("X-CSRF-TOKEN", token)
+						xhr.onload = function(e) {
+							if (this.status == 200) {
+								var blob=new Blob([this.response], {type:"application/pdf"});
+								const blobURL = URL.createObjectURL(blob);
+								window.open(blobURL);
+							}
+						};
+						xhr.send(JSON.stringify(dtoData));						
+					}
+				});
+        		return button.render();   // return button as jquery object
+    		} 
+
+			$('textarea[name="message"]').summernote({
+				"height": 320,
+				"lang": 'da-DK',
+				"toolbar": [
+					['style', ['style', 'bold', 'italic', 'underline', 'clear']],
+					['font', ['fontname', 'fontsize', 'color', 'height']],
+					['insert', ['table', 'ul', 'ol', 'picture', 'link']],
+					['view', ['codeview','pdf']]					
+				],
+				buttons: {
+            		pdf: PdfButton
+        		},
+				maximumImageFileSize: 100*1024, // 100 KB
+				callbacks: {
+					onImageUploadError: function(msg) {
+						swal({
+							title: swalImageTitle,
+							text: swalImageText,
+							confirmButtonColor : "#4765a0",
+							confirmButtonText : btnOk
+						});
+					}
+				},
+				dialogsInBody: true,
+				styleTags: ['p', 'blockquote', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
+			    fontSizes: ['8', '9', '10', '11', '12', '14', '16', '18', '24', '36', '48'],
+			    lineHeights: ['1.0', '1.2', '1.4', '1.5', '1.6', '1.8', '2.0', '3.0']
+			});
+			
+			// finally, when ready, we will switch to the chosen template/child (if supplied as URL parameters)
+			var url_string = window.location.href;
+			var url = new URL(url_string);
+			var childId = url.searchParams.get("childId");
+			var templateId = url.searchParams.get("templateId");
+
+			if (templateId != null) {
+				$("#templateDropdown").val(templateId).trigger("change");
+				
+				if (childId != null) {
+					window.setTimeout(function() {
+						$(("#childDropdown" + templateId)).val(childId).trigger("change");
+					}, 100);
+				}
+			}
+		});
+
+		function addChild() {
+			var templateId = $('#templateDropdown').val();
+			window.location = addChildUrl + templateId;
+		}
+
+		function addAttachment(id) {
+			$("#uploadFileFormTemplateChildId").val(id);
+			$("#modal-attachment").modal("toggle");
+		}
+
+		// polyfill for IE11 and endsWith() support
+		if (!String.prototype.endsWith) {
+		    String.prototype.endsWith = function(search, this_len) {
+		        if (this_len === undefined || this_len > this.length) {
+		            this_len = this.length;
+		        }
+		        return this.substring(this_len - search.length, this_len) === search;
+		    };
+		}
+
+		var filename = '';
+		$('#fileUpload').on('change', function() {
+			var file = this.files[0];
+			
+			if (file.size > (1024*1024)) {
+				this.value = ""; // clear selected file
+				$("#modal-attachment").modal("toggle");
+
+				setTimeout(function() {
+					$.notify({
+						message: 'Den valgte fil er for stor (max 1 MB)'
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				}, 500);
+				
+				return;
+			}
+			
+			if (!file.name.toLowerCase().endsWith(".pdf")) {
+				this.value = ""; // clear selected file
+				$("#modal-attachment").modal("toggle");
+
+				setTimeout(function() {
+					$.notify({
+						message: 'Den valgte fil er ikke en PDF fil'
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				}, 500);
+				
+				return;
+			}
+			
+			filename = file.name;
+		});
+
+		function uploadAttachment() {
+		    var formData = new FormData($('#uploadFileForm')[0]);
+
+			$.ajax({
+				url: restUrl + "/attachment",
+				type: 'POST',
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				data: formData,
+				cache: false,
+				contentType: false,
+				processData: false
+			}).done(function(data) {
+				if (data != '') {
+					var childId = $("#uploadFileFormTemplateChildId").val();
+					var ulElement = $('#listOfFiles-' + childId);
+
+					var txtHtml  = '<li id="attachment-' + data + '">\n';
+					    txtHtml += '<a style="color: black;" onclick="removeAttachment(' + childId + ',' + data + ');"><em class="fa fa-fw fa-remove"></em></a>\n'; 
+					    txtHtml += '<span>' + filename + '</span>\n';
+					    txtHtml += '</li>';
+					
+					ulElement.append(txtHtml);
+				}
+				$("#modal-attachment").modal("toggle");
+			}).fail(function(jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: msgFailAttachment
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		}
+		
+		function getFormData(oForm) {
+		    var unindexed_array = oForm.serializeArray();
+		    var indexed_array = {};
+
+		    $.map(unindexed_array, function(n, i){
+				if ("orgUnitUuids" == n['name']) {
+					if (indexed_array[n['name']] == null) {
+						indexed_array[n['name']] = [];
+					}
+					
+					indexed_array[n['name']].push(n['value']);
+				} else {
+					indexed_array[n['name']] = n['value'];
+				}
+		    });
+
+		    indexed_array['templateName'] = $("#templateDropdown option:selected").attr('data-template');
+
+		    return indexed_array;
+		}
+		
+		function removeAttachment(childId, attachmentId) {			
+			$.ajax({
+				url: restUrl + "/attachment/" + childId + "/" + attachmentId,
+				type: 'DELETE',
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				cache: false
+			}).done(function() {
+				$('#attachment-' + attachmentId).remove();
+			}).fail(function(jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: msgFailDelete
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		}
+
+
+		
+		function save(payload, tryEmail) {
+			$.ajax({
+				method : "POST",
+				url: restUrl + "?tryEmail=" + tryEmail,
+				headers: {
+					"content-type": "application/json",
+					'X-CSRF-TOKEN': token
+				},
+				data: JSON.stringify(payload)
+			}).done(function(data) {
+				if (data != '') {
+					$.notify({
+						message: data
+					}, {
+						status: 'success',
+						autoHideDelay: 2000
+					});
+				}
+				else {				
+					$.notify({
+						message: msgSuccess
+					}, {
+						status: 'success',
+						autoHideDelay: 2000
+					});
+				}
+				
+				//redirects to overview if actual save
+		        if (!tryEmail) {
+		            setTimeout(function() {
+		                window.location.href = '/ui/admin/mailtemplates';
+		            }, 1500); //wait users sees notification is shown
+		        }
+						
+			}).fail(function(jqXHR, textStatus, errorThrown) {
+				if (jqXHR.status) {
+					$.notify({
+						message: jqXHR.responseText
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				}
+				else {
+					$.notify({
+						message: msgFail
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				}
+			});
+		}
+		
+		function deleteChild(childId) {
+			swal({
+				html : true,
+				title : childDeleteTitle,
+				text : childDeleteText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : btnYes,
+				cancelButtonText : btnNo,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						method : "POST",
+						url: restUrl + "/deletechild/" + childId,
+						headers: {
+							"content-type": "application/json",
+							'X-CSRF-TOKEN': token
+						},
+					}).done(function(data) {
+						window.location.href= baseUrl + "ui/admin/mailtemplates"
+					}).fail(function(jqXHR, textStatus, errorThrown) {
+						if (jqXHR.status) {
+							$.notify({
+								message: jqXHR.responseText
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						}
+						else {
+							$.notify({
+								message: msgFailDeleteChild
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						}
+					});
+				}
+			});
+		}
+		
+		function OrgUnitService() {
+			this.init = function() {
+				$('#modal-ou').on('shown.bs.modal', function () {
+					$('#ou-tree-search').focus();
+				});
+				
+				$(".ouBtn").on("click", function() {
+					var id = $(this).data(id);
+					orgUnitService.chooseOU(id.id);
+				});
+				
+				$('#ou-tree').jstree({
+					"core": {
+						"data": allOus,
+						"themes": {
+							"icons": false
+						}
+					},
+					"checkbox" : {
+						"keep_selected_style" : false,
+						"three_state": false,
+						"cascade" : "undetermined"
+					},
+					"search" : {
+						"show_only_matches": true,
+						"search_callback": function(str, node) {
+							return (node.text.toUpperCase().includes(str.toUpperCase()));
+						}
+					},
+					"plugins" : ["search", "checkbox"]
+			});
+
+			// searching in the JSTree
+			var to = false;
+			$('#ou-tree-search').keyup(function() {
+				if (to) {
+					clearTimeout(to);
+				}
+
+				to = setTimeout(function() {
+					var v = $('#ou-tree-search').val();
+
+					$('#ou-tree').jstree(true).search(v);
+				}, 400);
+			});
+			}
+			
+			this.chooseOU = function(id) {
+				$('#ou-tree').jstree("deselect_all");
+				$('#ou-tree').jstree('select_node',$("#orgUnits" + id).val());
+				$("#orgUnitModalTemplateChildId").val(id);
+				$('#modal-ou').modal('show');
+			}
+			
+			this.saveOUs = function() {
+				var id = $("#orgUnitModalTemplateChildId").val();
+				var codes = $('#ou-tree').jstree('get_selected',true);
+				$("#orgUnits" + id).empty();
+				$("#fakeOrgUnits" + id).empty();
+				for(var i=0; i < codes.length; i++){
+					$("#orgUnits" + id).append('<option value=\"'+codes[i].id+'\" selected="selected">'+codes[i].text+"</option>");
+					$("#fakeOrgUnits" + id).append('<option>'+codes[i].text+"</option>");
+				}
+				$('#modal-ou').modal('hide');
+			}
+		}
+		
+	/*]]>*/
+	</script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<link rel="stylesheet" th:href="@{/css/jquery-ui.min.css}" />
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'persons', subpage='phonebook')"></aside>
+	<section>
+		<div class="content-wrapper">
+			<h3>
+				<a th:href="@{/ui/person/view/}+${uuid}" class="btn btn-default">
+					<span><i class="fa fa-arrow-left"></i></span>
+				</a>
+				<span th:text="#{html.page.person.view.revision.title}"></span>
+			</h3>
+			<div class="panel panel-default">
+				<div class="panel-body">
+					<div class="row">
+						<div class="col-lg-12">
+							<p>
+								Obs. historikdata kan være komplekse og behæftede med fejl fra tidligere versioner af OS2sofd<br />
+								Spørgsmål vedr. historikdata er ikke dækket af den generelle OS2sofd supportaftale og vil blive faktureret efter forbrugt tid.
+							</p>														
+							<p>
+								Nedenfor vises en tidslinie med 2 markører. Ved at flytte markørerne kan du sammenligne 2 forskellige versioner af denne persons data. Forskelle fremhævet med grøn er data der er tilføjet, og forskelle fremhævet med rød er data der er fjernet.<br />
+								Under tidslinien vises detaljer om de 2 versioner markørerne er placeret på. Her kan du også downloade/vise versionerne i json format.<br />
+								Placér de 2 markører på de versioner du ønsker at sammenligne på tidslinien nedenfor.<br />
+								Du kan også vælge en markør med musen og efterfølgende bladre frem og tilbage med piletasterne.
+							</p>
+							<div class="form-group form-check inline" style="margin-left:35px;">
+								<div class="c-radio">
+									<label>
+										<input type="radio" name="shouldLimit" value="true" checked="checked" />
+										<span class="fa fa-circle"></span>Begræns tidslinien til seneste 10 versioner
+									</label>
+								</div>	
+								<div class="c-radio">
+									<label>
+										<input type="radio" name="shouldLimit" value="false" />
+										<span class="fa fa-circle"></span>Vis alle versioner på tidslinien
+									</label>
+								</div>
+							</div>	
+						</div>						
+					</div>
+					<div>
+						<div class="col-lg-12">
+							<div id="slider-range"></div>
+						</div>
+						<div class="col-lg-12" style="margin-top:15px;">
+							<span>									
+								<span id="revision1"></span>								
+							</span>	
+						</div>
+						<div class="col-lg-12">							
+							<span>									
+								<span id="revision2"></span>
+							</span>	
+						</div>
+						<div class="col-lg-12" style="margin-top:20px;">
+							<div id="diffOutput"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+<script th:src="@{/js/jquery-ui.min.js}"></script>
+<script th:src="@{/js/diff_match_patch.js}"></script>
+<script th:inline="javascript">
+/*<![CDATA[*/
+
+/*[+
+	let allRevisions = [[${revisions}]];
+	let personUuid = [[${uuid}]];
+	let revisions = [];
+
++]*/
+
+	let token = $("meta[name='_csrf']").attr("content");
+
+	$(document).ready(function () {									
+			$('input[type=radio][name=shouldLimit]').change(function() {
+				switchRevisionLimit(this.value == 'true');
+
+			});
+			switchRevisionLimit(true);			
+	});
+
+	function drawSlider() {
+		let initialLeft = revisions.length-2;
+			let initialRight = revisions.length-1;
+			$("#slider-range").slider({
+				range: true,
+				min: 0,
+				max: revisions.length-1,
+				values: [initialLeft,initialRight],
+				slide: function( event, ui ) {
+					updateLabels(ui.values[0],ui.values[1]);
+				},
+				change: function( event, ui ) {
+					doDiff(ui.values[0],ui.values[1]);
+				}
+			});
+			// initialize labels
+			updateLabels(initialLeft,initialRight);
+			doDiff(initialLeft,initialRight);
+	}
+
+	function switchRevisionLimit(shouldLimit) {
+		revisions = shouldLimit ? allRevisions.slice(Math.max(allRevisions.length - 10, 0)) : allRevisions;
+		drawSlider();
+	}
+
+	function doDiff(leftIndex,rightIndex) {
+		let revLeft = revisions[leftIndex];
+		let revRight = revisions[rightIndex];
+		$.ajax({
+			url: `/rest/person/revision/diff/${personUuid}?leftRevId=${revLeft.rev}&rightRevId=${revRight.rev}`,
+			headers: {
+				'X-CSRF-TOKEN': token
+			},
+			type: 'get',
+			success: function(data, textStatus, jQxhr) {
+				var dmp = new diff_match_patch();
+				var diff = dmp.diff_main(data.left, data.right);
+				dmp.diff_cleanupSemantic(diff);
+				var htmlResult = diffToHtml(diff);
+				$("#diffOutput").html(htmlResult);
+			},
+			error: function(jqXhr, textStatus, errorThrown) {
+				$("#diffOutput").html("Fejl i historikdata - kan ikke vise historik for de valgte versioner.");
+			}
+		});				
+	}
+
+	function diffToHtml (diffs) {
+		var html = [];
+		var pattern_amp = /&/g;
+		var pattern_lt = /</g;
+		var pattern_gt = />/g;
+		var pattern_para = /\n/g;
+		var pattern_space = /\s/g;
+		for (var x = 0; x < diffs.length; x++) {
+			var op = diffs[x][0];    // Operation (insert, delete, equal)
+			var data = diffs[x][1];  // Text of change.
+			var text = data.replace(pattern_amp, '&amp;')
+				.replace(pattern_lt, '&lt;')
+				.replace(pattern_gt, '&gt;')
+				.replace(pattern_para, '<br>')
+				.replace(pattern_space, '&nbsp;&nbsp;&nbsp;&nbsp;');
+			switch (op) {
+			case DIFF_INSERT:
+				html[x] = '<ins style="background:#e6ffe6;">' + text + '</ins>';
+				break;
+			case DIFF_DELETE:
+				html[x] = '<del style="background:#ffe6e6;">' + text + '</del>';
+				break;
+			case DIFF_EQUAL:
+				html[x] = '<span>' + text + '</span>';
+				break;
+			}
+		}
+		return html.join('');
+	}
+
+
+	function updateLabels(leftIndex,rightIndex) {
+		$("#revision1").html(getLabel('Venstre markør', leftIndex));
+		$("#revision2").html(getLabel('Højre markør', rightIndex));
+	}
+
+	function getLabel(title, index) {
+		let f = "DD-MM-YYYY HH:mm";
+		let r = revisions[index];
+		let versionNumber = index + 1;
+		let versionCount = revisions.length;
+		let changedDate = moment(new Date(r.lastChanged)).format(f);
+		let changedBy = r.auditorName;
+		let revision = r.rev;
+		let result = `<span style='display:inline-block;width:100px;'><b>${title}: </b></span>Version <b>${versionNumber}</b> af ${versionCount}. `;
+		result += `Ændret <b>${changedDate}</b> `;
+		result += `af <b>${changedBy}</b> `;
+		result += `(historik-id: <b>${revision}</b>) `;
+		result += `<a target="_blank" href="/ui/person/revision/download/${personUuid}/${revision}"><em class="fa fa-download" aria-hidden="true"></em></a>`;
+
+		return result;
+	}
+
+/*]]>*/
+</script>
+</body>
+</html>

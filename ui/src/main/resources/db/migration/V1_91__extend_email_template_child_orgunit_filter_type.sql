@@ -1,0 +1,1 @@
+ALTER TABLE email_template_children ADD COLUMN org_unit_filter_type VARCHAR(64) NOT NULL DEFAULT 'EXCLUDE';

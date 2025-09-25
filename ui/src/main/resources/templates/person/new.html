@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'person.new', subpage = 'phonebook')"></aside>
+ 
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.page.person.new.headline}"></h3>
+
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<div class="row">
+							<div class="col-lg-12">
+								<form class="form-horizontal" id="person-form" th:action="@{/ui/person/new}" method="post" th:object="${createPersonDTO}">
+									<input id="realInheritPrivilegesFromOU" type="hidden" th:field="*{affiliation.inheritPrivilegesFromOU}" />
+									<input id="realRegisteredPostAddressProtected" type="hidden" th:field="*{registeredPostAddress.addressProtected}" />
+									<input id="realAffiliation.orgUnitUuid" type="hidden" th:field="*{affiliation.orgUnitUuid}"/>
+									<input id="tempAffiliation.positionName" type="hidden" th:value="*{affiliation.positionName}"/>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.page.person.new.type}"></label>
+										<div class="col-sm-8" style="padding-left: 35px;">
+											<div class="c-radio">
+												<label>
+													<input th:field="*{affiliation.affiliationType}" type="radio" value="EMPLOYEE" onchange="setAffiliationType(false);"/>
+													<span class="fa fa-circle"></span>
+													<th:block th:text="#{html.page.person.new.employee}"/>
+												</label>
+											</div>
+				
+											<div class="c-radio">
+												<label>
+													<input th:field="*{affiliation.affiliationType}" type="radio" value="EXTERNAL" onchange="setAffiliationType(true);"/>
+													<span class="fa fa-circle"></span>
+													<th:block th:text="#{html.page.person.new.external}"/>
+												</label>
+											</div>
+										</div>
+									</div>
+
+									<hr/>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.person.cpr}"></label>
+										<div class="col-sm-8">
+											<input th:field="*{cpr}" class="form-control" autofocus="autofocus" />
+											<ul th:if="${#fields.hasErrors('cpr')}" class="error">
+												<li th:each="err : ${#fields.errors('cpr')}" th:text="${err}"></li>
+											</ul>
+										</div>
+										<div class="col-sm-2">
+											<div class="btn btn-primary btn-lg" style="width: 100px;" th:text="#{html.action.fetch}" onclick="hent()"></div>
+										</div>
+									</div>
+									
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.person.firstname}"></label>
+										<div class="col-sm-8">
+											<input th:field="*{firstname}" class="form-control" autofocus="autofocus" />
+											<ul th:if="${#fields.hasErrors('firstname')}" class="error">
+												<li th:each="err : ${#fields.errors('firstname')}" th:text="${err}"></li>
+											</ul>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.person.surname}"></label>
+										<div class="col-sm-8">
+											<input th:field="*{surname}" class="form-control"/>
+											<ul th:if="${#fields.hasErrors('surname')}" class="error">
+												<li th:each="err : ${#fields.errors('surname')}" th:text="${err}"></li>
+											</ul>
+										</div>
+									</div>
+									
+									<hr/>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.page.person.new.affiliation.orgunit}"></label>
+										<div class="col-sm-8">
+											<input th:field="*{affiliation.orgUnitName}" class="form-control" readonly="readonly" onfocus="chooseOU()"/>
+											<ul th:if="${#fields.hasErrors('affiliation.orgUnitUuid')}" class="error">
+												<li th:each="err : ${#fields.errors('affiliation.orgUnitUuid')}" th:text="${err}"></li>
+											</ul>
+											<ul th:if="${choseOUNotInConstraints}" class="error">
+												<li th:text="#{html.page.person.new.affiliation.orgunit.error}"></li>
+											</ul>
+										</div>
+										<div class="col-sm-2">
+											<div class="btn btn-primary" th:text="#{html.page.person.new.affiliation.orgunit.choose}" onclick="chooseOU()"></div>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.page.person.new.affiliation.positionName}"></label>
+										<div class="col-sm-8">
+											<input class="form-control" th:field="*{affiliation.positionName}"/>
+											<ul th:if="${#fields.hasErrors('affiliation.positionName')}" class="error">
+												<li th:each="err : ${#fields.errors('affiliation.positionName')}" th:text="${err}"></li>
+											</ul>
+										</div>
+									</div>
+									
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.startDate}"></label>
+										<div class="col-sm-8">
+											<div class="input-group date" id="startDatePicker">
+												<input th:field="*{affiliation.startDate}" class="form-control" />
+												<span class="input-group-addon">
+													<span class="fa fa-calendar"></span>
+												</span>
+											</div>
+											<div th:if="${#fields.hasErrors('affiliation.startDate')}" class="input-group">
+												<ul class="error">
+													<li th:each="err : ${#fields.errors('affiliation.startDate')}" th:text="${err}"></li>
+												</ul>
+											</div>
+										</div>
+									</div>
+									
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.stopDate}"></label>
+										<div class="col-sm-8">
+											<div class="input-group date" id="stopDatePicker">
+												<input th:field="*{affiliation.stopDate}" class="form-control" />
+												<span class="input-group-addon">
+													<span class="fa fa-calendar"></span>
+												</span>
+											</div>
+											<div th:if="${#fields.hasErrors('affiliation.stopDate')}" class="input-group">
+												<ul class="error">
+													<li th:each="err : ${#fields.errors('affiliation.stopDate')}" th:text="${err}"></li>
+												</ul>
+											</div>
+										</div>
+									</div>
+
+									<div class="form-group show-if-external" th:style="${#strings.equals(createPersonDTO.affiliation.affiliationType, 'EXTERNAL')} == true ? '' : 'display: none;'">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.vendor}"></label>
+										<div class="col-sm-8">
+											<input th:field="*{affiliation.vendor}" class="form-control"></input>
+										</div>
+									</div>
+									
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.internalReference}"></label>
+										<div class="col-sm-8">
+											<input th:field="*{affiliation.internalReference}" class="form-control"></input>
+										</div>
+									</div>
+
+									<div id="inheritDiv" class="form-group show-if-external" th:style="${#strings.equals(createPersonDTO.affiliation.affiliationType, 'EXTERNAL')} == true ? '' : 'display: none;'">
+										<label class="col-sm-2 control-label">
+											<a tabindex="0" class="hintPopovers" data-toggle="popover" data-trigger="focus" data-placement="right" th:attr="data-content=#{html.page.person.new.hint.inherit},title=#{html.page.person.new.inherit}" style="text-decoration: none;">
+												<em style="color: black;" class="fa fa-fw fa-question"></em>
+											</a>
+											<span th:text="#{html.page.person.new.inherit}"></span>
+										</label>
+
+										<div class="col-sm-8">
+											<div class="checkbox c-checkbox">
+												<label>
+													<input type="checkbox" th:checked="*{affiliation.inheritPrivilegesFromOU}" onchange="inheritChange(this)"/>
+													<span class="fa fa-check"></span>
+												</label>
+											</div>
+										</div>
+									</div>
+
+									<hr/>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.post.street}"></label>
+										<div class="col-sm-8">
+											<input th:field="*{registeredPostAddress.street}" class="form-control" />
+											<ul th:if="${#fields.hasErrors('registeredPostAddress.street')}" class="error">
+												<li th:each="err : ${#fields.errors('registeredPostAddress.street')}" th:text="${err}"></li>
+											</ul>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.post.localname}"></label>
+										<div class="col-sm-8">
+											<input th:field="*{registeredPostAddress.localname}" class="form-control"/>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.post.postalCode}"></label>
+										<div class="col-sm-8">
+											<input th:field="*{registeredPostAddress.postalCode}" class="form-control" />
+											<ul th:if="${#fields.hasErrors('registeredPostAddress.postalCode')}" class="error">
+												<li th:each="err : ${#fields.errors('registeredPostAddress.postalCode')}" th:text="${err}"></li>
+											</ul>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.post.city}"></label>
+										<div class="col-sm-8">
+											<input th:field="*{registeredPostAddress.city}" class="form-control" />
+											<ul th:if="${#fields.hasErrors('registeredPostAddress.city')}" class="error">
+												<li th:each="err : ${#fields.errors('registeredPostAddress.city')}" th:text="${err}"></li>
+											</ul>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.post.country}"></label>
+										<div class="col-sm-8">
+											<input th:field="*{registeredPostAddress.country}" class="form-control" />
+											<ul th:if="${#fields.hasErrors('registeredPostAddress.country')}" class="error">
+												<li th:each="err : ${#fields.errors('registeredPostAddress.country')}" th:text="${err}"></li>
+											</ul>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.post.addressProtected}"></label>
+										<div class="col-sm-8">
+											<div class="checkbox c-checkbox">
+												<label>
+													<input id="registeredPostAddress.addressProtected" class="checkboxaction" type="checkbox" th:checked="*{registeredPostAddress.addressProtected}"/>
+													<span class="fa fa-check"></span>
+												</label>
+											</div>
+										</div>
+									</div>
+
+									<hr/>
+									
+									<div class="form-group">
+										<div class="col-sm-offset-2 col-sm-10">
+											<button type="submit" style="margin-right: 5px;" class="btn btn-lg btn-primary col-xs-2"  th:text="#{html.control.button.save}"></button>
+											<a th:href="@{/ui/person}" style="margin-right: 5px;" class="btn btn-lg btn-danger col-xs-2" th:text="#{html.control.button.cancel}"></a>
+										</div>
+									</div>
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<div class="modal fade bd-example-modal-lg" id="modal-ou" role="dialog">
+		<div class="modal-dialog modal-lg">
+
+			<!-- Modal content-->
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 th:text="#{html.page.person.new.affiliation.orgunit.choose}"></h4>
+				</div>
+
+				<div class="modal-body">
+					<th:block th:replace="orgunit/fragments/orgunit_tree :: orgUnitTree(namespace='userOU')"></th:block>
+				</div>
+
+				<div class="modal-footer">
+					<button type="button" id="save" class="btn btn-primary" onclick="saveOu()" th:text="#{html.control.button.save}"></button>
+					<button type="button" class="btn btn-danger" data-dismiss="modal" th:text="#{html.control.button.cancel}"></button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div th:replace="fragments/footer :: footer"></div>
+	<script th:replace="orgunit/fragments/orgunit_tree :: orgUnitTreeScript(configObj='ouJSTreeConfig')"></script>
+
+	<style>
+		.autocomplete-suggestions { border: 1px solid #999; background: #FFF; overflow: auto; width: 500px !important; }
+		.autocomplete-suggestion { padding: 2px 5px; white-space: nowrap; overflow: hidden; }
+		.autocomplete-selected { background: #F0F0F0; }
+		.autocomplete-suggestions strong { font-weight: normal; color: #3399FF; }
+		.autocomplete-group { padding: 2px 5px; }
+		.autocomplete-group strong { display: block; border-bottom: 1px solid #000; }
+		
+		.popover {
+			width: 250px;
+		}
+		
+		.jstree-disabled{
+			color: #D3D3D3 !important;
+		}
+	</style>
+
+	<script th:inline="javascript">
+	/*<![CDATA[*/
+	
+		/*[+
+			var msgInvalidCPR = [[#{html.page.person.new.msg.invalidCPR}]];
+			var msgFetchFail = [[#{html.page.person.new.msg.fetchFail}]];
+			var msgAlreadyExists = [[#{html.page.person.new.msg.alreadyExists}]];
+			var msgSuccess = [[#{html.page.person.new.msg.success}]];
+			var restUrl = [[@{/rest/person}]];
+			var ouRestUrl = [[@{/rest/orgunit}]];
+			var allOus = [[${ous}]];
+			var hasConstraints = [[${hasConstraints}]];
+			var constraintOus = [[${constraintOus}]];
+		+]*/
+		var token = $("meta[name='_csrf']").attr("content");
+		var selectedOU;
+		var autoCompleteService;
+
+		String.prototype.replaceAll = function(search, replacement) {
+			var target = this;
+			return target.replace(new RegExp(search, 'g'), replacement);
+		};
+
+		$(document).ready(function () {
+			autoCompleteService = new AutoCompleteService();
+			
+			$('#registeredPostAddress\\.addressProtected').change(handleOnChangeEventForProtectedAddress);
+
+			// in case of page refresh
+			handleOnChangeEventForProtectedAddress();
+			// in case of page refresh reload positions
+			var selectedOrgUnit = $('#realAffiliation\\.orgUnitUuid').val();
+			if (selectedOrgUnit){
+				autoCompleteService.init(selectedOrgUnit, function () {
+					//in case of page refresh
+					var selectedPosition = $('#tempAffiliation\\.positionName').val();
+					if (selectedPosition) {
+						$('#affiliation\\.positionName').val(selectedPosition);
+					}
+				});
+			}
+
+			$('#stopDatePicker').datetimepicker({
+	            format: 'YYYY-MM-DD'
+			});
+			
+			var today = new Date();
+			$('#startDatePicker').datetimepicker({
+	            format: 'YYYY-MM-DD',
+	            defaultDate: today
+			});
+		});
+		
+		function AutoCompleteService() {
+			this.init = function(uuid, callback) {
+				var searchField = $("#affiliation\\.positionName");
+				searchField.val("");
+				searchField.autocomplete({
+					serviceUrl: ouRestUrl + "/" + uuid + "/getPositionNames/autocomplete",
+					onSelect: function(suggestion) {
+						$(this).val(suggestion.value);
+					},
+					preventBadQueries: true,
+					triggerSelectOnValidInput: false
+				});
+				
+				if (callback) {
+					callback();
+				}
+			}
+		}
+
+		function setAffiliationType(s) {
+			if (s) {
+				$(".show-if-external").show();
+			}
+			else {
+				$(".show-if-external").hide();
+			}
+		}
+		
+		function hent() {
+			var cpr = $("#cpr").val();
+			cpr = cpr.replaceAll(/[^A-Za-z0-9]/g, '');
+
+			if (cpr.length != 10) {
+				$.notify({
+					message: msgInvalidCPR
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+
+				return;
+			}
+
+			$.ajax({
+				method : "POST",
+				url: restUrl + "/getByCPR",
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				contentType: "application/json; charset=utf-8",
+				data: '{"cpr": "' + cpr + '"}',
+			}).done(function (data) {
+				$.notify({
+					message: msgSuccess
+				}, {
+					status: 'success',
+					autoHideDelay: 2000
+				});
+
+				$("#firstname").val(data.firstname);
+				$("#surname").val(data.lastname);
+				$("#registeredPostAddress\\.street").val(data.street);
+				$("#registeredPostAddress\\.localname").val(data.localname);
+				$("#registeredPostAddress\\.postalCode").val(data.postalCode);
+				$("#registeredPostAddress\\.city").val(data.city);
+				$("#registeredPostAddress\\.country").val(data.country);
+				$("#registeredPostAddress\\.addressProtected").prop( "checked", data.addressProtected );
+				handleOnChangeEventForProtectedAddress();
+				
+			}).fail(function (jqXHR, textStatus, errorThrown) {
+				if(jqXHR.status == 409){
+					$.notify({
+						message: msgAlreadyExists
+					}, {
+						status: 'warning',
+						autoHideDelay: 4000
+					});
+				}
+				else if(jqXHR.status == 404){
+					$.notify({
+						message: msgFetchFail
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				}
+				else {
+					$.notify({
+						message: msgFetchFail
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				}
+			});
+		}
+		
+		function handleOnChangeEventForProtectedAddress() {
+			if ($('#registeredPostAddress\\.addressProtected').is(':checked')) {
+				$('#realRegisteredPostAddressProtected').val(true);
+			} else {
+				$('#realRegisteredPostAddressProtected').val(false);
+			}
+		};
+
+		function inheritChange(s) {
+			if (s.checked) {
+				$('#realInheritPrivilegesFromOU').val(true);
+			} else {
+				$('#realInheritPrivilegesFromOU').val(false);
+			}
+		}
+
+		function chooseOU() {
+			$('#modal-ou').modal('show');
+		}
+
+		function saveOu() {
+			if (selectedOU != null) {
+				$('#realAffiliation\\.orgUnitUuid').val(selectedOU.id);
+				$('#affiliation\\.orgUnitName').val(selectedOU.text);
+				$('#modal-ou').modal('hide');
+				
+				autoCompleteService.init(selectedOU.id, null);
+			}
+		}
+
+		var ouJSTreeConfig = {
+			namespace: 'userOU',
+			refreshCallback: function () {
+				$("#userOUorgUnitTreeHierarchy").on("select_node.jstree", function(e, data) {
+					selectedOU = data.node;
+				});
+			},
+			staticOrg: null
+		}
+
+		$('#modal-ou').on('shown.bs.modal', function() {
+			if (hasConstraints) {
+				$("#userOUorgUnitTreeHierarchy").jstree(true).deselect_all();
+
+				allOus.forEach(function(entry) {
+					$('#userOUorgUnitTreeHierarchy').jstree(true).disable_node(entry);
+				});
+
+				constraintOus.forEach(function(entry) {
+					$("#userOUorgUnitTreeHierarchy").jstree(true).enable_node(entry);
+				});
+			}
+
+			$('#userOUorgUnitTreeSearchField').focus();
+		});
+		/*]]>*/
+	</script>
+</body>
+</html>

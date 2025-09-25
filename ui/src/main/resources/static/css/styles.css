@@ -1,0 +1,91 @@
+.content-wrapper>h3>span {
+	vertical-align: text-bottom;
+}
+
+.content-wrapper>h3>a {
+	background-color: #4765a0;
+	background-image: -webkit-linear-gradient(left, #4765a0 0%, #4d638c 100%);
+	background-image: -o-linear-gradient(left, #4765a0 0%, #4d638c 100%);
+	background-image: linear-gradient(to right, #4765a0 0%, #4d638c 100%);
+	background-repeat: repeat-x;
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ff4765a0',
+		endColorstr='#ff4d638c', GradientType=1);
+}
+
+.content-wrapper>h3>a i {
+	color: white;
+}
+
+.bg-primary-dark {
+    background-color: #4765a0;
+    color: #ffffff !important;
+}
+
+.bg-primary {
+    background-color: #4e6fb2;
+    color: #ffffff !important;
+}
+
+.bg-yellow-dark {
+    background-color: #ffcc00;
+    color: #000000 !important;
+}
+
+.bg-yellow {
+    background-color: #ffff00;
+    color: #000000 !important;
+}
+
+.bg-red-dark {
+    background-color: #cc0000;
+    color: #ffffff !important;
+}
+
+.bg-red {
+    background-color: #ff0000;
+    color: #ffffff !important;
+}
+
+ul.error li {
+	font-weight: bold;
+	color: red;
+}
+label.error {
+	font-weight: bold;
+	color: red;
+}
+li.bold {
+	font-weight: bold;
+}
+.preformat {
+	white-space: pre-line;
+}
+.badge-alert {
+	background-color: red;
+    font-size: 75%;
+}
+.badge-success {
+	background-color: green;
+    font-size: 75%;
+}
+.badge-warning {
+	background-color: yellow;
+	color: black;
+    font-size: 75%;
+}
+.modal {
+  overflow-y:auto;
+}
+.footnote {
+	color: red;
+	font-size: smaller;
+}
+
+.uk-notify {
+    z-index: 10000 !important;
+}
+
+.note-editable {
+    font-family: 'Arial', sans-serif;
+    font-size: 12px;
+}

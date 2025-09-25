@@ -1,0 +1,137 @@
+<th:block th:fragment="ouFutureChangesList" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+    <div class="table-responsive">
+        <table id="listTable" class="table table-striped listTable">
+            <thead>
+	            <tr>
+	                <th class="col-md-1" th:text="#{html.entity.orgunitchange.date}"></th>
+	                <th class="col-md-3" th:text="#{html.entity.orgunitchange.ou.name}"></th>
+	                <th class="col-md-5" th:text="#{html.entity.orgunitchange.change.type}"></th>
+	                <th class="col-md-1" th:text="#{html.control.operations}"></th>
+	            </tr>
+            </thead>
+
+            <tbody>
+            <tr th:each="change : ${changes}" th:attr="data-id=${change.id}, data-date=${change.changeDate}, data-ou=${change.orgunitUuid}">
+                <td th:text="${#dates.format(change.changeDate, 'yyyy-MM-dd')}"></td>
+                <td th:text="${change.orgunitName}"></td>
+                <td>
+                    <th:block th:switch="${change.changeType}">
+                        <div th:case="${T(dk.digitalidentity.sofd.dao.model.enums.OrgUnitChangeType).CREATE}">
+                            <p th:text="#{html.page.orgunitchange.create} + ' ' +  ${change.parentName}" ></p>
+                        </div>
+                        <div th:case="${T(dk.digitalidentity.sofd.dao.model.enums.OrgUnitChangeType).UPDATE_ATTRIBUTE}">
+                            <p th:text="#{__${change.attributeField.getMessage()}__} + ' ' + #{html.page.orgunitchange.attribute.changed.to} + ' ' + ${change.attributeValue}"></p>
+                        </div>
+                        <div th:case="${T(dk.digitalidentity.sofd.dao.model.enums.OrgUnitChangeType).MOVE}">
+                            <p th:text="#{html.page.orgunitchange.move} + ' ' +  ${change.parentName}"></p>
+                        </div>
+                        <div th:case="${T(dk.digitalidentity.sofd.dao.model.enums.OrgUnitChangeType).DELETE}">
+                            <p th:text="#{html.page.orgunitchange.delete}"></p>
+                        </div>
+                    </th:block>
+                </td>
+                <td class="actionColumn">
+                    <a onclick="deleteChange(this);" href="#" th:attr="data-id=${change.id}"><em class="fa fa-fw fa-times" th:title="#{html.mouseover.delete}"></em></a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</th:block>
+
+<th:block th:fragment="ouFutureChangesModal" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+    <div class="modal fade" id="modal-delete-changes" role="dialog">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 th:text="#{html.page.orgunitchange.modal.delete.title}"></h4>
+                </div>
+
+                <div class="modal-body">
+                    <p th:text="#{html.page.orgunitchange.modal.delete.msg}"></p>
+
+                    <table class="table table-striped table-hover">
+                        <thead>
+                        <th class="col-md-2" th:text="#{html.entity.orgunitchange.date}"></th>
+                        <th class="col-md-4" th:text="#{html.entity.orgunitchange.ou.name}"></th>
+                        <th class="col-md-6" th:text="#{html.entity.orgunitchange.change.type}"></th>
+                        </thead>
+
+                        <tbody id="deleteModalTBody">
+
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" th:text="#{html.control.button.delete}" onclick="confirmDelete()"></button>
+                    <button type="button" class="btn" th:text="#{html.control.button.cancel}" data-dismiss="modal"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block th:fragment="ouFutureChangesScript" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+    <script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+			var futureOUChangesRestUrl = [[@{/rest/orgunit}]];
+			var futureOUChangeDeleteFailed = [[#{html.page.orgunitchange.deleteFailedMsg}]];
+		+]*/
+		var token = $("meta[name='_csrf']").attr("content");
+
+        function deleteChange(obj) {
+            $('#deleteModalTBody').empty();
+
+            var tr = $(obj).parents('tr');
+            var chosenDate = Date.parse($(tr).data('date'));
+            var chosenOU = $(tr).data('ou');
+
+            var rows = $('tr');
+            for (i = 0; i < rows.length; i++) {
+                if (Date.parse($(rows[i]).data('date')) >= chosenDate && chosenOU == $(rows[i]).data('ou')) {
+                    $('#deleteModalTBody').append($(rows[i]).clone());
+                }
+            }
+
+            $('#deleteModalTBody').find('.actionColumn').remove();
+
+			$('#modal-delete-changes').modal("show");
+		}
+
+		function confirmDelete() {
+		    var toBeDeleted = $('#deleteModalTBody tr');
+
+            var toBeDeletedIds= []
+            for (i = 0; i < toBeDeleted.length; i++) {
+                toBeDeletedIds.push($(toBeDeleted[i]).data('id'));
+            }
+
+            $('#modal-delete-changes').modal("hide");
+
+            $.ajax({
+				contentType: 'application/json',
+				url: futureOUChangesRestUrl + "/changes/delete",
+				method : "POST",
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				data: JSON.stringify(toBeDeletedIds),
+				error: function(response) {
+					$.notify({
+						message: futureOUChangeDeleteFailed
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				},
+				success: function(response) {
+                    window.location.reload();
+				}
+			});
+		}
+		/*]]>*/
+	</script>
+</th:block>

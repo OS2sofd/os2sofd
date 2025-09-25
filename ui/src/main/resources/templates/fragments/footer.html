@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<body>
+	<div th:fragment="footer">
+		<script th:src="@{/webjars/modernizr/2.8.3/modernizr.min.js}"></script>
+		<script th:src="@{/webjars/jquery/2.2.4/jquery.min.js}"></script>
+		<script th:src="@{/webjars/bootstrap/3.3.7/js/bootstrap.min.js}"></script>
+		<script th:src="@{/webjars/angle/3.7.5/js/jquery.storageapi.js}"></script>
+		<script th:src="@{/webjars/jquery-easing/1.3/jquery.easing.min.js}"></script>
+		<script th:src="@{/webjars/angle/3.7.5/js/animo.js}"></script>
+		<script th:src="@{/webjars/screenfull/3.0.2/dist/screenfull.js}"></script>
+		<script th:src="@{/webjars/angle/3.7.5/js/jquery.dataTables.min.js}"></script>
+		<script th:src="@{/webjars/angle/3.7.5/js/dataTables.bootstrap.js}"></script>
+		<script th:src="@{/webjars/sweetalert/1.1.3/dist/sweetalert.min.js}"></script>
+		<script th:src="@{/webjars/jstree/3.3.7/jstree.min.js}"></script>
+		<script th:src="@{/webjars/angle/3.7.5/js/app.js}"></script>
+        <script th:src="@{/webjars/multi-select/0.9.11/js/jquery.multi-select.js}"></script>
+		<script th:src="@{/js/bootstrap-select.min.js}"></script>
+		<script th:src="@{/js/dataTables.select.min.js}"></script>
+		<script th:src="@{/webjars/momentjs/2.10.3/min/moment-with-locales.min.js}"></script>
+		<script th:src="@{/webjars/summernote/0.8.10/summernote.js}"></script>
+		<script th:src="@{/webjars/summernote/0.8.10/lang/summernote-da-DK.js}"></script>
+		<script th:src="@{/webjars/codemirror/5.62.2/lib/codemirror.js}"></script>
+		<script th:src="@{/webjars/codemirror/5.62.2/mode/css/css.js}"></script>
+
+		<script>
+			// has to happen before datepicker script is loaded
+			moment.locale('da');
+		</script>
+		
+		<script th:src="@{/webjars/jQuery-Autocomplete/1.4.10/jquery.autocomplete.min.js}"></script>
+		<script th:src="@{/webjars/Eonasdan-bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.js}"></script>
+
+		<script th:inline="javascript"
+				sec:authorize="hasRole('ROLE_USER_LOS_ADMIN')"
+			    th:if="${#strings.contains(#httpServletRequest.requestURI, 'orgunit') and
+			    	     @sofdConfiguration.getModules().getLos().isFutureOrgsEnabled() == true}">
+		/*<![CDATA[*/
+
+			/*[+
+				var futureDateRestUrl = [[@{/rest/orgunit/changes}]];
+				var futureDateNotUpdatedMsg = [[#{html.footer.futuredatenotupdated.msg}]];
+				var futureDatepickerDateStr = [[${session.SESSION_FUTURE_DATE}]];
+			+]*/
+			var footerToken = $("meta[name='_csrf']").attr("content");
+
+			function initializeFutureDatepicker() {
+
+				// Get Current date, but ignore hours/mins/seconds
+				var timestamp = new Date();
+				var currentDate = new Date(timestamp.getFullYear(), timestamp.getMonth(), timestamp.getDate());
+
+				// Initialize datepicker
+				if (futureDatepickerDateStr == null || futureDatepickerDateStr == "") {
+					$('#futureDatePicker').datetimepicker({
+						format: 'YYYY-MM-DD',
+						minDate: currentDate
+					});
+				}
+				else {
+					$('#futureDatePicker').datetimepicker({
+						format: 'YYYY-MM-DD',
+						minDate: currentDate,
+						date: futureDatepickerDateStr
+					});
+				}
+
+				// Set onChange Handler
+				$('#futureDatePicker').datetimepicker().on('dp.change', function (event) {
+					// Ignore first trigger and any non-changes
+					if (event.oldDate == null) { return; }
+					if (event.date.isSame(event.oldDate, 'day')) { return; }
+
+					// Get Selected date
+					var selectedDate = new Date($('#futureDatePicker').datetimepicker('viewDate').format());
+					var actualSelectedDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+
+					var payload = null;
+					if (actualSelectedDate > currentDate) {
+						payload = JSON.stringify(actualSelectedDate);
+					}
+
+					$.ajax({
+						contentType: 'application/json',
+						url: futureDateRestUrl + "/date",
+						method : "POST",
+						headers: {
+							'X-CSRF-TOKEN': footerToken
+						},
+						data: payload,
+						error: function(response) {
+							$.notify({
+								message: futureDateNotUpdatedMsg
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						},
+						success: function(response) {
+							location.reload(true);
+						}
+					});
+				});
+			}
+
+			$(document).ready(function() {
+				initializeFutureDatepicker();
+			});
+		/*]]>*/
+		</script>
+
+		<script>
+			var currentIndex = -1;
+			var resultsHidden = false;
+
+			function onSearch() {
+				var token = $("meta[name='_csrf']").attr("content");
+				if ($('#searchBar').val().length > 1) {
+					$.ajax({
+						url: "/rest/search/" + $('#searchBar').val(),
+						headers: {
+							'X-CSRF-TOKEN': token
+						},
+						type: 'GET',
+						contentType: 'application/json',
+						success: function (data, textStatus, jQxhr) {
+							displayResults(data);
+						}
+					});
+				} else {
+					$('#searchResults').empty();
+					currentIndex = -1;
+				}
+			}
+
+			function displayResults(data) {
+				const iconMap = {
+					"Person": "fa fa-user",
+					"Enhed": "fa fa-users",
+					"Status": "fa fa-recycle",
+					"Hat": "fa fa-graduation-cap",
+					"Forward": "fa fa-fast-forward",
+					"Marker": "fa fa-map-marker",
+					"University": "fa fa-university",
+					"Tag": "fa fa-tag",
+					"Ban": "fa fa-ban",
+					"Sitemap": "fa fa-sitemap",
+					"Puzzle": "fa fa-puzzle-piece",
+					"Exclamation": "fa fa-exclamation",
+					"Cog": "fa fa-fw fa-cog",
+					"Multiple": "fa fa-cogs",
+					"Clock": "fa fa-clock-o",
+					"Mail": "fa fa-envelope",
+					"Book": "fa fa-fw fa-book",
+					"Tasks": "fa fa-tasks",
+					"Bell": "fa fa-bell-o",
+					"List": "fa fa-list",
+					"Paper": "fa fa-paper-plane",
+					"Table": "fa fa-table"
+				};
+				var resultsContainer = $('#searchResults');
+
+				// Clear and reset before getting new results
+				resultsContainer.empty();
+				currentIndex = -1;
+				resultsHidden = false;
+
+				if (data && data.length > 0) {
+					// Show 20 results max
+					data.slice(0, 20).forEach(function (item, index) {
+						var title;
+						var icon;
+
+						// Pre-process the text to add icons
+						for (const [key, iconClass] of Object.entries(iconMap)) {
+							if (item.name.includes(key)) {
+								title = item.name.replace(`(${key})`, "");
+								icon = `<i class="${iconClass}"></i>`;
+								break;
+							}
+						}
+
+						var resultItem = $('<a>')
+								.addClass('list-group-item list-group-item-action')
+								.attr('href', item.url)
+								.attr('data-index', index)
+								.html(`<span>` + icon + `</span> &nbsp;` + title);
+
+						resultsContainer.append(resultItem);
+					});
+					resultsContainer.show();
+				} else {
+					resultsContainer.append(
+							$('<div>').addClass('list-group-item').text('No results found.')
+					);
+					resultsContainer.show();
+				}
+			}
+
+			function handleKeyNavigation(event) {
+				var resultsItems = $('#searchResults .list-group-item-action');
+				// When we hide the results and press arrow, we initialise the search again
+				if (resultsHidden && (event.key === 'ArrowDown' || event.keyCode == 40)) {
+					onSearch();
+					return;
+				}
+
+				if (resultsItems.length === 0) return;
+
+				if (event.key === 'ArrowDown' || event.keyCode == 40) {
+					event.preventDefault();
+					if (currentIndex < resultsItems.length - 1) {
+						currentIndex++;
+						highlightItem(resultsItems);
+					}
+				}
+				else if (event.key === 'ArrowUp' || event.keyCode == 38) {
+					event.preventDefault();
+					if (currentIndex > 0) {
+						currentIndex--;
+						highlightItem(resultsItems);
+					}
+				}
+				else if ((event.key === 'Enter' || event.keyCode == 13) && currentIndex > -1) {
+					event.preventDefault();
+					window.location.href = $(resultsItems[currentIndex]).attr('href');
+				}
+				else if (event.key === 'Escape' || event.keyCode == 27) {
+					$('#searchResults').hide();
+					resultsHidden = true;
+					currentIndex = -1;
+				}
+			}
+
+			function highlightItem(resultsItems) {
+				// Clear highliting made prior
+				resultsItems.removeClass('active');
+				$(resultsItems[currentIndex]).addClass('active');
+			}
+
+			function triggerSearchOnClick() {
+				if ($('#searchBar').val().length > 1) {
+					onSearch();
+				}
+			}
+
+			// focus searchbar on double-shift
+			var lastShift = 0;
+			window.addEventListener('keydown', function(event) {
+				if( event.keyCode == 16 ) {
+					if( new Date().getTime() - lastShift < 500 ) {
+						$('#searchBar').focus();
+					}
+					else {
+						lastShift = new Date().getTime();
+					}
+				}
+				else {
+					lastShift = 0;
+				}
+			});
+		</script>
+	</div>
+</body>
+</html>

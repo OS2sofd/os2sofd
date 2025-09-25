@@ -1,0 +1,61 @@
+<th:block th:fragment="affiliationCoreEdit" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+    <div class="row" th:if="${@sofdConfiguration.getModules().getPositionDisplayName().isEnabled()}">
+        <label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.positionDisplayName}"></label>
+        <div class="col-sm-9">
+            <input id="positionDisplayName" th:value="${affiliation.positionDisplayName}" class="form-control masterTooltip" />
+        </div>
+    </div>
+
+    <div class="hidden">
+        <button sec:authorize="hasRole('ROLE_USER_EDIT') or hasRole('ROLE_USER_PERSON_CREATER')" id="saveButton" class="btn btn-lg btn-primary" style="width:auto; margin-right:10px;" onclick="saveCoreChanges()">
+            <em class="fa fa-save" aria-hidden="true"></em>&nbsp;
+            <span th:text="#{html.control.button.save}"></span>
+        </button>
+        <button sec:authorize="hasRole('ROLE_USER_EDIT') or hasRole('ROLE_USER_PERSON_CREATER')" id="cancelButton" class="btn btn-lg btn-danger" style="width:auto" onclick="loadViewCoreFragment()">
+            <em class="fa fa-times" aria-hidden="true"></em>
+            <span th:text="#{html.control.button.cancel}"></span>
+        </button>
+
+        <div class="row" id="OURow">
+            <label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.orgunit}"></label>
+            <div class="col-sm-9">
+                <input id="OrgUnitUuid" type="hidden" th:field="${affiliation.orgUnit.uuid}"/>
+                <input id="OrgUnit" th:field="${affiliation.orgUnit.name}" class="form-control core-editable" style="background-color: #edf1f2;"  readonly="readonly" /> <!-- onfocus="chooseOU('main')"-->
+            </div>
+        </div>
+
+        <div class="row" th:if="${@sofdConfiguration.getModules().getAffiliation().isAlternativeOUAssignable()}" id="altOURow">
+            <label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.altorgunit}"></label>
+            <div class="col-sm-9">
+                <input id="alternativeOrgUnitUuid" type="hidden" th:field="${affiliation.alternativeOrgUnit.uuid}"/>
+                <input id="alternativeOrgUnit" th:field="${affiliation.alternativeOrgUnit.name}" class="form-control" style="background-color: #fff;" readonly="readonly" onfocus="chooseOU('alt')"/>
+                <!-- <input th:unless="${affiliation.alternativeOrgUnit != null}" id="alternativeOrgUnit" class="form-control" style="background-color: #fff;" readonly="readonly" onfocus="chooseOU()"/> -->
+            </div>
+        </div>
+    </div>
+
+
+
+    <script th:inline="javascript" type="text/javascript">
+		/*<![CDATA[*/
+
+			/*[+
+			+]*/
+
+            // core-alt-ou
+			$(document).ready(function() {
+				$('#buttonsMenu').empty();
+				$('#buttonsMenu').append($('#saveButton'));
+				$('#buttonsMenu').append($('#cancelButton'));
+
+                $('#core-alt-ou').empty();
+				$('#core-alt-ou').append($('#altOURow'));
+                
+                $('#core-ou').empty();
+                $('#core-ou').append($('#OURow'));
+			});
+
+
+		/*]]>*/
+	</script>
+</th:block>

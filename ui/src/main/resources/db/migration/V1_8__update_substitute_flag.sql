@@ -1,0 +1,1 @@
+ALTER TABLE users MODIFY substitute_account BOOLEAN DEFAULT 0;

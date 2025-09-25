@@ -1,0 +1,1 @@
+ALTER TABLE fh_function ADD category VARCHAR(255) NOT NULL DEFAULT 'Funktion';

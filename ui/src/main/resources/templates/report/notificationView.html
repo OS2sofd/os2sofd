@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'report')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'notifications', subpage = 'report')"></aside>
+
+	<section>
+		<div class="content-wrapper">
+			<h3>
+				<a th:href="@{/ui/report/notifications}" class="btn btn-default">
+					<span><i class="fa fa-arrow-left"></i></span>
+				</a>
+
+				<span th:text="#{html.navbar.report.notifications}"></span>
+			</h3>
+
+			<div class="panel panel-default">
+				<div class="panel-heading"></div>
+				<div class="panel-body">
+					<div class="form-horizontal">
+						<div class="row">
+							<div class="col-md-12">
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.adminTask.adminTaskType}"></label>
+										<div class="col-sm-8">
+											<input th:value="#{__${notification.notificationType.message}__}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+							</div>
+						</div>
+
+						<div class="row">
+							<div class="col-md-12">
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.adminTask.affectedEntity}"></label>
+										<div class="col-sm-8">
+											<input th:value="${notification.affectedEntityName}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+							</div>
+						</div>
+						
+						<div class="row">
+							<div class="col-md-12">
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.adminTask.message}"></label>
+										<div class="col-sm-8">
+											<textarea th:text="${notification.message}" rows="6" class="form-control" readonly="readonly"></textarea>
+										</div>
+									</div>
+								</fieldset>
+							</div>
+						</div>
+						
+						<div class="row">
+							<div class="col-md-12">
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.adminTask.admin}"></label>
+										<div class="col-sm-8">
+											<input th:value="${notification.adminName}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+							</div>
+						</div>
+						
+						<div class="row">
+							<div class="col-md-12">
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.adminTask.created}"></label>
+										<div class="col-sm-8">
+											<input th:value="${#dates.format(notification.created, 'yyyy-MM-dd HH:mm')}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+							</div>
+						</div>
+						
+						<div class="row">
+							<div class="col-md-12">
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.adminTask.lastUpdated}"></label>
+										<div class="col-sm-8">
+											<input th:value="${#dates.format(notification.lastUpdated, 'yyyy-MM-dd HH:mm')}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+
+</body>
+</html>

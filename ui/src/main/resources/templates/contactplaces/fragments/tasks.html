@@ -1,0 +1,88 @@
+<th:block th:fragment="contentView" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<table class="table table-striped table-hover kleTable">
+		<thead>
+		<tr>
+			<th class="col-md-2" th:text="#{html.entity.kle.code}"></th>
+			<th class="col-md-6" th:text="#{html.entity.kle.description}"></th>
+		</tr>
+		</thead>
+
+		<tbody>
+		<tr th:each="kle : ${kles}">
+			<td th:text="${kle.code}"></td>
+			<td th:text="${kle.name}"></td>
+		</tr>
+		</tbody>
+	</table>
+	
+	<script type="text/javascript">
+		$("document").ready(function() {
+			loadDataTable($(".kleTable"));
+		});
+	</script>
+</th:block>
+
+<th:block th:fragment="contentEdit" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<h4 th:text="#{html.action.search}"></h4>
+	<input class="form-control" id="kleSearch" style="margin-bottom: 5px;" />
+	<button class="btn btn-lg btn-primary" type="button" style="margin-bottom: 20px;" th:text="#{html.action.saveChanges}" onclick="saveChanges()"></button>
+	<button class="btn btn-lg btn-primary" type="button" style="margin-bottom: 20px;" th:text="#{html.action.abortChanges}" onclick="abortChanges()"></button>
+	<div th:id="kleTree"></div>
+	
+	<script th:inline="javascript">
+	/*<![CDATA[*/
+		/*[+
+			selectedKles = [[${kleSelected}]];
+		+]*/
+		
+		function initJSTree(id, search, selected) {
+			$('#' + id).jstree({
+					"core": {
+						"data": allKles,
+						"themes": {
+							"icons": false
+						}
+					},
+					"checkbox" : {
+						"keep_selected_style" : false,
+						"three_state": false,
+						"cascade": "undetermined"
+					},
+					"search" : {
+						"show_only_matches": true,
+						"search_callback": function(str, node) {
+							return (node.text.toUpperCase().includes(str.toUpperCase()));
+						}
+					},
+					"plugins" : [
+						"wholerow", "search", "checkbox"
+					]
+			});
+	
+			// selecting in the JSTree
+			$('#' + id).on("ready.jstree", function(e, data) {
+				$('#' + id).jstree('select_node', selected);
+			});
+	
+			// searching in the JSTree
+			var to = false;
+			$('#' + search).keyup(function() {
+				if (to) {
+					clearTimeout(to);
+				}
+	
+				to = setTimeout(function() {
+					var v = $('#' + search).val();
+	
+					$('#' + id).jstree(true).search(v);
+				}, 400);
+			});
+		};
+		
+		$("document").ready(function() {
+			initJSTree("kleTree", "kleSearch", selectedKles);
+		});
+
+		/*]]>*/
+	</script>
+</th:block>

@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'substituteContext', subpage='admin')"></aside>
+
+	<section>
+		<div class="content-wrapper">
+			<h3 th:text="#{html.page.substituteContext.title}"></h3>
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<a class="btn btn-primary btn-lg" href="#" onclick="createSubstituteContext(this); return false;">
+						<i class="fa fa-plus"></i>
+						<span th:text="#{html.page.substituteContext.new}"></span>
+					</a>
+				</div>
+
+				<div class="panel-body">
+					<div class="table-responsive">
+						<table id="listTable" class="table table-striped listTable">
+							<thead>
+							<tr>
+								<th class="col-md-3" th:text="#{html.entity.substituteContext.name}"></th>
+								<th class="col-md-3" th:text="#{html.entity.substituteContext.identifier}"></th>
+								<th class="col-md-4" th:text="#{html.entity.substituteContext.supportsConstraints}"></th>
+								<th th:if="${@sofdConfiguration.getModules().getOrgUnitSubstitute().isEnabled()}" class="col-md-1" th:text="#{html.entity.substituteContext.assignableToOrgUnit}"></th>
+								<th class="col-md-1" th:text="#{html.control.operations}"></th>
+							</tr>
+							</thead>
+
+							<tbody>
+							<tr th:each="subContext : ${substituteContexts}">
+								<td th:text="${subContext.name}" th:attr="data-id=subContextName + ${subContext.id}"></td>
+								<td th:text="${subContext.identifier}"></td>
+								<td>
+									<input type="checkbox" class="hidden" th:checked="${subContext.supportsConstraints}" />
+									<em th:if="${subContext.supportsConstraints}" class="fa fa-check"></em>
+								</td>
+								<td th:if="${@sofdConfiguration.getModules().getOrgUnitSubstitute().isEnabled()}">
+									<input type="checkbox" class="hidden" th:checked="${subContext.assignableToOrgUnit}" />
+									<em th:if="${subContext.assignableToOrgUnit}" class="fa fa-check"></em>
+								</td>
+								<td>
+									<a th:if="${@sofdConfiguration.getModules().getOrgUnitSubstitute().isEnabled()}" class="edit-btn" href="#" th:attr="data-id=${subContext.id}, data-name=${subContext.name}, data-identifier=${subContext.identifier}, data-supportsConstraints=${subContext.supportsConstraints}, data-assignableToOrgUnit=${subContext.assignableToOrgUnit}, data-inherit=${subContext.inheritOrgUnitAssignments}"><em class="fa fa-fw fa-pencil" th:title="#{html.mouseover.edit}"></em></a>
+									<a onclick="deleteSubstituteContext(this);" href="#" th:if="${subContext.canBeDeleted}" th:attr="data-id=${subContext.id}"><em class="fa fa-fw fa-times" th:title="#{html.mouseover.delete}"></em></a>
+								</td>
+							</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<!-- Create modal -->
+<div id="createSubstituteContextModal" class="modal fade" role="dialog">
+	<form class="form-horizontal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 class="modal-title" th:text="#{html.page.substituteContext.modal.title}"></h4>
+				</div>
+
+				<div class="modal-body">
+					<div class="form-group">
+						<label th:text="#{html.entity.substituteContext.name}" class="col-sm-2 control-label"></label>
+						<div class="col-sm-10">
+							<input id="substituteName" class="form-control" />
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label th:text="#{html.entity.substituteContext.identifier}" class="col-sm-2 control-label"></label>
+						<div class="col-sm-10">
+							<input id="substituteIdentifier" class="form-control"/>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label th:text="#{html.entity.substituteContext.supportsConstraints}" class="col-sm-2 control-label"></label>
+						<div class="col-sm-10">
+							<div class="checkbox c-checkbox">
+								<label>
+									<input type="checkbox" id="substituteSupportsConstraints"/>
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label th:text="#{html.entity.substituteContext.assignableToOrgUnit}" class="col-sm-2 control-label"></label>
+						<div class="col-sm-10">
+							<div class="checkbox c-checkbox">
+								<label>
+									<input type="checkbox" id="substituteAssignableToOrgUnit"/>
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+						</div>
+					</div>
+
+					<div class="form-group" id="inheritRow">
+						<label class="col-sm-2 control-label">
+							<span th:text="#{html.entity.substituteContext.inherit}"></span>
+							<a tabindex="0" class="hintPopovers" data-toggle="popover" data-trigger="focus" data-container="body" data-placement="right" th:attr="data-content=#{html.entity.substituteContext.inherit.hint}" style="text-decoration: none;">
+								<em style="color: black;" class="fa fa-fw fa-question"></em>
+							</a>
+						</label>
+						<div class="col-sm-10">
+							<div class="checkbox c-checkbox">
+								<label>
+									<input type="checkbox" id="inherit"/>
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="modal-footer">
+					<div class="col-sm-12">
+						<button class="btn btn-primary" th:text="#{html.control.button.save}" onclick="postSubstituteContext()"></button>
+						<button class="btn btn-danger" type="button" data-dismiss="modal" th:text="#{html.action.abortChanges}"></button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</form>
+</div>
+
+<!-- Edit modal -->
+<div id="editSubstituteContextModal" class="modal fade" role="dialog">
+	<form class="form-horizontal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 class="modal-title" th:text="#{html.page.substituteContext.modal.title}"></h4>
+				</div>
+
+				<div class="modal-body">
+					<input id="substituteIdEdit" hidden/>
+
+					<div class="form-group">
+						<label th:text="#{html.entity.substituteContext.name}" class="col-sm-2 control-label"></label>
+						<div class="col-sm-10">
+							<input id="substituteNameEdit" class="form-control" disabled/>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label th:text="#{html.entity.substituteContext.identifier}" class="col-sm-2 control-label"></label>
+						<div class="col-sm-10">
+							<input id="substituteIdentifierEdit" class="form-control" disabled/>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label th:text="#{html.entity.substituteContext.supportsConstraints}" class="col-sm-2 control-label"></label>
+						<div class="col-sm-10">
+							<div class="checkbox c-checkbox">
+								<label>
+									<input type="checkbox" id="substituteSupportsConstraintsEdit" disabled/>
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label th:text="#{html.entity.substituteContext.assignableToOrgUnit}" class="col-sm-2 control-label"></label>
+						<div class="col-sm-10">
+							<div class="checkbox c-checkbox">
+								<label>
+									<input type="checkbox" id="substituteAssignableToOrgUnitEdit"/>
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+						</div>
+					</div>
+
+					<div class="form-group" id="inheritRowEdit">
+						<label class="col-sm-2 control-label">
+							<span th:text="#{html.entity.substituteContext.inherit}"></span>
+							<a tabindex="0" class="hintPopovers" data-toggle="popover" data-trigger="focus" data-container="body" data-placement="right" th:attr="data-content=#{html.entity.substituteContext.inherit.hint}" style="text-decoration: none;">
+								<em style="color: black;" class="fa fa-fw fa-question"></em>
+							</a>
+						</label>
+						<div class="col-sm-10">
+							<div class="checkbox c-checkbox">
+								<label>
+									<input type="checkbox" id="inheritEdit"/>
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="modal-footer">
+					<div class="col-sm-12">
+						<button class="btn btn-primary" th:text="#{html.control.button.save}" id="saveEdit"></button>
+						<button class="btn btn-danger" type="button" data-dismiss="modal" th:text="#{html.action.abortChanges}"></button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</form>
+</div>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+<script th:replace="fragments/datatables :: datatables"></script>
+
+<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+			var restUrl = [[@{/rest/substituteContext}]];
+			var createUpdateErrorMsg = [[#{html.page.substituteContext.createupdate.error}]];
+			
+			var removeTitle = [[#{html.page.substituteContext.remove.title}]];
+			var removeText = [[#{html.page.substituteContext.remove.text}]];
+			var removeButtonConfirm = [[#{html.button.delete}]];
+			var removeButtonCancel = [[#{html.button.cancel}]];
+			var editTitle = [[#{html.page.substituteContext.edit.title}]];
+			var editText = [[#{html.page.substituteContext.edit.text}]];
+			var editButtonConfirm = [[#{html.button.save}]];
+
+			var editEnabled = [[${@sofdConfiguration.getModules().getOrgUnitSubstitute().isEnabled()}]];
+		+]*/
+		var initialAssignableToOrgUnit = true;
+		var token = $("meta[name='_csrf']").attr("content");
+
+		$('#createSubstituteContextModal').on('shown.bs.modal', function () {
+			$('#substituteName').focus();
+		});
+
+		$('#substituteAssignableToOrgUnitEdit').on('change', function () {
+			if (document.getElementById("substituteAssignableToOrgUnitEdit").checked) {
+				$("#inheritRowEdit").show();
+			} else {
+				$("#inheritRowEdit").hide();
+			}
+		});
+
+		$('#substituteAssignableToOrgUnit').on('change', function () {
+			if (document.getElementById("substituteAssignableToOrgUnit").checked) {
+				$("#inheritRow").show();
+			} else {
+				$("#inheritRow").hide();
+			}
+		});
+
+		$('.edit-btn').on('click', function () {
+			if (editEnabled) {
+				var id = $(this).data('id');
+				var name = $(this).data('name');
+				var identifier = $(this).data('identifier');
+				var supportsConstraints = $(this).data('supportsconstraints');
+				var assignableToOrgUnit = $(this).data('assignabletoorgunit');
+				var inherit = $(this).data('inherit');
+
+				$('#substituteIdEdit').val(id);
+				$('#substituteIdentifierEdit').val(identifier);
+				$('#substituteNameEdit').val(name);
+				$('#substituteSupportsConstraintsEdit').prop("checked", supportsConstraints);
+				$('#substituteAssignableToOrgUnitEdit').prop("checked", assignableToOrgUnit);
+				$('#inheritEdit').prop("checked", inherit);
+				initialAssignableToOrgUnit=assignableToOrgUnit;
+
+				if (assignableToOrgUnit) {
+					$("#inheritRowEdit").show();
+				} else {
+					$("#inheritRowEdit").hide();
+				}
+
+				$('#editSubstituteContextModal').modal("show");
+			}
+		});
+
+		$('#saveEdit').on('click', function () {
+			if (editEnabled) {
+				if (initialAssignableToOrgUnit && !document.getElementById("substituteAssignableToOrgUnitEdit").checked) {
+					swal({
+						html : true,
+						title : editTitle,
+						text : editText,
+						type : "warning",
+						showCancelButton : true,
+						confirmButtonColor : "#DD6B55",
+						confirmButtonText : editButtonConfirm,
+						cancelButtonText : removeButtonCancel,
+						closeOnConfirm : true,
+						closeOnCancel : true
+					},
+					function(isConfirm) {
+						if (isConfirm) {
+							$.ajax({
+								url: restUrl + '/update',
+								headers: {
+									'X-CSRF-TOKEN': token
+								},
+								type: 'post',
+								contentType: 'application/json',
+								data: JSON.stringify({
+									'id': $('#substituteIdEdit').val(),
+									'assignableToOrgUnit' : document.getElementById("substituteAssignableToOrgUnitEdit").checked,
+									'inherit' : document.getElementById("inheritEdit").checked
+								}),
+								success: function(data, textStatus, jQxhr) {
+									location.reload(true);
+								},
+								error: function(jqXhr, textStatus, errorThrown) {
+									$('#editSubstituteContextModal').modal("hide");
+									$.notify({
+										message: createUpdateErrorMsg
+									}, {
+										status: 'danger',
+										autoHideDelay: 4000
+									});
+								}
+							});
+						}
+					});
+				} else {
+					$.ajax({
+						url: restUrl + '/update',
+						headers: {
+							'X-CSRF-TOKEN': token
+						},
+						type: 'post',
+						contentType: 'application/json',
+						data: JSON.stringify({
+							'id': $('#substituteIdEdit').val(),
+							'assignableToOrgUnit' : document.getElementById("substituteAssignableToOrgUnitEdit").checked,
+							'inherit' : document.getElementById("inheritEdit").checked
+						}),
+						success: function(data, textStatus, jQxhr) {
+							location.reload(true);
+						},
+						error: function(jqXhr, textStatus, errorThrown) {
+							$('#editSubstituteContextModal').modal("hide");
+							$.notify({
+								message: createUpdateErrorMsg
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						}
+					});
+				}
+			}
+		});
+
+		function createSubstituteContext(obj) {
+			$('#substituteIdentifier').val("");
+			$('#substituteName').val("");
+			$('#substituteSupportsConstraints').prop("checked", false);
+			$('#substituteAssignableToOrgUnit').prop("checked", false);
+			$('#inherit').prop("checked", false);
+			$("#inheritRow").hide();
+
+			$('#createSubstituteContextModal').modal("show");
+		}
+
+		function postSubstituteContext() {
+			$('#substituteModal').modal("hide");
+			$.ajax({
+				url: restUrl + '/update',
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				type: 'post',
+				contentType: 'application/json',
+				data: JSON.stringify({
+					'name' : $('#substituteName').val(),
+					'identifier' : $('#substituteIdentifier').val(),
+					'supportsConstraints' : document.getElementById("substituteSupportsConstraints").checked,
+					'assignableToOrgUnit' : document.getElementById("substituteAssignableToOrgUnit").checked,
+					'inherit' : document.getElementById("inherit").checked
+				}),
+				success: function(data, textStatus, jQxhr) {
+					location.reload(true);
+				},
+				error: function(jqXhr, textStatus, errorThrown) {
+					$.notify({
+						message: createUpdateErrorMsg
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				}
+			});
+		}
+
+		function deleteSubstituteContext(obj) {
+			var id = $(obj).attr('data-id');
+			var substituteContextName = $("td[data-id=subContextName" + id + "]").text();
+
+			swal({
+				html : true,
+				title : removeTitle + "<br/><span style=\"font-size: smaller; font-weight: normal;\">" + substituteContextName + "</span>",
+				text : removeText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : removeButtonConfirm,
+				cancelButtonText : removeButtonCancel,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						url: restUrl + '/delete',
+						headers: {
+							'X-CSRF-TOKEN': token
+						},
+						type: 'delete',
+						contentType: 'application/json',
+						data: id,
+						success: function( data, textStatus, jQxhr ){
+							location.reload(true);
+						},
+						error: function( jqXhr, textStatus, errorThrown ){
+							$.notify({
+								message: deleteErrorMsg
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						}
+					});
+				}
+			});
+		}
+		/*]]>*/
+	</script>
+</body>
+</html>

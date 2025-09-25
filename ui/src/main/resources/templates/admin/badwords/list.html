@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'badwords', subpage = 'admin')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.page.badwords.list.headline}"></h3>
+
+				<div class="panel panel-default">
+					<div class="panel-heading">
+						<a class="btn btn-primary btn-lg" href="#" onclick="openNewWordModal()">
+							<i class="fa fa-plus"></i>
+							<span th:text="#{html.page.badwords.list.add}"></span>
+						</a>
+					</div>
+					<div class="panel-body">
+						<div class="table-responsive">
+							<table id="listTable" class="table table-striped listTable">
+								<thead>
+									<tr>
+										<th class="col-md-11" th:text="#{html.entity.badword.value}"></th>
+										<th class="col-md-1" th:text="#{html.control.operations}"></th>
+									</tr>
+								</thead>
+
+								<tbody>
+									<tr th:each="word : ${badWords}">
+										<td th:text="${word}"></td>
+										<td>
+											<a onclick="deleteWord(this);" href="#" th:attr="data-word=${word}"><em class="fa fa-fw fa-remove" th:title="#{html.mouseover.delete}"></em></a>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+	
+	<!-- Modal -->
+	<div id="newWordModal" class="modal fade" role="dialog">
+		<form class="form-horizontal">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal">&times;</button>
+						<h4 class="modal-title" th:text="#{html.page.badwords.list.modal.title}"></h4>
+					</div>
+	
+					<div class="modal-body">
+						<div class="form-group">
+							<label th:text="#{html.entity.badword.value}" class="col-sm-2 control-label"></label>
+							<div class="col-sm-10">
+								<input id="newWord" class="form-control" />
+							</div>
+						</div>
+					</div>
+	
+					<div class="modal-footer">
+						<div class="col-sm-12">
+							<button class="btn btn-primary" th:text="#{html.control.button.save}" onclick="addNewWord()"></button>
+							<button class="btn btn-danger" type="button" data-dismiss="modal" th:text="#{html.action.abortChanges}"></button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</form>
+	</div>
+	<!-- End Modal -->
+
+	<div th:replace="fragments/footer :: footer"></div>
+	<script th:replace="fragments/datatables :: datatables"></script>
+	
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+			var addUrl = [[@{/ui/badwords}]];
+			var deleteURL = [[@{/ui/badwords}]];
+			var removeTitle = [[#{html.page.badwords.remove.title}]];
+			var removeText = [[#{html.page.badwords.remove.text}]];
+			var removeButtonConfirm = [[#{html.button.delete}]];
+			var removeButtonCancel = [[#{html.button.cancel}]];
+			var deleteErrorMsg = [[#{html.page.badwords.list.modal.delete.error}]];
+			var addErrorMsg = [[#{html.page.badwords.list.modal.add.error}]];
+		+]*/
+
+		var token = $("meta[name='_csrf']").attr("content");
+		
+		$('#newWordModal').on('shown.bs.modal', function () {
+			$('#newWord').focus();
+		});
+		
+		function openNewWordModal() {
+			$('#newWordModal').modal("show");
+		}
+
+		function addNewWord() {
+			$('#newWordModal').modal("hide");
+
+			var word = $('#newWord').val();
+
+			$.ajax({
+				url: addUrl,
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				type: 'post',
+				contentType: 'application/json',
+				data: word,
+				success: function( data, textStatus, jQxhr ){
+					location.reload(true);
+				},
+				error: function( jqXhr, textStatus, errorThrown ){
+					$.notify({
+						message: addErrorMsg
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				}
+			});
+		}
+		
+		function deleteWord(obj) {
+			var word = $(obj).attr('data-word');
+
+			swal({
+				html : true,
+				title : removeTitle + "<br/><span style=\"font-size: smaller; font-weight: normal;\">" + word + "</span>",
+				text : removeText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : removeButtonConfirm,
+				cancelButtonText : removeButtonCancel,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						url: deleteURL,
+						headers: {
+							'X-CSRF-TOKEN': token
+						},
+						type: 'delete',
+						contentType: 'application/json',
+						data: word,
+						success: function( data, textStatus, jQxhr ){
+							location.reload(true);
+						},
+						error: function( jqXhr, textStatus, errorThrown ){
+							$.notify({
+								message: deleteErrorMsg
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						}
+					});
+				}
+			});
+		}
+		
+		/*]]>*/
+	</script>
+</body>
+</html>

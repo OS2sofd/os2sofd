@@ -1,0 +1,1 @@
+ALTER TABLE email_template_children ADD COLUMN domain_filter VARCHAR(255) NULL

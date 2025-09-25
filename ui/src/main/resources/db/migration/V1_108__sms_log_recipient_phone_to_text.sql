@@ -1,0 +1,1 @@
+ALTER TABLE sms_log_recipients MODIFY COLUMN phone TEXT NULL;

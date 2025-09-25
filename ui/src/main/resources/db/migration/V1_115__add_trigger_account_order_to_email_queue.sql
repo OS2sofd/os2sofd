@@ -1,0 +1,2 @@
+ALTER TABLE email_queue ADD COLUMN trigger_account_order_id BIGINT,
+ADD CONSTRAINT fk_trigger_account_order FOREIGN KEY (trigger_account_order_id) REFERENCES account_orders(id) ON DELETE CASCADE ON UPDATE CASCADE;

@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'report')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'pendingapproval', subpage = 'report')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.page.accountorders.header}"></h3>
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<div class="table-responsive">
+							<table id="listTable" class="table table-striped table-hover listTable">
+								<thead>
+									<tr>
+										<th class="col-md-2" th:text="#{html.page.accountorders.activationTime}"></th>
+										<th class="col-md-5" th:text="#{html.page.accountorders.personName}"></th>
+										<th class="col-md-5" th:text="#{html.page.accountorders.triggerAffiliation}"></th>
+										<th class="col-md-2" th:text="#{html.page.accountorders.userId}"></th>
+										<th class="col-md-2" th:text="#{html.page.accountorders.userType}"></th>
+										<th class="col-md-1" th:text="#{html.control.operations}"></th>
+									</tr>
+								</thead>
+					
+								<tbody>
+									<tr th:each="order : ${orders}">
+										<td th:text="${#dates.format(order.activationTimestamp, 'yyyy-MM-dd HH:mm')}"></td>
+										<td>
+											<span th:text="${order.personName}"></span>
+											<a sec:authorize="hasRole('ROLE_USER_READ')" th:href="@{/ui/person/view/} + ${order.personUuid} + '?backRef=adaccount'" style="color: inherit; text-decoration: none;">&nbsp;
+												<em class="fa fa-external-link"></em>
+											</a>
+										</td>
+										<td th:text="${order.triggerAffiliation}"></td>
+										<td th:text="${order.userId}"></td>
+
+										<td th:text="${@supportedUserTypeService.getPrettyName(order.getUserType())}"></td>
+										<td>
+											<a href="#" onclick="accountOrderDatatableService.approve(this);" th:attr="data-orderid=${order.id},data-personuuid=${order.personUuid}"><em class="fa fa-fw fa-check"></em></a>
+											<a href="#" onclick="accountOrderDatatableService.reject(this);" th:attr="data-orderid=${order.id}"><em class="fa fa-fw fa-times"></em></a>
+										</td>
+									</tr>
+								</tbody>
+								<tfoot>
+									<tr>
+										<th th:text="#{html.page.accountorders.activationTime}"></th>
+										<th th:text="#{html.page.accountorders.personName}"></th>
+										<th th:text="#{html.page.accountorders.triggerAffiliation}"></th>
+										<th th:text="#{html.page.accountorders.userId}"></th>
+										<th th:text="#{html.page.accountorders.userType}"></th>
+										<th class="disabled"></th>
+									</tr>
+								</tfoot>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+    <th:block th:if="${customApprovalForm}">
+	<div th:replace="custom/customform :: approvalFormFragment"></div>
+	</th:block>
+
+	<nav th:replace="fragments/footer :: footer"></nav>
+	
+	<script th:replace="fragments/datatables :: datatables(autoLoad=false) "></script>
+
+    <th:block th:if="${customApprovalForm}">	
+	<script th:if="${customApprovalForm}" th:replace="custom/customform :: approvalJavascriptFragment"></script>
+	</th:block>
+	
+	<script th:inline="javascript">
+	
+		/*[+
+			var approveTitle = [[#{html.page.accountorders.approve.title}]];
+			var approveText = [[#{html.page.accountorders.approve.text}]];
+			
+			var rejectTitle = [[#{html.page.accountorders.reject.title}]];
+			var rejectText = [[#{html.page.accountorders.reject.text}]];
+		
+			var changeStatusButtonConfirm = [[#{html.button.yes}]];
+			var changeStatusButtonCancel = [[#{html.button.no}]];
+			
+			var approveUrl = [[@{/ui/account/order/approve}]];
+			var rejectUrl = [[@{/ui/account/order/reject}]];
+			
+			var changeStatusErrorMsg = [[#{html.setting.update.msg.failed}]];
+			
+			var customApprovalForm = [[${customApprovalForm}]];
+		+]*/
+
+		var token = $("meta[name='_csrf']").attr("content");
+
+		var accountOrderDatatableService;
+		var approveService;
+		$(document).ready(function () {
+			accountOrderDatatableService = new AccountOrderDatatableService();
+			accountOrderDatatableService.init();
+			
+			approveService = new ApproveService();
+		});
+
+		// for custom approval form
+		function ApproveService() {
+			function convertFormToJSON(form) {
+				const json = {};
+
+				form.find(":input").each(function() {
+					var tval = $(this).val();
+					if ("on" == tval) {
+						tval = $(this).is(":checked") ? "on" : "off";
+					}
+					
+					json[this.name] = tval; 
+				});
+				
+				return json;
+			}
+
+			this.submit = function() {
+				var formData = convertFormToJSON($('#approvalForm'));
+				var payload = { 'id' : formData.id, 'token': JSON.stringify(formData) };
+				
+				$.ajax({
+					url: approveUrl,
+					headers: {
+						'X-CSRF-TOKEN': token
+					},
+					type: 'post',
+					contentType: 'application/json',
+					data: JSON.stringify(payload),
+					success: function(data, textStatus, jQxhr) {
+						location.reload();
+					},
+					error: function(jqXhr, textStatus, errorThrown) {
+						$.notify({
+							message: changeStatusErrorMsg
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					}
+				});
+			}
+			
+			this.close = function() {
+				$('#modal-approve').modal("toggle");
+			}
+			
+			this.open = function(orderId, personUuid) {
+				$('#approvalForm #id').val(orderId);
+
+				$('#modal-approve').modal({
+				    backdrop: 'static',
+				    keyboard: false
+				});
+				
+				customFormService.init(personUuid);
+			}
+		}
+
+		function AccountOrderDatatableService() {
+			this.init = function() {
+				accountOrderDatatableService.addSearchBoxes();
+				accountOrderDatatableService.initDataTable();
+			}
+
+			this.addSearchBoxes = function() {
+				// Add searchbox based on column title to each footer
+				$('#listTable tfoot th').each( function () {
+					if (!$(this).hasClass('disabled')) {
+						var title = $(this).text();
+						$(this).html('<input class="form-control" style="width:100%;" type="text" placeholder="Søg i '+title+'" />');
+					}
+				});
+			}
+
+			this.initDataTable = function() {
+				// Initialize with searchfunction
+				var table = $('#listTable').DataTable({
+					"bDestroy": true,
+					'paging':   paging,
+					'ordering': true,
+					'info':	 true,
+					'pageLength': 25,
+					'initComplete': function () {
+						// Apply the search
+						this.api().columns().every( function () {
+							var that = this;
+
+							$( 'input', this.footer() ).on('keyup change clear', function () {
+								if (that.search() !== this.value) {
+									that.search(this.value).draw();
+								}
+							});
+						});
+
+						// Put the footer under the header
+						var r = $('#listTable tfoot tr');
+						r.find('th').each(function(){
+							$(this).css('padding', 8);
+						});
+						$('#listTable thead').append(r);
+					},
+					'language': {
+						"search":	   searchTxt,
+						"lengthMenu":   dropdownTxt,
+						"info":		 infoDefaultTxt,
+						"zeroRecords":  infoEmptyTxt,
+						"infoEmpty":	"",
+						"infoFiltered": infoFilteredTxt,
+						"paginate": {
+							"next": nextTxt,
+							"previous": prevTxt
+						}
+					}
+				});
+				table.order([0, 'desc']).draw();
+			}
+			
+			this.approve = function(elem) {
+				var orderId = elem.dataset.orderid;
+				var personUuid = elem.dataset.personuuid;
+
+				if (customApprovalForm) {
+					approveService.open(orderId, personUuid);
+					return;
+				}
+				
+				swal({
+					html : true,
+					title : approveTitle,
+					text : approveText,
+					type : "warning",
+					showCancelButton : true,
+					confirmButtonColor : "#DD6B55",
+					confirmButtonText : changeStatusButtonConfirm,
+					cancelButtonText : changeStatusButtonCancel,
+					closeOnConfirm : true,
+					closeOnCancel : true
+				},
+				function(isConfirm) {
+					if (isConfirm) {
+						$.ajax({
+							url: approveUrl,
+							headers: {
+								'X-CSRF-TOKEN': token
+							},
+							type: 'post',
+							contentType: 'application/json',
+							data: JSON.stringify({
+								id: orderId
+							}),
+							success: function(data, textStatus, jQxhr) {
+								location.reload();
+							},
+							error: function(jqXhr, textStatus, errorThrown) {
+								$.notify({
+									message: changeStatusErrorMsg
+								}, {
+									status: 'danger',
+									autoHideDelay: 4000
+								});
+							}
+						});
+					}
+				});
+			}
+			
+			this.reject = function(elem) {
+				var orderId = elem.dataset.orderid;
+				
+				swal({
+					html : true,
+					title : rejectTitle,
+					text : rejectText,
+					type : "warning",
+					showCancelButton : true,
+					confirmButtonColor : "#DD6B55",
+					confirmButtonText : changeStatusButtonConfirm,
+					cancelButtonText : changeStatusButtonCancel,
+					closeOnConfirm : true,
+					closeOnCancel : true
+				},
+				function(isConfirm) {
+					if (isConfirm) {
+						$.ajax({
+							url: rejectUrl,
+							headers: {
+								'X-CSRF-TOKEN': token
+							},
+							type: 'post',
+							contentType: 'application/json',
+							data: JSON.stringify({
+								id: orderId
+							}),
+							success: function(data, textStatus, jQxhr) {
+								location.reload();
+							},
+							error: function(jqXhr, textStatus, errorThrown) {
+								$.notify({
+									message: changeStatusErrorMsg
+								}, {
+									status: 'danger',
+									autoHideDelay: 4000
+								});
+							}
+						});
+					}
+				});
+			}
+		}
+
+	</script>
+</body>
+</html>

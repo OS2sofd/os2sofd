@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'orgunits', subpage='phonebook')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3>
+					<a th:href="@{/ui/orgunit}" class="btn btn-default">
+						<span>
+							<i class="fa fa-arrow-left"></i>
+						</span>
+					</a>
+					<span th:text="#{html.page.orgunit.new.title}"></span>
+
+					<div id="buttonsMenu" style="position: absolute; right: 0; top: 0; margin-top:10px; margin-right: 20px;">
+						<button id="saveButton" class="btn btn-lg btn-primary" style="width:auto; margin-right:10px;" onclick="saveCoreChanges()">
+							<em class="fa fa-save" aria-hidden="true"></em>&nbsp;
+							<span th:text="#{html.button.create}"></span>
+						</button>
+						<a class="btn btn-lg btn-danger" style="width:auto!important;" th:href="@{/ui/orgunit/}">
+							<em class="fa fa-times" aria-hidden="true"></em>&nbsp;
+							<span th:text="#{html.control.button.cancel}"></span>
+						</a>
+					</div>
+				</h3>
+
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<form id="core" class="row form-horizontal">
+							<div class="col-lg-12">
+								<fieldset th:if="${@sofdConfiguration.integrations.cvr.isEnabled()}">
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.pnr}"></label>
+										<div class="col-sm-8">
+											<div class="row">
+												<div class="col-sm-9">
+													<input id="pnr" name="pnr" class="form-control" readonly="readonly" />
+													<input type="hidden" id="street" />
+													<input type="hidden" id="postalCode" />
+													<input type="hidden" id="city" />
+												</div>
+												<div class="col-sm-3">
+													<button type="button" class="btn btn-primary btn-block" onclick="openSearchPnrModal()" th:text="#{html.page.orgunit.new.search.pnr}"></button>
+												</div>
+											</div>
+										</div>
+									</div>
+								</fieldset>
+
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.sourceName}"></label>
+										<div class="col-sm-8">
+											<input th:field="${orgUnit.sourceName}" class="form-control "/>
+											<span class="validationMessage" id="name-validationMessage" style="color: red; display: none;"></span>
+										</div>
+									</div>
+
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.shortname}"></label>
+										<div class="col-sm-8">
+											<input th:field="${orgUnit.shortname}" class="form-control "/>
+											<span class="validationMessage" id="shortname-validationMessage" style="color: red; display: none;"></span>
+										</div>
+									</div>
+
+									<div class="row" th:if="${@sofdConfiguration.getModules().getLos().isAllowSettingMasterId() == true}">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.masterId}"></label>
+										<div class="col-sm-8">
+											<input th:field="${orgUnit.masterId}" class="form-control "/>
+											<span class="validationMessage" id="masterId-validationMessage" style="color: red; display: none;"></span>
+										</div>
+									</div>
+								</fieldset>
+
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.parent}"></label>
+										<div class="col-sm-8">
+											<div class="row">
+												<div class="col-sm-9">
+													<input id="parentName" name="parentName" class="form-control" readonly="readonly" />
+													<input type="hidden" th:field="${orgUnit.parent}" />
+													<input type="hidden" th:field="${orgUnit.belongsTo}" />
+												</div>
+												<div class="col-sm-3">
+													<button type="button" class="btn btn-primary btn-block" onclick="openChooseParentModal()" th:text="#{html.page.orgunit.new.chooseParent}"></button>
+												</div>
+											</div>
+											<span class="validationMessage" id="parent-validationMessage" style="color: red; display: none;"></span>
+										</div>
+									</div>
+								</fieldset>
+
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.doNotTransferToFKOrg}"></label>
+										<div class="col-sm-8">
+											<div class="checkbox c-checkbox">
+												<label>
+													<input id="doNotTransferToFKOrgCheckbox" type="checkbox"/>
+													<span class="fa fa-check"></span>
+												</label>
+											</div>
+										</div>
+									</div>
+								</fieldset>
+
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<!-- choose parent modal -->
+	<div th:replace="orgunit/fragments/chooseParentModal :: chooseParentModal"></div>
+	
+	<!-- Search pnr modal -->
+	<div th:replace="orgunit/fragments/searchPnrModal :: searchPnrModal"></div>
+
+	<nav th:replace="fragments/footer :: footer"></nav>
+	<script th:replace="orgunit/fragments/orgunit_tree :: orgUnitTreeScript(configObj='ouJSTreeConfig')"></script>
+	<script id="datatablesScript" th:replace="fragments/datatables :: datatables(paging=false, autoLoad=false)"></script>
+	<script th:replace="orgunit/fragments/searchPnrModal :: searchPnrModalScript(streetId=street, postalCodeId=postalCode, cityId=city, pnrId=pnr, nameId=name, shortNameId=shortname)"></script>
+
+	<style>
+	.row {
+		margin-bottom: 5px;
+	}
+	.control-label {
+		margin-top: 5px;
+		text-align: right;
+	}
+	</style>
+
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		/*[+
+			var url = [[@{/ui/orgunit}]];
+			var restUrl = [[@{/rest/orgunit}]];
+			var uuid = [[${orgUnit.uuid}]];
+			var phones =  [[${orgUnit.phones}]];
+
+			var entityType = [[${entityType}]];
+
+			var orgUnitMaster = [[${orgUnit.master}]];
+			
+			var msgCreateFail = [[#{html.page.orgunit.create.failure}]];
+			var msgFail = [[#{html.setting.update.msg.failed}]];
+			
+			var selectParentTitle = [[#{html.fragment.orgunit.new.msg.selectParent.Title}]]; 
+			var selectParentText = [[#{html.fragment.orgunit.new.msg.selectParent.Text}]];
+			var selectParentButtonConfirm = [[#{html.control.button.ok}]];
+			var selectParentButtonCancel = [[#{html.control.button.cancel}]];
+
+			var tooltipTxt = [[#{html.entity.person.master}]];
+
+			var orgId = [[${organisationId}]];
+		+]*/
+		var token = $("meta[name='_csrf']").attr("content");
+		
+		// polyfill for IE
+		if (!String.prototype.startsWith) {
+			String.prototype.startsWith = function(searchString, position) {
+				position = position || 0;
+				return this.substr(position, searchString.length) === searchString;
+			};
+		}
+
+		function setValidationMessages(errors) {
+			for (var i = 0; i < errors.length; i++) {
+				$('#' + errors[i].field + "-validationMessage").show();
+				$('#' + errors[i].field + "-validationMessage").text(errors[i].defaultMessage);
+			}
+		}
+
+		function saveCoreChanges() {
+			var name = $("#sourceName").val();
+			$.ajax({
+				url: restUrl + "/check?sourceName=" + name,
+				method : "GET",
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				error: function(response) {
+					$.notify({
+						message: msgFail
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				},
+				success: function(response) {
+					if (!response) {
+						ajaxSave();
+					}
+					else{
+						swal({
+							title: "Navneduplikering",
+							text : "Der findes allerede en enhed med navnet " + name + " i OS2sofd. Er du sikker på du vil gemme?",
+							type : "warning",
+							showCancelButton : true,
+							confirmButtonColor : "#DD6B55",
+							confirmButtonText : "Ja",
+							cancelButtonText : "Nej",
+							closeOnConfirm : true,
+							closeOnCancel : true
+						},
+						function(isConfirm) {
+							if (isConfirm) {
+								ajaxSave();
+							}
+						});
+					}
+				}
+			});
+		}
+		
+		function ajaxSave() {
+			var fields = $('#core input[id]');
+			var data = {};
+			fields.map(function(index, value) {
+				data[value.id] = value.value;
+			});
+			// If belongsTo is empty, we trigger an NPE in backend
+			if (!data.belongsTo) {
+				$.notify({
+					message: "Du mangler at vælge en overliggende enhed"
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+				return;
+			}
+
+			// fix checkbox
+			data.doNotTransferToFKOrg = $("#doNotTransferToFKOrgCheckbox").is(':checked');
+
+			$('.validationMessage').hide();
+
+			$.ajax({
+				contentType: 'application/json',
+				url: restUrl + "/new",
+				method : "POST",
+				data: JSON.stringify(data),
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				error: function(response) {
+					setValidationMessages(response.responseJSON);
+
+					$.notify({
+						message: msgCreateFail
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				},
+				success: function(response) {
+					window.location = url + "/view/" + response;
+				}
+			});
+		}
+
+		function openChooseParentModal() {
+			$('#chooseParentModal').modal("show");
+			return false;
+		}
+		
+		function openSearchPnrModal() {
+			$('#searchPnrModal').modal("show");
+			return false;
+		}
+
+		function selectParent() {
+			var node = $("#parentorgUnitTreeHierarchy").jstree("get_selected", true)[0];
+			var belongsToId = $('#parentorganisationDropdown').children("option:selected").val();
+			if (belongsToId === undefined) {
+				belongsToId = 0;
+			}
+
+			$('#belongsTo').val(belongsToId);
+
+			$('#parent').val(node.id);
+			$('#parentName').val(node.text);
+			$('#chooseParentModal').modal("hide");
+		}
+
+		var ouJSTreeConfig = {
+			namespace: 'parent',
+			refreshCallback: null,
+			staticOrg: orgId
+		};
+
+		/*]]>*/
+	</script>
+</body>
+</html>

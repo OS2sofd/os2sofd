@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'person.new', subpage = 'phonebook')"></aside>
+ 
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.entity.person.create.affiliation}"></h3>
+
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<div class="row">
+							<div class="col-lg-12">
+								<form class="form-horizontal" id="affiliation-form" th:action="@{/ui/person/affiliation}" method="post" th:object="${affiliationDTO}">
+									<input name="personUUID" type="hidden" th:value="${personUUID}" />
+									<input id="realOrgUnitUuid" type="hidden" th:field="*{orgUnitUuid}"/>
+									<input id="realInheritPrivilegesFromOU" type="hidden" th:field="*{inheritPrivilegesFromOU}" />
+									<input id="realUseAsPrimaryWhenActive" type="hidden" th:field="*{useAsPrimaryWhenActive}" />
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.page.person.new.type}"></label>
+										<div class="col-sm-8" style="padding-left: 35px;">
+											<div class="c-radio">
+												<label>
+													<input th:field="*{affiliationType}" type="radio" value="EMPLOYEE" onchange="setAffiliationType(false);"/>
+													<span class="fa fa-circle"></span>
+													<th:block th:text="#{html.page.person.new.employee}"/>
+												</label>
+											</div>
+				
+											<div class="c-radio">
+												<label>
+													<input th:field="*{affiliationType}" type="radio" value="EXTERNAL" onchange="setAffiliationType(true);"/>
+													<span class="fa fa-circle"></span>
+													<th:block th:text="#{html.page.person.new.external}"/>
+												</label>
+											</div>
+										</div>
+									</div>
+
+									<hr/>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.page.person.new.affiliation.orgunit}"></label>
+										<div class="col-sm-8">
+											<input th:field="*{orgUnitName}" class="form-control" readonly="readonly" onfocus="chooseOU()"/>
+											<ul th:if="${#fields.hasErrors('orgUnitUuid')}" class="error">
+												<li th:each="err : ${#fields.errors('orgUnitUuid')}" th:text="${err}"></li>
+											</ul>
+											<ul th:if="${choseOUNotInConstraints}" class="error">
+												<li th:text="#{html.page.person.new.affiliation.orgunit.error}"></li>
+											</ul>
+										</div>
+										<div class="col-sm-2">
+											<div class="btn btn-primary" th:text="#{html.page.person.new.affiliation.orgunit.choose}" onclick="chooseOU()"></div>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.page.person.new.affiliation.positionName}"></label>
+										<div class="col-sm-8">
+											<input class="form-control" th:field="*{positionName}"/>
+											<ul th:if="${#fields.hasErrors('positionName')}" class="error">
+												<li th:each="err : ${#fields.errors('positionName')}" th:text="${err}"></li>
+											</ul>
+										</div>
+									</div>
+									
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.startDate}"></label>
+										<div class="col-sm-8">
+											<div class="input-group date" id="startDatePicker">
+												<input th:field="*{startDate}" class="form-control" />
+												<span class="input-group-addon">
+													<span class="fa fa-calendar"></span>
+												</span>
+											</div>
+											<div th:if="${#fields.hasErrors('startDate')}" class="input-group">
+												<ul class="error">
+													<li th:each="err : ${#fields.errors('startDate')}" th:text="${err}"></li>
+												</ul>
+											</div>
+										</div>
+									</div>
+									
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.stopDate}"></label>
+										<div class="col-sm-8">
+											<div class="input-group date" id="stopDatePicker">
+												<input th:field="*{stopDate}" class="form-control" />
+												<span class="input-group-addon">
+													<span class="fa fa-calendar"></span>
+												</span>
+											</div>
+											<div th:if="${#fields.hasErrors('stopDate')}" class="input-group">
+												<ul class="error">
+													<li th:each="err : ${#fields.errors('stopDate')}" th:text="${err}"></li>
+												</ul>
+											</div>
+										</div>
+									</div>
+									
+									<div class="form-group show-if-external" th:style="${#strings.equals(affiliationDTO.affiliationType, 'EXTERNAL')} == true ? '' : 'display: none;'">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.vendor}"></label>
+										<div class="col-sm-8">
+											<input th:field="*{vendor}" class="form-control"></input>
+										</div>
+									</div>
+									
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.internalReference}"></label>
+										<div class="col-sm-8">
+											<input th:field="*{internalReference}" class="form-control"></input>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.useAsPrimaryWhenActive}"></label>
+										<div class="col-sm-8">
+											<div class="checkbox c-checkbox">
+												<label>
+													<input type="checkbox" th:checked="*{useAsPrimaryWhenActive}" onchange="useAsPrimaryChange(this)"/>
+													<span class="fa fa-check"></span>
+												</label>
+											</div>
+										</div>
+									</div>
+
+									<div id="inheritDiv" class="form-group show-if-external" th:style="${#strings.equals(affiliationDTO.affiliationType, 'EXTERNAL')} == true ? '' : 'display: none;'">
+										<label class="col-sm-2 control-label">
+											<a tabindex="0" class="hintPopovers" data-toggle="popover" data-trigger="focus" data-placement="right" th:attr="data-content=#{html.page.person.new.hint.inherit},title=#{html.page.person.new.inherit}" style="text-decoration: none;">
+												<em style="color: black;" class="fa fa-fw fa-question"></em>
+											</a>
+											<span th:text="#{html.page.person.new.inherit}"></span>
+										</label>
+
+										<div class="col-sm-8">
+											<div class="checkbox c-checkbox">
+												<label>
+													<input type="checkbox" th:checked="*{inheritPrivilegesFromOU}" onchange="inheritChange(this)"/>
+													<span class="fa fa-check"></span>
+												</label>
+											</div>
+										</div>
+									</div>
+
+									<hr/>
+									
+									<div class="form-group">
+										<div class="col-sm-offset-2 col-sm-10">
+											<button type="submit" style="margin-right: 5px;" class="btn btn-lg btn-primary col-xs-2"  th:text="#{html.control.button.save}"></button>
+											<a th:href="@{/ui/person}" style="margin-right: 5px;" class="btn btn-lg btn-danger col-xs-2" th:text="#{html.control.button.cancel}"></a>
+										</div>
+									</div>
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<div class="modal fade bd-example-modal-lg" id="modal-ou" role="dialog">
+		<div class="modal-dialog modal-lg">
+
+			<!-- Modal content-->
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 th:text="#{html.page.person.new.affiliation.orgunit.choose}"></h4>
+				</div>
+
+				<div class="modal-body">
+					<th:block th:replace="orgunit/fragments/orgunit_tree :: orgUnitTree(namespace='affiliation')"></th:block>
+				</div>
+
+				<div class="modal-footer">
+					<button type="button" id="save" class="btn btn-primary" onclick="saveOu()" th:text="#{html.control.button.save}"></button>
+					<button type="button" class="btn btn-danger" data-dismiss="modal" th:text="#{html.control.button.cancel}"></button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div th:replace="fragments/footer :: footer"></div>
+	<script th:replace="orgunit/fragments/orgunit_tree :: orgUnitTreeScript(configObj='ouJSTreeConfig')"></script>
+	
+	<style>
+		.autocomplete-suggestions { border: 1px solid #999; background: #FFF; overflow: auto; width: 500px !important; }
+		.autocomplete-suggestion { padding: 2px 5px; white-space: nowrap; overflow: hidden; }
+		.autocomplete-selected { background: #F0F0F0; }
+		.autocomplete-suggestions strong { font-weight: normal; color: #3399FF; }
+		.autocomplete-group { padding: 2px 5px; }
+		.autocomplete-group strong { display: block; border-bottom: 1px solid #000; }
+	
+		.popover {
+			width: 250px;
+		}
+		
+		.jstree-disabled{
+			color: #D3D3D3 !important;
+		}
+	</style>
+
+	<script th:inline="javascript">
+	/*<![CDATA[*/
+	
+		/*[+
+			var msgSuccess = [[#{html.page.person.new.msg.success}]];
+			var restUrl = [[@{/rest/person}]];
+			var ouRestUrl = [[@{/rest/orgunit}]];
+			var allOus = [[${ous}]];
+			var hasConstraints = [[${hasConstraints}]];
+			var constraintOus = [[${constraintOus}]];
+			var showError = [[${showError}]];
+			var msgCreateFail = [[#{html.page.person.new.msg.failure}]];
+
+		+]*/
+		var token = $("meta[name='_csrf']").attr("content");
+		var selectedOU;
+		var autoCompleteService;
+		
+		$("document").ready(function() {
+			autoCompleteService = new AutoCompleteService();
+			
+			if (showError) {
+				$.notify({
+					message: msgCreateFail
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			}
+		});
+		
+		function AutoCompleteService() {
+			this.init = function(uuid) {
+				var searchField = $("#positionName");
+				searchField.val("");
+				searchField.autocomplete({
+					serviceUrl: ouRestUrl + "/" + uuid + "/getPositionNames/autocomplete",
+					onSelect: function(suggestion) {
+						$(this).val(suggestion.value);
+					},
+					preventBadQueries: true,
+					triggerSelectOnValidInput: false
+				});
+			}
+		}
+
+		String.prototype.replaceAll = function(search, replacement) {
+			var target = this;
+			return target.replace(new RegExp(search, 'g'), replacement);
+		};
+
+		function setAffiliationType(s) {
+			if (s) {
+				$(".show-if-external").show();
+			}
+			else {
+				$(".show-if-external").hide();
+			}
+		}
+
+		function inheritChange(s) {
+			if (s.checked) {
+				$('#realInheritPrivilegesFromOU').val(true);
+			} else {
+				$('#realInheritPrivilegesFromOU').val(false);
+			}
+		}
+
+		function useAsPrimaryChange(s) {
+			if (s.checked) {
+				$('#realUseAsPrimaryWhenActive').val(true);
+			} else {
+				$('#realUseAsPrimaryWhenActive').val(false);
+			}
+		}
+
+		function chooseOU() {
+			$('#modal-ou').modal('show');
+		}
+
+		function saveOu() {
+			if (selectedOU != null) {
+				$('#realOrgUnitUuid').val(selectedOU.id);
+				$('#orgUnitName').val(selectedOU.text);
+				$('#modal-ou').modal('hide');
+				
+				autoCompleteService.init(selectedOU.id);
+			}
+		}
+
+		var ouJSTreeConfig = {
+			namespace: 'affiliation',
+			refreshCallback: function () {
+				$("#affiliationorgUnitTreeHierarchy").on("select_node.jstree", function(e, data) {
+					selectedOU = data.node;
+				});
+			},
+			staticOrg: null
+		}
+
+		$('#modal-ou').on('shown.bs.modal', function () {
+			if (hasConstraints) {
+				$("#affiliationorgUnitTreeHierarchy").jstree(true).deselect_all();
+
+				allOus.forEach(function(entry) {
+					$('#affiliationorgUnitTreeHierarchy').jstree(true).disable_node(entry);
+				});
+
+				constraintOus.forEach(function(entry) {
+					$("#affiliationorgUnitTreeHierarchy").jstree(true).enable_node(entry);
+				});
+			}
+			
+			$('#affiliationorgUnitTreeSearchField').focus();
+		})
+		
+		$('#stopDatePicker').datetimepicker({
+	            format: 'YYYY-MM-DD'
+			});
+		
+		var today = new Date();
+		$('#startDatePicker').datetimepicker({
+            format: 'YYYY-MM-DD',
+            defaultDate: today
+		});
+		/*]]>*/
+	</script>
+</body>
+</html>

@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'people', subpage='phonebook')"></aside>
+
+	<section>
+		<div class="content-wrapper">
+			<h3>
+				<th:block th:switch="${backRef}">
+					<a th:case="'person'" th:href="@{/ui/person/view/{id}(id=${affiliation.person.uuid})}" class="btn btn-default">
+						<span>
+							<i class="fa fa-arrow-left"></i>
+						</span>
+					</a>
+					<a th:case="*" th:href="@{/ui/orgunit/view/{id}(id=${affiliation.orgUnit.uuid})}" class="btn btn-default">
+						<span>
+							<i class="fa fa-arrow-left"></i>
+						</span>
+					</a>
+				</th:block>
+				<span th:text="#{html.page.affiliation.view.title}"></span>
+
+				<div id="buttonsMenu" style="position: absolute; right: 0; top: 0; margin-top:10px; margin-right: 20px;">
+				</div>
+			</h3>
+
+			<div class="panel panel-default">
+				<div class="panel-heading"></div>
+				<div class="panel-body">
+					<div class="form-horizontal">
+						<div class="row">
+							<div class="col-lg-6 col-md-12">
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.uuid}"></label>
+										<div class="col-sm-9">
+											<input th:value="${affiliation.uuid}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.positionId}"></label>
+										<div class="col-sm-9">
+											<input th:value="${affiliation.positionId}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									</div>
+
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.positionName}"></label>
+										<div class="col-sm-9">
+											<input id="positionName" th:value="${affiliation.positionName}" class="form-control masterTooltip core-editable" readonly="readonly" />
+										</div>
+									</div>
+
+									<div id="core-profession"></div>
+
+									<div id="core">
+										<div class="row" th:if="${@sofdConfiguration.getModules().getPositionDisplayName().isEnabled()}">
+											<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.positionDisplayName}"></label>
+											<div class="col-sm-9">
+												<input th:value="${affiliation.positionDisplayName}" class="form-control masterTooltip core-editable" readonly="readonly" />
+											</div>
+										</div>
+									</div>
+
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.positionTypeId}"></label>
+										<div class="col-sm-9">
+											<input th:value="${affiliation.positionTypeId}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									</div>
+
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.positionTypeName}"></label>
+										<div class="col-sm-9">
+											<input th:value="${affiliation.positionTypeName}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									</div>
+
+									<div id="core-ou"> 
+									</div>
+
+
+									<div id="core-alt-ou"> 
+										<div class="row" th:if="${@sofdConfiguration.getModules().getAffiliation().isAlternativeOUAssignable()}" id="altOURow">
+											<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.altorgunit}"></label>
+											<div class="col-sm-9">
+												<input th:if="${affiliation.alternativeOrgUnit != null}" th:value="${affiliation.alternativeOrgUnit.name}" class="form-control" readonly="readonly" />
+												<input th:unless="${affiliation.alternativeOrgUnit != null}" class="form-control" readonly="readonly" />
+											</div>
+										</div>
+									</div>
+
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.person}"></label>
+										<div class="col-sm-9">
+											<input th:value="${affiliation.person.chosenName != null ? affiliation.person.chosenName : affiliation.person.firstname + ' ' + affiliation.person.surname}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.startDate}"></label>
+										<div class="col-sm-9">
+											<div class="input-group date" id="startDatePicker" readonly="readonly">
+												<input th:value="${affiliation.startDate != null ? #dates.format(affiliation.startDate, 'yyyy-MM-dd') : ''}" class="form-control core-editable" readonly="readonly">
+												<span class="input-group-addon">
+													<span class="fa fa-calendar"></span>
+												</span>
+											</div>
+										</div>
+									</div>
+
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.stopDate}"></label>
+										<div class="col-sm-9">
+											<div class="input-group date" id="stopDatePicker" readonly="readonly">
+												<input th:value="${affiliation.stopDate != null ? #dates.format(affiliation.stopDate, 'yyyy-MM-dd') : ''}" class="form-control core-editable" readonly="readonly">
+												<span class="input-group-addon">
+													<span class="fa fa-calendar"></span>
+												</span>
+											</div>
+										</div>
+									</div>
+								</fieldset>
+							</div>
+							<div class="col-lg-6 col-md-12">
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.employeeId}"></label>
+										<div class="col-sm-9">
+											<input th:value="${affiliation.employeeId}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									 </div>
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.affiliationType}"></label>
+										<div class="col-sm-9">
+											<select class="core-editable form-control masterTooltip" id="affiliationType" readonly="readonly" disabled>
+												<option th:each ="type : ${T(dk.digitalidentity.sofd.dao.model.enums.AffiliationType).values()}" th:value="${type}" th:text="#{__${type.message}__}" th:selected="${affiliation.affiliationType} eq ${type}">
+
+												</option>
+											</select>
+										</div>
+									 </div>
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.employmentTerms}"></label>
+										<div class="col-sm-9">
+											<input th:value="${affiliation.employmentTerms}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									 </div>
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.employmentTermsText}"></label>
+										<div class="col-sm-9">
+											<input th:value="${affiliation.employmentTermsText}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.workingHours}"></label>
+										<div class="col-sm-9">
+											<input th:value="${(affiliation.workingHoursNumerator != null) ? affiliation.workingHoursNumerator : ''}" class="form-control masterTooltip" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+								
+								<fieldset th:if="${#strings.equals(affiliation.affiliationType, 'EXTERNAL')}">
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.vendor}"></label>
+										<div class="col-sm-9">
+											<input id="vendor" th:value="${(affiliation.vendor != null) ? affiliation.vendor : ''}" class="form-control masterTooltip core-editable" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.internalReference}"></label>
+										<div class="col-sm-9">
+											<input id="internalReference" th:value="${(affiliation.internalReference != null) ? affiliation.internalReference : ''}" class="form-control masterTooltip core-editable" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+								<fieldset>
+									<div class="form-group">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.doNotTransferToFKOrg}"></label>
+										<div class="col-sm-9">
+											<div class="checkbox c-checkbox">
+												<label>
+													<input id="doNotTransferToFKOrgCheckbox" class="core-editable" type="checkbox" th:checked="${affiliation.doNotTransferToFkOrg}" disabled/>
+													<span class="fa fa-check"></span>
+												</label>
+											</div>
+										</div>
+									</div>
+									<div class="form-group">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.deactivateAndDeleteRule}"></label>
+										<div class="col-sm-9">
+											<select id="deactivateAndDeleteRule" class="form-control core-editable	" disabled="disabled">
+
+												<option th:each="deactivateAndDeleteRule : ${@accountOrderService.getDeactivateAndDeleteRulesForAffiliation()}"
+														th:value="${deactivateAndDeleteRule}"
+														th:selected="${affiliation.deactivateAndDeleteRule} == ${deactivateAndDeleteRule}"
+														th:text="#{__${deactivateAndDeleteRule.getMessage()}__}">
+												</option>
+											</select>
+										</div>
+									</div>
+								</fieldset>
+							</div>
+						</div>
+					</div>
+
+					<ul class="nav nav-tabs">
+						<li class="active">
+							<a data-toggle="tab" href="#kle_performing_menu" th:text="#{html.page.person.view.kleperform}"></a>
+						</li>
+						<li>
+							<a data-toggle="tab" href="#kle_interest_menu" th:text="#{html.page.person.view.kleinterest}"></a>
+						</li>
+						<li>
+							<a th:if="${@sofdConfiguration.getModules().getAffiliationWorkplaces().isEnabled()}" data-toggle="tab" href="#workplaces_menu" th:text="#{html.page.affiliation.view.tab.workplaces}"></a>
+						</li>
+					</ul>
+
+					<div class="tab-content">
+						<div id="kle_performing_menu" class="tab-pane fade in active">
+							<a sec:authorize="hasRole('ROLE_USER_EDIT')" th:if="${!affiliationStopped}" onclick="editKLE('KlePrimary')" class="btn btn-lg btn-primary" style="margin-left:15px;"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i></a>
+							<div class="content">
+
+							</div>
+						</div>
+
+						<div id="kle_interest_menu" class="tab-pane fade">
+							<a sec:authorize="hasRole('ROLE_USER_EDIT')" th:if="${!affiliationStopped}" onclick="editKLE('KleSecondary')" class="btn btn-lg btn-primary" style="margin-left:15px;"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i></a>
+							<div class="content">
+
+							</div>
+						</div>
+
+						<div th:if="${@sofdConfiguration.getModules().getAffiliationWorkplaces().isEnabled()} AND ${affiliation.workplaces != null}" id="workplaces_menu" class="tab-pane fade">
+							<div class="content">
+
+							</div>
+						</div>
+
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<div class="modal fade bd-example-modal-lg" id="modal-ou" role="dialog">
+	<div class="modal-dialog modal-lg">
+
+		<!-- Modal content-->
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal">&times;</button>
+				<h4 th:text="#{html.page.person.new.affiliation.orgunit.choose}"></h4>
+			</div>
+
+			<div class="modal-body">
+				<th:block th:replace="orgunit/fragments/orgunit_tree :: orgUnitTree(namespace='alternative')"></th:block>
+			</div>
+
+			<div class="modal-footer">
+				<button type="button" id="save" class="btn btn-primary" onclick="saveOu()" th:text="#{html.control.button.select}"></button>
+				<button id="modalCancelClearBtn" type="button" class="btn btn-danger" onclick="saveRemoveOu()" th:text="#{html.control.button.clear}"></button>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+
+<nav th:replace="fragments/footer :: footer"></nav>
+<div th:replace="affiliation/fragments/workplaces :: workplaceCreateModal"></div>
+<script th:replace="orgunit/fragments/orgunit_tree :: orgUnitTreeScript(configObj='ouJSTreeConfig')"></script>
+<script th:replace="affiliation/fragments/workplaces :: workplaceListScript(affiliationUuid = ${affiliation.uuid}, workplaceOus = ${ous}, tablePlaceholderId = 'workplaces_menu .content')"></script>
+<script th:replace="fragments/datatables :: datatables(autoLoad=false) "></script>
+
+
+
+<style>
+	.row {
+		margin-bottom: 5px;
+	}
+	
+	.control-label {
+		margin-top: 5px;
+		text-align: right;
+	}
+
+	.core-editable {
+
+	}
+</style>
+
+<script th:inline="javascript">
+	/*<![CDATA[*/
+	/*[+
+		var url = [[@{/ui/affil/}]];
+		var restUrl = [[@{/rest/affil/}]];
+		var uuid = [[${affiliation.uuid}]];
+		var fieldUpdatedMsg = [[#{html.page.orgunit.edit.kle.update.success}]];
+		var fieldNotUpdatedMsg = [[#{html.page.orgunit.edit.kle.update.failure}]];
+		var allKles = [[${allKles}]];
+		var successMsg = [[#{html.setting.update.msg.success}]];
+		var failMsg = [[#{html.setting.update.msg.failed}]];
+		var startDate = [[${affiliation.startDate}]]
+		const initialStartDate = startDate
+		var stopDate = [[${affiliation.stopDate}]]
+		var allOus = [[${ous}]];
+		var tooltipTxt = [[#{html.entity.person.master}]];
+		var clearBtnTxt = [[#{html.control.button.clear}]];
+		var cancelBtnTxt = [[#{html.control.button.cancel}]];
+		
+		var master = [[${affiliation.master}]];
+		var isEdit = [[${isEdit}]]
+
+		var workplacesEnabled = [[${@sofdConfiguration.getModules().getAffiliationWorkplaces().isEnabled()}]];
+		var workplacesNotNull = [[${affiliation.workplaces != null}]];
+
+	+]*/
+	var token = $("meta[name='_csrf']").attr("content");
+	var selectedOU;
+	let ouType = "";
+
+	// polyfill for IE
+	if (!String.prototype.startsWith) {
+		String.prototype.startsWith = function(searchString, position) {
+			position = position || 0;
+			return this.substr(position, searchString.length) === searchString;
+		};
+	}
+
+	$("document").ready(function() {
+		$("#kle_performing_menu .content").load(url + "viewKLE/" + uuid + "/KlePrimary");
+		$("#kle_interest_menu .content").load(url + "viewKLE/" + uuid + "/KleSecondary");
+
+		$('#startDatePicker').datetimepicker({
+	        format: 'YYYY-MM-DD',
+	        defaultDate: startDate
+		});
+		$('#stopDatePicker').datetimepicker({
+	        format: 'YYYY-MM-DD',
+	        defaultDate: stopDate
+		});
+		$("#doNotTransferToFKOrgCheckbox").change(function() {
+			$("#doNotTransferToFKOrg").val($(this).is(':checked'));
+		});
+
+		if (workplacesEnabled && workplacesNotNull) {
+			$("#workplaces_menu .content").load(url + uuid + "/workplaces", function() {
+				initWorkplaceFragment();
+			});
+		}
+
+		if(isEdit) {
+			loadEditCoreFragment();
+		} else {
+			loadViewCoreFragment();
+		}
+
+		addTooltips('masterTooltip', master);
+	});
+
+	function addTooltips(id, master) {
+		$('.' + id).tooltip({title: tooltipTxt + ": " + master});
+	}
+
+	function editKLE(type){
+		if(type == "KlePrimary"){
+			$("#kle_performing_menu a").hide();
+			$("#kle_performing_menu .content").load(url + "editKLE/" + uuid + "/KlePrimary");
+		}
+		if(type == "KleSecondary"){
+			$("#kle_interest_menu a").hide();
+			$("#kle_interest_menu .content").load(url + "editKLE/" + uuid + "/KleSecondary");
+		}
+	}
+
+	function saveChanges(id) {
+		var codes = $('#' + id).jstree('get_top_selected')
+
+		$.ajax({
+			contentType: 'application/json',
+			url: restUrl + "update/kle",
+			method : "POST",
+			headers: {
+				"uuid": uuid,
+				"type": id,
+				'X-CSRF-TOKEN': token
+			},
+			error: function(response) {
+				$.notify({
+					message: fieldNotUpdatedMsg
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			},
+			success: function(response) {
+				$.notify({
+					message: fieldUpdatedMsg
+				}, {
+					status: 'success',
+					autoHideDelay: 2000
+				});
+				$('#' + id).parent().parent().find("a").show();
+				$('#' + id).parent().parent().find(".content").load(url + "viewKLE/" + uuid + "/"+ id);
+			},
+			data: JSON.stringify(codes)
+		});
+	}
+
+	function abortChanges(id) {
+		$('#' + id).parent().parent().find("a").show();
+		$('#' + id).parent().parent().find(".content").load(url + "viewKLE/" + uuid + "/"+ id);
+	}
+
+	function lockFields() {
+		if(master === "SOFD") {
+			let fields = document.querySelectorAll('.core-editable');
+			for(let i = 0; i < fields.length; i++) {
+				fields[i].setAttribute('readonly', 'readonly')
+				fields[i].disabled = true;
+			}
+		} else {
+			document.getElementById('doNotTransferToFKOrgCheckbox').disabled = true;
+			document.getElementById('deactivateAndDeleteRule').disabled = true;
+		}
+
+	}
+
+	function unlockFields() {
+		if(master === "SOFD") {
+			let fields = document.querySelectorAll('.core-editable')
+			for(let i = 0; i < fields.length; i++) {
+				fields[i].removeAttribute('readonly');
+				fields[i].disabled = false;
+			}
+			$("#OrgUnit").removeAttr('readonly')
+			$("#OrgUnit").css('background-color', '#fff')
+			$("#OrgUnit").bind('focus', chooseOU)
+			
+			
+		} else {
+			document.getElementById('doNotTransferToFKOrgCheckbox').disabled = false;
+			document.getElementById('deactivateAndDeleteRule').disabled = false;
+		}
+	}
+
+	//Core view/edit
+	function loadEditCoreFragment() {
+		$("#core").load(url + "core/" + uuid + "/edit", function() {
+			unlockFields();
+		});
+	}
+
+	function loadViewCoreFragment() {
+		$('#core').load(url + "core/" + uuid + "/view", function() {
+			lockFields();
+		});
+
+	}
+
+	
+
+	function saveCoreChanges() {
+		
+		var displayName = $("#positionDisplayName").val();
+		var alternativeOrgUnit = $('#alternativeOrgUnitUuid').val();
+		var positionName = $('#positionName').val();
+		var orgUnitUuid = $('#OrgUnitUuid').val();
+		var affiliationType = $('#affiliationType').find(":selected").val();
+		var internalRef = $('#internalReference').val();
+		var vendor = $('#vendor').val();
+		var transferFKOrg = $('#doNotTransferToFKOrgCheckbox').is(":checked");
+		var deactivateAndDeleteRule = $('#deactivateAndDeleteRule').find(":selected").val();
+
+		//handles various potential problems with date 
+		var startDate = $('#startDatePicker').data('DateTimePicker').date();
+		var stopDate = $('#stopDatePicker').data('DateTimePicker').date();
+		var staDate = (startDate == null || startDate == undefined || startDate == "") ? new Date(initialStartDate) : Date(startDate);
+		var stoDate = (stopDate == null || stopDate == undefined || stopDate == "") ? null : Date(stopDate);
+
+		if ( displayName && displayName.length > 255) {
+			$.notify({
+				message: failMsg
+			}, {
+				status: 'danger',
+				autoHideDelay: 4000
+			});
+
+			return false;
+		}
+		//blocks if staDate is null, which shouldn't happen, but here as a safety precautions
+		if (staDate == null) {
+			$.notify({
+				message: failMsg
+			}, {
+				status: 'danger',
+				autoHideDelay: 4000
+			});
+
+			return false;
+		}
+
+		$.ajax({
+			contentType: 'application/json',
+			url: restUrl + "core/edit/" + uuid,
+			method : "POST",
+			data: JSON.stringify({
+				'positionDisplayName': displayName,
+				'alternativeOrgUnit': alternativeOrgUnit,
+				'positionName': positionName,
+				'orgUnitUuid': orgUnitUuid,
+				'startDate': staDate,
+				'stopDate': stoDate,
+				'affiliationType': affiliationType,
+				'internalReference': internalRef,
+				'vendor': vendor,
+				'transferFKOrg': transferFKOrg,
+				'deactivateAndDeleteRule': deactivateAndDeleteRule
+			}),
+			headers: {
+				'X-CSRF-TOKEN': token
+			},
+			error: function(response) {
+
+				$.notify({
+					message: failMsg
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			},
+			success: function(response) {
+
+				$.notify({
+					message: successMsg
+				}, {
+					status: 'success',
+					autoHideDelay: 2000
+				});
+				loadViewCoreFragment();
+			}
+		});
+	}
+
+	function chooseOU(ou) {
+		if(ou === 'alt') {
+			ouType = ou;
+			$('#modalCancelClearBtn').text(clearBtnTxt)
+		} else {
+			ouType = 'main'
+			$('#modalCancelClearBtn').text(cancelBtnTxt)
+		}
+		$('#modal-ou').modal('show');
+	}
+
+	function saveOu() {
+		if (selectedOU != null) {
+			if(ouType === 'main') {
+				$('#OrgUnitUuid').val(selectedOU.id);
+				$('#OrgUnit').val(selectedOU.text);
+				$('#modal-ou').modal('hide');
+			}
+
+			if(ouType === 'alt') {
+				$('#alternativeOrgUnitUuid').val(selectedOU.id);
+				$('#alternativeOrgUnit').val(selectedOU.text);
+				$('#modal-ou').modal('hide');
+			}
+
+		}
+	}
+
+	function saveRemoveOu() {
+		if(ouType === 'main') {
+				$('#modal-ou').modal('hide');
+			}
+
+			if(ouType === 'alt') {
+				$('#alternativeOrgUnitUuid').val("");
+				$('#alternativeOrgUnit').val("");
+				$('#modal-ou').modal('hide');
+			}
+
+	}
+	
+
+	var ouJSTreeConfig = {
+		namespace: 'alternative',
+		refreshCallback: function () {
+			$("#alternativeorgUnitTreeHierarchy").on("select_node.jstree", function(e, data) {
+				selectedOU = data.node;
+			});
+		},
+		staticOrg: null
+	}
+
+	$('#modal-ou').on('shown.bs.modal', function () {
+		if ($('#alternativeOrgUnitUuid').val()) {
+			$("#alternativeorgUnitTreeHierarchy").jstree(true).deselect_all();
+			$('#alternativeorgUnitTreeHierarchy').jstree(true).select_node($('#alternativeOrgUnitUuid').val());
+		}
+		
+		$('#alternativeorgUnitTreeSearchField').focus();
+	})
+
+	/*]]>*/
+</script>
+</body>
+</html>

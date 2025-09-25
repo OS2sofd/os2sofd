@@ -1,0 +1,1 @@
+ALTER TABLE account_orders ADD COLUMN token TEXT NULL;

@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'telephony')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'telephony.list', subpage = 'telephony')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3>
+					<span th:text="#{html.page.telephony.header}"></span>
+					<span class="pull-right">
+						<a class="btn btn-primary" href="#" onclick="telephonyModalService.open()">
+							<em class="fa fa-plus" aria-hidden="true"></em>&nbsp;
+							<span th:text="#{html.page.telephony.create.button}"></span>
+						</a>
+					</span>
+				</h3>
+
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<div class="table-responsive">
+							<table id="listTable" class="table table-striped table-hover">
+								<thead>
+									<tr>
+										<th class="col-md-2" th:text="#{html.entity.telephony.phone.phoneType}"></th>
+										<th class="col-md-2" th:text="#{html.entity.telephony.phone.phoneNumber}"></th>
+										<th class="col-md-1" th:text="#{html.entity.telephony.phone.assigned}"></th>
+										<th class="col-md-3" th:text="#{html.entity.telephony.phone.user}"></th>
+										<th class="col-md-3" th:text="#{html.entity.telephony.phone.orgUnit}"></th>
+										<th class="col-md-1" th:text="#{html.control.operations}"></th>
+									</tr>
+								</thead>
+	
+								<tfoot style="display: table-row-group">
+									<tr>
+										<td class="input-filter"></td>
+										<td class="input-filter"></td>
+										<td class="input-filter"></td>
+										<td class="input-filter"></td>
+										<td class="input-filter"></td>
+										<td></td>
+									</tr>
+								</tfoot>
+					
+								<tbody>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<div class="modal fade" id="modal-phone" role="dialog">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h4 th:text="#{html.page.telephony.phone.header}"></h4>
+				</div>
+
+				<div class="modal-body">
+					<div class="form-horizontal">
+						<input id="phoneID" style="display: none;" class="form-control"/>
+
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.telephony.phone.phoneNumber}"></label>
+							<div class="col-sm-10">
+								<input class="form-control" id="phone_phoneNumber"/>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.telephony.phone.vendor}"></label>
+							<div class="col-sm-10">
+								<input class="form-control" id="phone_vendor"/>
+							</div>
+						</div>
+						
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.telephony.phone.subscription_type}"></label>
+							<div class="col-sm-10">
+								<input class="form-control" id="phone_subscription_type"/>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.telephony.phone.accountNumber}"></label>
+							<div class="col-sm-10">
+								<input class="form-control" id="phone_accountNumber"/>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.telephony.phone.ean}"></label>
+							<div class="col-sm-10">
+								<input class="form-control" id="phone_ean"/>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.telephony.phone.phoneType}"></label>
+							<div class="col-sm-10">
+								<select class="form-control" id="phone_phoneType" onchange="telephonyModalService.handlePhoneTypeChange()">
+									<option th:each="type : ${T(dk.digitalidentity.sofd.dao.model.enums.PhoneType).values()}" th:value="${type}" th:text="#{__${type.getMessage()}__}"></option>
+								</select>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.telephony.phone.visibility}"></label>
+							<div class="col-sm-10">
+								<select class="form-control" id="phone_visibility">
+									<option th:each="type : ${T(dk.digitalidentity.sofd.dao.model.enums.Visibility).values()}" th:value="${type}" th:text="#{__${type.getMessage()}__}"></option>
+								</select>
+							</div>
+						</div>
+						
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.phone.functionPhone}"></label>
+							<div class="col-sm-10">
+								<div class="checkbox c-checkbox">
+									<label>
+										<input class="checkboxaction" id="IsFunctionPhone" type="checkbox" onchange="telephonyModalService.handleOnChangeEventForCollapse()"/>
+										<span class="fa fa-check"></span>
+									</label>
+								</div>
+							</div>
+						</div>
+
+						<div class="collapse form-group" id="collapseIsFunctionPhone">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.phone.functionType}"></label>
+							<div class="col-sm-10">
+								<select class="form-control" id="phone_functionType">
+								</select>
+							</div>
+						</div>
+						
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.telephony.phone.notes}"></label>
+							<div class="col-sm-10">
+								<textarea class="form-control" id="phone_notes" rows="6"></textarea>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="modal-footer">
+					<button type="button" class="btn btn-primary" th:text="#{html.control.button.save}" onclick="telephonyBackendService.save()"></button>
+					<button type="button" class="btn btn-danger" th:text="#{html.control.button.cancel}" data-dismiss="modal"></button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade" id="modal-orgUnit" role="dialog">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-body">
+					<div class="form-horizontal">
+						<input id="ou_phoneID" style="display: none;" class="form-control"/>
+
+						<div class="form-group" style="padding: 0px 75px 0px 20px;">
+							<label class="control-label" style="margin-top: 10px;" th:text="#{html.action.search}"></label>
+							<input class="form-control" id="orgUnitTreeSearchField" style="margin-bottom: 40px;" autofocus="autofocus" />
+							<div id="orgUnitTree"></div>
+						</div>
+					</div>
+				</div>
+
+				<div class="modal-footer">
+					<button type="button" class="btn btn-primary" style="width: 100px;" th:text="#{html.control.button.save}" onclick="orgUnitService.save()"></button>
+					<button type="button" class="btn btn-danger" style="width: 100px;" th:text="#{html.control.button.cancel}" data-dismiss="modal"></button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<nav th:replace="fragments/footer :: footer"></nav>
+
+	<style>
+		.autocomplete-suggestions { border: 1px solid #999; background: #FFF; overflow: auto; width: 500px !important; }
+		.autocomplete-suggestion { padding: 2px 5px; white-space: nowrap; overflow: hidden; }
+		.autocomplete-selected { background: #F0F0F0; }
+		.autocomplete-suggestions strong { font-weight: normal; color: #3399FF; }
+		.autocomplete-group { padding: 2px 5px; }
+		.autocomplete-group strong { display: block; border-bottom: 1px solid #000; }
+
+		.justText {
+			border: none;
+			display: inline;
+			font-family: inherit;
+			font-size: inherit;
+			padding: none;
+			width: auto;
+			background: inherit;
+		}
+	</style>
+	
+	<script th:inline="javascript">
+	/*<![CDATA[*/
+
+	/*[+
+		var phones = [[${phones}]];
+		var functionTypes = [[${functionTypes}]];
+		var phoneTypes = [[${phoneTypes}]];
+		var restUrl = [[@{/rest/telephony}]];
+
+		var msgPhoneDeleteFail = [[#{html.telephony.phone.msg.delete.Fail}]];
+		var msgEditPhoneFail = [[#{html.telephony.phone.msg.edit.Fail}]];
+
+		var phoneDeleteTitle = [[#{html.telephony.phone.msg.delete.Title}]];
+		var phoneDeleteText = [[#{html.telephony.phone.msg.delete.Text}]];
+		var phoneDeleteButtonConfirm = [[#{html.button.delete}]];
+		var phoneDeleteButtonCancel = [[#{html.button.cancel}]];
+
+        var msgAssignSuccess = [[#{html.telephony.phone.assign.success}]];
+        var msgAssignFailure = [[#{html.telephony.phone.assign.failure}]];
+
+        var dropdownShowAll = [[#{html.entity.telephony.phone.showall}]];
+        var dropdownYes = [[#{html.entity.telephony.phone.yes}]];
+		var dropdownNo = [[#{html.entity.telephony.phone.no}]];
+        
+        var msgParentOrganisationFetchFailed = [[#{html.telephony.phone.msg.orgfail}]];
+		
+		var ouRestURL = [[@{/rest/orgunit}]];
+
+	+]*/
+	
+	var token = $("meta[name='_csrf']").attr("content");
+
+	var telephonyBackendService, telephonyModalService, orgUnitService, autoCompleteService, dataTableService;
+	$("document").ready(function() {
+		orgUnitService = new OrgUnitService();		
+		telephonyBackendService = new TelephonyBackendService();
+		telephonyModalService = new TelephonyModalService();
+		autoCompleteService = new AutoCompleteService();
+		dataTableService = new DataTableService();
+		
+		orgUnitService.init();
+		dataTableService.init();
+	});
+
+	function OrgUnitService() {
+		this.init = function() {
+			$.ajax({
+				contentType: 'application/json',
+				url: ouRestURL + '/get-by-org/' + 0,
+				method : "GET",
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				error: function(response) {
+					$.notify({
+						message: msgParentOrganisationFetchFailed
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				},
+				success: function(response) {
+					orgUnitService.initOrgUnitTree(response);
+				}
+			});
+			
+			// set focus on search when shown
+			$('#modal-orgUnit').on('shown.bs.modal', function() {
+			    $('#orgUnitTreeSearchField').focus();
+			});
+		};
+		
+		this.openModal = function(phoneID) {
+			$.ajax({
+				method : "GET",
+				url: restUrl + "/readOrgUnit",
+				headers: {
+					"accept": "application/json",
+					'phoneID': phoneID
+				}
+			}).done(function(data) {
+				$('#ou_phoneID').val(phoneID);
+				$('#modal-orgUnit').modal("toggle");
+				
+				$("#orgUnitTree").jstree(true).deselect_all();
+				$('#orgUnitTree').jstree('select_node', data);
+			}).fail(function(jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: msgAssignFailure
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		};
+		
+		this.clear = function() {
+			var phoneID = $('#ou_phoneID').val();
+			
+			this.saveOnBackend(phoneID, 'clear', '');
+		};
+
+		this.save = function() {
+			var phoneID = $('#ou_phoneID').val();
+			var textField = $('#search_orgunit_' + phoneID);
+			var orgUnitUuids = [];
+
+			textField.empty();
+			var orgUnits = $('#orgUnitTree').jstree('get_selected', true);
+			for (var i = 0; i < orgUnits.length; i++) {
+				textField.append('<li>' + orgUnits[i].text + '</li>');
+				orgUnitUuids.push(orgUnits[i].id);
+			}
+
+			this.saveOnBackend(phoneID, orgUnitUuids);
+		};
+
+		this.saveOnBackend = function(phoneID, orgUnitUuids) {
+			$.ajax({
+				method : "POST",
+				url: restUrl + "/saveOrgUnit",
+				headers: {
+					"content-type": "application/json",
+					'X-CSRF-TOKEN': token,
+					'phoneID': phoneID
+				},
+				data: JSON.stringify(orgUnitUuids)
+			}).done(function(data) {
+				$.notify({
+					message: msgAssignSuccess
+				}, {
+					status: 'success',
+					autoHideDelay: 2000
+				});
+			}).fail(function(jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: msgAssignFailure
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+
+			$('#modal-orgUnit').modal("toggle");
+		};
+
+		this.initOrgUnitTree = function(orgUnits) {
+			$('#orgUnitTree').jstree('destroy');
+
+			var config = {
+				"core": {
+					"data": orgUnits,
+					"themes": {
+						"icons": false
+					}
+				},
+				"checkbox" : {
+					"keep_selected_style" : false,
+					"three_state": false,
+					"cascade": "undetermined"
+				},
+				"search" : {
+					"show_only_matches": true,
+					"search_callback": function(str, node) {
+						return (node.text.toUpperCase().includes(str.toUpperCase()));
+					}
+				},
+				"plugins" : [
+					"wholerow", "search", "checkbox"
+				]
+			};
+
+			// Init OrgUnitTree
+			$('#orgUnitTree').jstree(config);
+
+			// searching in the JSTree
+			var to = false;
+			$('#orgUnitTreeSearchField').keyup(function() {
+				if (to) {
+					clearTimeout(to);
+				}
+
+				to = setTimeout(function() {
+					var v = $('#orgUnitTreeSearchField').val();
+
+					$('#orgUnitTree').jstree(true).search(v);
+				}, 400);
+			});
+		};
+	}
+
+	function DataTableService() {
+		this.currentTable = null;
+
+		this.init = function() {
+			$('#listTable tfoot td[class="input-filter"]').each( function () {
+				$(this).html('<input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" />');
+			});
+			
+			this.loadDataTables();
+			var table = this.currentTable;
+
+			$.each($('.input-filter', table.table().footer()), function() {
+				var column = table.column($(this).index());
+
+				$('input', this).on('keyup change', function () {
+					if (column.search() !== this.value) {
+						column.search(this.value).draw();
+					}
+				});
+			});
+		};
+		
+		this.loadDataTables = function() {
+			/*[+
+			this.searchTxt = [[#{html.datatables.search}]];
+			this.dropdownTxt = [[#{html.datatables.dropdown}]];
+			this.infoDefaultTxt = [[#{html.datatables.info.default}]];
+			this.infoEmptyTxt = [[#{html.datatables.info.empty}]];
+			this.infoFilteredTxt = [[#{html.datatables.info.filtered}]];
+			this.prevTxt = [[#{html.datatables.prev}]];
+			this.nextTxt = [[#{html.datatables.next}]];
+			
+			this.ajaxUrl = [[@{/rest/telephony/list}]]
+			+]*/
+
+			this.currentTable = $('#listTable').DataTable({
+				'destroy': true,
+				'ajax': {
+					'contentType': 'application/json',
+					'url': this.ajaxUrl,
+					'type': 'POST',
+					'headers': {
+						'X-CSRF-TOKEN': token
+					},
+					'data': function(d) {
+					 	return JSON.stringify(d);
+					}
+				},
+				'serverSide' : true,
+				'columns' : [
+					{
+						data: 'phoneType',
+						render: function (data, type, row, meta) {
+							return phoneTypes[data];
+						}
+					},
+					{
+						data: 'phoneNumber'
+					},
+					{
+						data: 'assigned',
+						render: function (data, type, row, meta) {
+							return data==1?'Ja':'Nej';
+						}
+					},
+					{
+						data: 'personName',
+						render: function (data, type, row, meta) {
+							return '<button class="btn btn-xs btn-primary" onclick="autoCompleteService.togglePersonSearch(' + row.id + ', true);" id="edit_person_' + row.id + '"><em class="fa fa-fw fa-pencil"></em></button> ' +
+								   '<button class="btn btn-xs btn-warning hidden" onclick="autoCompleteService.clearPerson(' + row.id + ');" id="clear_person_' + row.id + '"><em class="fa fa-fw fa-times"></em></button> ' +
+								   '<input style="margin-left: 10px;" class="justText" value="' + ((row.personUuid) ? data : '') + '" data-phoneid="' + row.id + '" id="search_person_' + row.id + '" disabled="disabled" onclick="return false;" />' +
+								   '<span style="display: none;" id="prev_value_person_' + row.id + '">' + ((row.personUuid) ? data : '') + '</span>';
+						}
+					},
+					{
+						data: 'orgunitName',
+						render: function (data, type, row, meta) {
+							var result = '<button class="btn btn-xs btn-primary" style="vertical-align: top;" onclick="orgUnitService.openModal(' + row.id + ')"><em class="fa fa-fw fa-pencil"></em></button> ';
+							result += '<ul style="margin-left: 10px; padding-left: 10px; list-style-type: none; display: inline-block;" id="search_orgunit_' + row.id + '">';
+							
+							if (row.orgunitName) {
+								var units = row.orgunitName.split(',');
+								for (var i = 0; i < units.length; i++) {
+									result += "<li>" + units[i] + "</li>";
+								}
+							}
+								   
+							result += '</ul>';
+							
+							return result;
+						}
+					},
+					{
+						data : 'id',
+						searchable: false,
+						orderable: false,
+						render: function (data, type, row, meta) {
+							if (row.master == 'SOFD-Telephony') {
+								return '<button class="btn btn-xs btn-primary" onclick="telephonyModalService.open(' + data + ')"><em class="fa fa-fw fa-pencil"></em></button> ' +
+								   '<button class="btn btn-xs btn-primary" onclick="telephonyBackendService.deleteRow(' + data + ')"><em class="fa fa-fw fa-remove"></em></button>';								
+							}
+							else {
+								return '';
+							}
+						}
+					}
+				],
+				'paging':    true,
+				'ordering':  true,
+				'info':      true,
+				'pageLength': 25,
+				'language': {
+					"search":       this.searchTxt,
+					"lengthMenu":   this.dropdownTxt,
+					"info":         this.infoDefaultTxt,
+					"zeroRecords":  this.infoEmptyTxt,
+					"infoEmpty":    "",
+					"infoFiltered": this.infoFilteredTxt,
+					"paginate": {
+						"next":     this.nextTxt,
+						"previous": this.prevTxt
+					}
+				},
+				initComplete: function () {
+					// add dropdown filter on phonetype column
+					this.api().columns([0]).every(function() {
+						var column = this;
+						var select = $('<select class="ui-state-default" />')
+							.appendTo($(column.footer()).empty())
+							.on('change', function() {
+								column.search($(this).val(), false, true).draw();
+							}
+						);
+						select.append('<option value="">' + dropdownShowAll + '</option>');
+						for (var key in phoneTypes) {
+							select.append('<option value="' + key + '">' + phoneTypes[key] + '</option>');
+						}
+					});
+
+					// add dropdown filter on assign column
+					this.api().columns([2]).every(function() {
+						var column = this;
+						var select = $('<select class="ui-state-default" />')
+							.appendTo($(column.footer()).empty())
+							.on('change', function() {
+								column.search($(this).val(), false, true).draw();
+							}
+						);
+						select.append('<option value="">' + dropdownShowAll + '</option>');
+						select.append('<option value="true">' + dropdownYes + '</option>');
+						select.append('<option value="false">' + dropdownNo + '</option>');
+					});
+				}
+			});
+		}
+	}
+	
+	function AutoCompleteService() {
+		this.togglePersonSearch = function(phoneID, revertOnClose) {
+			// optional parameter, default to false
+			revertOnClose = revertOnClose || false;
+			
+			var searchField = $("#search_person_" + phoneID);
+			searchField.toggleClass("form-control justText");
+			var ro = !searchField.prop('disabled');
+			searchField.prop('disabled', ro);
+
+			// flip buttons
+			$("#edit_person_" + phoneID).toggleClass("btn-primary");
+			$("#edit_person_" + phoneID).toggleClass("btn-danger");
+			$("#clear_person_" + phoneID).toggleClass("hidden");
+
+			// enable autocomplete for the input field when switching to edit-mode
+			if (!ro) {
+				$('[id^=search_person_' + phoneID + ']').autocomplete({
+					serviceUrl: restUrl + "/search/person",
+					onSelect: function(suggestion) {
+						// strip markup
+						var textValue = suggestion.value;
+						var idx = textValue.indexOf("-XXXX");
+						if (idx > 0) {
+							textValue = textValue.substr(0, idx);
+
+							idx = textValue.lastIndexOf("-");
+							if (idx > 0) {
+								textValue = textValue.substr(0, idx - 1);
+							}
+						}
+						
+						
+						$(this).val(textValue);
+						var phoneID = this.dataset.phoneid;
+
+						// keep track of this value so we can abort later if needed
+						$("#prev_value_person_" + phoneID).text(textValue);
+
+						autoCompleteService.togglePersonSearch(phoneID);
+						autoCompleteService.save(phoneID, suggestion.data);
+					},
+					preventBadQueries: true,
+					triggerSelectOnValidInput: false
+				});
+			}
+			else if (revertOnClose) {
+				var oldValue = $("#prev_value_person_" + phoneID).text();
+				$("#search_person_" + phoneID).val(oldValue);
+			}
+		};
+
+		this.clearPerson = function(phoneID) {
+			var searchField = $("#search_person_" + phoneID);
+			searchField.val("");
+			$("#prev_value_person_" + phoneID).text("");
+
+			this.save(phoneID, "clear");
+			this.togglePersonSearch(phoneID);
+		}
+		
+		this.save = function(phoneID, personUuid) {
+			$.ajax({
+				method : "POST",
+				url: restUrl + "/savePerson",
+				headers: {
+					"content-type": "plain/text",
+					'X-CSRF-TOKEN': token,
+					'phoneID': phoneID
+				},
+				data: personUuid
+			}).done(function (data) {
+				$.notify({
+					message: msgAssignSuccess
+				}, {
+					status: 'success',
+					autoHideDelay: 2000
+				});
+			}).fail(function (jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: msgAssignFailure
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		};
+	}
+
+	function TelephonyModalService() {
+		// open modal (click edit or new will open this)
+		this.open = function(id) {
+			$('#phoneID').val(id);
+	
+			if (id != null) {
+				for (var i = 0; i < phones.length; i++) {
+					if (phones[i].id == id) {
+						$('#phone_phoneNumber').val(phones[i].phoneNumber);
+						$('#phone_vendor').val(phones[i].vendor);
+						$('#phone_accountNumber').val(phones[i].accountNumber);
+						$('#phone_ean').val(phones[i].ean);
+						$('#phone_phoneType option[value="' + phones[i].phoneType + '"]').prop('selected', true);
+						$('#phone_visibility option[value="' + phones[i].visibility + '"]').prop('selected', true);
+						$("#phone_subscription_type").val(phones[i].subscriptionType);
+						$("#phone_notes").val(phones[i].notes);
+	
+						this.handlePhoneTypeChange();
+	
+						if (phones[i].functionType != 0) {
+							$('#IsFunctionPhone').prop('checked', true);
+							$('#phone_functionType').val(phones[i].functionType);
+						}
+						else {
+							$('#IsFunctionPhone').prop('checked', false);
+						}
+	
+						this.handleOnChangeEventForCollapse();
+					}
+				}
+			}
+			else {
+				$('#phone_phoneNumber').val("");
+				$('#phone_vendor').val("");
+				$('#phone_accountNumber').val("");
+				$('#phone_ean').val("");
+				$('#phone_phoneType option[value="MOBILE"]').prop('selected', true);
+				$('#phone_visibility option[value="VISIBLE"]').prop('selected', true);
+				$('#IsFunctionPhone').prop('checked', false);
+				$("#phone_subscription_type").val("");
+				$("#phone_notes").val("");
+				
+				this.handlePhoneTypeChange();
+				this.handleOnChangeEventForCollapse();
+			}
+			
+			$('#modal-phone').modal("toggle");
+		};
+		
+		// the type of phone dictates which functionPhone types are available
+		// so every time the type of phone changes, we need to also update the
+		// list of functionTypes available in the modal
+		this.handlePhoneTypeChange = function() {
+			var functionTypeSelect = $('#phone_functionType');
+			functionTypeSelect.children('option').remove();
+
+			var phoneType = $('#phone_phoneType').find(":selected").val();
+
+			$("#IsFunctionPhone").prop('disabled', false);
+
+			for (var i = 0; i < functionTypes.length; i++) {
+				for (var j = 0; j < functionTypes[i].phoneTypes.length; j++) {
+					if(functionTypes[i].phoneTypes[j] == phoneType) {
+						functionTypeSelect
+							.append($("<option></option>")
+							.attr("value", functionTypes[i].id)
+							.text(functionTypes[i].name));
+					}
+				}
+			}
+
+			if ($('#phone_functionType').children().length < 1) {
+				$("#IsFunctionPhone").prop('disabled', true);
+				$("#IsFunctionPhone").prop('checked', false);
+				this.handleOnChangeEventForCollapse();
+			}
+		}
+
+		// show functionTypes when checked, otherwise hide them
+		this.handleOnChangeEventForCollapse = function() {
+			if ($('#IsFunctionPhone').is(':checked')) {
+				$('#collapseIsFunctionPhone').collapse('show');
+			}
+			else {
+				$('#collapseIsFunctionPhone').collapse('hide');
+			}
+		}
+	}
+	
+	function TelephonyBackendService() {
+		
+		// clicking save on the modal, will call this
+		this.save = function() {
+			$('#modal-phone').modal("toggle");
+
+			var functionPhone = null;
+			if ($('#IsFunctionPhone').is(':checked')) {
+				functionPhone = $('#phone_functionType').find(":selected").val();
+			}
+
+			var phoneObj = {
+				id: $('#phoneID').val(),
+				phoneNumber: $('#phone_phoneNumber').val(),
+				vendor: $('#phone_vendor').val(),
+				accountNumber: $('#phone_accountNumber').val(),
+				ean: $('#phone_ean').val(),
+				phoneType: $('#phone_phoneType').val(),
+				visibility: $('#phone_visibility').val(),
+				functionType: functionPhone,
+				subscriptionType: $("#phone_subscription_type").val(),
+				notes: $("#phone_notes").val()
+			}
+
+			$.ajax({
+				method : "POST",
+				url: restUrl + "/savePhone",
+				headers: {
+					"content-type": "application/json",
+					'X-CSRF-TOKEN': token
+				},
+				data: JSON.stringify(phoneObj)
+			}).done(function (data) {
+				window.location.reload(true);
+			}).fail(function (jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: msgEditPhoneFail
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		};
+
+		// delete with an "are you sure"
+		this.deleteRow = function(id) {
+			swal({
+				html : true,
+				title : phoneDeleteTitle,
+				text : phoneDeleteText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : phoneDeleteButtonConfirm,
+				cancelButtonText : phoneDeleteButtonCancel,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						method : "POST",
+						url: restUrl + "/deletePhone",
+						headers: {
+							"content-type": "application/json",
+							"id": id,
+							'X-CSRF-TOKEN': token
+						}
+					}).done(function (data) {
+						window.location.reload(true);
+					}).fail(function (jqXHR, textStatus, errorThrown) {
+						$.notify({
+							message: msgPhoneDeleteFail
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					});
+				}
+			});
+		};
+	}
+
+	/*]]>*/
+</script>
+
+</body>
+</html>

@@ -1,0 +1,94 @@
+<th:block th:fragment="accountOrdersTab" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<button class="btn btn-lg btn-primary" th:text="#{html.action.saveChanges}" onclick="saveAccountOrder()"></button>
+	<button class="btn btn-lg btn-primary" th:text="#{html.action.abortChanges}" onclick="loadViewAccountOrderTab()"></button>
+
+	<table id="accountOrderTable" class="table table-striped table-hover nodatatables">
+		<thead>
+			<th class="col-md-2" th:text="#{html.page.orgunit.view.accountorders.usertype.name}"></th>
+			<th th:if="${@sofdConfiguration.getModules().getAccountCreation().isAccountOrderApprove() == true}" class="col-md-2" th:text="#{html.page.orgunit.view.accountorders.usertype.requires_approval}"></th>
+			<th class="col-md-4" th:text="#{html.page.orgunit.view.accountorders.usertype.rule}"></th>
+			<th class="col-md-4" th:text="#{html.page.orgunit.view.accountorders.usertype.deactivate_and_delete_rule}"></th>
+		</thead>
+
+		<tbody>
+			<tr th:each="type : ${orgUnitAccountOrder.types}" th:attr="data-usertype=${type.userType}">
+				<td th:text="${@supportedUserTypeService.getPrettyName(type.getUserType())}"></td>
+				<td th:if="${@sofdConfiguration.getModules().getAccountCreation().isAccountOrderApprove() == true}">
+					<div th:if="${type.getUserType()=='ACTIVE_DIRECTORY'}" class="pull-left checkbox c-checkbox">
+						<label>
+							<input id="requiresApproval" th:value="${type.requiresApproval}" type="checkbox" th:checked="${type.requiresApproval}"/>
+							<span class="fa fa-check"></span>
+						</label>
+					</div>					
+				</td>
+				<td>
+					<select id="rule" th:attr="data-usertype=${type.userType}" class="form-control" onchange="handleTypeEventChange(this);">
+						<option th:each="rule : ${T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderRule).values()}"
+							th:value="${rule}"
+							th:selected="${type.rule} == ${rule}"
+							th:text="#{__${rule.getMessage()}__}">
+						</option>
+					</select>
+					
+					<div th:id="'positionRules-' + ${type.userType}" th:style="${type.rule != T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderRule).BY_POSITION_NAME} ? 'display: none;' : ''">
+						<hr/>						
+						<table class="table table-striped">
+							<thead>
+								<tr>
+									<th class="col-md-4" th:text="#{html.entity.affiliation.positionName}"></th>
+									<th class="col-md-8" th:text="#{html.page.orgunit.view.accountorders.usertype.rule}"></th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr th:each="position : ${type.positions}">
+									<td th:text="${position.positionName}"></td>
+									<td>
+										<select th:attr="data-positionname=${position.positionName}" class="form-control">
+											<option th:each="rule : ${T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderRule).values()}"
+												th:if="${rule != T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderRule).BY_POSITION_NAME}"
+												th:value="${rule}"
+												th:selected="${position.rule} == ${rule}"
+												th:text="#{__${rule.getMessage()}__}">
+											</option>
+										</select>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</td>
+				<td>
+					<select th:id="'deactivateAndDeleteRule-' + ${type.userType}" class="form-control">
+						<option th:each="deactivateAndDeleteRule : ${T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderDeactivateAndDeleteRule).values()}"
+							th:value="${deactivateAndDeleteRule}"
+							th:selected="${type.deactivateAndDeleteRule} == ${deactivateAndDeleteRule}"
+							th:text="#{__${deactivateAndDeleteRule.getMessage()}__}">
+						</option>
+					</select>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+	
+	<script type="text/javascript">
+	    function handleTypeEventChange(elem) {
+	    	var jqueryElem = $(elem);
+	    	
+	    	var positionDiv = $('#positionRules-' + jqueryElem.data('usertype'));
+	    	if (jqueryElem.val() == 'BY_POSITION_NAME') {
+	    		positionDiv.show();
+	    	}
+	    	else {
+	    		positionDiv.hide();
+	    	}
+
+	    	if (jqueryElem.val() == 'EVERYONE' || jqueryElem.val() == 'EVERYONE_EXCEPT_HOURLY_PAID' || jqueryElem.val() == 'BY_POSITION_NAME') {
+	    		$('#deactivateAndDeleteRule-' + jqueryElem.data('usertype')).val("KEEP_ALIVE");
+	    		$('#deactivateAndDeleteRule-' + jqueryElem.data('usertype')).prop('disabled', 'disabled');
+	    	}
+	    	else {
+	    		$('#deactivateAndDeleteRule-' + jqueryElem.data('usertype')).prop('disabled', false);
+	    	}
+	    }
+	</script>
+</th:block>

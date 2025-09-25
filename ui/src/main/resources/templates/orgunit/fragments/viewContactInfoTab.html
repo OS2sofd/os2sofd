@@ -1,0 +1,74 @@
+<th:block th:fragment="contactInfoTab" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<th:block th:if="${(orgUnit != null && @securityUtil.canEditOrgUnit(orgUnit.uuid)) || orgUnit == null}">
+		<th:block sec:authorize="hasRole('ROLE_USER_EDIT_CONTACT_INFO')">
+			<button onclick="loadEditContactInfoTab()" class="btn btn-lg btn-primary" style="width: 250px">
+				<i class="fa fa-fw fa-pencil" aria-hidden="true"></i>
+				<span th:text="#{html.page.orgunit.view.edit.contact.info}"></span>
+			</button>
+			<hr/>
+		</th:block>
+	</th:block>
+
+	<div class="row">
+		<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.contactAddress}"></label>
+		<div class="col-sm-10">
+			<textarea id="contactAddress" th:text="${contactAddress}" class="md-textarea form-control" rows="7" readonly="readonly"></textarea>
+		</div>
+	</div>
+
+	<div class="row">
+		<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.openingHours}"></label>
+		<div class="col-sm-10">
+			<textarea id="openinghours" th:text="${openingHours}" class="md-textarea form-control" rows="7" readonly="readonly"></textarea>
+		</div>
+	</div>
+
+	<div class="row">
+		<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.openingHoursPhone}"></label>
+		<div class="col-sm-10">
+			<textarea id="openinghoursphone" th:text="${openingHoursPhone}" class="md-textarea form-control" rows="7" readonly="readonly"></textarea>
+		</div>
+	</div>
+
+	<div class="row">
+		<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.keyWords}"></label>
+		<div class="col-sm-10">
+			<textarea id="keywords" th:text="${keyWords}" class="md-textarea form-control" rows="7" readonly="readonly"></textarea>
+		</div>
+	</div>
+
+	<div class="row">
+		<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.notes}"></label>
+		<div class="col-sm-10">
+			<textarea id="notes" th:text="${notes}" class="md-textarea form-control" rows="7" readonly="readonly"></textarea>
+		</div>
+	</div>
+
+	<div class="row">
+		<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.email}"></label>
+		<div class="col-sm-10">
+			<input id="email" th:value="${email}" class="form-control" readonly="readonly"></input>
+		</div>
+	</div>
+
+	<div class="row">
+		<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.emailNotes}"></label>
+		<div class="col-sm-10">
+			<textarea id="emailNotes" th:text="${emailNotes}" class="md-textarea form-control" rows="7" readonly="readonly"></textarea>
+		</div>
+	</div>
+
+	<div class="row">
+		<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.location}"></label>
+		<div class="col-sm-10">
+			<input id="location" th:value="${location}" class="form-control" readonly="readonly"></input>
+		</div>
+	</div>
+
+	<div class="row">
+		<label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.urlAddress}"></label>
+		<div class="col-sm-10">
+			<input id="urlAddress" th:value="${urlAddress}" class="form-control" readonly="readonly"></input>
+		</div>
+	</div>
+</th:block>

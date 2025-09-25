@@ -1,0 +1,159 @@
+<th:block th:fragment="orgUnitsCoreView" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+
+<div class="col-lg-6">
+		<fieldset>
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.sourceName}"></label>
+				<div class="col-sm-9">
+					<input th:value="${orgUnit.sourceName}" class="form-control masterTooltip" readonly="readonly" />
+				</div>
+			</div>
+
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.parent}"></label>
+				<div class="col-sm-9">
+					<input th:value="${orgUnit.parent != null ? orgUnit.parent.name : ''}" class="form-control" readonly="readonly" />
+				</div>
+			</div>
+
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.shortname}"></label>
+				<div class="col-sm-9">
+					<input th:value="${orgUnit.shortname}" class="form-control masterTooltip" readonly="readonly"/>
+				</div>
+			</div>
+
+			<div class="row" th:if="${@sofdConfiguration.getIntegrations().getCvr().isEnabled() == true}">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.cvrName}"></label>
+				<div class="col-sm-9">
+					<input th:value="${orgUnit.cvrName}" class="form-control masterTooltip" readonly="readonly"/>
+				</div>
+			</div>
+
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.displayName}"></label>
+				<div class="col-sm-9">
+					<input th:value="${orgUnit.displayName}" class="form-control" readonly="readonly"/>
+				</div>
+			</div>
+		</fieldset>
+
+		<fieldset>
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.manager}"></label>
+				<div class="col-sm-9">
+					<input th:value="${orgUnit.manager != null ? orgUnit.manager.name : ''}" class="form-control" readonly="readonly"/>
+					<span th:if="${orgUnit.manager != null} and ${orgUnit.manager.inherited == false}" th:text="#{html.entity.orgunit.manager.directText} + ' ' + #{${orgUnit.manager.source.message}}"></span>
+					<span th:if="${orgUnit.manager != null} and ${orgUnit.manager.inherited == true}" th:text="#{html.entity.orgunit.manager.inheritedText} + ' ' + #{${orgUnit.manager.source.message}}"></span>
+				</div>
+			</div>
+		</fieldset>
+
+		<fieldset>
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.orgtype}"></label>
+				<div class="col-sm-9">
+					<input th:value="${orgUnit.type != null ? orgUnit.type.value : ''}" class="form-control masterTooltip" readonly="readonly" />
+				</div>
+			</div>
+		</fieldset>
+
+		<fieldset>
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.doNotTransferToFKOrg}"></label>
+				<div class="col-sm-9 row">
+					<div class="col-sm-1 checkbox c-checkbox">
+						<label>
+							<input type="checkbox" th:checked="${orgUnit.doNotTransferToFkOrg}" disabled/>
+							<span class="fa fa-check"></span>
+						</label>
+					</div>
+					<div class="col-sm-10" style="margin-top:10px;">
+						<span class="badge badge-warning" th:if="${doNotTransferInherited}" th:text="#{html.entity.orgunit.doNotTransferToFKOrgInherited}"></span>
+					</div>
+				</div>
+			</div>
+		</fieldset>
+
+
+	</div>
+
+	<div class="col-lg-6">
+		<fieldset>
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.cvr}"></label>
+				<div class="col-sm-9">
+					<input th:value="${orgUnit.cvr}" class="form-control masterTooltip" readonly="readonly" />
+				</div>
+			</div>
+
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.senr}"></label>
+				<div class="col-sm-9">
+					<input th:value="${orgUnit.senr}" class="form-control masterTooltip" readonly="readonly" />
+				</div>
+			</div>
+
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.pnr}"></label>
+				<div class="col-sm-9">
+					<input th:value="${orgUnit.pnr}" class="form-control masterTooltip" readonly="readonly" />
+				</div>
+			</div>
+
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.costbearer}"></label>
+				<div class="col-sm-9">
+					<input th:value="${orgUnit.costBearer}" class="form-control masterTooltip" readonly="readonly" />
+				</div>
+			</div>
+
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.masterId}"></label>
+				<div class="col-sm-9">
+					<input th:value="${orgUnit.masterId}" class="form-control masterTooltip" readonly="readonly" />
+				</div>
+			</div>
+		</fieldset>
+
+		<fieldset>
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.created}"></label>
+				<div class="col-sm-9">
+					<input th:value="${#dates.format(orgUnit.created, 'yyyy-MM-dd  HH:mm')}" class="form-control masterTooltip" readonly="readonly" />
+				</div>
+			</div>
+
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.lastchanged}"></label>
+				<div class="col-sm-9">
+					<input th:value="${#dates.format(orgUnit.lastChanged, 'yyyy-MM-dd  HH:mm')}" class="form-control masterTooltip" readonly="readonly" />
+				</div>
+			</div>
+		</fieldset>
+	</div>
+
+	<div class="hidden" th:if="${deletable}">
+		<button id="deleteButton" class="btn btn-lg btn-danger" style="width:auto;margin-right: 10px;" onclick="deleteOrgUnit()">
+			<em class="fa fa-trash" aria-hidden="true"></em>&nbsp;
+			<span th:text="#{html.button.delete}"></span>
+		</button>
+	</div>
+
+	<div class="hidden">
+		<button id="editButton" class="btn btn-lg btn-primary" style="width:auto" onclick="loadEditCoreFragment()">
+			<em class="fa fa-pencil" aria-hidden="true"></em>&nbsp;
+			<span th:text="#{html.button.edit}"></span>
+		</button>
+	</div>
+
+	<script type="text/javascript">
+		$(document).ready(function() {
+			$('#buttonsMenu button').remove();
+			$('#buttonsMenu').append($('#deleteButton'));
+			$('#buttonsMenu').append($('#editButton'));
+
+			addTooltips('masterTooltip', orgUnitMaster);
+		});
+	</script>
+</th:block>

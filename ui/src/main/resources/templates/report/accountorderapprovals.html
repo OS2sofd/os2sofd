@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'report')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'approvallog', subpage = 'report')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.page.accountorderapprovals.header}"></h3>
+				<div class="panel panel-default">
+					<div class="panel-heading">
+						<a class="btn btn-primary" href="/ui/report/reports/downloadAccountOrderApprovals">
+							<em class="fa fa-fw fa-file-excel-o"></em>&nbsp;
+							<span>Download</span>
+						</a>
+						<div th:if="${deployDate != null}" th:text="'Datagrundlagget bygger på godkendelser fra følgende dato og frem: ' + ${deployDate}"></div>
+					</div>
+
+					<div class="panel-body">
+						<div class="table-responsive">
+							<table id="listTable" class="table table-striped table-hover listTable">
+								<thead>
+									<tr>
+										<th class="col-md-2" th:text="#{html.page.accountorderapprovals.approvalTime}"></th>
+										<th class="col-md-4" th:text="#{html.page.accountorderapprovals.approver}"></th>
+										<th class="col-md-4" th:text="#{html.page.accountorderapprovals.person}"></th>
+										<th class="col-md-2" th:text="#{html.page.accountorderapprovals.userId}"></th>
+									</tr>
+								</thead>
+
+								<tbody>
+									<tr th:each="approval : ${approvals}">
+										<td th:text="${#temporals.format(approval.approvedTts, 'yyyy-MM-dd HH:mm')}"></td>
+										<td>
+											<a th:href="@{/ui/person/view/} + ${approval.approverUuid}" style="color: inherit; text-decoration: none;">
+												<span th:text="${approval.approverName}"></span>
+												&nbsp;
+												<em class="fa fa-external-link"></em>
+											</a>
+										</td>
+
+										<td>
+											<a th:href="@{/ui/person/view/} + ${approval.personUuid}" style="color: inherit; text-decoration: none;">
+												<span th:text="${approval.personName}"></span>
+												&nbsp;
+												<em class="fa fa-external-link"></em>
+											</a>
+										</td>
+										
+										<td th:text="${approval.userId}"></td>
+									</tr>
+								</tbody>
+								<tfoot>
+						            <tr>
+						                <th th:text="#{html.page.accountorderapprovals.approvalTime}"></th>
+						                <th th:text="#{html.page.accountorderapprovals.approver}"></th>
+						                <th th:text="#{html.page.accountorderapprovals.person}"></th>
+						                <th th:text="#{html.page.accountorderapprovals.userId}"></th>
+						            </tr>
+        						</tfoot>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<nav th:replace="fragments/footer :: footer"></nav>
+	
+	<script th:replace="fragments/datatables :: datatables(autoLoad=false)"></script>
+	
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		var token = $("meta[name='_csrf']").attr("content");
+
+		var accountOrderDatatableService;
+		$(document).ready(function () {
+			accountOrderDatatableService = new AccountOrderDatatableService();
+			accountOrderDatatableService.init();
+		});
+
+		function AccountOrderDatatableService() {
+			this.init = function() {
+				accountOrderDatatableService.addSearchBoxes();
+				accountOrderDatatableService.initDataTable();
+			}
+
+			this.addSearchBoxes = function() {
+				// Add searchbox based on column title to each footer
+				$('#listTable tfoot th').each( function () {
+					if (!$(this).hasClass('disabled')) {
+						var title = $(this).text();
+						$(this).html('<input class="form-control" style="width:100%;" type="text" placeholder="Søg i ' + title + '" />');
+					}
+				});
+			}
+
+			this.initDataTable = function() {
+				// Initialize with searchfunction
+				var table = $('#listTable').DataTable({
+			    	"bDestroy": true,
+			        'paging':   paging,
+			        'ordering': true,
+			        'info':     true,
+					'pageLength': 25,
+					'initComplete': function () {
+						// Apply the search
+						this.api().columns().every(function () {
+							var that = this;
+
+							$( 'input', this.footer() ).on('keyup change clear', function () {
+								if (that.search() !== this.value) {
+									that.search(this.value).draw();
+								}
+							});
+						});
+
+						// Put the footer under the header
+						var r = $('#listTable tfoot tr');
+						r.find('th').each(function(){
+							$(this).css('padding', 8);
+						});
+						$('#listTable thead').append(r);
+					},
+			        'language': {
+			            "search":       searchTxt,
+			            "lengthMenu":   dropdownTxt,
+			            "info":         infoDefaultTxt,
+			            "zeroRecords":  infoEmptyTxt,
+			            "infoEmpty":    "",
+			            "infoFiltered": infoFilteredTxt,
+			            "paginate": {
+			            	"next": nextTxt,
+			            	"previous": prevTxt
+			            }
+			        }
+			    });
+			    table.order([0, 'desc']).draw();
+			}
+		}
+
+		/*]]>*/
+	</script>
+</body>
+</html>

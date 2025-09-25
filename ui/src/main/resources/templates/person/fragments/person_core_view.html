@@ -1,0 +1,70 @@
+<th:block th:fragment="personCoreView" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+		<fieldset>
+				<input name="personUuid" type="hidden" th:value="${person.uuid}" />
+				<div class="row">
+					<label class="col-sm-3 control-label" th:text="#{html.entity.person.firstname}"></label>
+					<div class="col-sm-9">
+						<input name="firstname" th:value="${person.firstname}" class="form-control personMasterTooltip" readonly="readonly"/>
+					</div>
+				</div>
+
+				<div class="row">
+					<label class="col-sm-3 control-label" th:text="#{html.entity.person.surname}"></label>
+					<div class="col-sm-9">
+						<input name="surname" th:value="${person.surname}" class="form-control personMasterTooltip" readonly="readonly"/>
+					</div>
+				</div>
+
+				<div class="row">
+					<label class="col-sm-3 control-label" th:text="#{html.entity.person.chosenName}"></label>
+					<div class="col-sm-9">
+						<input name="chosenName" th:value="${person.chosenName}" class="form-control personMasterTooltip" readonly="readonly"/>
+					</div>
+				</div>
+
+				<div class="row">
+					<label class="col-sm-3 control-label" th:text="#{html.entity.person.personType}"></label>
+					<div class="col-sm-9">
+						<input name="personType" th:value="#{__${person.personType.message}__}" class="form-control personMasterTooltip" readonly="readonly"/>
+					</div>
+				</div>
+		</fieldset>
+	
+	<div class="hidden">
+		<a id="historyBtn" sec:authorize="hasRole('ROLE_USER_EDIT')" class="btn btn-lg btn-primary" style="width:auto; margin-right:10px;" th:href="@{/ui/person/revision/list/} + ${person.uuid}">
+			<i class="fa fa-history" aria-hidden="true"></i>&nbsp;
+			<span th:text="#{html.page.person.view.revision.list}"></span>
+		</a>
+
+		<button id="fetchFromCprBtn" sec:authorize="hasRole('ROLE_USER_EDIT')" class="btn btn-lg btn-primary" style="width:auto; margin-right:10px;" onclick="fetchFromCpr()">
+			<i class="fa fa-refresh" aria-hidden="true"></i>&nbsp;
+			<span th:text="#{html.page.person.view.cprsync}"></span>
+		</button>
+
+		<button sec:authorize="hasRole('ROLE_USER_EDIT')" id="pokeButton" class="btn btn-lg btn-primary" style="width:auto; margin-right:10px;" onclick="pokePerson()">
+			<em class="fa fa-exchange" aria-hidden="true"></em>&nbsp;
+			<span th:text="#{html.button.poke}"></span>
+		</button>
+
+		<a id="stopBtn" style="width:auto; margin-right:10px;" class="btn btn-lg" th:classappend="${person.forceStop == true} ? 'btn-danger' : 'btn-primary'" sec:authorize="hasRole('ROLE_USER_EDIT') and hasRole('ROLE_MODULE_ACCOUNT_CREATION')" onclick="flagService.changeStopFlag();">
+			<i class="fa fa-fw fa-ban" aria-hidden="true"></i>&nbsp;
+			<span th:text="${person.forceStop == true} ? #{html.entity.person.stop.removeButton} : #{html.entity.person.stop.addButton}"></span>
+		</a>
+		
+		<button sec:authorize="hasRole('ROLE_USER_EDIT')" id="editButton" class="btn btn-lg btn-primary" style="width:auto" onclick="loadEditCoreFragment()">
+			<em class="fa fa-pencil" aria-hidden="true"></em>&nbsp;
+			<span th:text="#{html.button.edit}"></span>
+		</button>
+	</div>
+	
+	<script type="text/javascript">
+		$(document).ready(function() {
+			$('#buttonsMenu').empty();
+			$('#buttonsMenu').append($('#historyBtn'));
+			$('#buttonsMenu').append($('#stopBtn'));
+			$('#buttonsMenu').append($('#pokeButton'));
+			$('#buttonsMenu').append($('#fetchFromCprBtn'));
+			$('#buttonsMenu').append($('#editButton'));
+		});
+	</script>
+</th:block>

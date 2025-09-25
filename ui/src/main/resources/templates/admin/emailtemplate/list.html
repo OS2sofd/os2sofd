@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'mailtemplates', subpage = 'admin')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.page.email_template.list.headline}"></h3>
+					<div class="panel panel-default">
+						<div class="panel-heading">
+						<a class="btn btn-primary btn-lg" th:href="@{/ui/admin/mailtemplates/new}">
+							<i class="fa fa-plus"></i>
+							<span th:text="#{html.page.template.new.headline}"></span>
+						</a>
+					</div>
+					<div class="panel-body">
+						<div class="table-responsive">
+							<table id="listTable" class="table table-striped table-hover listTable">
+								<thead>
+									<tr>
+										<th class="col-md-3" th:text="#{html.entity.template.name}"></th>
+										<th class="col-md-3" th:text="#{html.entity.template.title}"></th>
+										<th class="col-md-1" th:text="#{html.entity.template.enabled}"></th>
+										<th class="col-md-2" th:text="#{html.control.operations}"></th>
+									</tr>
+								</thead>
+					
+								<tbody>
+									<tr th:each="template : ${templates}">
+										<td th:text="#{${template.templateName}}"></td>
+										<td th:text="${template.title}"></td>
+										<td>
+											<span th:if="${template.enabled}"><i class="fa fa-check" aria-hidden="true"></i><span style="display: none;">Activated</span></span>
+											<span th:unless="${template.enabled}"><i class="fa fa-times" aria-hidden="true"></i><span style="display: none;">Deactivated</span></span>
+										</td>
+										<td>
+											<a th:href="@{/ui/admin/mailtemplates/edit(childId=${template.id}, templateId=${template.getTemplateId})}" title="Rediger skabalon"><em class="fa fa-fw fa-search"></em></a>
+											<form th:if="${!template.enabled}" th:action="@{/rest/mailtemplates/activatechild/{id}(id=${template.id})}" method="post" style="display:inline;">
+											    <button type="submit" style="border:none; background:none; padding:0; cursor:pointer; color:inherit;" title="Aktiver skabelon">
+											        <em class="fa fa-fw fa-toggle-off"></em>
+											    </button>
+											</form>
+											<form th:if="${template.enabled}" th:action="@{/rest/mailtemplates/deactivatechild/{id}(id=${template.id})}" method="post" style="display:inline;">
+											    <button type="submit" style="border:none; background:none; padding:0; cursor:pointer; color:inherit;" title="Deaktiver skabelon">
+											        <em class="fa fa-fw fa-toggle-on"></em>
+											    </button>
+											</form>
+											<button type="button" th:onclick="|deleteChild(${template.id})|" style="border:none; background:none; padding:0; cursor:pointer; color:inherit;" title="Slet skabelon">
+										        <em class="fa fa-fw fa-trash"></em>
+										    </button>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<nav th:replace="fragments/footer :: footer"></nav>
+	
+	<script th:replace="fragments/datatables :: datatables "></script>
+	
+	<script th:inline="javascript">
+	/*<![CDATA[*/
+
+		var stars = '********';
+	
+		/*[+
+			var baseUrl = [[@{/}]];
+			var restUrl = [[@{/rest/mailtemplates}]];
+			var childDeleteTitle = [[#{html.page.email_template.swal.child.title}]];
+			var childDeleteText = [[#{html.page.email_template.swal.child.text}]];
+			var btnYes = [[#{html.button.yes}]];
+			var btnNo = [[#{html.button.no}]];
+			var msgFailDeleteChild = [[#{html.page.email_template.child.delete.failure}]];
+		+]*/
+
+		var token = $("meta[name='_csrf']").attr("content");
+
+		//saves search through reload
+		$(document).ready(function() {
+		    var table = $('#listTable').DataTable();
+		    
+		    var savedSearch = sessionStorage.getItem('templateSearch');
+		    if (savedSearch) {
+		        table.search(savedSearch).draw();
+		    }
+		    
+		    $('#listTable_filter input').on('keyup', function() {
+		        sessionStorage.setItem('templateSearch', this.value);
+		    });
+		    
+		    $('form[action*="/rest/mailtemplates/"]').on('submit', function() {
+		        var currentSearch = $('#listTable_filter input').val();
+		        sessionStorage.setItem('templateSearch', currentSearch);
+		    });
+		});
+
+		function deleteChild(childId) {
+			swal({
+				html : true,
+				title : childDeleteTitle,
+				text : childDeleteText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : btnYes,
+				cancelButtonText : btnNo,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						method : "POST",
+						url: restUrl + "/deletechild/" + childId,
+						headers: {
+							"content-type": "application/json",
+							'X-CSRF-TOKEN': token
+						},
+					}).done(function(data) {
+						window.location.href= baseUrl + "ui/admin/mailtemplates"
+					}).fail(function(jqXHR, textStatus, errorThrown) {
+						if (jqXHR.status) {
+							$.notify({
+								message: jqXHR.responseText
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						}
+						else {
+							$.notify({
+								message: msgFailDeleteChild
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						}
+					});
+				}
+			});
+		}
+		
+		/*]]>*/
+	</script>
+</body>
+</html>

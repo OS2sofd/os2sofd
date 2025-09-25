@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header (title=#{html.page.index.title})"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'index')"></aside>
+ 
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.page.version.header}"></h3>
+				<div class="panel panel-default">
+					<div class="panel-body">
+						<section>
+							<div class="panel-body">
+								<th:block th:unless="${@versionService.newVersionExists()}">
+									<p>I anvender version <b th:text="${@versionService.getVersion()}"></b> af OS2sofd, som er den nyeste version.</p>
+								</th:block>
+								<th:block th:if="${@versionService.newVersionExists()}">
+									<p>I anvender version <b th:text="${@versionService.getVersion()}"></b> af OS2sofd, og den nyeste version af OS2sofd er <b th:text="${@versionService.getLatestVersion}"></b>.</p>
+									<p th:if="${@sofdConfiguration.autoUpdateEnabled}">
+										I har valgt at blive automatisk opdateret til den nyeste version, så i vil blive opdateret inden for få dage.
+									</p>
+									<p th:unless="${@sofdConfiguration.autoUpdateEnabled}">
+										I kan med fordel blive opdateret til den nyeste version ved at kontakte <a href="mailto:kontakt@digital-identity.dk">Digital Identity</a> og bede dem opdatere jer.
+									</p>
+								</th:block>
+								<p>
+									Få overblik over forandringerne i vores releases <a href="https://www.sofd.io/changelog.html">her (OS2sofd Changelog)</a>.
+								</p>
+
+								<span th:text="#{html.page.version.version} + ': ' + ${@versionService.getVersion()}"></span><br/>
+								<span th:text="#{html.page.version.buildId} + ': ' + ${@versionService.getBuildId()}"></span><br/>
+								<span th:text="#{html.page.version.buildTime} + ': ' + ${@versionService.getBuildTime()}"></span><br />
+								<span th:text="#{html.page.version.autoUpdateEnabled} + ': ' + (${@sofdConfiguration.autoUpdateEnabled} ? 'Ja' : 'Nej')"></span>
+							</div>
+						</section>
+
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+	
+	<nav th:replace="fragments/footer :: footer"></nav>
+</body>
+</html>

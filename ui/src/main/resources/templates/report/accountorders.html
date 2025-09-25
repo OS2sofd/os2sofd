@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'report')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'accountcreation', subpage = 'report')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.page.accountorders.header}"></h3>
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<div class="table-responsive">
+							<table id="listTable" class="table table-striped table-hover listTable">
+								<thead>
+									<tr>
+										<th class="col-md-2" th:text="#{html.page.accountorders.activationTime}"></th>
+										<th class="col-md-3" th:text="#{html.page.accountorders.personName}"></th>
+										<th class="col-md-3" th:text="#{html.page.accountorders.triggerAffiliation}"></th>
+										<th class="col-md-1" th:text="#{html.page.accountorders.userId}"></th>
+										<th class="col-md-1" th:text="#{html.page.accountorders.orderType}"></th>
+										<th class="col-md-2" th:text="#{html.page.accountorders.userType}"></th>
+										<th class="col-md-2" th:text="#{html.page.accountorders.status}"></th>
+										<th class="col-md-1" th:text="#{html.control.operations}"></th>
+									</tr>
+								</thead>
+					
+								<tbody>
+									<tr th:each="order : ${orders}">
+										<td th:text="${#dates.format(order.activationTimestamp, 'yyyy-MM-dd HH:mm')}"></td>
+										<td>
+											<a th:href="@{/ui/person/view/} + ${order.personUuid} + '?backRef=adaccount'" style="color: inherit; text-decoration: none;">
+												<span th:text="${order.personName}"></span>
+												&nbsp;
+												<em class="fa fa-external-link"></em>
+											</a>
+										</td>
+										<td th:text="${order.triggerAffiliation}"></td>
+										<td th:text="${order.userId}"></td>
+										
+										<td th:if="${order.orderType == T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderType).EXPIRE and order.endDate == null}"
+											th:text="#{html.enum.accountOrderStatus.expireReverse}"></td>
+										<td th:unless="${order.orderType == T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderType).EXPIRE and order.endDate == null}"
+											th:text="#{__${order.orderType.messageId}__}"></td>
+										
+										<td th:text="${@supportedUserTypeService.getPrettyName(order.getUserType())}"></td>
+										<td th:text="#{__${order.status.messageId}__}"></td>
+										<td>
+											<a th:href="@{/ui/report/accountorders/} + ${order.id}"><em class="fa fa-fw fa-search"></em></a>
+											<a href="#" th:attr="data-orderid=${order.id}" onclick="deleteAccountOrder(this); return false;"><em class="fa fa-fw fa-times"></em></a>
+										</td>
+									</tr>
+								</tbody>
+								<tfoot>
+									<tr>
+										<th th:text="#{html.page.accountorders.activationTime}"></th>
+										<th th:text="#{html.page.accountorders.personName}"></th>
+										<th th:text="#{html.page.accountorders.triggerAffiliation}"></th>
+										<th th:text="#{html.page.accountorders.userId}"></th>
+										<th th:text="#{html.page.accountorders.orderType}"></th>
+										<th th:text="#{html.page.accountorders.userType}"></th>
+										<th th:text="#{html.page.accountorders.status}"></th>
+										<th class="disabled"></th>
+									</tr>
+								</tfoot>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<nav th:replace="fragments/footer :: footer"></nav>
+	
+	<script th:replace="fragments/datatables :: datatables(autoLoad=false) "></script>
+	
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		var token = $("meta[name='_csrf']").attr("content");
+		var table;
+
+		var accountOrderDatatableService;
+		$(document).ready(function () {
+			accountOrderDatatableService = new AccountOrderDatatableService();
+			accountOrderDatatableService.init();
+		});
+
+		function AccountOrderDatatableService() {
+			this.init = function() {
+				accountOrderDatatableService.addSearchBoxes();
+				accountOrderDatatableService.initDataTable();
+			}
+
+			this.addSearchBoxes = function() {
+				// Add searchbox based on column title to each footer
+				$('#listTable tfoot th').each( function () {
+					if (!$(this).hasClass('disabled')) {
+						var title = $(this).text();
+						$(this).html('<input class="form-control" style="width:100%;" type="text" placeholder="Søg i '+title+'" />');
+					}
+				});
+			}
+
+			this.initDataTable = function() {
+				// Initialize with searchfunction
+				table = $('#listTable').DataTable({
+					"bDestroy":  true,
+					'paging':    paging,
+					'ordering':  true,
+					'stateSave': true,
+					'info':      true,
+					'pageLength':25,
+					'initComplete': function () {
+						// Apply the search
+						this.api().columns().every( function () {
+							var that = this;
+
+							$( 'input', this.footer() ).on('keyup change clear', function () {
+								if (that.search() !== this.value) {
+									that.search(this.value).draw();
+								}
+							});
+						});
+
+						// Put the footer under the header
+						var r = $('#listTable tfoot tr');
+						r.find('th').each(function(){
+							$(this).css('padding', 8);
+						});
+						$('#listTable thead').append(r);
+					},
+					'language': {
+						"search":	   searchTxt,
+						"lengthMenu":   dropdownTxt,
+						"info":		 infoDefaultTxt,
+						"zeroRecords":  infoEmptyTxt,
+						"infoEmpty":	"",
+						"infoFiltered": infoFilteredTxt,
+						"paginate": {
+							"next": nextTxt,
+							"previous": prevTxt
+						}
+					}
+				});
+				
+				// restore state
+				var state = table.state.loaded();
+				if (state) {
+					table.columns().eq(0).each(function(colIdx) {
+						var colSearch = state.columns[colIdx].search;
+					
+						if (colSearch.search) {
+							$('input', table.column(colIdx).footer()).val(colSearch.search);
+						}
+					});
+
+					table.draw();
+				}
+
+				table.order([0, 'desc']).draw();
+			}
+		}
+
+		function deleteAccountOrder(elem) {
+			var orderId = $(elem).data('orderid');
+			
+			/*[+
+			var deleteURL = [[@{/rest/accountorder/delete}]];
+			var removeTitle = [[#{html.page.accountorders.delete.title}]];
+			var removeText = [[#{html.page.accountorders.delete.text}]];
+			var removeButtonConfirm = [[#{html.button.delete}]];
+			var removeButtonCancel = [[#{html.button.cancel}]];
+			var deleteErrorMsg = [[#{html.page.accountorders.delete.error}]];
+			+]*/
+			
+			swal({
+				html : true,
+				title : removeTitle,
+				text : removeText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : removeButtonConfirm,
+				cancelButtonText : removeButtonCancel,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						url: deleteURL,
+						headers: {
+							'X-CSRF-TOKEN': token
+						},
+						type: 'post',
+						contentType: 'application/json',
+						data: JSON.stringify({ orderId: orderId }),
+						success: function( data, textStatus, jQxhr ){
+							location.reload(true);
+						},
+						error: function( jqXhr, textStatus, errorThrown ){
+							$.notify({
+								message: deleteErrorMsg
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						}
+					});
+				}
+			});
+		}
+
+		/*]]>*/
+	</script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+ALTER TABLE persons_aud ADD COLUMN last_changed timestamp NULL DEFAULT NULL;

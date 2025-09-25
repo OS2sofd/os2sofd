@@ -1,0 +1,54 @@
+<th:block th:fragment="affiliationCoreView" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+    <div class="row" th:if="${@sofdConfiguration.getModules().getPositionDisplayName().isEnabled()}">
+        <label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.positionDisplayName}"></label>
+        <div class="col-sm-9">
+            <input th:value="${affiliation.positionDisplayName}" class="form-control masterTooltip" readonly="readonly" />
+        </div>
+    </div>
+
+    <div class="hidden">
+        <button sec:authorize="hasRole('ROLE_USER_ADMIN')" id="editButton" class="btn btn-lg btn-primary" style="width:auto" onclick="loadEditCoreFragment()">
+            <em class="fa fa-pencil" aria-hidden="true"></em>&nbsp;
+            <span>Rediger</span>
+        </button>
+
+        <div class="row" id="OURow">
+            <label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.orgunit}"></label>
+            <div class="col-sm-9">
+                <input id="OrgUnit" th:value="${affiliation.orgUnit.name}" class="form-control core-editable" readonly="readonly" />
+            </div>
+        </div>
+
+        <div class="row" th:if="${@sofdConfiguration.getModules().getAffiliation().isAlternativeOUAssignable()}" id="altOURow">
+            <label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.altorgunit}"></label>
+            <div class="col-sm-9">
+                <input th:if="${affiliation.alternativeOrgUnit != null}" th:value="${affiliation.alternativeOrgUnit.name}" class="form-control" readonly="readonly" />
+                <input th:unless="${affiliation.alternativeOrgUnit != null}" class="form-control" readonly="readonly" />
+            </div>
+        </div>
+
+        <div class="row" id="professionRow">
+            <label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.professionName}"></label>
+            <div class="col-sm-9">
+                <input id="professionName" th:value="${affiliation.profession?.name}" class="form-control masterTooltip" readonly="readonly" />
+            </div>
+        </div>
+        
+    </div>
+
+    <script type="text/javascript">
+		$(document).ready(function() {
+			$('#buttonsMenu').empty();
+			$('#buttonsMenu').append($('#editButton'));
+
+            $('#core-alt-ou').empty();
+            $('#core-alt-ou').append($('#altOURow'));
+
+            $('#core-ou').empty();
+            $('#core-ou').append($('#OURow'));
+
+            $('#core-profession').empty();
+            $('#core-profession').append($('#professionRow'));
+		});
+	</script>
+</th:block>

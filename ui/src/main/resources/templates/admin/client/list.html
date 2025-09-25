@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'clients.list', subpage = 'admin')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.client.list.headline}"></h3>
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<div class="table-responsive">
+							<table id="listTable" class="table table-striped table-hover listTable">
+								<thead>
+									<tr>
+										<th class="col-md-3" th:text="#{html.entity.client.name}"></th>
+										<th class="col-md-3" th:text="#{html.entity.client.ApiKey}"></th>
+										<th class="col-md-3" th:text="#{html.entity.client.accessRole}"></th>
+										<th class="col-md-1" th:text="#{html.entity.client.version}"></th>
+										<th class="col-md-2" th:text="#{html.control.operations}"></th>
+									</tr>
+								</thead>
+					
+								<tbody>
+									<tr th:each="client : ${clients}">
+										<td th:text="${client.name}"></td>
+										<td>
+											<em onclick="togglePassword(this.getAttribute('data-client-id'));" th:data-client-id="${client.id}" class="fa fa-fw fa-eye"></em>&nbsp;&nbsp;
+											<span th:attr="data-key=${client.apiKey}" th:id="'pwd-' + ${client.id}">********</span>
+										</td>
+										<td th:text="#{__${client.accessRole.messageId}__}"></td>
+										<td th:text="${client.version}"></td>
+										<td>
+											<a th:href="@{/ui/client/view/} + ${client.id}" title="Se klient"><em class="fa fa-fw fa-search"></em></a>
+											<a th:href="@{/ui/client/edit/} + ${client.id}" title="Rediger klient"><em class="fa fa-fw fa-pencil"></em></a>
+											<a th:href="@{/ui/client/clientIpAddresses/edit/} + ${client.id}" title="Rediger klient ip-adresseintervaller"><em class="fa fa-fw fa-link"></em></a>
+											<a href="#" onclick="handleDelete(this.getAttribute('data-client-id'));" th:data-client-id="${client.id}" title="Slet klient"><em class="fa fa-fw fa-remove"></em></a>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<nav th:replace="fragments/footer :: footer"></nav>
+	
+	<script th:replace="fragments/datatables :: datatables "></script>
+	
+	<script th:inline="javascript">
+	/*<![CDATA[*/
+
+		var stars = '********';
+	
+		/*[+
+		var deleteURL = [[@{/ui/client/delete}]];
+		var getClientsUrl = [[@{/ui/client/getClientList}]];
+		
+		var deleteTitle = [[#{html.client.delete.title}]];
+		var deleteText = [[#{html.client.delete.text}]];
+		var deleteButtonConfirm = [[#{html.button.delete}]];
+		var deleteButtonCancel = [[#{html.button.cancel}]];
+		+]*/
+
+		function handleDelete(clientId) {
+			swal({
+				html : true,
+				title : deleteTitle,
+				text : deleteText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : deleteButtonConfirm,
+				cancelButtonText : deleteButtonCancel,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					window.location = deleteURL + '/' + clientId;
+				}
+			});
+		}
+	
+		function togglePassword(clientId) {			
+			if ($("#pwd-" + clientId).text() == stars) {
+				$("#pwd-" + clientId).text($("#pwd-" + clientId).data("key"));
+			}
+			else {
+				$("#pwd-" + clientId).text(stars);
+			}
+		}
+		
+		/*]]>*/
+	</script>
+</body>
+</html>

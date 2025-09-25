@@ -1,0 +1,70 @@
+<th:block th:fragment="personCoreEdit" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+		<fieldset>
+			<input name="personUuid" type="hidden" th:value="${person.uuid}" />
+			
+			<div class="row">
+				<label class="col-sm-3 control-label"></label>
+				<div class="col-sm-9">
+					<div class="alert alert-warning" th:text="#{html.page.person.edit.changename.warning}"></div>
+				</div>
+			</div>
+			
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.person.firstname}"></label>
+				<div class="col-sm-9">
+					<input name="firstname" th:value="${person.firstname}" class="form-control personMasterTooltip"/>
+				</div>
+			</div>
+
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.person.surname}"></label>
+				<div class="col-sm-9">
+					<input name="surname" th:value="${person.surname}" class="form-control personMasterTooltip"/>
+				</div>
+			</div>
+
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.person.chosenName}"></label>
+				<div class="col-sm-9">
+					<input name="chosenName" th:value="${person.chosenName}" class="form-control personMasterTooltip" th:readonly="${@sofdConfiguration.modules.person.chosenNameEditable == false}"/>
+				</div>
+			</div>
+
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.person.personType}"></label>
+				<div class="col-sm-9">
+					<select name="personType" class="form-control personMasterTooltip">
+						<option th:each="option : ${T(dk.digitalidentity.sofd.dao.model.enums.PersonType).values()}" th:text="#{__${option.message}__}" th:value="${option}" th:selected="${option == person.personType}">
+					</select>
+				</div>
+			</div>
+		</fieldset>
+	
+	<div class="hidden">
+		<button sec:authorize="hasRole('ROLE_USER_EDIT')" id="saveButton" class="btn btn-lg btn-primary" style="width:auto; margin-right:10px;" onclick="saveCoreChanges()">
+			<em class="fa fa-save" aria-hidden="true"></em>&nbsp;
+			<span th:text="#{html.control.button.save}"></span>
+		</button>
+		<button sec:authorize="hasRole('ROLE_USER_EDIT')" id="cancelButton" class="btn btn-lg btn-danger" style="width:auto" onclick="loadViewCoreFragment()">
+			<em class="fa fa-times" aria-hidden="true"></em>
+			<span th:text="#{html.control.button.cancel}"></span>
+		</button>
+	</div>
+
+	<script th:inline="javascript" type="text/javascript">
+		/*<![CDATA[*/
+	
+			/*[+
+			+]*/
+			
+		
+			$(document).ready(function() {
+				$('#buttonsMenu').empty();
+				$('#buttonsMenu').append($('#saveButton'));
+				$('#buttonsMenu').append($('#cancelButton'));
+			});
+			
+			
+		/*]]>*/
+	</script>
+</th:block>

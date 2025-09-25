@@ -1,0 +1,1 @@
+ALTER TABLE batch_job_execution ADD error_count BIGINT NOT NULL DEFAULT 0;

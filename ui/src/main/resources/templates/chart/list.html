@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'organisationsdiagram', subpage='admin')"></aside>
+
+	<section>
+		<div class="content-wrapper">
+			<h3 th:text="#{html.page.organisationsdiagram.title}"></h3>
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<a class="btn btn-primary btn-lg" href="#" onclick="editDiagram(null);">
+						<i class="fa fa-plus"></i>
+						<span th:text="#{html.page.organisationsdiagram.new}"></span>
+					</a>
+				</div>
+
+				<div class="panel-body">
+					<div class="table-responsive">
+						<table id="listTable" class="table table-striped listTable">
+							<thead>
+							<tr>
+								<th class="col-md-3" th:text="#{html.entity.organisationsdiagram.name}"></th>
+								<th class="col-md-3" th:text="#{html.entity.organisationsdiagram.inheritEnabled}"></th>
+								<th class="col-md-5" th:text="#{html.entity.organisationsdiagram.leaderEnabled}"></th>
+								<th class="col-md-1" th:text="#{html.control.operations}"></th>
+							</tr>
+							</thead>
+
+							<tbody>
+							<tr th:each="diag : ${orgDiagrams}">
+								<td th:text="${diag.name}"></td>
+								<td>
+									<em th:if="${diag.inheritEnabled}" class="fa fa-check"></em>
+								</td>
+								<td>
+									<em th:if="${diag.leaderEnabled}" class="fa fa-check"></em>
+								</td>
+								<td>
+									<a th:href="@{/chart/{uuid}(uuid=${diag.uuid})}" target="_blank"><em class="fa fa-fw fa-search" th:title="#{html.mouseover.view}"></em></a>
+									<a onclick="editDiagram(this);" href="#" th:attr="data-id=${diag.id}, data-orgId=${diag.organisation.id}"><em class="fa fa-fw fa-pencil" th:title="#{html.mouseover.edit}"></em></a>
+									<a onclick="handleDelete(this);" href="#" th:attr="data-id=${diag.id}"><em class="fa fa-fw fa-remove" th:title="#{html.mouseover.delete}"></em></a>
+								</td>
+							</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<!-- Modal -->
+<div id="editDiagramModal" class="modal fade" role="dialog">
+	<form class="form-horizontal">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button class="btn btn-primary" th:text="#{html.control.button.save}" onclick="postEditDiagram()" style="float:right;margin-left:10px;"></button>
+					<button class="btn btn-danger" type="button" data-dismiss="modal" th:text="#{html.action.abortChanges}" style="float:right;"></button>
+					<h4 class="modal-title" th:text="#{html.page.organisationsdiagram.modal.title}"></h4>
+				</div>
+
+				<div class="modal-body">
+					<input id="editDiagramId" class="form-control" style="display:none;"/>
+
+					<div class="form-group">
+						<label th:text="#{html.entity.organisationsdiagram.name}" class="col-sm-3 control-label"></label>
+						<div class="col-sm-9">
+							<input id="editDiagramName" class="form-control" />
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label th:text="#{html.entity.organisationsdiagram.choices}" class="col-sm-3 control-label"></label>
+						<div class="col-sm-9">
+							<select id="editSelectOu" class="form-control m-b" onchange="onSelectChange()">
+								<option th:each="ou : ${organisations}" th:value="${ou.id}" th:text="${ou.name}"></option>
+							</select>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label th:text="#{html.entity.organisationsdiagram.depthLimit}" class="col-sm-3 control-label"></label>
+						<div class="col-sm-9">
+							<select id="editDiagramDepthLimit" class="form-control m-b">
+								<option th:each="limit : ${T(dk.digitalidentity.sofd.dao.model.enums.DepthLimit).values()}" th:value="${limit.level}" th:text="#{${limit.messageId}}"></option>
+							</select>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label th:text="#{html.entity.organisationsdiagram.verticalStart}" class="col-sm-3 control-label"></label>
+						<div class="col-sm-9"> 
+							<select id="editDiagramVerticalStart" class="form-control m-b">
+								<option th:each="limit : ${T(dk.digitalidentity.sofd.dao.model.enums.VerticalStart).values()}" th:value="${limit.level}" th:text="#{${limit.messageId}}"></option>
+							</select>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label th:text="#{html.entity.organisationsdiagram.orgUnits}" class="col-sm-3 control-label"></label>
+						<div class="col-sm-9">
+							<select id="orgUnits" multiple="multiple" class="form-control hidden"></select>
+							<select id="fakeOrgUnits" multiple="multiple" class="form-control"></select>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label class="col-sm-3 control-label"></label>
+						<div class="col-sm-9">
+							<button type="button" onclick="chooseOU()" class="btn btn-primary" th:text="#{html.page.sms.search.hiearchy}"></button>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label th:text="#{html.entity.organisationsdiagram.inheritEnabled}" class="col-sm-3 control-label"></label>
+						<div class="col-sm-9">
+							<div class="checkbox c-checkbox">
+								<label>
+									<input type="checkbox" id="editDiagramInheritEnabled" />
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label th:text="#{html.entity.organisationsdiagram.leaderEnabled}" class="col-sm-3 control-label"></label>
+						<div class="col-sm-9">
+							<div class="checkbox c-checkbox">
+								<label>
+									<input type="checkbox" id="editDiagramLeaderEnabled" />
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+						</div>
+					</div>
+					
+					<div class="form-group" id="hideInheritedManagersGroup">
+						<label th:text="#{html.entity.organisationsdiagram.hideInheritedManagers}" class="col-sm-3 control-label"></label>
+						<div class="col-sm-9">
+							<div class="checkbox c-checkbox">
+								<label>
+									<input type="checkbox" id="editDiagramHideInheritedManagers" />
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label th:text="#{html.entity.organisationsdiagram.style}" class="col-sm-3 control-label"></label>
+						<div class="col-sm-9" id="cssCollapse">
+							<textarea id="editDiagramStyle" rows="10"></textarea>
+							<a href="#" onclick="restoreDefaultStyle();return false;" th:text="#{html.page.organisationsdiagram.reset.style.title}"></a>
+						</div>
+					</div>
+
+				</div>
+			</div>
+		</div>
+	</form>
+</div>
+
+<div class="modal fade bd-example-modal-lg" id="modal-ou" role="dialog">
+	<div class="modal-dialog modal-lg">
+
+		<!-- Modal content-->
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal">&times;</button>
+				<h4 th:text="#{html.page.person.new.affiliation.orgunit.choose}"></h4>
+			</div>
+
+			<div class="modal-body">
+				<button id="ou-tree-select-all" th:text="#{html.button.select_all}" class="btn btn-primary"></button>
+				<button id="ou-tree-deselect-all" th:text="#{html.button.deselect_all}" class="btn btn-primary"></button>
+				<br/><br/>
+				<input class="form-control" id="ou-tree-search" style="margin-bottom: 5px;" th:placeholder="#{html.action.search}"/>
+				<div id="ou-tree"></div>
+			</div>
+
+			<div class="modal-footer">
+				<button type="button" id="save" class="btn btn-primary" onclick="saveOUs()" th:text="#{html.control.button.save}"></button>
+				<button type="button" class="btn btn-danger" data-dismiss="modal" th:text="#{html.control.button.cancel}"></button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+<script th:replace="fragments/datatables :: datatables"></script>
+
+<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+			var restUrl = [[@{/rest/admin/chart}]];
+			const defaultStyle = [[${defaultStyle}]];
+			
+			var createUpdateErrorMsg = [[#{html.page.organisationsdiagram.createupdate.error}]];
+			var deleteErrorMsg = [[#{html.page.organisationsdiagram.delete.error}]];
+			var deleteTitle = [[#{html.page.organisationsdiagram.delete.title}]];
+			var deleteText = [[#{html.page.organisationsdiagram.delete.text}]];
+			var defaultStyleTitle = [[#{html.page.organisationsdiagram.reset.style.title}]];
+			var defaultStyleText = [[#{html.page.organisationsdiagram.reset.style.text}]];
+			var swalBtnYes = [[#{html.button.yes}]];
+			var swalBtnNo = [[#{html.button.no}]];
+			var currentlyEditingChartId = null;
+		+]*/
+		var token = $("meta[name='_csrf']").attr("content");
+		var editor; //CSS Editor
+
+		$(document).ready(function() {
+			$('select.selectpicker').selectpicker({
+				actionsBox: true,
+				deselectAllText: "Fravælg alle",
+				selectAllText: "Vælg alle",
+				iconBase: 'fa',
+				tickIcon: 'fa-check text-success'
+			});
+			initCodeMirror();
+			
+			$("#ou-tree-select-all").on("click", function() {
+				$('#ou-tree').jstree('select_all');
+			});
+			
+			$("#ou-tree-deselect-all").on("click", function() {
+				$('#ou-tree').jstree('deselect_all');
+			});
+			
+			$("#editDiagramLeaderEnabled").on("click", function() {
+				var checked = $(this).prop("checked");
+				if (checked) {
+					$("#hideInheritedManagersGroup").show();
+				} else {
+					$("#hideInheritedManagersGroup").hide();
+					$('#editDiagramHideInheritedManagers').prop("checked", false);
+				}
+			});
+		});
+
+		$('#editDiagramModal').on('shown.bs.modal', function () {
+			$('#editDiagramName').focus();
+			initCodeMirror();
+		});
+
+		function editDiagram(obj) {
+			currentlyEditingChartId = obj == null ? null : $(obj).attr('data-id');
+			if (obj) {
+				var orgId = $(obj).attr('data-orgId');
+				$('#editSelectOu').val(orgId)
+			} else {
+				$("#orgUnits").empty();
+				$("#fakeOrgUnits").empty();
+				$('#editSelectOu option:first').prop('selected', true);
+			}
+			$('#editSelectOu').change();
+		}
+
+		function initCodeMirror() {
+			if (!editor) {
+				editor = CodeMirror.fromTextArea(document.getElementById("editDiagramStyle"), {
+					lineNumbers: true,
+					tabSize: 2,
+					mode: 'css'
+				});
+				editor.setSize(null, 350);
+			} else {
+				editor.refresh();
+			}
+		}
+
+		function postEditDiagram() {
+			$('#editDiagramModal').modal("hide");
+			$.ajax({
+				url: restUrl + '/update',
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				type: 'post',
+				contentType: 'application/json',
+				data: JSON.stringify({
+					'id' : $('#editDiagramId').val(),
+					'name' : $('#editDiagramName').val(),
+					'depthLimitValue' : $('#editDiagramDepthLimit').val(),
+					'verticalStartValue' : $('#editDiagramVerticalStart').val(),
+					'orgUnits' : $("#orgUnits").val(),
+					'inheritEnabled' : $('#editDiagramInheritEnabled').prop("checked"),
+					'leaderEnabled' : $('#editDiagramLeaderEnabled').prop("checked"),
+					'style' : editor.getValue(),
+					'hideInheritedManagers' : $("#editDiagramHideInheritedManagers").prop("checked"),
+					'organisation' : $('#editSelectOu').val()
+				}),
+				success: function(data, textStatus, jQxhr) {
+					location.reload();
+				},
+				error: function(jqXhr, textStatus, errorThrown) {
+					$.notify({
+						message: createUpdateErrorMsg
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				}
+			});
+		}
+
+		function handleDelete(obj) {
+			var id = $(obj).attr('data-id');
+			
+			swal({
+				title : deleteTitle,
+				text : deleteText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : swalBtnYes,
+				cancelButtonText : swalBtnNo,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						url: restUrl + '/delete/' + id,
+						headers: {
+							'X-CSRF-TOKEN': token
+						},
+						type: 'delete',
+						success: function(data, textStatus, jQxhr) {
+							location.reload();
+						},
+						error: function(jqXhr, textStatus, errorThrown) {
+							$.notify({
+								message: deleteErrorMsg
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						}
+					});
+				}
+			});
+		}
+
+		function restoreDefaultStyle() {
+			swal({
+				title : defaultStyleTitle,
+				text : defaultStyleText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : swalBtnYes,
+				cancelButtonText : swalBtnNo,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					editor.getDoc().setValue(defaultStyle);
+				}
+			});
+		}
+
+		function getOrgUnits() {
+			orgId = $('#editSelectOu').val();
+			$.ajax({
+				url: restUrl + '/orgUnitTree/0/' + orgId,
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				type: 'get',
+				success: function(data, textStatus, jQxhr) {
+					initJSTree(data);
+				},
+				error: function(jqXhr, textStatus, errorThrown) {
+				}
+			});
+		}
+
+		// Select OrgUnits
+		
+		function initJSTree(data) {
+			$("#ou-tree").jstree('destroy');
+			$('#ou-tree').jstree({
+					"core": {
+						"data": data,
+						"themes": {
+							"icons": false
+						}
+					},
+					"checkbox" : {
+						"keep_selected_style" : false,
+						"three_state": false,
+						"cascade" : "undetermined"
+					},
+					"search" : {
+						"show_only_matches": true,
+						"search_callback": function(str, node) {
+							return (node.text.toUpperCase().includes(str.toUpperCase()));
+						}
+					},
+					"plugins" : ["search", "checkbox"]
+			});
+
+			// searching in the JSTree
+			var to = false;
+			$('#ou-tree-search').keyup(function() {
+				if (to) {
+					clearTimeout(to);
+				}
+
+				to = setTimeout(function() {
+					var v = $('#ou-tree-search').val();
+
+					$('#ou-tree').jstree(true).search(v);
+				}, 400);
+			});
+
+			if( currentlyEditingChartId == null ) {
+				$('#editDiagramId').val(0);
+				$('#editDiagramName').val('');
+				$('#editDiagramDepthLimit').val(0);
+				$('#editDiagramVerticalStart').val(0);
+				$('#editDiagramInheritEnabled').prop("checked", false);
+				$('#editDiagramLeaderEnabled').prop("checked", false);
+				$('#editDiagramHideInheritedManagers').prop("checked", false);
+				$("#hideInheritedManagersGroup").hide();
+				editor.getDoc().setValue(defaultStyle);
+				$('#editDiagramModal').modal("show");
+			}
+			else {
+				$.ajax({
+					url: restUrl + '/' + currentlyEditingChartId,
+					headers: {
+						'X-CSRF-TOKEN': token
+					},
+					type: 'get',
+					success: function(data, textStatus, jQxhr) {
+						$('#editDiagramId').val(data.id);
+						$('#editDiagramName').val(data.name);
+						$('#editDiagramDepthLimit').val(data.depthLimitValue);
+						$('#editDiagramVerticalStart').val(data.verticalStartValue);
+						$('#editDiagramInheritEnabled').prop("checked", data.inheritEnabled);
+						$('#editDiagramLeaderEnabled').prop("checked", data.leaderEnabled);
+						$("#editDiagramHideInheritedManagers").prop("checked", data.hideInheritedManagers);
+
+						if (data.leaderEnabled) {
+							$("#hideInheritedManagersGroup").show();
+						} else {
+							$("#hideInheritedManagersGroup").hide();
+							$('#editDiagramHideInheritedManagers').prop("checked", false);
+						}
+						editor.getDoc().setValue(data.style);
+						$('#ou-tree').jstree("deselect_all", true);
+
+						$('#ou-tree')
+								.on('refresh.jstree', function () {
+									$('#ou-tree').jstree('select_node', data.orgUnits);
+
+									var selectedOUs = $('#ou-tree').jstree('get_selected', true);
+									$("#orgUnits").empty();
+									$("#fakeOrgUnits").empty();
+									for (var i = 0; i < selectedOUs.length; i++) {
+										$("#orgUnits").append('<option value="' + selectedOUs[i].id + '" selected="selected">' + selectedOUs[i].text + '</option>');
+										$("#fakeOrgUnits").append('<option>' + selectedOUs[i].text + '</option>');
+									}
+
+									$(this).off('refresh.jstree');
+								})
+								.jstree(true) ? $('#ou-tree').jstree(true).refresh() : $('#ou-tree').jstree();
+						$('#editDiagramModal').modal("show");
+					}
+				});
+			}
+		};
+
+		function onSelectChange() {
+			getOrgUnits();
+		}
+
+		function chooseOU() {
+			$('#modal-ou').modal('show');
+		}
+
+		$('#modal-ou').on('shown.bs.modal', function () {
+			$('#ou-tree-search').focus();
+		});
+
+		function saveOUs() {
+			var codes = $('#ou-tree').jstree('get_selected',true);
+			$("#orgUnits").empty();
+			$("#fakeOrgUnits").empty();
+			for(var i=0; i < codes.length; i++){
+				$("#orgUnits").append('<option value=\"'+codes[i].id+'\" selected="selected">'+codes[i].text+"</option>");
+				$("#fakeOrgUnits").append('<option>'+codes[i].text+"</option>");
+			}
+			$('#modal-ou').modal('hide');
+		}
+
+		// END Select OrgUnits
+		
+		/*]]>*/
+	</script>
+</body>
+</html>
