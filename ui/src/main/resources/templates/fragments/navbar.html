@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html>
+<body>
+	<header th:fragment="navbar-header" class="topnavbar-wrapper">
+		<nav role="navigation" class="navbar topnavbar">
+			<div class="navbar-header">
+				<a th:href="@{/}" class="navbar-brand">
+					&nbsp;
+				</a>
+			</div>
+
+			<div class="nav-wrapper">
+				<ul class="nav navbar-nav" sec:authorize="isAuthenticated()">
+					<li>
+						<a href="#" data-toggle-state="aside-collapsed" class="hidden-xs"> <em class="fa fa-navicon"></em></a>
+					</li>
+					
+					<li sec:authorize="hasRole('ROLE_USER_READ')" th:class="${subpage == 'phonebook'} ? 'bold' : ''">
+						<a th:href="@{/ui/person}">
+							<em class="fa fa-fw fa-users"></em>
+							<span th:text="#{html.navbar.sub.phonebook}"></span>
+						</a>
+					</li>
+
+					<li sec:authorize="hasRole('ROLE_MODULE_TELEPHONY') and hasRole('ROLE_USER_TELEPHONY')" th:class="${subpage == 'telephony'} ? 'bold' : ''">
+						<a th:href="@{/ui/telephony/list}">
+							<em class="fa fa-fw fa-phone"></em>
+							<span th:text="#{html.navbar.sub.telephony}"></span>
+						</a>
+					</li>
+					
+					<li sec:authorize="hasRole('ROLE_MODULE_SMS_GATEWAY') and hasRole('ROLE_USER_SMS')" th:class="${subpage == 'sms'} ? 'bold' : ''">
+						<a th:href="@{/ui/sms/message}">
+							<em class="fa fa-fw fa-commenting"></em>
+							<span th:text="#{html.navbar.sub.sms}"></span>
+						</a>
+					</li>
+
+					<li sec:authorize="hasRole('ROLE_USER_READ') or hasRole('ROLE_MANAGER')" th:class="${subpage == 'report'} ? 'bold' : ''">
+						<a th:href="${#authorization.expression('hasRole(''ROLE_MANAGER'')')} ? @{/ui/account/order/approve} : @{/ui/report/reports}">
+							<em class="fa fa-fw fa-book"></em>
+							<span th:text="#{html.navbar.report}"></span>
+							<span class="badge badge-alert" th:text="${session.SESSION_NOTIFICATION_COUNT}" th:unless="${session == null || session.SESSION_NOTIFICATION_COUNT == 0}"></span>
+						</a>
+					</li>
+
+					<li sec:authorize="hasRole('ROLE_USER_ADMIN')" th:class="${subpage == 'admin'} ? 'bold' : ''">
+						<a th:href="@{/ui/client/list}">
+							<em class="fa fa-fw fa-cogs"></em>
+							<span th:text="#{html.navbar.sub.admin}"></span>
+						</a>
+					</li>
+					
+					<li sec:authorize="hasRole('ROLE_MODULE_PROFILE')" th:class="${subpage == 'profile'} ? 'bold' : ''">
+						<a th:href="@{/ui/profile}">
+							<em class="fa fa-fw fa-user"></em>
+							<span th:text="#{html.navbar.sub.profile}"></span>
+						</a>
+					</li>
+
+					<li>
+						<a target="_blank" th:href="@{/download/brugermanual.pdf}">
+							<em class="fa fa-fw fa-book"></em>
+							<span th:text="#{html.index.link.usermanual}"></span>
+						</a>
+					</li>
+
+					<li sec:authorize="hasRole('ROLE_USER_ADMIN')" th:if="${@versionService.newVersionExists()}">
+						<a th:href="@{/ui/version}" style="color: #feff4b !important;">
+							<em class="fa fa-fw fa-warning"></em>
+							<span th:text="#{html.navbar.sub.newVersion}"></span>
+						</a>
+					</li>
+					<li sec:authorize="hasRole('ROLE_USER_ADMIN')" th:unless="${@versionService.newVersionExists()}">
+						<a th:href="@{/ui/version}">
+							<em class="fa fa-fw fa-info"></em>
+							<span th:text="#{html.navbar.sub.version}"></span>
+						</a>
+					</li>
+				</ul>
+
+				<ul class="nav navbar-nav navbar-right"
+					sec:authorize="hasRole('ROLE_USER_LOS_ADMIN')"
+					th:if="${#strings.contains(#httpServletRequest.requestURI, 'orgunit') and
+							 @sofdConfiguration.getModules().getLos().isFutureOrgsEnabled() == true}">
+					<li>
+						<span class="badge" th:text="'&gt;&gt; ' + ${#dates.format(session.SESSION_FUTURE_DATE, 'dd-MM-yyyy')} + ' &lt;&lt;'"
+						th:unless="${session == null || session.SESSION_FUTURE_DATE == null}"
+						style="background-color: transparent; border: none; color: orange; width: auto; font-size: 90%; padding-top: 20px; padding-bottom: 14px;"></span>
+					</li>
+
+					<li class="nav-item">
+					 	<div class="input-group date" id="futureDatePicker">
+					 		<input id="futureDate" class="form-control" style="display: none;" />
+							<span class="input-group-addon" style="background-color: transparent; border: none; color: #ffffff; width: auto; padding-top: 20px; padding-bottom: 14px;">
+								<span class="fa fa-calendar"></span>
+							</span>
+						</div>
+					</li>
+				</ul>
+
+				<ul class="nav navbar-nav navbar-right" sec:authorize="hasRole('ROLE_USER_READ')">
+					<div class="form-group" style="width: 400px; margin-bottom: 0px; margin-top: 10px; margin-right: 10px;">
+						<div class="input-group">
+							<input class="form-control" oninput="onSearch()" id="searchBar" placeholder="Søg..."
+								   onkeydown="handleKeyNavigation(event)" onclick="triggerSearchOnClick()">
+							<span class="input-group-addon">
+               					 <span class="fa fa-search">
+								</span>
+							</span>
+						</div>
+
+						<!-- Results container -->
+						<div id="searchResults" class="list-group" style="position: absolute; width: 400px; z-index: 1000;"></div>
+					</div>
+				</ul>
+			</div>
+		</nav>
+	</header>
+
+	<aside th:fragment="navbar-aside" class="aside">
+		<div class="aside-inner">
+			<nav data-sidebar-anyclick-close="" class="sidebar">
+				<ul class="nav">
+					<!-- TODO: check for admin role instead of logged-in state? -->
+					<th:block sec:authorize="isAuthenticated()" th:if="${subpage == 'admin'}">
+						<li class="nav-heading">
+							<span th:text="#{html.navbar.clientmanagment}"></span>
+						</li>
+						
+						<li>
+							<a href="#clientsection" data-toggle="collapse">
+								<em class="fa fa-unlock-alt"></em>
+								<span th:text="#{html.navbar.client}"></span>
+							</a>
+							
+							<ul id="clientsection" class="nav sidebar-subnav collapse">
+								<li class="sidebar-subnav-header"></li>
+								<li th:class="${page == 'clients.list'} ? 'active' : ''">
+									<a th:href="@{/ui/client/list}">
+										<span th:text="#{html.navbar.client.list}"></span>
+									</a>
+								</li>
+								<li th:class="${page == 'clients.new'} ? 'active' : ''">
+									<a th:href="@{/ui/client/new}">
+										<span th:text="#{html.navbar.client.new}"></span>
+									</a>
+								</li>
+							</ul>
+						</li>
+						
+						<li th:class="${page == 'sofdaccounts'} ? 'active' : ''" th:if="${@sofdConfiguration.getModules().getLocalLogin().isEnabled() == true}">
+							<a th:href="@{/ui/sofdaccounts}">
+								<em class="fa fa-address-card"></em>
+								<span th:text="#{html.navbar.sofdaccounts}"></span>
+							</a>
+						</li>
+
+						<th:block>
+							<li class="nav-heading">
+								<span th:text="#{html.navbar.templates}"></span>
+							</li>
+	
+							<li th:class="${page == 'mailtemplates'} ? 'active' : ''">
+								<a th:href="@{/ui/admin/mailtemplates}">
+									<em class="fa fa-envelope"></em>
+									<span th:text="#{html.navbar.email.template}"></span>
+								</a>
+							</li>
+						</th:block>
+
+						<th:block>
+							<li class="nav-heading">
+								<span th:text="#{html.navbar.cleanup.heading}"></span>
+							</li>
+
+							<li th:class="${page == 'persondeleteperiod'} ? 'active' : ''">
+								<a th:href="@{/ui/admin/cleanup/persondeleteperiod}">
+									<em class="fa fa-clock-o"></em>
+									<span th:text="#{html.navbar.cleanup.persondeleteperiod}"></span>
+								</a>
+							</li>
+
+						</th:block>
+
+						<th:block th:if="${@sofdConfiguration.getIntegrations().getOpus().isEnableFiltering() == true or
+										   @sofdConfiguration.getIntegrations().getOpus().isEnableAutoAffiliationConfiguration() == true}">
+							<li class="nav-heading">
+								<span th:text="#{html.navbar.opusfilter.heading}"></span>
+							</li>
+
+							<li th:class="${page == 'opusfilter'} ? 'active' : ''" th:if="${@sofdConfiguration.getIntegrations().getOpus().isEnableFiltering() == true}">
+								<a th:href="@{/ui/admin/opusfilter}">
+									<em class="fa fa-fw fa-cog"></em>
+									<span th:text="#{html.navbar.opusfilter}"></span>
+								</a>
+							</li>
+
+							<li th:class="${page == 'opusautoaffiliation'} ? 'active' : ''" th:if="${@sofdConfiguration.getIntegrations().getOpus().isEnableAutoAffiliationConfiguration() == true}">
+								<a th:href="@{/ui/admin/opusautoaff}">
+									<em class="fa fa-fw fa-cog"></em>
+									<span th:text="#{html.navbar.opusautoaffiliation}"></span>
+								</a>
+							</li>
+
+						</th:block>
+
+						<th:block th:if="${@sofdConfiguration.getModules().getChart().isEnabled() == true}">
+							<li class="nav-heading">
+								<span th:text="#{html.navbar.organisationsdiagram.heading}"></span>
+							</li>
+
+							<li th:class="${page == 'organisationsdiagram'} ? 'active' : ''">
+								<a th:href="@{/ui/admin/chart/list}">
+									<em class="fa fa-sitemap"></em>
+									<span th:text="#{html.navbar.organisationsdiagram.list}"></span>
+								</a>
+							</li>
+							
+
+						</th:block>
+
+						<th:block>
+							<li class="nav-heading">
+								<span th:text="#{html.navbar.notification.heading}"></span>
+							</li>
+
+							<li th:class="${page == 'notificationsettings'} ? 'active' : ''">
+								<a th:href="@{/ui/admin/notifications/settings}">
+									<em class="fa fa-exclamation"></em>
+									<span th:text="#{html.navbar.notification.settings}"></span>
+								</a>
+							</li>
+							
+
+						</th:block>
+						
+						<th:block sec:authorize="hasRole('ROLE_USER_ADMIN')" th:if="${@sofdConfiguration.getModules().getFunctionHierarchy().isEnabled() == true}">
+							<li class="nav-heading">
+								<span th:text="#{html.navbar.functionHierarchy.heading}"></span>
+							</li>
+
+							<li th:class="${page == 'functions'} ? 'active' : ''">
+								<a th:href="@{/ui/admin/functionhierarchy/functions}">
+									<em class="fa fa-sitemap"></em>
+									<span th:text="#{html.navbar.functionHierarchy.functions}"></span>
+								</a>
+							</li>
+							
+							<li th:class="${page == 'facets'} ? 'active' : ''">
+								<a th:href="@{/ui/admin/functionhierarchy/facets}">
+									<em class="fa fa-puzzle-piece"></em>
+									<span th:text="#{html.navbar.functionHierarchy.facets}"></span>
+								</a>
+							</li>
+
+						</th:block>
+
+						<th:block>
+							<li class="nav-heading">
+								<span th:text="#{html.navbar.classification}"></span>
+							</li>
+
+							<li th:if="${@sofdConfiguration.getModules().getLos().isAltOrgsEnabled() == true}" th:class="${page == 'organisations'} ? 'active' : ''">
+								<a th:href="@{/ui/organisation}">
+									<em class="fa fa-sitemap"></em>
+									<span th:text="#{html.navbar.organisation}"></span>
+								</a>
+							</li>
+
+							<li th:class="${page == 'professions'} ? 'active' : ''">
+								<a th:href="@{/ui/admin/professions}">
+									<em class="fa fa-briefcase"></em>
+									<span th:text="#{html.navbar.professions}"></span>
+								</a>
+							</li>
+
+							<li th:class="${page == 'substituteContext'} ? 'active' : ''">
+								<a th:href="@{/ui/substituteContext}">
+									<em class="fa fa-users"></em>
+									<span th:text="#{html.navbar.substituteContext}"></span>
+								</a>
+							</li>
+
+							<li sec:authorize="hasRole('ROLE_MODULE_TELEPHONY')" th:class="${page == 'functionType'} ? 'active' : ''">
+								<a th:href="@{/ui/functiontype}">
+									<em class="fa fa-puzzle-piece"></em>
+									<span th:text="#{html.navbar.functiontype}"></span>
+								</a>
+							</li>
+
+							<li th:class="${page == 'usertype'} ? 'active' : ''">
+								<a th:href="@{/ui/usertype}">
+									<em class="fa fa-user"></em>
+									<span th:text="#{html.navbar.usertypes}"></span>
+								</a>
+							</li>
+							
+							<li th:class="${page == 'orgunittype'} ? 'active' : ''">
+								<a th:href="@{/ui/orgunittypes}">
+									<em class="fa fa-users"></em>
+									<span th:text="#{html.navbar.orgunittypes}"></span>
+								</a>
+							</li>
+
+							<li sec:authorize="hasRole('ROLE_MODULE_ACCOUNT_CREATION')" th:class="${page == 'badwords'} ? 'active' : ''">
+								<a th:href="@{/ui/badwords}">
+									<em class="fa fa-ban"></em>
+									<span th:text="#{html.navbar.badwords}"></span>
+								</a>
+							</li>
+
+							<li th:class="${page == 'tags'} ? 'active' : ''">
+								<a th:href="@{/ui/tags}">
+									<em class="fa fa-tag"></em>
+									<span th:text="#{html.navbar.tags}"></span>
+								</a>
+							</li>
+
+							<li sec:authorize="hasRole('ROLE_USER_ADMIN')" th:if="${@sofdConfiguration.getModules().getStudents().isEnabled() == true}" th:class="${page == 'institutions'} ? 'active' : ''">
+								<a th:href="@{/ui/institutions}">
+									<em class="fa fa-university"></em>
+									<span th:text="#{html.navbar.institutions}"></span>
+								</a>
+							</li>
+						</th:block>
+						
+						<th:block>
+							<li class="nav-heading">
+								<span th:text="#{html.navbar.features}"></span>
+							</li>
+
+							<li th:class="${page == 'features'} ? 'active' : ''">
+								<a th:href="@{/ui/admin/featuredocumentation}">
+									<em class="fa fa-cogs"></em>
+									<span th:text="#{html.navbar.features}"></span>
+								</a>
+							</li>
+						</th:block>
+					</th:block>
+
+					<th:block sec:authorize="isAuthenticated()" th:if="${subpage == 'phonebook'}">
+						<li class="nav-heading">
+							<span th:text="#{html.navbar.phonebook}"></span>
+						</li>
+
+						<li th:class="${page == 'orgunits'} ? 'active' : ''">
+							<a th:href="@{/ui/orgunit}">
+								<em class="fa fa-users"></em>
+								<span th:text="#{html.navbar.orgunits}"></span>
+							</a>
+						</li>
+
+						<li th:class="${page == 'futureChanges'} ? 'active' : ''"
+							sec:authorize="hasRole('ROLE_USER_LOS_ADMIN')"
+							th:if="${@sofdConfiguration.getModules().getLos().isFutureOrgsEnabled() == true}">
+
+							<a th:href="@{/ui/changes/orgunit}">
+								<em class="fa fa-fast-forward"></em>
+								<span th:text="#{html.navbar.future.changes}"></span>
+							</a>
+						</li>
+						
+						<li th:class="${page == 'persons'} ? 'active' : ''">
+							<a th:href="@{/ui/person}">
+								<em class="fa fa-user"></em>
+								<span th:text="#{html.navbar.persons}"></span>
+							</a>
+						</li>
+
+						<li th:class="${page == 'contactPlaces'} ? 'active' : ''" sec:authorize="hasRole('ROLE_USER_EDIT')" th:if="${@sofdConfiguration.getModules().getContactPlaces().isEnabled() == true}">
+							<a th:href="@{/ui/contactplaces}">
+								<em class="fa fa-map-marker"></em>
+								<span th:text="#{html.navbar.contactPlaces}"></span>
+							</a>
+						</li>
+
+						<li th:class="${page == 'students'} ? 'active' : ''" th:if="${@sofdConfiguration.getModules().getStudents().isEnabled() == true}">
+							<a th:href="@{/ui/student}">
+								<em class="fa fa-graduation-cap"></em>
+								<span th:text="#{html.navbar.students}"></span>
+							</a>
+						</li>
+					</th:block>
+
+					<th:block sec:authorize="isAuthenticated()" th:if="${subpage == 'telephony'}">
+						<li class="nav-heading">
+							<span th:text="#{html.navbar.telephony}"></span>
+						</li>
+
+						<li th:class="${page == 'telephony.list'} ? 'active' : ''">
+							<a th:href="@{/ui/telephony/list}">
+								<em class="fa fa-phone"></em>
+								<span th:text="#{html.navbar.telephony.list}"></span>
+							</a>
+						</li>
+
+						<li th:class="${page == 'telephony.history'} ? 'active' : ''">
+							<a th:href="@{/ui/telephony/history}">
+								<em class="fa fa-clock-o"></em>
+								<span th:text="#{html.navbar.telephony.history}"></span>
+							</a>
+						</li>
+						
+						<li>
+							<a href="#telephonyrapports" data-toggle="collapse">
+								<em class="fa fa-book"></em>
+								<span th:text="#{html.navbar.telephony.report}"></span>
+							</a>
+							
+							<ul id="telephonyrapports" class="nav sidebar-subnav collapse">
+								<li class="sidebar-subnav-header"></li>
+								<li th:class="${page == 'telephony.report.stoppedEmployees'} ? 'active' : ''">
+									<a th:href="@{/ui/telephony/report/stoppedEmployees}">
+										<span th:text="#{html.navbar.telephony.report.stoppedEmployees}"></span>
+									</a>
+								</li>
+								<li th:class="${page == 'telephony.report.taxed.employees'} ? 'active' : ''">
+									<a th:href="@{/ui/telephony/report/taxedEmployees}">
+										<span th:text="#{html.navbar.telephony.report.taxedEmployees}"></span>
+									</a>
+								</li>
+							</ul>
+						</li>
+					</th:block>
+
+					<th:block sec:authorize="isAuthenticated()" th:if="${subpage == 'report'}">
+						<th:block sec:authorize="hasRole('ROLE_USER_READ')">
+							<li class="nav-heading">
+								<span th:text="#{html.navbar.report}"></span>
+							</li>
+						</th:block>
+
+						<th:block sec:authorize="hasRole('ROLE_USER_READ')">
+							<li th:class="${page == 'reports'} ? 'active' : ''">
+								<a th:href="@{/ui/report/reports}">
+									<em class="fa fa-book"></em>
+									<span th:text="#{html.navbar.report.reports}"></span>
+								</a>
+							</li>
+						</th:block>
+
+						<th:block sec:authorize="hasRole('ROLE_USER_EDIT')">
+							<li th:class="${page == 'notifications'} ? 'active' : ''">
+								<a th:href="@{/ui/report/notifications}">
+									<em class="fa fa-tasks"></em>
+									<span th:text="#{html.navbar.report.notifications}"></span>
+									<span class="badge badge-alert" th:text="${session.SESSION_NOTIFICATION_COUNT}" th:unless="${session == null || session.SESSION_NOTIFICATION_COUNT == 0}"></span>
+								</a>
+							</li>
+						</th:block>
+
+						<th:block sec:authorize="hasRole('ROLE_USER_READ')">
+							<li th:class="${page == 'managerSubstitutes'} ? 'active' : ''">
+								<a th:href="@{/ui/report/managers}">
+									<em class="fa fa-users"></em>
+									<span th:text="#{html.navbar.report.managers}"></span>
+								</a>
+							</li>
+						</th:block>
+
+						<th:block sec:authorize="hasRole('ROLE_USER_READ')">
+							<li th:class="${page == 'users'} ? 'active' : ''">
+								<a th:href="@{/ui/report/users}">
+									<em class="fa fa-users"></em>
+									<span th:text="#{html.navbar.report.users}"></span>
+								</a>
+							</li>
+						</th:block>
+
+						<th:block sec:authorize="hasRole('ROLE_USER_READ')">
+							<li th:class="${page == 'emailqueue'} ? 'active' : ''">
+								<a th:href="@{/ui/report/emailqueue}">
+									<em class="fa fa-envelope"></em>
+									<span th:text="#{html.navbar.report.emailqueue}"></span>
+								</a>
+							</li>
+						</th:block>
+						
+						<th:block sec:authorize="hasRole('ROLE_MODULE_ACCOUNT_CREATION') and (hasRole('ROLE_USER_EDIT') or hasRole('ROLE_MANAGER'))">
+							<li class="nav-heading">
+								<span th:text="#{html.navbar.accountorders}"></span>
+							</li>
+
+							<th:block th:if="${@sofdConfiguration.getModules().getAccountCreation().isAccountOrderApprove() == true}">
+							<li sec:authorize="hasRole('ROLE_MANAGER') or hasRole('ROLE_USER_EDIT')" th:class="${page == 'pendingapproval'} ? 'active' : ''">
+								<a th:href="@{/ui/account/order/approve}">
+									<em class="fa fa-table"></em>
+									<span th:text="#{html.navbar.report.approvependingorders}"></span>
+								</a>
+							</li>
+
+							<li sec:authorize="hasRole('ROLE_USER_EDIT')" th:class="${page == 'approvallog'} ? 'active' : ''">
+								<a th:href="@{/ui/report/accountorderapprovals}">
+									<em class="fa fa-recycle"></em>
+									<span th:text="#{html.navbar.accountorders.approvals}"></span>
+								</a>
+							</li>
+							</th:block>
+	
+							<li sec:authorize="hasRole('ROLE_USER_EDIT')" th:class="${page == 'accountcreation'} ? 'active' : ''">
+								<a th:href="@{/ui/report/accountorders}">
+									<em class="fa fa-recycle"></em>
+									<span th:text="#{html.navbar.accountorders.list}"></span>
+								</a>
+							</li>
+						</th:block>
+
+						<th:block sec:authorize="hasRole('ROLE_USER_READ')">
+							<li class="nav-heading">
+								<span th:text="#{html.navbar.auditlog}"></span>
+							</li>
+						</th:block>
+
+						<th:block sec:authorize="hasRole('ROLE_USER_READ')">
+							<li th:class="${page == 'auditlog'} ? 'active' : ''">
+								<a th:href="@{/ui/auditlogs}">
+									<em class="fa fa-table"></em>
+									<span th:text="#{html.navbar.auditlog}"></span>
+								</a>
+							</li>
+						</th:block>
+					</th:block>
+
+					<th:block sec:authorize="isAuthenticated()" th:if="${subpage == 'sms'}">
+						<th:block>
+							<li class="nav-heading">
+								<span th:text="#{html.navbar.sms.message}"></span>
+							</li>
+
+							<li th:class="${page == 'sms.message'} ? 'active' : ''">
+								<a th:href="@{/ui/sms/message}">
+									<em class="fa fa-paper-plane"></em>
+									<span th:text="#{html.navbar.sms.message.send}"></span>
+								</a>
+							</li>
+
+							<li th:class="${page == 'template.list'} ? 'active' : ''">
+								<a th:href="@{/ui/template/list}">
+									<em class="fa fa-list"></em>
+									<span th:text="#{html.navbar.template.list}"></span>
+								</a>
+							</li>
+
+							<li th:class="${page == 'sms.log'} ? 'active' : ''">
+								<a th:href="@{/ui/sms/log}">
+									<em class="fa fa-book "></em>
+									<span th:text="#{html.navbar.sms.log}"></span>
+								</a>
+							</li>
+						</th:block>
+						<th:block th:if="${@sofdConfiguration.getModules().getSmsGateway().isPwdReminderEnabled() == true}">
+							<li class="nav-heading">
+								<span th:text="#{html.navbar.rulebased-reminders}"></span>
+							</li>						
+							<li>
+								<ul class="nav sidebar-subnav">
+									<li class="sidebar-subnav-header"></li>
+	
+									<li th:class="${page == 'sms.pwdreminders'} ? 'active' : ''">
+										<a th:href="@{/ui/sms/pwdreminders}">
+											<em class="fa fa-bell-o"></em>
+											<span th:text="#{html.navbar.rulebased-reminders.pwdreminder}"></span>
+										</a>
+									</li>
+									<th:block th:if="${@sofdConfiguration.getModules().getSmsGateway().isSmsEnabled() == true}">
+										<li th:class="${page == 'sms.pwdlocked'} ? 'active' : ''">
+											<a th:href="@{/ui/sms/pwdlocked}">
+												<em class="fa fa-bell-o"></em>
+												<span th:text="#{html.navbar.rulebased-reminders.pwdlocked}"></span>
+											</a>
+										</li>
+									</th:block>
+								</ul>
+							</li>
+						</th:block>
+					</th:block>
+
+					<li class="nav-heading">
+						<span th:text="#{html.navbar.actions}"></span>
+					</li>
+					
+					<li sec:authorize="!isAuthenticated()">
+						<a th:href="@{/saml/SSO}">
+							<em class="fa fa-sign-in"></em>
+							<span th:text="#{html.navbar.login}"></span>
+						</a>
+					</li>
+					
+					<li sec:authorize="!isAuthenticated()" th:if="${@sofdConfiguration.getModules().getLocalLogin().isEnabled() == true}">
+						<a th:href="@{/login}">
+							<em class="fa fa-sign-in"></em>
+							<span th:text="#{html.navbar.locallogin}"></span>
+						</a>
+					</li>
+					
+					<li sec:authorize="isAuthenticated()">
+						<a th:href="@{/saml/SingleLogout}">
+							<em class="fa fa-sign-out"></em>
+							<span th:text="#{html.navbar.logout}"></span>
+						</a>
+					</li>
+				</ul>
+			</nav>
+		</div>
+	</aside>
+</body>
+</html>

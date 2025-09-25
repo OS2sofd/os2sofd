@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'sms')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'sms.message', subpage = 'sms')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.page.sms.message.title}"></h3>
+
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<div class="row">
+							<div class="col-sm-12">
+								<form class="form-horizontal" id="search-form" method="post" th:object="${searchForm}" th:action="@{/ui/sms/filter}">
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.page.sms.search.channel}"></label>
+										<div class="col-sm-8">
+											<select th:field="*{channel}" class="form-control m-b">
+												<option th:each="option : ${T(dk.digitalidentity.sofd.controller.mvc.dto.enums.SMSChannel).values()}"
+														th:if="!${option.smsModuleRequired} or ${@sofdConfiguration.getModules().getSmsGateway().isSmsEnabled()}"
+														th:text="${option.title}"
+														th:value="${option}">
+											</select>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.page.sms.search.orgunits}"></label>
+										<div class="col-sm-8">
+											<select th:field="*{orgUnits}" multiple="multiple" class="form-control hidden"></select>
+											<select id="fakeOrgUnits" multiple="multiple" class="form-control" style="resize:vertical;"></select>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label"></label>
+										<div class="col-sm-8">
+											<button type="button" onclick="chooseOU()" class="btn btn-primary" th:text="#{html.page.sms.search.hiearchy}"></button>
+											<button type="button" onclick="chooseOUv2()" class="btn btn-primary" th:text="#{html.page.sms.search.address}"></button>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.page.sms.search.itsystems}"></label>
+										<div class="col-sm-8">
+											<select th:field="*{itSystems}" class="selectpicker form-control" multiple="multiple" data-lang="da_DK" title="Ingen it-systemer er valgt">
+												<option th:each="itSystem : ${allItSystems}" th:value="${itSystem.identifier}" th:text="${itSystem.name}">
+												</option>
+											</select>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.page.sms.search.function}"></label>
+										<div class="col-sm-8">
+											<select th:field="*{function}" class="selectpicker form-control">
+												<option value="NONE">--- vælg en tillidspost ---</option>
+												<option value="LEDER">Ledere</option>
+												<option value="TR">Tillidsrepræsentanter</option>
+												<option value="SR">Arbejdsmiljørepræsentanter</option>
+											</select>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.page.sms.search.includeOrgUnits}"></label>
+
+										<div class="col-sm-8">
+											<span class="checkbox c-checkbox" style="display: inline;">
+												<label>
+													<input name="includeOrgUnits" th:checked="*{includeOrgUnits}" type="checkbox"/>
+													<span class="fa fa-check"></span>
+												</label>
+											</span>
+										</div>
+									</div>
+
+									<div class="form-group" style="margin-bottom: 0px;">
+										<label class="col-sm-2 control-label"></label>
+										<div class="col-sm-8">
+											<label class="radio-inline">
+												<input type="radio" name="operation" value="AND" checked="checked" />
+												<span th:text="#{html.page.sms.search.and}"></span>
+											</label>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<div class="col-sm-8 col-sm-offset-2">
+											<label class="radio-inline">
+												<input type="radio" name="operation" value="OR" />
+												<span th:text="#{html.page.sms.search.or}"></span>
+											</label>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<div class="col-sm-8 col-sm-offset-2">
+											<button type="button" onclick="formSubmit()" class="btn btn-primary btn-block" th:text="#{html.page.sms.findrecipients}"></button>
+										</div>
+									</div>
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+	
+	<div class="modal fade bd-example-modal-lg" id="modal-ou" role="dialog">
+		<div class="modal-dialog modal-lg">
+
+			<!-- Modal content-->
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 th:text="#{html.page.person.new.affiliation.orgunit.choose}"></h4>
+				</div>
+
+				<div class="modal-body">
+					<input class="form-control" id="ou-tree-search" style="margin-bottom: 5px;" th:placeholder="#{html.action.search}"/>
+					<div id="ou-tree"></div>
+				</div>
+
+				<div class="modal-footer">
+					<button type="button" id="save" class="btn btn-primary" onclick="saveOUs()" th:text="#{html.control.button.save}"></button>
+					<button type="button" class="btn btn-danger" data-dismiss="modal" th:text="#{html.control.button.cancel}"></button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade bd-example-modal-lg" id="modal-ou-v2" role="dialog">
+		<div class="modal-dialog modal-lg">
+
+			<!-- Modal content-->
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 th:text="#{html.page.person.new.affiliation.orgunit.choose}"></h4>
+				</div>
+
+				<div class="modal-body">
+					<div id="ou-tree-v2"></div>
+				</div>
+
+				<div class="modal-footer">
+					<button type="button" id="save-v2" class="btn btn-primary" onclick="saveOUsV2()" th:text="#{html.control.button.save}"></button>
+					<button type="button" class="btn btn-danger" data-dismiss="modal" th:text="#{html.control.button.cancel}"></button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="modal-spinner">
+		<i class="fa fa-spinner fa-pulse fa-3x fa-fw"></i>
+		<span class="sr-only">Loading...</span>
+	</div>
+
+	<style>
+		.modal-spinner {
+			display: none;
+			position: fixed;
+			z-index: 1000;
+			top: 0;
+			left: 0;
+			height: 100%;
+			width: 100%;
+			background: rgba( 255, 255, 255, .8 ) 50% 50% no-repeat;
+		}
+
+		.modal-spinner i {
+			color: #4765a0;
+			position: fixed;
+			top:50%;
+			left:50%;
+			margin-left: -0.642857145em;
+			margin-top: -0.642857145em;
+		}
+
+		body.loading {
+			overflow: hidden;
+		}
+
+			body.loading .modal-spinner {
+				display: block;
+			}
+	</style>
+
+	<div th:replace="fragments/footer :: footer"></div>
+	<script th:replace="fragments/datatables :: datatables (paging=false)"></script>
+
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+			var allOUs = [[${allOrgUnits}]];
+			var allOUsV2 = [[${allOrgUnitsV2}]];
+		+]*/
+
+		$(document).ready(function() {
+			$('select.selectpicker').selectpicker({
+				actionsBox: true,
+				deselectAllText: "Fravælg alle",
+				selectAllText: "Vælg alle",
+				iconBase: 'fa',
+				tickIcon: 'fa-check text-success'
+			});
+
+			initJSTree('ou-tree', 'ou-tree-search', allOUs);
+			initJSTree('ou-tree-v2', 'ou-tree-search-v2', allOUsV2);
+		});
+		
+		function formSubmit() {
+			if($("#orgUnits option:selected").length == 0 && $("#itSystems option:selected").length == 0 && $("#function option:selected").val() == 'NONE') {
+				$.notify({
+					message: 'Vælg mindst ét filter'
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			}
+			else {
+				$('body').toggleClass('loading');
+				$('#search-form').submit();
+			}
+		}
+		
+		function initJSTree(id, search, data) {
+			$('#' + id).jstree({
+					"core": {
+						"data": data,
+						"themes": {
+							"icons": false
+						}
+					},
+					"search" : {
+						"show_only_matches": true,
+						"search_callback": function(str, node) {
+							return (node.text.toUpperCase().includes(str.toUpperCase()));
+						}
+					},
+					"checkbox": {cascade: "down", three_state: false},
+					"plugins" : ["search", "checkbox"]
+			});
+
+			// searching in the JSTree
+			var to = false;
+			$('#' + search).keyup(function() {
+				if (to) {
+					clearTimeout(to);
+				}
+
+				to = setTimeout(function() {
+					var v = $('#' + search).val();
+
+					$('#' + id).jstree(true).search(v);
+				}, 400);
+			});
+		};
+
+		function chooseOU() {
+			$('#modal-ou').modal('show');
+		}
+
+		function chooseOUv2() {
+			$('#modal-ou-v2').modal('show');
+		}
+
+		$('#modal-ou').on('shown.bs.modal', function () {
+			$('#ou-tree-search').focus();
+		})
+
+		$('#modal-ou-v2').on('shown.bs.modal', function () {
+			$('#ou-tree-search-v2').focus();
+		})
+		
+		function saveOUs(){
+			//update other tree
+			$('#ou-tree-v2').jstree('select_node',$('#ou-tree').jstree('get_selected',false));
+
+			var codes = $('#ou-tree').jstree('get_selected',true);
+			$("#orgUnits").empty();
+			$("#fakeOrgUnits").empty();
+			for(var i=0; i < codes.length; i++){
+				$("#orgUnits").append('<option value=\"'+codes[i].id+'\" selected="selected">'+codes[i].text+"</option>");
+				$("#fakeOrgUnits").append('<option>'+codes[i].text+"</option>");
+			}
+			$('#modal-ou').modal('hide');
+		}
+
+		function saveOUsV2(){
+			var selectedOUs = $('#ou-tree-v2').jstree('get_selected',true).filter(node => node.original.id != null);
+
+			//update other tree
+			$('#ou-tree').jstree('select_node', selectedOUs);
+
+			$("#orgUnits").empty();
+			$("#fakeOrgUnits").empty();
+			for(var i=0; i < selectedOUs.length; i++){
+				$("#orgUnits").append('<option value=\"'+selectedOUs[i].id+'\" selected="selected">'+selectedOUs[i].text+"</option>");
+				$("#fakeOrgUnits").append('<option>'+selectedOUs[i].text+"</option>");
+			}
+			$('#modal-ou-v2').modal('hide');
+		}
+
+		/*]]>*/
+	</script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<th:block th:fragment="eanTab" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<th:block th:if="${(orgUnit != null && @securityUtil.canEditOrgUnit(orgUnit.uuid)) || orgUnit == null}">
+		<div th:if="${orgUnit.master == 'SOFD'}" sec:authorize="hasRole('ROLE_USER_EDIT')">
+			<button onclick="eanService.startCreate();" class="btn btn-lg btn-primary" style="width: 200px">
+				<i class="fa fa-fw fa-pencil" aria-hidden="true"></i>
+				<span th:text="#{html.page.orgunit.view.ean.create}"></span>
+			</button>
+			<button onclick="eanService.selectPrime();" class="btn btn-lg btn-primary" style="width: 200px" th:unless="${orgUnit.inheritedEan}">
+				<i class="fa fa-fw fa-paperclip" aria-hidden="true"></i>
+				<span th:text="#{html.page.orgunit.view.ean.selectprime}"></span>
+			</button>
+		</div>
+	</th:block>
+	
+	<table id="eanTable" class="table table-striped table-hover listTable">
+		<thead>
+			<th class="col-sm-9" th:text="#{html.page.orgunit.view.ean.number}"></th>
+			<th class="col-sm-2" th:text="#{html.page.orgunit.view.ean.prime}"></th>
+			<th class="col-sm-1" sec:authorize="hasRole('ROLE_USER_EDIT')" th:text="#{html.control.operations}"></th>
+		</thead>
+	
+		<tbody>
+			<tr th:each="ean : ${orgUnit.inheritedEanList}" th:if="${orgUnit.inheritedEan}">
+				<td>
+					<span th:text="${ean.number}"></span>
+					<div class="footnote">Nedarvet</div>
+				</td>
+				<td>
+					<em th:if="${ean.prime}" class="fa fa-check"></em>
+				</td>
+				<td sec:authorize="hasRole('ROLE_USER_EDIT')" />
+			</tr>
+			
+			<tr th:each="ean : ${orgUnit.eanList}" th:unless="${orgUnit.inheritedEan}">
+				<td th:text="${ean.number}" />
+				<td>
+					<em th:if="${ean.prime}" class="fa fa-check"></em>
+				</td>
+				<td sec:authorize="hasRole('ROLE_USER_EDIT')">
+					<em th:if="${orgUnit.master == 'SOFD'}" onclick="eanService.deleteEan(this);" th:attr="data-id=${ean.id}" th:title="#{html.page.orgunit.view.ean.delete}" class="fa fa-times"></em>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+</th:block>
+
+<th:block th:fragment="eanCreateModal" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<div class="modal fade" id="modal-create-ean" role="dialog">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h4 th:text="#{html.page.orgunit.view.ean.create}"></h4>
+				</div>
+
+				<div class="modal-body">
+					<form id="newEANForm" class="form-horizontal">
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.page.orgunit.view.ean.create.number}"></label>
+							<div class="col-sm-10">
+								<input type="text" class="form-control" id="eanNumber" oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');" />
+							</div>
+						</div>
+					</form>
+				</div>
+				
+
+				<div class="modal-footer">
+					<button class="btn btn-primary" type="button" th:text="#{html.control.button.save}" onclick="eanService.create()"></button>
+					<button class="btn btn-danger" type="button" data-dismiss="modal" th:text="#{html.action.abortChanges}"></button>
+				</div>
+			</div>
+		</div>
+	</div>
+</th:block>
+
+<th:block th:fragment="eanPrimeModal" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<div class="modal fade" id="modal-prime-ean" role="dialog">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h4 th:text="#{html.page.orgunit.view.ean.prime}"></h4>
+				</div>
+
+				<div class="modal-body">
+					<form id="selectPrimeEanForm" class="form-horizontal">
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.page.orgunit.view.ean.create.number}"></label>
+							<div class="col-sm-10">
+								<div class="form-check" th:each="ean : ${orgUnit.eanList}">
+									<input class="form-check-input" type="radio" name="prime" th:id="'primeEan' + ${ean.id}" th:value="${ean.id}" th:checked="${ean.prime}">
+									<label class="form-check-label" th:for="'primeEan' + ${ean.id}" th:text="${ean.number}"></label>
+								</div>
+							</div>
+						</div>
+					</form>
+				</div>
+				
+
+				<div class="modal-footer">
+					<button class="btn btn-primary" type="button" th:text="#{html.control.button.save}" onclick="eanService.setPrime()"></button>
+					<button class="btn btn-danger" type="button" data-dismiss="modal" th:text="#{html.action.abortChanges}"></button>
+				</div>
+			</div>
+		</div>
+	</div>
+</th:block>

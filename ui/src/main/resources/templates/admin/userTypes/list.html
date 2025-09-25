@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'usertype', subpage='admin')"></aside>
+
+	<section>
+		<div class="content-wrapper">
+			<h3 th:text="#{html.page.usertype.list.title}"></h3>
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<a class="btn btn-primary btn-lg" href="#" style="width: 250px;" onclick="newUserType()">
+						<em class="fa fa-plus"></em>&nbsp;
+						<span th:text="#{html.page.usertype.list.add}"></span>
+					</a>
+				</div>
+
+				<div class="panel-body">
+					<div class="table-responsive">
+						<table sec:authorize="hasRole('ROLE_MODULE_ACCOUNT_CREATION')" id="listTable" class="table table-striped table-hover listTable">
+							<thead>
+								<tr>
+									<th class="col-md-3" th:text="#{html.entity.usertype.name}"></th>
+									<th class="col-md-1" th:text="#{html.entity.usertype.daysBeforeToCreate}"></th>
+									<th class="col-md-1" th:text="#{html.entity.usertype.daysToDeactivate}"></th>
+									<th class="col-md-1" th:text="#{html.entity.usertype.daysToDelete}"></th>
+									<th class="col-md-3" th:text="#{html.entity.usertype.dependsOn}"></th>
+									<th class="col-md-2" th:text="#{html.entity.usertype.canOrder}"></th>
+									<th class="col-md-1" th:text="#{html.control.operations}"></th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr th:each="userType : ${userTypes}">
+									<td th:text="${userType.name}"></td>
+									<td th:text="(${userType.createEnabled}) ? ${userType.daysBeforeToCreate} + ' dage' : ''"></td>
+									<td th:text="(${userType.deactivateEnabled}) ? ${userType.daysToDeactivate} + ' dage' : ''"></td>
+									<td th:text="(${userType.deleteEnabled}) ? ${userType.daysToDelete} + ' dage' : ''"></td>
+									<td th:text="${userType.dependsOn != null ? userType.dependsOn.name : ''}"></td>
+									<td>
+										<em class="fa fa-fw" th:classappend="${userType.canOrder} ? fa-check : ''"></em>
+									</td>
+									<td>
+										<a onclick="editUserType(this);" href="#"
+											th:attr="data-id=${userType.id},
+											data-name=${userType.name},
+											data-canorder=${userType.canOrder},
+											data-create=${userType.daysBeforeToCreate},
+											data-deactivate=${userType.daysToDeactivate},
+											data-delete=${userType.daysToDelete},
+											data-dependson=${userType.dependsOn != null ? userType.dependsOn.id : 0},
+											data-dependsondelay=${userType.minutesDelay},
+											data-prefix=${userType.usernamePrefix},
+											data-prefixvalue=${userType.usernamePrefixValue},
+											data-infix=${userType.usernameInfix},
+											data-infixvalue=${userType.usernameInfixValue},
+											data-suffix=${userType.usernameSuffix},
+											data-singleusermode=${userType.singleUserMode},
+											data-suffixvalue=${userType.usernameSuffixValue},
+											data-prefixexternalvalue=${userType.usernamePrefixExternalValue},
+											data-suffixexternalvalue=${userType.usernameSuffixExternalValue},
+											data-deactivateEnabled=${userType.deactivateEnabled},
+											data-deleteEnabled=${userType.deleteEnabled},
+											data-createEnabled=${userType.createEnabled},
+											data-usernameType=${userType.usernameType},
+											data-usernameTemplateString=${userType.usernameTemplateString}">
+											
+											<em class="fa fa-fw fa-pencil" th:title="#{html.mouseover.edit}"></em>
+										</a>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+						
+						<table sec:authorize="not hasRole('ROLE_MODULE_ACCOUNT_CREATION')" id="listTable" class="table table-striped table-hover listTable">
+							<thead>
+								<tr>
+									<th class="col-md-11" th:text="#{html.entity.usertype.name}"></th>
+									<th class="col-md-1" th:text="#{html.control.operations}"></th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr th:each="userType : ${userTypes}">
+									<td th:text="${userType.name}"></td>
+									<td>
+										<a onclick="editUserType(this);" href="#" th:attr="data-id=${userType.id}, data-name=${userType.name}, data-canorder=${userType.canOrder}">
+											<em class="fa fa-fw fa-pencil" th:title="#{html.mouseover.edit}"></em>
+										</a>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<!-- Modal -->
+<div id="userTypeModal" class="modal fade" role="dialog">
+	<form class="form-horizontal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 class="modal-title" th:text="#{html.page.usertype.list.modal.title}"></h4>
+				</div>
+
+				<div class="modal-body">
+					<div class="form-group">
+						<div class="col-sm-12">
+							<input th:type="hidden" id="userTypeId" value="0" class="form-control"/>
+						</div>
+					</div>
+					
+					<div class="form-group">
+						<label th:text="#{html.entity.usertype.name}" class="col-sm-4 control-label"></label>
+						<div class="col-sm-7">
+							<input id="userTypeName" class="form-control" />
+						</div>
+					</div>
+					
+					<div class="form-group">
+						<label th:text="#{html.entity.usertype.key}" class="col-sm-4 control-label"></label>
+						<div class="col-sm-7">
+							<input id="userTypeKey" class="form-control" />
+						</div>
+					</div>
+					
+					<th:block sec:authorize="hasRole('ROLE_MODULE_ACCOUNT_CREATION')">
+						<div class="form-group">
+							<label th:text="#{html.entity.usertype.canOrder}" class="col-sm-4 control-label"></label>
+							<div class="col-sm-7">
+								<div class="checkbox c-checkbox">
+									<label>
+										<input id="userTypeCanOrder" type="checkbox"/>
+										<span class="fa fa-check"></span>
+									</label>
+								</div>
+							</div>
+						</div>
+						
+						<div class="form-group">
+							<label th:text="#{html.entity.usertype.singleUser}" class="col-sm-4 control-label"></label>
+							<div class="col-sm-7">
+								<div class="checkbox c-checkbox">
+									<label>
+										<input id="userTypeSingleUser" type="checkbox"/>
+										<span class="fa fa-check"></span>
+									</label>
+								</div>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<h4 class="col-md-12" th:utext="#{html.setting.usertype.deadlines}"></h4>
+						</div>
+
+						<div class="form-group">
+							<label th:utext="#{html.setting.usertype.deadlines.activate}" class="col-sm-3 control-label"></label>
+							<div class="checkbox c-checkbox col-sm-1" style="padding-left: 25px">
+								<label>
+									<input id="createEnabled" type="checkbox" onchange="enabledChanged('create')"/>
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+							<div class="col-sm-7">
+								<input id="userTypeCreate" class="form-control" />
+							</div>
+						</div>
+						
+						<div class="form-group">
+							<label th:utext="#{html.setting.usertype.deadlines.deactivate}" class="col-sm-3 control-label"></label>
+							<div class="checkbox c-checkbox col-sm-1" style="padding-left: 25px">
+								<label>
+									<input id="deactivateEnabled" type="checkbox" onchange="enabledChanged('deactivate')"/>
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+							<div class="col-sm-7">
+								<input id="userTypeDeactivate" class="form-control" />
+							</div>
+						</div>
+						
+						<div class="form-group">
+							<label th:utext="#{html.setting.usertype.deadlines.delete}" class="col-sm-3 control-label"></label>
+							<div class="checkbox c-checkbox col-sm-1" style="padding-left: 25px">
+								<label>
+									<input id="deleteEnabled" type="checkbox" onchange="enabledChanged('delete')"/>
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+							<div class="col-sm-7">
+								<input id="userTypeDelete" class="form-control" />
+							</div>
+						</div>
+						
+						<div class="form-group">
+							<label th:utext="#{html.setting.usertype.dependsOn}" class="col-sm-4 control-label"></label>
+							<div class="col-sm-7">
+								<select id="userTypeDependsOn" class="form-control">
+									<option value="0" th:text="#{html.setting.usertype.dependsOn.none}"></option>
+									<option th:each="userType : ${userTypes}"
+											th:value="${userType.id}"
+											th:text="${userType.name}"></option>
+								</select>
+							</div>
+						</div>
+						
+						<div id="userTypeDependsOnDelayField" class="form-group">
+							<label th:utext="#{html.setting.usertype.dependsOn.delay}" class="col-sm-4 control-label"></label>
+							<div class="col-sm-7">
+								<input id="userTypeDependsOnDelay" class="form-control" />
+							</div>
+						</div>
+						
+						<div class="form-group">
+							<h4 class="col-md-4" th:text="#{html.setting.usertype.namingconvention}"></h4>
+							<div class="col-sm-7">
+								<select id="usernameType" class="form-control">
+									<option th:each="nameType : ${T(dk.digitalidentity.sofd.dao.model.enums.UsernameType).values()}"
+											th:value="${nameType}"
+											th:text="#{__${nameType.title}__}"></option>
+								</select>
+							</div>
+						</div>
+						<div class="form-group affixStrategyBox">
+							<div class="form-group">
+								<label th:utext="#{html.setting.usertype.prefix}" class="col-sm-4 control-label"></label>
+								<div class="col-sm-7">
+									<select id="prefixStrategy" class="form-control">
+										<option th:each="prefix : ${T(dk.digitalidentity.sofd.dao.model.enums.UsernamePrefixType).values()}"
+												th:value="${prefix}"
+												th:text="#{__${prefix.message}__}"></option>
+									</select>
+								</div>
+							</div>
+							
+							<div class="form-group prefixStrategyValueBlock">
+								<label th:utext="#{html.setting.usertype.prefixValue}" class="col-sm-4 control-label"></label>
+								<div class="col-sm-7">
+									<input id="prefixStrategyValue" class="form-control" />
+								</div>
+							</div>
+		
+							<div class="form-group prefixStrategyValueBlock">
+								<label th:utext="#{html.setting.usertype.prefixExternalValue}" class="col-sm-4 control-label"></label>
+								<div class="col-sm-7">
+									<input id="prefixExternalValue" class="form-control" />
+								</div>
+							</div>
+		
+							<div class="form-group">
+								<label th:utext="#{html.setting.usertype.infix}" class="col-sm-4 control-label"></label>
+								<div class="col-sm-7">
+									<select id="infixStrategy" class="form-control">
+										<option th:each="infix : ${T(dk.digitalidentity.sofd.dao.model.enums.UsernameInfixType).values()}"
+												th:value="${infix}"
+												th:text="#{__${infix.message}__}"></option>
+									</select>
+								</div>
+							</div>
+							
+							<div class="form-group" id="infixStrategyValueBlock">
+								<label th:utext="#{html.setting.usertype.infixLength}" class="col-sm-4 control-label"></label>
+								<div class="col-sm-7">
+									<input id="infixStrategyValue" class="form-control" />
+								</div>
+							</div>
+		
+							<div class="form-group" id="infixStrategyUserTypeBlock">
+								<label th:utext="#{html.setting.usertype.infixType}" class="col-sm-4 control-label"></label>
+								<div class="col-sm-7">
+									<select id="infixStrategyUserType" class="form-control">
+										<option th:each="userType : ${userTypes}"
+												th:value="${userType.id}"
+												th:text="${userType.name}"></option>
+									</select>
+								</div>
+							</div>
+		
+							<div class="form-group">
+								<label th:utext="#{html.setting.usertype.suffix}" class="col-sm-4 control-label"></label>
+								<div class="col-sm-7">
+									<select id="suffixStrategy" class="form-control">
+										<option th:each="suffix : ${T(dk.digitalidentity.sofd.dao.model.enums.UsernameSuffixType).values()}"
+												th:value="${suffix}"
+												th:text="#{__${suffix.message}__}"></option>
+									</select>
+								</div>
+							</div>
+							
+							<div class="form-group suffixStrategyValueBlock">
+								<label th:utext="#{html.setting.usertype.suffixValue}" class="col-sm-4 control-label"></label>
+								<div class="col-sm-7">
+									<input id="suffixStrategyValue" class="form-control" />
+								</div>
+							</div>
+		
+							<div class="form-group suffixStrategyValueBlock">
+								<label th:utext="#{html.setting.usertype.suffixExternalValue}" class="col-sm-4 control-label"></label>
+								<div class="col-sm-7">
+									<input id="suffixExternalValue" class="form-control" />
+								</div>
+							</div>
+						</div>
+
+						<div class="form-group usernameTemplateStringBlock">
+							<label th:utext="#{html.setting.usertype.template.name}" class="col-sm-4 control-label"></label>
+							<div class="col-sm-7">
+								<div class="input-group">
+									<input id="usernameTemplateString" class="form-control" />
+									<span class="input-group-btn">
+										<button class="btn btn-default" type="button" onclick="testTemplate()">
+											<em class="fa fa-play"></em> Test
+										</button>
+									</span>
+								</div>
+							</div>
+						</div>
+						<div class="form-group usernameTemplateStringBlock">
+                            <label class="col-sm-4 control-label">Skabelon vejledning</label>
+                            <div class="col-sm-12" style="margin-top: 10px;">
+                                <table class="table table-condensed">
+                                    <tbody>
+										<tr>
+											<td colspan="2">
+												Feltkoderne nedenfor kan kombineres til at danne brugernavne.<br/>
+												Eksempel: <code>{navnesekvens:6}{løbenummer}</code><br/>
+												Første bogstav i feltnavnet angiver om værdien skal returneres med små eller store bogstaver.
+											</td>
+										</tr>
+                                        <tr>
+                                            <td width="180"><code>{statisk:di}</code></td>
+                                            <td>Statisk angivet værdi</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>{fornavn}</code></td>
+                                            <td>Hele fornavn med små bogstaver</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>{Fornavn}</code></td>
+                                            <td>Hele fornavn med store bogstaver</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>{fornavn:3}</code></td>
+                                            <td>3 første tegn af fornavn med små bogstaver</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>{efternavn}</code></td>
+                                            <td>Hele efternavn</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>{fuldenavn}</code></td>
+                                            <td>Fulde navn. Punktum mellem navne</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>{kaldenavn}</code></td>
+                                            <td>Kaldenavn (eller fulde navn hvis ingen kaldenavn). Punktum mellem navne.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>{navnesekvens:4,5}</code></td>
+                                            <td>4 eller 5 tegn taget fra kaldenavn/fulde navn via en algoritme</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>{bogstaver:4}</code></td>
+                                            <td>4 ledige bogstaver</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>{tal:4}</code></td>
+                                            <td>4 ledige tal</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>{løbenummer}</code></td>
+                                            <td>Sikring af at unikt brugernavn kan dannes via løbenummer hvis nødvendigt</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>{dato:yymm}</code></td>
+                                            <td>Dags dato formateret via d,m og y formatparametre</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>{medarbejdernummer}</code></td>
+                                            <td>Ansættelsens medarbejdernummer såfremt det er talbaseret</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+					</th:block>
+				</div>
+
+				<div class="modal-footer">
+					<div class="col-sm-12">
+						<button class="btn btn-primary" th:text="#{html.control.button.save}" onclick="submitUserType()"></button>
+						<button class="btn btn-danger" type="button" data-dismiss="modal" th:text="#{html.action.abortChanges}"></button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</form>
+</div>
+<!-- End Modal -->
+
+<nav th:replace="fragments/footer :: footer"></nav>
+
+<script th:replace="fragments/datatables :: datatables "></script>
+
+<script th:inline="javascript">
+	/*<![CDATA[*/
+	var token = $("meta[name='_csrf']").attr("content");
+
+	/*[+
+		var editUrl = [[@{/rest/usertype/edit}]];
+		var editErrorMsg = [[#{html.page.usertype.list.modal.edit.error}]];
+		
+		var areYouSureTitle = [[#{html.entity.usertype.singleUserChange.title}]];
+		var areYouSureText = [[#{html.entity.usertype.singleUserChange.text}]];
+		var yesBtn = [[#{html.button.yes}]];
+		var noBtn = [[#{html.button.no}]];
+	+]*/
+
+	$(document).ready(function() {
+		$('#userTypeSingleUser').on('change', function() {
+			var singleUserMode = $('#userTypeSingleUser').prop("checked");
+			
+			swal({
+				html : true,
+				title : areYouSureTitle,
+				text : areYouSureText,
+				showCancelButton : true,
+				confirmButtonColor : "#4765a0",
+				confirmButtonText : yesBtn,
+				cancelButtonText : noBtn,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (!isConfirm) {
+					$('#userTypeSingleUser').prop("checked", !singleUserMode);
+				}
+			});
+		});
+
+		$('#userTypeModal').on('shown.bs.modal', function () {
+			$('#userTypeName').focus();
+		})
+
+		$('#prefixStrategy').change(function() {
+			var strategy = $('#prefixStrategy').val();
+			
+			if (strategy == 'VALUE') {
+				$(".prefixStrategyValueBlock").show();
+			}
+			else {
+				$(".prefixStrategyValueBlock").hide();
+			}
+		});
+		
+		$('#infixStrategy').change(function() {
+			var strategy = $('#infixStrategy').val();
+			
+			if (strategy == 'SAME_AS_OTHER') {
+				$("#infixStrategyUserTypeBlock").show();
+				$("#infixStrategyValueBlock").hide();
+			}
+			else if (strategy == 'RANDOM' || strategy == 'FROM_NAME' || strategy == 'NUMBER' || strategy == 'FROM_NAME_SERIAL') {
+				$("#infixStrategyUserTypeBlock").hide();
+				$("#infixStrategyValueBlock").show();
+			}
+			else {
+				$("#infixStrategyUserTypeBlock").hide();
+				$("#infixStrategyValueBlock").hide();
+			}
+		});
+		
+		$('#suffixStrategy').change(function() {
+			var strategy = $('#suffixStrategy').val();
+			
+			if (strategy == 'VALUE') {
+				$(".suffixStrategyValueBlock").show();
+			}
+			else {
+				$(".suffixStrategyValueBlock").hide();
+			}
+		});
+
+		$("#usernameType").change(function() {
+			if($("#usernameType").val() === 'AFFIXIAL') {
+				$('.affixStrategyBox').show();
+				$('.usernameTemplateStringBlock').hide();
+			}
+			else {
+				$('.affixStrategyBox').hide();
+				$('.usernameTemplateStringBlock').show();
+			}
+		});
+		
+	});
+
+	function editUserType(obj) {
+		var elem = $(obj);
+
+		var id = elem.attr('data-id');
+		var name = elem.attr('data-name');
+		var canOrder = elem.attr('data-canorder');
+		var singleUserMode = elem.attr('data-singleusermode');
+		var daysToDeactivate = elem.attr('data-deactivate');
+		var daysToDelete = elem.attr('data-delete');
+		var daysBeforeToCreate = elem.attr('data-create');
+		var dependsOn = elem.attr('data-dependson');
+		var dependsOnDelay = elem.attr('data-dependsondelay');
+		var prefix = elem.attr('data-prefix');
+		var prefixValue = elem.attr('data-prefixvalue');
+		var infix = elem.attr('data-infix');
+		var infixValue = elem.attr('data-infixvalue');
+		var suffix = elem.attr('data-suffix');
+		var suffixValue = elem.attr('data-suffixvalue');
+		var prefixExternalValue = elem.attr('data-prefixexternalvalue');
+		var suffixExternalValue = elem.attr('data-suffixexternalvalue');
+		var createEnabled = elem.attr('data-createEnabled');
+		var deleteEnabled = elem.attr('data-deleteEnabled');
+		var deactivateEnabled = elem.attr('data-deactivateEnabled');
+		var usernameType = elem.attr('data-usernameType');
+		var usernameTemplateString = elem.attr('data-usernameTemplateString');
+
+		$('#userTypeId').val(id);
+		$('#userTypeName').val(name);
+		$('#userTypeCreate').val(daysBeforeToCreate);
+		$('#userTypeDeactivate').val(daysToDeactivate);
+		$('#userTypeDelete').val(daysToDelete);
+		$('#userTypeKey').val("").parents(".form-group").hide();
+		$('#userTypeCanOrder').prop("checked", (canOrder === 'true'));
+		$('#userTypeSingleUser').prop("checked", (singleUserMode === 'true'));
+		$('#createEnabled').prop("checked", (createEnabled === 'true'));
+		$('#deleteEnabled').prop("checked", (deleteEnabled === 'true'));
+		$('#deactivateEnabled').prop("checked", (deactivateEnabled === 'true'));
+		$('#userTypeDependsOn').val(dependsOn);
+		$('#userTypeDependsOnDelay').val(dependsOnDelay);
+
+		enabledChanged("create");
+		enabledChanged("delete");
+		enabledChanged("deactivate");
+
+		$('#userTypeDependsOn option').each(function() {
+			if (this.value == id) {
+				$(this).attr("disabled", "disabled");
+			}
+			else {
+				$(this).removeAttr("disabled");
+			}
+		});
+		
+		$('#prefixStrategy').val(prefix).change();
+		$('#prefixStrategyValue').val(prefixValue);
+		$('#prefixExternalValue').val(prefixExternalValue);
+		$('#suffixStrategy').val(suffix).change();
+		$('#suffixStrategyValue').val(suffixValue);
+		$('#suffixExternalValue').val(suffixExternalValue);
+		
+		$('#infixStrategy').val(infix).change();
+		if (infix == 'SAME_AS_OTHER') {
+			$('#infixStrategyUserType option').each(function() {
+				if (this.value == id) {
+					$(this).attr("disabled", "disabled");
+				}
+				else {
+					$(this).removeAttr("disabled");
+				}
+			});
+			
+			$('#infixStrategyUserType').val(infixValue);
+		}
+		else if (infix == 'RANDOM' || infix == 'FROM_NAME' || infix == 'FROM_NAME_LONG' || infix == 'FROM_NAME_FULL' || infix == 'NUMBER' || infix == 'NAME23SERIAL' || infix == 'FROM_NAME_SERIAL') {
+			$("#infixStrategyValue").val(infixValue);
+		}
+		else {
+			$("#infixStrategyValue").val('');
+		}
+		
+		$('#usernameTemplateString').val(usernameTemplateString);
+		$('#usernameType').val(usernameType).change();
+		
+		
+		$('#userTypeModal').modal("show");
+	}
+
+	function newUserType() {
+		$('#userTypeId').val(0);
+		$('#userTypeKey').val("").parents(".form-group").show();
+		$('#userTypeName').val("");
+		$('#userTypeCreate').val("0");
+		$('#userTypeDeactivate').val("0");
+		$('#userTypeDelete').val("0");
+		$('#userTypeCanOrder').prop("checked", false);
+		$('#userTypeSingleUser').prop("checked", true);
+		$('#userTypeDependsOn').val("0");
+		$('#userTypeDependsOnDelay').val("0");
+		$('#prefixStrategy').val("NONE").change();
+		$('#prefixStrategyValue').val("");
+		$('#prefixExternalValue').val('');
+		$('#suffixStrategy').val("NONE").change();
+		$('#suffixStrategyValue').val("");
+		$('#suffixExternalValue').val('');
+		$('#infixStrategy').val("RANDOM").change();
+		$("#infixStrategyValue").val("5");
+		$('#createEnabled').prop("checked", false);
+		$('#deleteEnabled').prop("checked", false);
+		$('#deactivateEnabled').prop("checked", false);
+		$('#userTypeModal').modal("show");
+		$('#usernameType').val('AFFIXIAL').change();
+	}
+
+	function submitUserType() {
+		$('#userTypeModal').modal("hide");
+
+		var id = $('#userTypeId').val();
+		var name = $('#userTypeName').val();
+		var key = $('#userTypeKey').val();
+		var daysBeforeToCreate = $('#userTypeCreate').val();
+		var daysToDeactivate = $('#userTypeDeactivate').val();
+		var daysToDelete = $('#userTypeDelete').val();
+		var dependsOn = $('#userTypeDependsOn').val();
+		var dependsOnDelay = $('#userTypeDependsOnDelay').val();
+		var canOrder = $('#userTypeCanOrder').prop("checked");
+		var singleUserMode = $('#userTypeSingleUser').prop("checked");
+		var createEnabled = $('#createEnabled').prop("checked");
+		var deleteEnabled = $('#deleteEnabled').prop("checked");
+		var deactivateEnabled = $('#deactivateEnabled').prop("checked");
+
+		var prefix = $('#prefixStrategy').val();
+		var prefixValue = $('#prefixStrategyValue').val();
+		var prefixExternalValue = $('#prefixExternalValue').val();
+		var suffix = $('#suffixStrategy').val();
+		var suffixValue = $('#suffixStrategyValue').val();
+		var suffixExternalValue = $('#suffixExternalValue').val();
+		var infix = $('#infixStrategy').val();
+		var usernameTemplateString = $('#usernameTemplateString').val();
+		var usernameType = $('#usernameType').val();
+
+		var infixValue = '';
+		if (infix == 'SAME_AS_OTHER') {
+			infixValue = $('#infixStrategyUserType').val();
+		}
+		else if (infix == 'RANDOM' || infix == 'FROM_NAME' || infix == 'FROM_NAME_LONG' || infix == 'FROM_NAME_FULL' || infix == 'NUMBER' || infix == 'NAME23SERIAL' || infix == 'FROM_NAME_SERIAL') {
+			infixValue = $("#infixStrategyValue").val();
+		}
+
+		$.ajax({
+			url: editUrl,
+			headers: {
+				'X-CSRF-TOKEN': token
+			},
+			type: 'post',
+			contentType: 'application/json',
+			data: JSON.stringify({
+				'id': id,
+				'name': name,
+				'key': key,
+				'canOrder': canOrder,
+				'singleUserMode': singleUserMode,
+				'daysBeforeToCreate' : daysBeforeToCreate,
+				'daysToDeactivate': daysToDeactivate,
+				'daysToDelete': daysToDelete,
+				'dependsOn': dependsOn,
+				'dependsOnDelay': dependsOnDelay,
+				'prefix': prefix,
+				'prefixValue': prefixValue,
+				'prefixExternalValue': prefixExternalValue,
+				'infix': infix,
+				'infixValue': infixValue,
+				'suffix': suffix,
+				'suffixValue': suffixValue,
+				'suffixExternalValue': suffixExternalValue,
+				'createEnabled': createEnabled,
+				'deactivateEnabled': deactivateEnabled,
+				'deleteEnabled': deleteEnabled,
+				'usernameTemplateString': usernameTemplateString,
+				'usernameType': usernameType
+			}),
+			success: function(data, textStatus, jQxhr) {
+				location.reload(true);
+			},
+			error: function(jqXhr, textStatus, errorThrown) {
+				$.notify({
+					message: editErrorMsg
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			}
+		});
+	}
+
+	function enabledChanged(checkBox) {
+		var value = $('#' + checkBox + "Enabled").prop("checked");
+		let firstLetter = checkBox.charAt(0);
+		let firstCap = firstLetter.toUpperCase();
+		let remaining = checkBox.slice(1);
+
+		var fixedWord = firstCap + remaining;
+
+		if (!value) {
+			$('#userType' + fixedWord).prop("readonly", true);
+		}
+		else {
+			$('#userType' + fixedWord).prop("readonly", false);
+		}
+	}
+
+	function testTemplate() {
+		var template = $('#usernameTemplateString').val();
+
+		if (!template) {
+			$.notify({
+				message: 'Indtast en skabelon først'
+			}, {
+				status: 'warning',
+				autoHideDelay: 4000
+			});
+			return;
+		}
+
+		$.ajax({
+			url: '/rest/usertype/testTemplate?template=' + encodeURIComponent(template),
+			headers: {
+				'X-CSRF-TOKEN': token
+			},
+			success: function(data) {
+				$.notify({
+					message: 'Test resultat: <br/>' + data
+				}, {
+					status: 'success',
+					autoHideDelay: 8000
+				});
+			},
+			error: function(jqXhr) {
+				$.notify({
+					message: 'Fejl ved test af skabelon: ' + (jqXhr.responseJSON ? jqXhr.responseJSON.message : 'Ukendt fejl')
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			}
+		});
+	}
+
+
+	/*]]>*/
+</script>
+</body>
+</html>

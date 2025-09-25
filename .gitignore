@@ -1,0 +1,28 @@
+target/
+ui/config/custom.properties
+ui/config/application.development.properties
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+/ui/config/*.jar
+/ui/config/application.development.properties

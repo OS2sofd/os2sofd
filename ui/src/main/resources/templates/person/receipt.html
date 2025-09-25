@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'person.new', subpage = 'phonebook')"></aside>
+ 
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.person.receipt.headline}"></h3>
+
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<div class="row">
+							<div class="col-lg-12">
+								<fieldset>
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.person.receipt.name}"></label>
+										<div class="col-sm-10">
+											<input th:value="${name}" class="form-control" readonly="readonly"/>
+										</div>
+									</div>
+								</fieldset>
+								
+								<fieldset>
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.person.receipt.orgunitname}"></label>
+										<div class="col-sm-10">
+											<input th:value="${orgUnitName}" class="form-control" readonly="readonly"/>
+										</div>
+									</div>
+								</fieldset>
+								
+								<fieldset>
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.person.receipt.positionname}"></label>
+										<div class="col-sm-10">
+											<input th:value="${positionName}" class="form-control" readonly="readonly"/>
+										</div>
+									</div>
+								</fieldset>
+
+								<fieldset>
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.person.receipt.usertype}"></label>
+										<div class="col-sm-10">
+											<div style="padding-bottom: 20px;" th:text="#{html.person.receipt.usertype.content}"></div>
+
+											<div th:each="userType : ${userTypes}">
+												<em class="fa fa-fw" th:classappend="${userType.flagged} ? 'fa-check' : 'fa-ban'" th:style="${userType.flagged} ? 'color: green;' : 'color: red;'"></em>&nbsp;
+												<span th:text="${userType.userTypeName}"></span>
+											</div>
+										</div>
+									</div>
+								</fieldset>
+																
+								<fieldset>
+									<div class="form-group">
+										<div class="col-sm-12">
+											<a class="btn btn-lg btn-primary" th:text="#{html.button.ok}" th:href="@{/ui/person/view/} + ${uuid}"></a>
+										</div>
+									</div>
+								</fieldset>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<div th:replace="fragments/footer :: footer"></div>
+</body>
+</html>

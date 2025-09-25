@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'opusautoaffiliation', subpage = 'admin')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.page.opus.autoaffiliation.headline}"></h3>
+
+				<div class="panel panel-default" style="padding-left: 20px; padding-right: 20px;">
+					<div class="panel-heading">
+						<div class="btn-group">
+						  <a type="button" style="width: auto !important;" class="btn btn-primary btn-lg" th:href="@{/ui/admin/opusautoaff/create}">
+						    <em class="fa fa-fw fa-plus"></em>
+						    <span th:text="#{html.page.opus.autoaffiliation.button}"></span>
+						  </a>
+						</div>
+					</div>
+					
+					<div class="panel-body">
+						<div class="table-responsive">
+							<table class="table table-striped table-hover listTable">
+								<thead>
+									<tr>
+										<th class="col-md-5" th:text="#{html.entity.mapping.from}"></th>
+										<th class="col-md-6" th:text="#{html.entity.mapping.to}"></th>
+										<th class="col-md-1" th:text="#{html.control.operations}"></th>
+									</tr>
+								</thead>
+					
+								<tbody>
+									<tr th:each="mapping : ${mappings}">
+										<td th:text="${mapping.fromName}"></td>
+										<td th:text="${mapping.toName}"></td>
+										<td>
+											<a href="#" onclick="handleDelete(this);" th:attr="data-fromuuid=${mapping.fromUuid},data-touuid=${mapping.toUuid}"><em class="fa fa-fw fa-remove"></em></a>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+
+					<form id="changeForm" th:action="@{/ui/admin/opusautoaff}" method="POST">
+						<input type="hidden" id="payload" name="payload" />
+					</form>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<div th:replace="fragments/footer :: footer"></div>
+
+	<script th:replace="fragments/datatables :: datatables"></script>
+
+	<script th:inline="javascript">
+	/*<![CDATA[*/
+		/*[+
+			var mappings = [[${mappings}]];
+		+]*/
+
+		function handleDelete(s) {
+			swal({
+				html : true,
+				title : 'Slet relation',
+				text : 'Er du sikker på at du vil slette denne relation. Alle tilhørsforhold oprettet via relationen vil blive nedlagt ved næste indlæsning af OPUS filen',
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : 'Ja',
+				cancelButtonText : 'Nej',
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					var fromUuid = $(s).data('fromuuid');
+					var toUuid = $(s).data('touuid');
+					
+					var payload = '';
+					for (var i = 0; i < mappings.length; i++) {
+						if (mappings[i].fromUuid == fromUuid && mappings[i].toUuid == toUuid) {
+							continue;
+						}
+						
+						if (payload.length > 0) {
+							payload += ';';
+						}
+						
+						payload += mappings[i].fromUuid + '=' + mappings[i].toUuid; 
+					}
+					
+					$("#payload").val(payload);
+					$("#changeForm").submit();
+				}
+			});
+		}
+		/*]]>*/
+	</script>
+
+</body>
+</html>

@@ -1,0 +1,1 @@
+ALTER TABLE batch_job_execution ADD last_error_time DATETIME null;

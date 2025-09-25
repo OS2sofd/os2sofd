@@ -1,0 +1,19 @@
+<th:block th:fragment="keywordsTab" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<button class="btn btn-lg btn-primary" th:text="#{html.action.saveChanges}" onclick="saveContacts()"></button>
+	<button class="btn btn-lg btn-primary" th:text="#{html.action.abortChanges}" onclick="loadViewContactsTab()"></button>
+	<hr/>
+
+	<div class="row">
+		<label class="col-sm-2 control-label" th:text="#{html.entity.person.keyWords}"></label>
+		<div class="col-sm-10">
+			<textarea id="keywords" th:text="${keyWords}" class="md-textarea form-control" rows="7"></textarea>
+		</div>
+	</div>
+	
+	<div class="row">
+		<label class="col-sm-2 control-label" th:text="#{html.entity.person.notes}"></label>
+		<div class="col-sm-10">
+			<textarea id="notes" th:text="${notes}" class="md-textarea form-control" rows="7"></textarea>
+		</div>
+	</div>
+</th:block>

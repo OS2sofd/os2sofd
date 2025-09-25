@@ -1,0 +1,147 @@
+<th:block th:fragment="searchPnrModal" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<div class="modal fade" id="searchPnrModal" role="dialog">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-body">
+					<div class="form-horizontal">
+						<div class="form-group">
+							<div class="col-sm-1" style="width: 40px !important;">
+								<div class="checkbox c-checkbox">
+									<label>
+										<input type="checkbox" id="searchOutsideOwnCvr"/>
+										<span class="fa fa-check"></span>
+									</label>
+								</div>
+							</div>
+                            <label class="col-sm-11" style="padding-top: 9px;" th:text="#{html.page.orgunit.new.modal.search.pnr.checkbox}"></label>
+						</div>
+						<div class="form-group">
+							<div class="col-sm-12">
+								<input type="text" class="form-control" id="searchBoxCvr" autocomplete="off" th:placeholder="#{html.action.search}"/>
+								<div id="inputAddonCvr" hidden="true">
+									<span class="input-group-addon">
+										<em class="fa fa-fw fa-times" onclick="$('#searchBoxCvr').val(''); $('#dropdownResultCvr').removeClass('open'); $('#searchBoxCvr').focus(); $('#inputAddonCvr').hide();"></em>
+									</span>
+								</div>
+							</div>
+						</div>
+						<div class="form-group">
+							<div class="col-sm-12">
+								<div id="dropdownResultCvr" class="dropdown">
+							  		<ul id="searchResultDropDownMenuCvr" class="dropdown-menu" style="width: 100%; padding-left: 15px; padding-right: 15px; line-height: 25px;">
+							  		</ul>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="modal-footer">
+					<button type="button" class="btn btn-danger" th:text="#{html.action.abortChanges}" data-dismiss="modal"></button>
+				</div>
+			</div>
+		</div>
+	</div>
+</th:block>
+<th:block th:fragment="searchPnrModalScript" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+	
+			/*[+
+				var streetId = [[${streetId}]];
+				var postalCodeId = [[${postalCodeId}]];
+				var cityId = [[${cityId}]];
+				var pnrId = [[${pnrId}]];
+				var nameId = [[${nameId}]];
+				var shortNameId = [[${shortNameId}]];
+				
+				var cvrRestUrl = [[@{/rest/cvr/}]];
+			+]*/
+			
+			var searchService; 
+			$(document).ready(function() {
+				searchService = new SearchService();
+				$('#searchBoxCvr').on('input', function() {
+					searchService.executeQuery();
+				});
+			});
+			
+			function SearchService() {
+				this.executeQuery = function() {
+					$('#inputAddonCvr').show();
+					var value = $('#searchBoxCvr').val();
+					if (value.length >= 3) {					
+						var query = cvrRestUrl + "search?outside=" + $("#searchOutsideOwnCvr").prop('checked') + "&query=" + $('#searchBoxCvr').val();
+						$.ajax({
+							url: query,
+							method: "GET",
+							success: function(response) {
+								if (response == null || response.length < 1) {
+									searchService.updateDropdown(null);
+								}
+								
+								var resultSet = [];
+
+								for (var j = 0; j < response.length; j++) {
+
+									var hit = { pnr: response[j].pnr, name: response[j].pnrName };
+
+									resultSet.push(hit);
+								}
+								
+								searchService.updateDropdown(resultSet);
+							}
+						});
+					}
+					else {
+						searchService.updateDropdown(null);
+					}
+				}
+				
+				this.updateDropdown = function (resultSet) {
+					if (resultSet && resultSet.length > 0) {
+						$("#searchResultDropDownMenuCvr").empty();
+						
+						for (var i = 0; i < resultSet.length; i++) {
+							
+							var guiValue = resultSet[i].name;
+							var pnr = resultSet[i].pnr;
+							
+							$("#searchResultDropDownMenuCvr").append("<a href='#' style='color: black;' onclick=\"searchService.select('" + pnr + "')\"><li>" + guiValue + "</li></a>");
+						}
+						
+						$("#dropdownResultCvr").addClass("open");
+					}
+					else {
+						$("#dropdownResultCvr").removeClass("open");
+					}
+				}
+				
+				this.select = function(pnr) {
+					$.ajax({
+						url: cvrRestUrl + "select?pnr=" + pnr,
+						method: "GET",
+						success: function(response) {
+							$("#" + streetId).val(response.street + " " + response.number);
+							$("#" + postalCodeId).val(response.postalCode);
+							$("#" + cityId).val(response.city);
+							$("#" + pnrId).val(pnr);
+							
+							if ($("#" + nameId).val() == '') {
+								$("#" + nameId).val(response.name);
+							}
+							if($("#" + shortNameId).val() == '') {
+								$("#" + shortNameId).val(response.name);
+							}
+						}
+					});
+					
+					$('#searchBoxCvr').val('');
+					$('#inputAddonCvr').hide();
+					$("#dropdownResultCvr").removeClass("open");
+					$('#searchPnrModal').modal("hide");
+				}
+			}
+		/*]]>*/
+	</script>
+</th:block>

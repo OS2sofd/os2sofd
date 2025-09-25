@@ -1,0 +1,331 @@
+<th:block th:fragment="orgUnitsCoreEdit" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<div class="col-lg-6">
+		<fieldset>
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.sourceName}"></label>
+				<div class="col-sm-9">
+					<input th:if="${canEditAll == true}" th:field="${orgUnit.sourceName}" class="form-control masterTooltip" />
+					<input th:if="${canEditAll == false}" th:field="${orgUnit.sourceName}" class="form-control masterTooltip" th:readonly="readonly" />
+					<span class="validationMessage" id="name-validationMessage" style="color: red; display: none;"></span>
+				</div>
+			</div>
+	
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.parent}"></label>
+				<div class="col-sm-9">
+					<div class="row">
+						<th:block th:if="${canEditAll == true}">
+							<div class="col-sm-9">
+								<input id="parentName" th:value="${orgUnit.parent != null ? orgUnit.parent.name : ''}" class="form-control" readonly="readonly" />
+								<input type="hidden" id="parent" th:value="${orgUnit.parent != null ? orgUnit.parent.uuid : ''}" />
+							</div>
+							<div class="col-sm-3">
+								<button class="btn btn-primary btn-block" onclick="openChooseParentModal()" th:text="#{html.page.orgunit.new.chooseParent}"></button>
+							</div>
+						</th:block>
+						<th:block th:if="${canEditAll == false}">
+							<div class="col-sm-12">
+								<input id="parentName" th:value="${orgUnit.parent != null ? orgUnit.parent.name : ''}" class="form-control" readonly="readonly" />
+								<input type="hidden" id="parent" th:value="${orgUnit.parent != null ? orgUnit.parent.uuid : ''}" />
+							</div>
+						</th:block>
+					</div>
+				</div>
+			</div>
+	
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.shortname}"></label>
+				<div class="col-sm-9">
+					<input th:if="${canEditAll == true}" th:field="${orgUnit.shortname}" class="form-control masterTooltip" />
+					<input th:if="${canEditAll == false}" th:field="${orgUnit.shortname}" class="form-control masterTooltip" readonly="readonly" />
+					<span class="validationMessage" id="shortname-validationMessage" style="color: red; display: none;"></span>
+				</div>
+			</div>
+
+			<div class="row" th:if="${@sofdConfiguration.getIntegrations().getCvr().isEnabled() == true}">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.cvrName}"></label>
+				<div class="col-sm-9">
+					<input th:field="${orgUnit.cvrName}" class="form-control masterTooltip" readonly="readonly" />
+				</div>
+			</div>
+
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.displayName}"></label>
+				<div class="col-sm-9">
+					<input th:field="${orgUnit.displayName}" class="form-control" />
+					<span class="validationMessage" id="displayName-validationMessage" style="color: red; display: none;"></span>
+				</div>
+			</div>
+		</fieldset>
+	
+		<fieldset>
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.manager}"></label>
+				<div class="col-sm-9">
+					<input id="manager" th:value="${orgUnit.manager?.managerUuid}" class="hidden" readonly="readonly"/>
+					<th:block th:switch="${orgUnit.manager != null and orgUnit.manager.inherited eq false and @sofdConfiguration.modules.manager.editEnabled}">
+						<div th:case="${true}" class="input-group">
+							<input class="form-control"  th:value="${orgUnit.manager != null ? orgUnit.manager.name : ''}" id="search_person" onclick="return false;"/>
+							<div class="input-group-btn">
+								<button class="btn btn-warning" onclick="autoCompleteService.clearPerson()" id="clear_person"><em class="fa fa-fw fa-times"></em></button>
+							</div>
+						</div>
+						<input th:case="${false}" class="form-control"  th:value="${orgUnit.manager != null ? orgUnit.manager.name : ''}" id="search_person" th:disabled="${@sofdConfiguration.modules.manager.editEnabled eq false}" onclick="return false;"/>
+					</th:block>
+				</div>
+			</div>
+		</fieldset>
+	
+		<fieldset>
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.orgtype}"></label>
+				<div class="col-sm-9">
+					<select class="form-control" id="orgUnitType">
+						<option th:each="orgUnitType : ${orgUnitTypes}" th:value="${orgUnitType.key}" th:text="${orgUnitType.value}" th:selected="${orgUnitType.key == orgUnit.type.key}"></option>
+					</select>
+				</div>
+			</div>
+		</fieldset>
+
+		<fieldset>
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.doNotTransferToFKOrg}"></label>
+				<div class="col-sm-9 row">
+					<div class="col-sm-1 checkbox c-checkbox">
+						<label>
+							<input id="doNotTransferToFKOrgCheckbox" type="checkbox" th:checked="${orgUnit.doNotTransferToFkOrg}" onclick="return confirmDoNotTransferToFKOrgCheckbox(this);"/>
+							<span class="fa fa-check"></span>
+						</label>
+					</div>
+					<div class="col-sm-10" style="margin-top:10px;">
+						<span class="badge badge-warning" th:if="${doNotTransferInherited}" th:text="#{html.entity.orgunit.doNotTransferToFKOrgInherited}"></span>
+					</div>
+				</div>
+			</div>
+		</fieldset>
+
+	</div>
+	
+	<div class="col-lg-6">
+		<fieldset>
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.cvr}"></label>
+				<div class="col-sm-9">
+					<input th:if="${canEditAll == true}" th:field="${orgUnit.cvr}" class="form-control masterTooltip" />
+					<input th:if="${canEditAll == false}" th:field="${orgUnit.cvr}" class="form-control masterTooltip" readonly="readonly" />
+				</div>
+			</div>
+	
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.senr}"></label>
+				<div class="col-sm-9">
+					<input th:if="${canEditAll == true}" th:field="${orgUnit.senr}" class="form-control masterTooltip" />
+					<input th:if="${canEditAll == false}" th:field="${orgUnit.senr}" class="form-control masterTooltip" readonly="readonly" />
+				</div>
+			</div>
+	
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.pnr}"></label>
+				<div class="col-sm-9">
+					<div th:if="${canEditAll == true}">
+						<div th:if="${@sofdConfiguration.integrations.cvr.isEnabled()}">
+							<div class="row">
+								<div class="col-sm-9">
+									<input th:field="${orgUnit.pnr}" class="form-control masterTooltip" />
+								</div>
+								<div class="col-sm-3">
+									<button type="button" class="btn btn-primary btn-block" onclick="openSearchPnrModal()" th:text="#{html.page.orgunit.new.search.pnr}"></button>
+								</div>
+							</div>
+							<input type="hidden" id="street" />
+							<input type="hidden" id="postalCode" />
+							<input type="hidden" id="city" />
+						</div>
+						<div th:unless="${@sofdConfiguration.integrations.cvr.isEnabled()}">
+							<input th:field="${orgUnit.pnr}" class="form-control masterTooltip"/>
+						</div>
+					</div>
+					
+					<input th:if="${canEditAll == false}" th:field="${orgUnit.pnr}" class="form-control masterTooltip" readonly="readonly" />
+				</div>
+			</div>
+	
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.costbearer}"></label>
+				<div class="col-sm-9">
+					<input th:if="${canEditAll == true}" th:field="${orgUnit.costBearer}" class="form-control masterTooltip" />
+					<input th:if="${canEditAll == false}" th:field="${orgUnit.costBearer}" class="form-control masterTooltip" readonly="readonly" />
+					<span class="validationMessage" id="costBearer-validationMessage" style="color: red; display: none;"></span>
+				</div>
+			</div>
+
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.masterId}"></label>
+				<div class="col-sm-9">
+					<input th:value="${orgUnit.masterId}" class="form-control masterTooltip" readonly="readonly" />
+				</div>
+			</div>
+		</fieldset>
+	
+		<fieldset>
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.created}"></label>
+				<div class="col-sm-9">
+					<input th:value="${#dates.format(orgUnit.created, 'yyyy-MM-dd  HH:mm')}" class="form-control masterTooltip" readonly="readonly" />
+				</div>
+			</div>
+	
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.lastchanged}"></label>
+				<div class="col-sm-9">
+					<input th:value="${#dates.format(orgUnit.lastChanged, 'yyyy-MM-dd  HH:mm')}" class="form-control masterTooltip" readonly="readonly" />
+				</div>
+			</div>
+		</fieldset>
+	</div>
+	
+	<div class="hidden">
+		<button id="saveButton" class="btn btn-lg btn-primary" style="width:auto; margin-right:10px;" onclick="saveCoreChanges()">
+			<em class="fa fa-save" aria-hidden="true"></em>&nbsp;
+			<span th:text="#{html.control.button.save}"></span>
+		</button>
+		<button id="cancelButton" class="btn btn-lg btn-danger" style="width:auto" onclick="loadViewCoreFragment()">
+			<em class="fa fa-times" aria-hidden="true"></em>
+			<span th:text="#{html.control.button.cancel}"></span>
+		</button>
+	</div>
+
+	<div class="hidden">
+		<div th:replace="orgunit/fragments/chooseParentModal :: chooseParentModal"></div>
+		<div th:replace="orgunit/fragments/searchPnrModal :: searchPnrModal"></div>
+	</div>
+	<script th:replace="orgunit/fragments/orgunit_tree :: orgUnitTreeScript(configObj='ouJSTreeSelectParentConfig')"></script>
+	<script th:replace="orgunit/fragments/searchPnrModal :: searchPnrModalScript(streetId=street, postalCodeId=postalCode, cityId=city, pnrId=pnr, nameId=name, shortNameId=shortname)"></script>
+	<script th:inline="javascript" type="text/javascript">
+		/*<![CDATA[*/
+	
+			/*[+
+				var allOUs = [[${orgUnits}]];
+				var telephonyRestUrl = [[@{/rest/telephony}]];
+			
+				var selectParentTitle = [[#{html.fragment.orgunit.core.msg.selectParent.Title}]]; 
+				var selectParentText = [[#{html.fragment.orgunit.core.msg.selectParent.Text}]];
+				var selectParentButtonConfirm = [[#{html.button.yes}]];
+				var selectParentButtonCancel = [[#{html.button.no}]];
+
+				var confirmTransferToFKTitle = [[#{html.fragment.orgunit.core.msg.confirmTransferToFKTitle}]];
+				var confirmTransferToFKText = [[#{html.fragment.orgunit.core.msg.confirmTransferToFKText}]];
+				var confirmTransferToFKConfirm = [[#{html.button.yes}]];
+				var confirmTransferToFKCancel = [[#{html.button.no}]];
+			+]*/
+			
+			var autoCompleteService;
+			
+			// polyfill for IE
+			if (!String.prototype.startsWith) {
+				String.prototype.startsWith = function(searchString, position) {
+					position = position || 0;
+					return this.substr(position, searchString.length) === searchString;
+				};
+			}
+		
+			$(document).ready(function() {
+				$('#buttonsMenu button').remove();
+				$('#buttonsMenu').append($('#saveButton'));
+				$('#buttonsMenu').append($('#cancelButton'));
+				$('body').append($('#chooseParentModal'));
+				$('body').append($('#searchPnrModal'));
+				
+				autoCompleteService = new AutoCompleteService();
+				autoCompleteService.init();
+			});
+			
+			function selectParent() {
+				var node = $("#parentorgUnitTreeHierarchy").jstree("get_selected",true)[0];
+				swal({
+					html : true,
+					title : selectParentTitle,
+					text : selectParentText.replace("{0}", node.text),
+					type : "warning",
+					showCancelButton : true,
+					confirmButtonColor : "#DD6B55",
+					confirmButtonText : selectParentButtonConfirm,
+					cancelButtonText : selectParentButtonCancel,
+					closeOnConfirm : true,
+					closeOnCancel : true
+				},
+				function(isConfirm) {
+					if (isConfirm) {
+						$('#parent').val(node.id);
+						$('#parentName').val(node.text);
+					}
+					$('#chooseParentModal').modal("hide");
+				});
+			}
+
+			function openChooseParentModal(){
+				$('#chooseParentModal').modal("show");
+			}
+			
+			function openSearchPnrModal() {
+				$('#searchPnrModal').modal("show");
+			}
+
+			function confirmDoNotTransferToFKOrgCheckbox(checkbox) {
+				if(!checkbox.checked) {
+					return true;
+				}
+				swal({
+						html : true,
+						title : confirmTransferToFKTitle,
+						text : confirmTransferToFKText,
+						type : "warning",
+						showCancelButton : true,
+						confirmButtonColor : "#DD6B55",
+						confirmButtonText : confirmTransferToFKConfirm,
+						cancelButtonText : confirmTransferToFKCancel,
+						closeOnConfirm : true,
+						closeOnCancel : true
+					},
+					function(isConfirm) {
+						$("#doNotTransferToFKOrgCheckbox").prop( "checked", isConfirm );
+					}
+				);
+				return false;
+			}
+
+
+			function AutoCompleteService() {
+				this.init = function() {
+					console.log("AutocompleteService init");
+					$('[id^=search_person]').autocomplete({
+						serviceUrl: telephonyRestUrl + "/search/person",
+						onSelect: function(suggestion) {
+							// strip markup
+							var textValue = suggestion.value;
+							var idx = textValue.indexOf("-XXXX");
+							if (idx > 0) {
+								textValue = textValue.substr(0, idx);
+
+								idx = textValue.lastIndexOf("-");
+								if (idx > 0) {
+									textValue = textValue.substr(0, idx - 1);
+								}
+							}
+
+							$(this).val(textValue);
+							$("#manager").val(suggestion.data);
+						},
+						preventBadQueries: true,
+						triggerSelectOnValidInput: false
+					});
+				}
+
+				this.clearPerson = function() {
+					$("#search_person").val("");
+					$("#manager").val(null);
+				}
+			}
+		/*]]>*/
+	</script>
+</th:block>

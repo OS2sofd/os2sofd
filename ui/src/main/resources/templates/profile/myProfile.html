@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'profile')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'profile', subpage = 'profile')"></aside>
+	<section>
+		<div class="content-wrapper">
+			<h3>
+				<span th:text="#{html.page.profile.myprofile.title}"></span>
+				<div id="buttonsMenu" style="position: absolute; right: 0; top: 0; margin-top:10px; margin-right: 20px;"></div>
+			</h3>
+			<div class="panel panel-default">
+				<div class="panel-heading"></div>
+				<div class="panel-body">
+					<div class="row">
+						<div class="col-lg-10">
+							<div id="core"></div>
+						</div>
+					</div>
+
+					<ul class="nav nav-tabs">
+						<li class="active">
+							<a data-toggle="tab" href="#affiliation_menu" th:text="#{html.entity.person.affiliations}"></a>
+						</li>
+						<li>
+							<a data-toggle="tab" href="#user_menu" th:text="#{html.entity.person.users}"></a>
+						</li>
+					</ul>
+					
+					<div class="tab-content">
+						<div id="affiliation_menu" class="tab-pane fade in active">
+							
+							<table id="listTable1" class="table table-striped table-hover listTable">
+								<thead>
+									<th th:text="#{html.entity.affiliation.positionName}"></th>
+									<th th:text="#{html.entity.affiliation.orgunit}"></th>
+									<th th:text="#{html.entity.affiliation.startDate}"></th>
+									<th th:text="#{html.entity.affiliation.stopDate}"></th>
+									<th th:text="#{html.entity.affiliation.status}"></th>
+								</thead>
+
+								<tbody>
+								<tr th:each="affiliation : ${person.affiliations}">
+									<td th:text="${@affiliationService.getPositionName(affiliation)}"></td>
+									<td>
+										<th:block th:if="${affiliation.orgUnit != null}">
+											<span th:text="${affiliation.orgUnit.name}"></span>
+										</th:block>
+									</td>
+									<td th:text="${affiliation.startDate != null ? #dates.format(affiliation.startDate, 'yyyy-MM-dd') : ''}"></td>
+									<td th:text="${affiliation.stopDate != null ? #dates.format(affiliation.stopDate, 'yyyy-MM-dd') : ''}"></td>
+									<td>
+										<span th:if="${@affiliationService.inactiveAndNotStopped(affiliation) == true}" class="badge badge-warning" th:text="#{html.entity.affiliation.status.inactive}"></span>
+										<span th:if="${@affiliationService.activeAndNotStopped(affiliation) == true}" class="badge badge-success" th:text="#{html.entity.affiliation.status.active}"></span>
+									</td>
+								</tr>
+								</tbody>
+							</table>
+						</div>
+						<div id="user_menu" class="tab-pane fade">
+							<table id="listTable2" class="table table-striped table-hover listTable">
+								<thead>
+									<th class="col-md-4" th:text="#{html.entity.user.userId}"></th>
+									<th class="col-md-4" th:text="#{html.entity.user.userType}"></th>
+									<th class="col-md-3" th:text="#{html.entity.user.prime}"></th>
+								</thead>
+
+								<tbody>
+								<tr th:each="user : ${T(dk.digitalidentity.sofd.service.PersonService).getUsers(person)}">
+									<td th:text="${user.userId}"></td>
+									<td th:text="${@supportedUserTypeService.getPrettyName(user.userType)}"></td>
+									<td>
+										<em th:if="${user.prime}" class="fa fa-check"></em>
+									</td>
+								</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+
+<nav th:replace="fragments/footer :: footer"></nav>
+<style>
+	.row {
+		margin-bottom: 5px;
+	}
+	.control-label {
+		margin-top: 5px;
+		text-align: right;
+	}
+</style>
+
+<script th:inline="javascript">
+	/*<![CDATA[*/
+
+		/*[+
+			var url=[[@{/ui/profile}]];
+			var uuid = [[${person.uuid}]];
+			
+			var msgProfileUpdateFail = [[#{html.page.person.view.profile.update.failure}]];
+			var msgProfileUpdated = [[#{html.page.person.view.profile.update.succes}]];
+		+]*/
+		var token = $("meta[name='_csrf']").attr("content");
+		
+		$(document).ready(function () {
+			loadViewCoreFragment();
+		});
+	
+		// Core view/edit
+		function loadEditCoreFragment() {
+			$("#core").load(url + "/core/edit");
+		}
+		
+		function loadViewCoreFragment() {
+			$('#core').load(url + "/core/view");
+		}
+		
+		function saveCoreChanges() {
+			var fields = $('#core input');
+			var data = {};
+			fields.map(function(index, value) {
+				data[value.name] = value.value;
+			});
+			
+			// deal with root in a sane way
+			if (data.parent == '') {
+				data.parent = null;
+			}
+			
+			$.ajax({
+				contentType: 'application/json',
+				url: "/rest/profile/update",
+				method : "POST",
+				data: JSON.stringify(data),
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				error: function(response) {
+					
+					$.notify({
+						message: msgProfileUpdateFail
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				},
+				success: function(response) {
+					$.notify({
+						message: msgProfileUpdated
+					}, {
+						status: 'success',
+						autoHideDelay: 2000
+					});
+
+					loadViewCoreFragment();
+				}
+			});
+		}
+
+		/*]]>*/
+</script>
+</body>
+</html>

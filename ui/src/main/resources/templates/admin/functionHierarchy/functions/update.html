@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'functions', subpage='admin')"></aside>
+
+	<section>
+		<div class="content-wrapper">
+			<h3 th:unless="${edit}" th:text="#{html.page.functionHierarchy.functions.new.title}"></h3>
+			<h3 th:if="${edit}" th:text="#{html.page.functionHierarchy.functions.edit.title}"></h3>
+			<div class="panel panel-default">
+				<div class="panel-body">
+					<div class="row">
+						<div class="col-lg-12">
+							<form class="form-horizontal" id="function-form" th:action="@{/ui/admin/functionhierarchy/functions/update}" method="post" th:object="${functionDTO}">
+								<input type="hidden" th:field="*{id}" />
+								<input type="hidden" th:field="*{facetIds}" />
+								<input type="hidden" id="facetSortKeys" name="facetSortKeys" />
+
+								<div class="form-group">
+									<label class="col-sm-2 control-label" th:text="#{html.page.functionHierarchy.labels.name}"></label>
+									<div class="col-sm-8">
+										<input th:field="*{name}" class="form-control" autofocus="autofocus" />
+										<ul th:if="${#fields.hasErrors('name')}" class="error">
+											<li th:each="err : ${#fields.errors('name')}" th:text="${err}"></li>
+										</ul>
+									</div>
+								</div>
+								
+								<div class="form-group">
+									<label class="col-sm-2 control-label" th:text="#{html.page.functionHierarchy.labels.category}"></label>
+									<div class="col-sm-8">
+										<input th:field="*{category}" class="form-control"/>
+										<ul th:if="${#fields.hasErrors('category')}" class="error">
+											<li th:each="err : ${#fields.errors('category')}" th:text="${err}"></li>
+										</ul>
+									</div>
+								</div>
+
+								<div class="form-group">
+									<label class="col-sm-2 control-label" th:text="#{html.page.functionHierarchy.labels.description}"></label>
+									<div class="col-sm-8">
+										<textarea th:field="*{description}" class="form-control"></textarea>
+									</div>
+								</div>
+								
+								<div class="form-group">
+									<label class="col-sm-2 control-label" th:text="#{html.page.functionHierarchy.facets.list.title}"></label>
+									<div class="table-responsive col-sm-8">
+										<table id="listTable" class="table table-striped table-hover listTable">
+											<thead>
+											<tr>
+												<th class="col-md-1" th:text="#{html.page.functionHierarchy.labels.chosen}"></th>
+												<th class="col-md-1" th:text="#{html.page.functionHierarchy.labels.sortKey}" th:title="#{html.page.functionHierarchy.labels.sortKey.explanation}"></th>
+												<th class="col-md-3" th:text="#{html.page.functionHierarchy.labels.name}"></th>
+												<th class="col-md-2" th:text="#{html.page.functionHierarchy.labels.type}"></th>
+												<th class="col-md-5" th:text="#{html.page.functionHierarchy.labels.description}"></th>
+											</tr>
+											</thead>
+				
+											<tbody>
+											<tr th:each="facet : ${facets}">
+												<td>
+													<div class="checkbox c-checkbox">
+														<label>
+															<input class="facetCheckbox" th:id="${'facet' + facet.id}" type="checkbox" th:value="${facet.id}" />
+															<span class="fa fa-check"></span>
+														</label>
+													</div>
+												</td>
+												<td><input class="form-control sortKeyFields" type="number" th:value="${facet.sortKey}" min="1" style="width: 120px;" th:attr="data-facetid=${facet.id}"></td>
+												<td th:text="${facet.name}"></td>
+												<td th:text="#{${facet.type.message}}"></td>
+												<td th:text="${facet.description}"></td>
+											</tr>
+											</tbody>
+										</table>
+									</div>
+								</div>
+
+								<div class="form-group">
+									<div class="col-sm-offset-2 col-sm-10">
+										<button type="submit" style="margin-right: 5px;" class="btn btn-lg btn-primary col-xs-2"  th:text="#{html.control.button.save}"></button>
+										<a th:href="@{/ui/admin/functionhierarchy/functions}" style="margin-right: 5px;" class="btn btn-lg btn-danger col-xs-2" th:text="#{html.control.button.cancel}"></a>
+									</div>
+								</div>
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+
+<style>
+	.table .checkbox {
+		margin-left: 10px;
+		width: auto;
+	}
+</style>
+
+<script th:replace="fragments/datatables :: datatables(paging=false) "></script>
+
+<script th:inline="javascript">
+	/*<![CDATA[*/
+	var token = $("meta[name='_csrf']").attr("content");
+
+	/*[+
+		var facetIdList = [[${functionDTO.facetIds}]];
+	+]*/
+	
+	var functionService;
+	$(document).ready(function() {
+		functionService = new FunctionService();
+		functionService.init();
+		
+	});
+	
+	function FunctionService() {
+		this.init = function() {
+			if (facetIdList != null) {
+				$(facetIdList.split(",")).each(function (index, value) {
+					$("#facet" + value).first().prop('checked', true);
+				});
+			}
+			
+			$("#function-form").submit(function(){
+				var facetIds = "";
+				$(".facetCheckbox").each(function(index) {
+					if ($(this).is(":checked")) {
+						if (facetIds.length == 0) {
+							facetIds += $(this).val();
+						} else {
+							facetIds += "," + $(this).val();
+						}
+					}
+				});
+				
+				$("#facetIds").val(facetIds);
+
+				var facetSortKeys = "";
+				$(".sortKeyFields").each(function(index) {
+					console.log($(this).val());
+					if ($(this).val() != "") {
+						if (facetSortKeys.length == 0) {
+							facetSortKeys += $(this).data("facetid") + ":" + $(this).val();
+						} else {
+							facetSortKeys += "," + $(this).data("facetid") + ":" + $(this).val();
+						}
+					}
+				});
+				$("#facetSortKeys").val(facetSortKeys);
+
+				return true;
+			});
+		}
+	}
+
+
+	/*]]>*/
+</script>
+</body>
+</html>

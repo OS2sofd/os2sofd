@@ -1,0 +1,1 @@
+ALTER TABLE client_ip_address_aud ADD PRIMARY KEY (id, rev);

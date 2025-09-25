@@ -1,0 +1,1 @@
+ALTER TABLE affiliations_aud MODIFY COLUMN do_not_transfer_to_fk_org BOOLEAN NULL;

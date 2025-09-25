@@ -1,0 +1,23 @@
+<th:block th:fragment="content" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<table class="table table-striped table-hover listTable">
+		<thead>
+			<tr>
+				<th class="col-md-10" th:text="#{html.entity.contactplace.contactplace}"></th>
+				<th class="col-md-2" th:text="#{html.control.operations}"></th>
+			</tr>
+		</thead>
+
+		<tbody>
+			<tr th:each="user : ${users}">
+				<td th:text="${user.name}"></td>
+				<td><a onclick="deleteUser(this);" href="#" th:attr="data-uuid=${user.uuid}"><em class="fa fa-fw fa-remove" th:title="#{html.mouseover.delete}"></em></a></td>
+			</tr>
+		</tbody>
+	</table>
+
+	<script type="text/javascript">
+		$("document").ready(function() {
+			loadDataTable($(".listTable"));
+		});
+	</script>
+</th:block>

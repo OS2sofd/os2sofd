@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'sms')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'sms.pwdlocked', subpage = 'sms')"></aside>
+ 
+		<section>
+			<div class="content-wrapper">
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+
+					<div class="panel-body">
+						<form class="form-horizontal" th:object="${passwordLockedForm}" method="post" th:action="@{/ui/sms/pwdlocked}">
+
+							<div class="row" style="margin-bottom: 30px;">
+								<div class="col-lg-10 col-lg-offset-1">
+									<h3 style="margin-top: 0px;" th:text="#{html.page.sms.pwdlocked.header}"></h3>
+									<p th:text="#{html.page.sms.pwdlocked.intro}"></p>
+								</div>
+							</div>
+							
+							<fieldset>
+								<div class="form-group">
+									<label class="col-sm-2 control-label" th:text="#{html.page.sms.label.enabled}"></label>
+
+									<div class="col-sm-8">
+										<span class="checkbox c-checkbox" style="display: inline;">
+											<label>
+												<input name="enabled" th:checked="*{enabled}" type="checkbox"/>
+												<span class="fa fa-check"></span>
+											</label>
+										</span>
+									</div>
+								</div>
+							</fieldset>
+
+							<fieldset>
+								<div class="form-group">
+									<span class="templateForm">
+										<label class="col-sm-2 control-label" th:text="#{html.page.sms.locked.sms}"></label>
+										<div class="col-sm-8">
+											<textarea name="message" th:field="*{smsTxt}" class="mb-0 preformat" rows="10" style="width:100%;" maxlength="160"></textarea>
+										</div>
+									</span>
+								</div>
+
+								<div class="form-group">
+									<div class="col-lg-offset-2 col-lg-8">
+										<em th:utext="#{html.page.sms.pwdlocked.footer}"></em>
+									</div>
+								</div>
+							</fieldset>
+
+							<fieldset>
+								<div class="form-group">
+									<div class="col-sm-offset-2 col-sm-8">
+										<button type="submit" style="margin-right: 5px; width: 100%;" class="btn btn-lg btn-primary buttonSubmit" th:text="#{html.control.button.save}"></button>
+									</div>
+								</div>
+							</fieldset>
+						</form>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<div th:replace="fragments/footer :: footer"></div>
+	
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		/*[+
+
+		+]*/
+		
+		$(document).ready(function() {
+
+		});
+
+		/*]]>*/
+	</script>
+</body>
+</html>

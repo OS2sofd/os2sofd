@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'sms')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'sms.pwdreminders', subpage = 'sms')"></aside>
+ 
+		<section>
+			<div class="content-wrapper">
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+
+					<div class="panel-body">
+						<form class="form-horizontal" th:object="${reminderForm}" method="post" th:action="@{/ui/sms/pwdreminders}">
+							<select th:field="*{orgUnits}" multiple="multiple" class="form-control" style="display: none;">
+								<option th:each="orgunit : *{orgUnits}" th:value="${orgunit}" th:text="${orgunit}"></option>
+							</select>
+
+							<div class="row" style="margin-bottom: 30px;">
+								<div class="col-lg-10 col-lg-offset-1">
+									<h3 style="margin-top: 0px;" th:text="#{html.page.sms.pwdreminder.header}"></h3>
+									<p th:text="#{html.page.sms.pwdreminder.intro}"></p>
+								</div>
+							</div>
+							
+							<fieldset>
+								<div class="form-group">
+									<label class="col-sm-2 control-label" th:text="#{html.page.sms.label.strategy}"></label>
+
+									<div class="col-sm-8">
+										<select th:field="*{strategy}" class="form-control" onchange="updateTextFields();">
+											<option th:each="strategyOption : ${@pwdReminderService.getStrategyOptions()}"
+												th:value="${strategyOption}" th:text="#{__${strategyOption.getMessage()}__}"
+												th:selected="${strategyOption} == *{strategy}"></option>
+										</select>
+									</div>
+								</div>
+							</fieldset>
+
+							<fieldset>
+								<div class="form-group">
+									<label class="col-sm-2 control-label" th:text="#{html.page.sms.label.filter}"></label>
+
+									<div class="col-sm-8">
+										<button type="button" onclick="chooseOU()" class="btn btn-primary" th:text="#{html.page.sms.search.hiearchy}"></button>
+										<br/><br/>
+										<em id="filterZeroTxt" th:style="${(#lists.size(reminderForm.orgUnits) > 0) ? 'display: none': ''}" th:text="'Ingen filtrering'"></em>
+										<em id="filterOneTxt" th:style="${(#lists.size(reminderForm.orgUnits) != 1) ? 'display: none' : ''}" th:text="'Filtreret på én enhed'"></em>
+										<em id="filterMultiTxt" th:style="${(#lists.size(reminderForm.orgUnits) lt 2) ? 'display: none' : ''}">
+											<span th:text="'Filtreret på'"></span>
+											<span id="filterMultiValue" th:text="${#lists.size(reminderForm.orgUnits)}"></span>
+											<span th:text="'enheder'"></span>
+										</em>
+									</div>
+								</div>
+							</fieldset>
+
+							<fieldset>
+								<div class="form-group">
+									<label class="col-sm-2 control-label" th:text="#{html.page.sms.label.time}"></label>
+
+									<div class="col-sm-8">
+										<input th:field="*{time}" class="form-control" />
+									</div>
+								</div>
+							</fieldset>
+							
+							<fieldset>
+								<div class="form-group">
+									<label class="col-sm-2 control-label" th:text="#{html.page.sms.label.days}"></label>
+
+									<div class="col-sm-8">
+										<input th:field="*{days}" class="form-control" />
+									</div>
+								</div>
+							</fieldset>
+							
+							<fieldset id="template-sms" style="display: none;">
+								<div class="form-group">
+									<span class="templateForm">
+										<label class="col-sm-2 control-label" th:text="#{html.page.sms.label.sms}"></label>
+										<div class="col-sm-8">
+											<textarea name="message" th:field="*{smsTxt}" class="mb-0 preformat" rows="10" style="width:100%;"></textarea>
+										</div>
+									</span>
+								</div>
+								
+								<div class="form-group">
+									<div class="col-lg-offset-2 col-lg-8">
+										<em th:utext="#{html.page.sms.pwdreminder.footer}"></em>
+									</div>
+								</div>
+							</fieldset>
+
+							<fieldset id="template-email" style="display: none;">
+								<div class="form-group" style="margin-bottom: 20px;">
+									<label class="col-sm-2 control-label" th:text="#{html.page.sms.label.email.subject}"></label>
+									<div class="col-sm-8">
+										<input name="emailSubject" th:field="*{emailSubject}" class="form-control" style="width:100%;"></input>
+									</div>
+								</div>
+
+								<div class="form-group">										
+									<span class="templateForm">
+										<label class="col-sm-2 control-label" th:text="#{html.page.sms.label.email}"></label>
+										<div class="col-sm-8">
+											<textarea name="message" th:field="*{emailTxt}" class="mb-0 preformat" rows="10" style="width:100%;"></textarea>
+										</div>
+									</span>
+								</div>
+
+								<div class="form-group">
+									<div class="col-lg-offset-2 col-lg-8">
+										<em th:utext="#{html.page.sms.pwdreminder.footer}"></em>
+									</div>
+								</div>
+							</fieldset>
+							
+							<fieldset>
+								<div class="form-group">
+									<div class="col-sm-offset-2 col-sm-8">
+										<button type="submit" style="margin-right: 5px; width: 100%;" class="btn btn-lg btn-primary buttonSubmit" th:text="#{html.control.button.save}"></button>
+									</div>
+								</div>
+							</fieldset>
+						</form>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+	
+	<div class="modal fade bd-example-modal-lg" id="modal-ou" role="dialog">
+		<div class="modal-dialog modal-lg">
+
+			<!-- Modal content-->
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 th:text="#{html.page.person.new.affiliation.orgunit.choose}"></h4>
+				</div>
+
+				<div class="modal-body">
+					<input class="form-control" id="ou-tree-search" style="margin-bottom: 5px;" th:placeholder="#{html.action.search}"/>
+					<div id="ou-tree"></div>
+				</div>
+
+				<div class="modal-footer">
+					<button type="button" id="save" class="btn btn-primary" onclick="saveOUs()" th:text="#{html.control.button.save}"></button>
+					<button type="button" class="btn btn-danger" data-dismiss="modal" th:text="#{html.control.button.cancel}"></button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div th:replace="fragments/footer :: footer"></div>
+	
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		/*[+
+			var allOUs = [[${allOrgUnits}]];
+		    var selectedOUs = [[${reminderForm.orgUnits}]];
+		+]*/
+		
+		$(document).ready(function() {
+			updateTextFields();
+			
+			$('#ou-tree').jstree({
+				"core": {
+					"data": allOUs,
+					"themes": {
+						"icons": false
+					}
+				},
+				"checkbox" : {
+					"keep_selected_style" : false,
+					"three_state": false,
+					"cascade": "undetermined"
+				},
+				"search" : {
+					"show_only_matches": true,
+					"search_callback": function(str, node) {
+						return (node.text.toUpperCase().includes(str.toUpperCase()));
+					}
+				},
+				"plugins" : ["search", "checkbox"]
+			});
+	
+			// selecting in the JSTree
+			$('#ou-tree').on("ready.jstree", function(e, data) {
+				$('#ou-tree').jstree('select_node', selectedOUs);
+			});
+
+			// searching in the JSTree
+			var to = false;
+			$('#ou-tree-search').keyup(function() {
+				if (to) {
+					clearTimeout(to);
+				}
+	
+				to = setTimeout(function() {
+					var v = $('#ou-tree-search').val();
+	
+					$('#ou-tree').jstree(true).search(v);
+				}, 400);
+			});
+		});
+
+		function updateTextFields() {
+			var strategy = $('#strategy').val();
+
+			switch (strategy) {
+				case "SMS_ONLY":
+					$("#template-sms").show();
+					$("#template-email").hide();
+					break;
+				case "EMAIL_ONLY":
+					$("#template-sms").hide();
+					$("#template-email").show();
+					break;
+				case "SMS_AND_EMAIL":
+				case "SMS_FIRST_OTHERWISE_EMAIL":
+				case "EMAIL_FIRST_OTHERWISE_SMS":
+					$("#template-sms").show();
+					$("#template-email").show();
+					break;
+				default:
+					$("#template-sms").hide();
+					$("#template-email").hide();
+					break;
+			}
+		}
+
+		function chooseOU() {
+			$('#modal-ou').modal('show');
+		}
+
+		$('#modal-ou').on('shown.bs.modal', function() {
+			$('#ou-tree-search').focus();
+		})
+		
+		function saveOUs(){
+			var codes = $('#ou-tree').jstree('get_selected', true);
+
+			$("#orgUnits").empty();
+
+			for (var i = 0; i < codes.length; i++) {
+				$("#orgUnits").append('<option value=\"' + codes[i].id + '\" selected="selected"> ' + codes[i].text + "</option>");
+			}
+
+			$('#filterZeroTxt').hide();
+			$('#filterOneTxt').hide();
+			$('#filterMultiTxt').hide();
+
+			if (codes.length == 0) {
+				$('#filterZeroTxt').show();
+			}
+			else if (codes.length == 1) {
+				$('#filterOneTxt').show();
+			}
+			else {
+				$('#filterMultiTxt').show();
+				$('#filterMultiValue').text(codes.length);
+			}
+			
+			$('#modal-ou').modal('hide');
+		}
+
+		/*]]>*/
+	</script>
+</body>
+</html>

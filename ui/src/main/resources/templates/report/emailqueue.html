@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'report')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'emailqueue', subpage = 'report')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.emailqueue.list.headline}"></h3>
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<table class="listTable table table-responsive table-striped">
+							<thead>
+								<tr>
+									<th class="col-md-2" th:text="#{html.entity.emailqueue.recipient}"></th>
+									<th class="col-md-2" th:text="#{html.entity.emailqueue.type}"></th>
+									<th class="col-md-5" th:text="#{html.entity.emailqueue.title}"></th>
+									<th class="col-md-2" th:text="#{html.entity.emailqueue.deliveryTts}"></th>
+									<th class="col-md-1" th:text="#{html.control.operations}"></th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr th:each="email : ${emails}">
+									<td th:text="${email.recipient}"></td>
+									<td th:text="#{__${email.type.message}__}"></td>
+									<td th:text="${email.title}"></td>
+									<td th:text="${#dates.format(email.deliveryTts, 'yyyy-MM-dd  HH:mm:ss')}"></td>
+									<td>
+										<a href="#" onclick="expedite(this)" th:attr="data-email-id=${email.id}"><em class="fa fa-fw fa-share"></em></a>
+										<a href="#" onclick="cancel(this)" th:attr="data-email-id=${email.id}"><em class="fa fa-fw fa-trash"></em></a>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+	
+	<nav th:replace="fragments/footer :: footer"></nav>
+	<script th:replace="fragments/datatables :: datatables"></script>
+	
+	<script th:inline="javascript">
+	/*<![CDATA[*/
+		/*[+
+			var restUrl = [[@{/rest/report/emailqueue}]];
+			
+			var expediteEmailTitle = [[#{html.emailqueue.list.swal.expedite.email.title}]];
+			var expediteEmailText = [[#{html.emailqueue.list.swal.expedite.email.text}]];
+			
+			var cancelEmailTitle = [[#{html.emailqueue.list.swal.cancel.email.title}]];
+			var cancelEmailText = [[#{html.emailqueue.list.swal.cancel.email.text}]];
+			
+			var btnOk = [[#{html.button.ok}]];
+			var btnCancel = [[#{html.button.cancel}]];
+			
+			var failMsg = [[#{html.generic.msg.failedupdate}]];
+		+]*/
+
+		var token = $("meta[name='_csrf']").attr("content");
+
+		function expedite(elem) {
+			var emailId = $(elem).data('emailId');
+
+			swal({
+				html : true,
+				title : expediteEmailTitle,
+				text : expediteEmailText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : btnOk,
+				cancelButtonText : btnCancel,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						method : "POST",
+						url: restUrl + "/expedite/" + emailId,
+						headers: {
+							'X-CSRF-TOKEN': token
+						}
+					}).done(function (data) {
+						window.location.reload(true);
+					}).fail(function (jqXHR, textStatus, errorThrown) {
+						$.notify({
+							message: failMsg
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					});
+				}
+			});
+		}
+
+	
+		function cancel(elem) {
+			var emailId = $(elem).data('emailId');
+
+			swal({
+				html : true,
+				title : cancelEmailTitle,
+				text : cancelEmailText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : btnOk,
+				cancelButtonText : btnCancel,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						method : "POST",
+						url: restUrl + "/cancel/" + emailId,
+						headers: {
+							'X-CSRF-TOKEN': token
+						}
+					}).done(function (data) {
+						window.location.reload(true);
+					}).fail(function (jqXHR, textStatus, errorThrown) {
+						$.notify({
+							message: failMsg
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					});
+				}
+			});
+		}
+
+
+		/*]]>*/
+	</script>
+</body>
+</html>

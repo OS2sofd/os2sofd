@@ -1,0 +1,2 @@
+ALTER TABLE sms_log_recipients MODIFY COLUMN phone VARCHAR(255) NULL;
+ALTER TABLE sms_log_recipients ADD COLUMN email VARCHAR(255) NULL;

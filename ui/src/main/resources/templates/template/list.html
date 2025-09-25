@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'sms')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'template.list', subpage = 'sms')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3>
+					<a class="btn btn-primary btn-lg" th:href="@{/ui/template/new}">
+						<em class="fa fa-fw fa-plus"></em>&nbsp;
+						<span th:text="#{html.entity.template.new}"></span>
+					</a>
+				</h3>
+
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<div class="table-responsive">
+							<table id="listTable" class="table table-striped listTable">
+								<thead>
+									<tr>
+										<th class="col-md-3" th:text="#{html.entity.template.name}"></th>
+										<th class="col-md-8" th:text="#{html.entity.template.message}"></th>
+										<th class="col-md-1" th:text="#{html.control.operations}"></th>
+									</tr>
+								</thead>
+
+								<tbody>
+									<tr th:each="template : ${templates}">
+										<td th:text="${template.name}"></td>
+										<td class="preformat wrap-text" style="-webkit-line-clamp: 5;" th:text="${template.message}"></td>
+										<td>
+											<a th:href="@{/ui/template/edit/} + ${template.id}"><em class="fa fa-fw fa-pencil"></em></a>
+											<a href="#" onclick="handleDelete(this.getAttribute('data-template-id'), this.getAttribute('data-template-name'));" th:data-template-id="${template.id}" th:data-template-name="${template.name}"> <em class="fa fa-fw fa-remove"></em></a>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<div th:replace="fragments/footer :: footer"></div>
+	<script th:replace="fragments/datatables :: datatables (paging=false)"></script>
+	
+	<style>
+		.wrap-text{
+			-webkit-line-clamp: 5;
+			text-overflow: ellipsis;
+			overflow: hidden;
+			-webkit-box-orient: vertical;
+			display: -webkit-box;
+			margin-bottom: 1em;
+			padding-bottom: 0px !important;
+		}
+	</style>
+
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+			var deleteURL = [[@{/ui/template/delete}]];
+			var removeTitle = [[#{html.page.template.remove.title}]];
+			var removeText = [[#{html.page.template.remove.text}]];
+			var removeButtonConfirm = [[#{html.button.delete}]];
+			var removeButtonCancel = [[#{html.button.cancel}]];
+		+]*/
+
+		$(document).ready(function() {
+
+		});
+		
+		function handleDelete(templateId, templateName) {
+			swal({
+				html : true,
+				title : removeTitle + "<br/>" + templateName,
+				text : removeText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : removeButtonConfirm,
+				cancelButtonText : removeButtonCancel,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					window.location = deleteURL + '/' + templateId;
+				}
+			});
+		}
+		
+		/*]]>*/
+	</script>
+</body>
+</html>

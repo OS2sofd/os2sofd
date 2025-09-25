@@ -1,0 +1,469 @@
+<th:block th:fragment="postsTab" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<div class="btn-toolbar" role="toolbar" aria-label="...">
+		<div class="btn-group">
+			<button type="button" style="width: auto !important;" class="btn btn-primary btn-lg dropdown-toggle" data-toggle="dropdown">
+				<em class="fa fa-fw fa-cog"></em>
+			</button>
+
+			<ul class="dropdown-menu" role="menu" id="dataTableUserDropdown">
+				<li><a href="#" data-cid="0" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.page.orgunit.view.post.address}"></span></a></li>
+				<li><a href="#" data-cid="1" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.page.orgunit.view.post.city}"></span></a></li>
+				<li><a href="#" data-cid="2" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.page.orgunit.view.post.localname}"></span></a></li>
+				<li><a href="#" data-cid="3" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.page.orgunit.view.post.returnAddress}"></span></a></li>
+				<li><a href="#" data-cid="4" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.page.orgunit.view.post.prime}"></span></a></li>
+			</ul>
+		</div>
+
+		<th:block th:if="${(orgUnit != null && @securityUtil.canEditOrgUnit(orgUnit.uuid)) || orgUnit == null}">
+			<div class="btn-group" role="group" sec:authorize="hasRole('ROLE_MODULE_LOS') and hasRole('ROLE_USER_LOS_ADMIN')">
+				<button onclick="openPostNewModal();" class="btn btn-lg btn-primary" style="width: 200px;">
+					<i class="fa fa-fw fa-map" aria-hidden="true"></i>
+					<span th:text="#{html.page.orgunit.view.new.post}"></span>
+				</button>
+			</div>
+		</th:block>
+	</div>
+
+	<table class="table table-striped table-hover listTable">
+		<thead>
+			<th class="col-md-3" th:text="#{html.page.orgunit.view.post.address}"></th>
+			<th class="col-md-3" th:text="#{html.page.orgunit.view.post.city}"></th>
+			<th class="col-md-3" th:text="#{html.page.orgunit.view.post.localname}"></th>
+			<th class="col-md-1" style="white-space: nowrap;">
+				<span th:text="#{html.page.orgunit.view.post.returnAddress}"></span>
+				<a tabindex="0" class="hintPopovers" data-toggle="popover" data-trigger="focus" data-container="body" data-placement="right" th:attr="data-content=#{html.page.orgunit.view.post.hint.returnAddress}" style="text-decoration: none;">
+					<em style="color: black;" class="fa fa-fw fa-question"></em>
+				</a>
+			</th>
+			<th class="col-md-1" th:text="#{html.page.orgunit.view.post.prime}"></th>
+			<th class="col-lg-1" th:text="#{html.control.operations}"></th>
+		</thead>
+
+		<tbody>
+		<tr th:each="post : ${postAddresses}" th:id="${post.id} + 'row'" th:attr="data-master=${post.master}, data-id=${post.id}" class="postRow">
+			<td th:text="${post.street}"></td>
+			<td th:text="${post.postalCode + ' ' + post.city}"></td>
+			<td th:text="${post.localname}"></td>
+			<td>
+				<em th:if="${post.returnAddress}" class="fa fa-check"></em>
+			</td>
+			<td>
+				<em th:if="${post.prime}" class="fa fa-check"></em>
+			</td>
+			<td>
+				<a href="#" onclick="openPostDeleteModal(this);" th:attr="data-id=${post.id}"> <em class="fa fa-fw fa-times"></em></a>
+				<a th:if="${post.master} != 'CVR'" href="#" onclick="openPostEditModal(this);" th:attr="data-id=${post.id},data-street=${post.street},data-localname=${post.localname},data-postalCode=${post.postalCode},data-city=${post.city},data-country=${post.country},data-returnAddress=${post.returnAddress},data-prime=${post.prime},data-master=${post.master}"> <em class="fa fa-fw fa-pencil"></em></a>
+			</td>
+		</tr>
+		</tbody>
+	</table>
+
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+			var postDeleteTitle = [[#{html.fragment.post.msg.delete.Title}]];
+			var postDeleteText = [[#{html.fragment.post.msg.delete.Text}]];
+			var postDeleteButtonConfirm = [[#{html.control.button.delete}]];
+			var postDeleteButtonCancel = [[#{html.control.button.cancel}]];
+
+			var msgPosteDeleteFail = [[#{html.fragment.post.msg.delete.Fail}]];
+			var msgEditPostFail = [[#{html.fragment.post.msg.edit.Fail}]];
+
+		+]*/
+
+		function openPostEditModal(obj) {
+			enableInputFields();
+			var id = $(obj).attr('data-id');
+			var street = $(obj).attr('data-street');
+			var localname = $(obj).attr('data-localname');
+			var postalCode = $(obj).attr('data-postalCode');
+			var city = $(obj).attr('data-city');
+			var country = $(obj).attr('data-country');
+			var returnAddress = $(obj).data('returnaddress');
+ 			var prime = $(obj).data('prime');
+			var master = $(obj).attr('data-master');
+
+			if (master != "SOFD") {
+				disableInputFields();
+			}
+
+			$('#postId').val(id);
+			$('#street').val(street).focus();
+			$('#localname').val(localname);
+			$('#postalCode').val(postalCode);
+			$('#city').val(city);
+			$('#country').val(country);
+			$('#returnAddress').prop("checked", returnAddress);
+ 			$('#prime').prop("checked", prime);
+			$('#modal-edit-post').modal("show");
+		}
+
+		function openPostNewModal() {
+			enableInputFields();
+			$('#postId').val("");
+			$('#street').val("").focus();
+			$('#localname').val("");
+			$('#postalCode').val("");
+			$('#city').val("");
+			$('#country').val("Danmark");
+			$('#returnAddress').prop("checked", false);
+			$('#prime').prop("checked", false);
+			$('#modal-edit-post').modal("show");
+		}
+
+		function disableInputFields() {
+			$('#searchBox').prop( "disabled", true );
+			$('#street').prop( "disabled", true );
+			$('#localname').prop( "disabled", true );
+			$('#postalCode').prop( "disabled", true );
+			$('#city').prop( "disabled", true );
+			$('#country').prop( "disabled", true );
+		}
+
+		function enableInputFields() {
+			$('#searchBox').prop( "disabled", false );
+			$('#street').prop( "disabled", false );
+			$('#localname').prop( "disabled", false );
+			$('#postalCode').prop( "disabled", false );
+			$('#city').prop( "disabled", false );
+			$('#country').prop( "disabled", false );
+		}
+
+		function editOrCreatePost() {
+			$('.validationMessage').hide();
+
+			var id = $('#postId').val();
+			var street = $('#street').val();
+			var localname = $('#localname').val();
+			var postalCode = $('#postalCode').val();
+			var city = $('#city').val();
+			var country = $('#country').val();
+			var addressProtected = $('#addressProtected').prop('checked');
+			var returnAddress = $('#returnAddress').prop('checked');
+ 			var prime = $('#prime').prop('checked');
+
+			$.ajax({
+				url: restUrl + "/editOrCreatePost",
+				headers: {
+					'X-CSRF-TOKEN': token,
+					'uuid' : uuid
+				},
+				type: 'post',
+				contentType: 'application/json',
+				data: JSON.stringify({
+					'id': id,
+					'street': street,
+					'localname': localname,
+					'postalCode': postalCode,
+					'city': city,
+					'country': country,
+					'addressProtected': addressProtected,
+					'returnAddress': returnAddress,
+					'prime': prime,
+				}),
+				success: function(response) {
+					$('#modal-edit-post').modal("hide");
+
+					$('#modal-edit-post .form-control').val("");
+					$('#modal-edit-post #addressProtected').prop("checked", false);
+					$("#post_menu").load(url + "/postsTab/" + uuid, function() {
+						loadDataTables();
+					});
+				},
+				error: function(response) {
+					setPostValidationMessages(response.responseJSON);
+
+					$.notify({
+						message: msgEditPostFail
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				}
+			});
+		}
+
+		function setPostValidationMessages(errors) {
+			for (var i = 0; i < errors.length; i++) {
+				$('#' + errors[i].field + "-postValidationMessage").show();
+				$('#' + errors[i].field + "-postValidationMessage").text(errors[i].defaultMessage);
+			}
+		}
+
+		function openPostDeleteModal(obj) {
+			var id = $(obj).attr('data-id');
+			swal({
+				html : true,
+				title : postDeleteTitle,
+				text : postDeleteText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : postDeleteButtonConfirm,
+				cancelButtonText : postDeleteButtonCancel,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						method : "POST",
+						url: restUrl + "/deletePost",
+						headers: {
+							"content-type": "application/json",
+							"uuid": uuid,
+							"id": id,
+							'X-CSRF-TOKEN': token
+						}
+					}).done(function (data) {
+						$("#post_menu").load(url + "/postsTab/" + uuid, function() {
+							loadDataTables();
+						});
+					}).fail(function (jqXHR, textStatus, errorThrown) {
+						$.notify({
+							message: msgPhoneDeleteFail
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					});
+				}
+			});
+		}
+
+		/*]]>*/
+	</script>
+</th:block>
+
+<th:block th:fragment="postModal" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<div class="modal fade" id="modal-edit-post" role="dialog">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h4 th:text="#{html.page.person.view.modal.post.header}"></h4>
+				</div>
+
+				<div class="modal-body">
+					<form id="newPostForm" class="form-horizontal">
+						<input id="postId" style="display: none;" class="form-control"/>
+
+						<fieldset>
+							<div class="form-group">
+								<label class="col-sm-2 control-label" th:text="#{html.action.search}"></label>
+								<div class="col-sm-10">
+									<input type="text" class="form-control" id="searchBox" autocomplete="off"/>
+									<div id="inputAddon" hidden="true">
+										<span class="input-group-addon">
+											<em class="fa fa-fw fa-times" onclick="$('#searchBox').val(''); $('#dropdownResult').removeClass('open'); $('#searchBox').focus(); $('#inputAddon').hide();"></em>
+										</span>
+									</div>
+								</div>
+							</div>
+							<div class="form-group">
+								<div class="col-sm-2">
+								</div>
+								<div class="col-sm-10">
+									<div id="dropdownResult" class="dropdown">
+								  		<ul id="searchResultDropDownMenu" class="dropdown-menu" style="width: 100%; padding-left: 15px; padding-right: 15px; line-height: 25px;">
+								  		</ul>
+									</div>
+								</div>
+							</div>
+						</fieldset>
+
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.post.street}"></label>
+							<div class="col-sm-10">
+								<input type="text" class="form-control" id="street" name="street"/>
+								<span class="validationMessage" id="street-postValidationMessage" style="color: red; display: none;"></span>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.post.localname}"></label>
+							<div class="col-sm-10">
+								<input type="text" class="form-control" id="localname"/>
+								<span class="validationMessage" id="localname-postValidationMessage" style="color: red; display: none;"></span>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.post.postalCode}"></label>
+							<div class="col-sm-10">
+								<input type="text" class="form-control" id="postalCode" name="postalCode"/>
+								<span class="validationMessage" id="postalCode-postValidationMessage" style="color: red; display: none;"></span>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.post.city}"></label>
+							<div class="col-sm-10">
+								<input type="text" class="form-control" id="city" name="city"/>
+								<span class="validationMessage" id="city-postValidationMessage" style="color: red; display: none;"></span>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.post.country}"></label>
+							<div class="col-sm-10">
+								<input type="text" class="form-control" id="country" name="country" />
+								<span class="validationMessage" id="country-postValidationMessage" style="color: red; display: none;"></span>
+							</div>
+						</div>
+
+						<hr/>
+
+						<div class="form-group">
+							<label class="col-sm-2 control-label">
+								<a tabindex="0" class="hintPopovers" data-toggle="popover" data-trigger="focus" data-container="body" data-placement="right" th:attr="data-content=#{html.page.orgunit.view.post.hint.returnAddress}" style="text-decoration: none;">
+									<em style="color: black;" class="fa fa-fw fa-question"></em>
+								</a>
+								<span th:text="#{html.entity.post.returnAddress}"></span>
+							</label>
+
+							<div class="col-sm-8">
+								<div class="checkbox c-checkbox">
+									<label>
+										<input type="checkbox" id="returnAddress"/>
+										<span class="fa fa-check"></span>
+									</label>
+								</div>
+							</div>
+						</div>
+
+ 						<div class="form-group">
+ 							<label class="col-sm-2 control-label" th:text="#{html.entity.post.prime}"></label>
+ 							<div class="col-sm-8">
+ 								<div class="checkbox c-checkbox">
+ 									<label>
+ 										<input type="checkbox" id="prime"/>
+ 										<span class="fa fa-check"></span>
+ 									</label>
+ 								</div>
+ 							</div>
+ 						</div>
+					</form>
+				</div>
+
+
+				<div class="modal-footer">
+					<button class="btn btn-primary" type="button" th:text="#{html.control.button.save}" onclick="editOrCreatePost()"></button>
+					<button class="btn btn-danger" type="button" data-dismiss="modal" th:text="#{html.action.abortChanges}"></button>
+				</div>
+			</div>
+		</div>
+	</div>
+</th:block>
+<th:block th:fragment="viewPostsTabScript" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		/*[+
+
+		+]*/
+
+		$('document').ready(function() {
+			$('#searchBox').on('input', function() {
+				executeQuery();
+			});
+
+			var rows = $(".postRow");
+
+			for (i=0; i < rows.length; i++) {
+				var master = $(rows[i]).attr('data-master');
+				var id = $(rows[i]).attr('data-id') + "row";
+				addPostTooltips(id, master);
+			}
+		});
+
+		function addPostTooltips(id, master) {
+			$('#' + id).tooltip({title: tooltipTxt + ": " + master});
+		}
+
+		function updateDropdown(resultSet) {
+			if (resultSet && resultSet.length > 0) {
+				$("#searchResultDropDownMenu").empty();
+
+				for (var i = 0; i < resultSet.length; i++) {
+					var etage = "";
+					var dør = "";
+					if (resultSet[i].etage != null) {
+						etage = resultSet[i].etage;
+					}
+					if (resultSet[i].dør != null) {
+						dør = resultSet[i].dør;
+					}
+
+					var guiValue = resultSet[i].vejnavn + " " + resultSet[i].husnr + " " + etage + dør + ", " + resultSet[i].postnr + " " + resultSet[i].bynavn;
+
+					$("#searchResultDropDownMenu").append("<a href='#' style='color: black;' onclick=\"select('" + guiValue + "')\"><li>" + guiValue + "</li></a>");
+				}
+
+				$("#dropdownResult").addClass("open");
+			}
+			else {
+				$("#dropdownResult").removeClass("open");
+			}
+		}
+
+		function executeQuery() {
+			$('#inputAddon').show();
+			var value = $('#searchBox').val();
+
+			if (value.length >= 3) {
+				var tokens = value.split(" ");
+				var query = "https://dawa.aws.dk/adresser?per_side=50&struktur=mini&q=";
+				for (var i = 0; i < tokens.length; i++) {
+					if (i > 0) {
+						query = query + "%20";
+					}
+					query = query + tokens[i] + "*";
+				}
+
+				$.ajax({
+					url: query,
+					method: "GET",
+					success: function(response) {
+						var resultSet = [];
+
+						for (var j = 0; j < response.length; j++) {
+							var found = false;
+							for (var i = 0; i < resultSet.length; i++) {
+								if (resultSet[i].vejnavn == response[j].vejnavn && resultSet[i].husnr == response[j].husnr && resultSet[i].etage == response[j].etage && resultSet[i].dør == response[j].dør && resultSet[i].postnr == response[j].postnr && resultSet[i].bynavn == response[j].postnrnavn) {
+									found = true;
+								}
+							}
+
+							if (!found) {
+								var hit = { vejnavn: response[j].vejnavn, husnr: response[j].husnr, etage: response[j].etage, dør: response[j].dør, postnr: response[j].postnr, bynavn: response[j].postnrnavn };
+
+								resultSet.push(hit);
+							}
+						}
+
+						updateDropdown(resultSet);
+					}
+				});
+			}
+			else {
+				updateDropdown(null);
+			}
+		}
+
+		function select(query) {
+			splits = query.split(",");
+			secondSplit = splits[1].split(" ");
+
+			$("#street").val(splits[0].trim());
+			$("#postalCode").val(secondSplit[1]);
+			$("#city").val(secondSplit[2]);
+
+			$('#searchBox').val('');
+			$('#inputAddon').hide();
+			$("#dropdownResult").removeClass("open");
+		}
+
+
+		/*]]>*/
+	</script>
+</th:block>

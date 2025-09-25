@@ -1,0 +1,1 @@
+ALTER TABLE email_template_children ADD COLUMN ad_required BOOLEAN NOT NULL DEFAULT FALSE;

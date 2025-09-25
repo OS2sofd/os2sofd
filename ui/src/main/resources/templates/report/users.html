@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'report')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'users', subpage = 'report')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.report.users}"></h3>
+				<div class="panel panel-default">
+					<div class="panel-body">
+						<div class="well" th:utext="#{html.report.users.description}"></div>
+						<div class="row">
+							<label class="col-sm-2 control-label" th:text="#{html.report.users.startDate}"></label>
+							<div class="col-sm-2">
+								<div class="input-group date" id="startDatePicker">
+									<input id="startDate" th:value="${startDate}" class="form-control"/>
+									<span class="input-group-addon">
+										<span class="fa fa-calendar"></span>
+									</span>
+								</div>
+							</div>
+						</div>
+						<a class="btn btn-primary" id="downloadBtn">
+							<em class="fa fa-fw fa-file-excel-o"></em>&nbsp;
+							<span th:text="#{html.button.download}"></span>
+						</a>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<nav th:replace="fragments/footer :: footer"></nav>
+	
+	<script th:inline="javascript">
+	/*<![CDATA[*/
+		/*[+
+		+]*/
+
+		$(document).ready(function () {
+			$('#startDatePicker').datetimepicker({
+				format: 'YYYY-MM-DD'
+			});
+
+			$("#downloadBtn").on("click", function() {
+				var date = $('#startDate').val();
+				window.location.href = "/ui/report/users/download?date=" + date;
+			});
+		});
+
+		/*]]>*/
+	</script>
+</body>
+</html>

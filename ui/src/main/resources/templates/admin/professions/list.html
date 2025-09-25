@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+    <header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+    <aside th:replace="fragments/navbar :: navbar-aside (page = 'professions', subpage='admin')"></aside>
+
+    <section>
+        <div class="content-wrapper">
+            <h3 th:text="#{html.page.professions.title}"></h3>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <p>Her kan du oprette stillinger i stillingskataloget samt opsætte mapninger fra stillingsbetegnelser i kildesystemer til stillinger i stillingskataloget.</p>
+                    <p>Bemærk at der kan gå op til en time før ændringer i stillingskataloget slår igennem på alle tilhørsforhold.</p>
+                    
+                    <b>Indstillinger</b>
+                    <ul>
+                    	<li>Status:
+                    		<th:block th:if="${@sofdConfiguration.getModules().getProfessions().isEnableOutgoing() == true}">Aktiv</th:block>
+                    		<th:block th:if="${@sofdConfiguration.getModules().getProfessions().isEnableOutgoing() == false}">Ikke-aktiv</th:block>
+                    	</li>
+                    	<li th:if="${@sofdConfiguration.getModules().getProfessions().getField().toString() != 'POSITION_NAME'}">
+                    		<th:block th:text="${@sofdConfiguration.getModules().getProfessions().getField().getName()}"></th:block>
+                    	</li>
+                    </ul>
+                </div>
+
+                <div class="panel-heading">
+                    <div>
+                        <select id="organisationSelect" class="form-control m-b col-sm-8" onchange="selectOrganisation()" style="margin-bottom: 10px">
+                            <option th:each="organisation : ${organisations}"
+                                    th:value="${organisation.id}"
+                                    th:text="${organisation.name}">
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="panel-body">
+                    <ul class="nav nav-tabs" style="margin-bottom: 10px">
+                        <li class="active">
+                            <a data-toggle="tab" href="#professions" th:text="#{html.page.professions.professions}" onclick="openProfessions()"></a>
+                        </li>
+                        <li>
+                            <a data-toggle="tab" href="#translations" th:text="Oversættelser" onclick="initTranslationPage()"></a>
+                        </li>
+                    </ul>
+
+                    <div id="professions" class="tab-pane fade in active">
+                        <div>
+                            <a class="btn btn-primary btn-lg" href="#" onclick="openUpdateProfessionModal(null)" style="margin-bottom: 10px" data-id="0">
+                                <i class="fa fa-plus"></i>
+                                <span th:text="#{html.page.professions.create}"></span>
+                            </a>
+                            <a class="btn btn-primary btn-lg" id="generateProfessionsButton" href="#" style="margin-bottom: 10px;width:220px;" onclick="openGenerateModal()">
+                                <i class="fa fa-plus"></i>
+                                <span th:text="#{html.page.professions.generate}"></span>
+                            </a>
+                        </div>
+                        <div class="table-responsive">
+                            <table id="listTable" class="table table-striped">
+                                <thead>
+                                <tr>
+                                    <th class="col-md-10" th:text="#{html.page.professions.name}"></th>
+                                    <th class="col-md-2" th:text="#{html.control.operations}"></th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="translations" class="tab-pane fade">
+                        <div class="table-responsive">
+                            <table id="translationTable" class="table table-striped">
+                                <thead>
+                                <tr>
+                                    <th class="col-md-4" th:text="#{html.page.professions.sourcePositionName}"></th>
+                                    <th class="col-md-4" th:text="#{html.page.professions.result}"></th>
+                                    <th class="col-md-4" th:text="#{html.page.professions.translations}"></th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Create modal -->
+<div id="updateProfessionModal" class="modal fade" role="dialog">
+    <form class="form-horizontal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title" th:text="#{html.page.professions.createOrUpdate}"></h4>
+                </div>                
+                <div class="modal-body">
+                    <input id="updateOrganisationId" style="display:none;"/>
+                    <input id="inputProfessionId" style="display:none;"/>
+                    <div class="form-group">
+                        <label th:text="#{html.page.professions.positionName}" class="col-sm-2 control-label"></label>
+                        <div class="col-sm-10">
+                            <input id="inputProfessionName" placeholder="Indtast stillingsnavn her" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label th:text="#{html.page.professions.addMatch}" class="col-sm-2 control-label"></label>
+                        <div class="col-sm-4">
+                            <select class="form-control" id="inputMatchType">
+                                <option th:each="matchType : ${T(dk.digitalidentity.sofd.dao.model.enums.ProfessionMatchType).values()}" th:value="${matchType}" th:text="#{__${matchType.getMessage()}__}"></option>
+                            </select>
+                        </div>
+                        <div class="col-sm-5">
+                            <input id="inputMatchValue" placeholder="Indtast mapningsværdi" class="form-control"/>
+                        </div>
+                        <div class="col-sm-1">
+                            <button class="btn btn-primary" type="button" th:text="#{html.button.add}" onclick="addMapping()" style="margin-left: -18px"></button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <h4 th:text="#{html.page.professions.matchValues}" id="header" style="margin-left: 10px"></h4>
+                        <div class="col-sm-12">
+                            <div class="table-responsive">
+                                <table id="mappingTable" class="table table-striped" style="width:100%">
+                                    <thead>
+                                    <tr>
+                                        <th class="col-md-5" th:text="#{html.page.professions.matchType}"></th>
+                                        <th class="col-md-6" th:text="#{html.page.professions.matchValue}"></th>
+                                        <th class="col-md-1" th:text="#{html.control.operations}"></th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="col-sm-12">
+                        <button class="btn btn-primary" type="button" th:text="#{html.control.button.save}" onclick="saveProfession()"></button>
+                        <button class="btn btn-danger" type="button" data-dismiss="modal" th:text="#{html.action.abortChanges}"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Generation Modal -->
+<div id="generateProfessionsModal" class="modal fade" role="dialog">
+    <form class="form-horizontal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title" th:text="#{html.page.professions.generate}"></h4>
+                    <p>Bemærk at du kun kan udføre denne handling én gang. Vælg alle de stillinger du vil oprette i stillingskataloget fra start.<br />Herefter skal nye stillingser tilføjes en ad gangen.</p>
+                </div>
+
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table id="generatedProfessionsTable" class="table table-striped listTable table-responsive" style="table-layout: fixed; width: 100%">
+                            <thead>
+                            <tr>
+                                <th th:text="#{html.page.professions.name}"></th>
+                                <th th:text="#{html.page.professions.generateCheck}"></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                    <div class="modal-footer">
+                        <div class="col-sm-12">
+                            <button class="btn btn-primary" type="button" th:text="#{html.control.button.save}" onclick="acceptGeneratedProfessions(this)"></button>
+                            <button class="btn btn-danger" type="button" data-dismiss="modal" th:text="#{html.action.abortChanges}"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </form>
+</div>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+<script th:replace="fragments/datatables :: datatables"></script>
+
+<script th:inline="javascript">
+		/*<![CDATA[*/
+		/*[+
+			var createUpdateErrorMsg = [[#{html.page.organisation.createupdate.error}]];
+			var createUpdateErrorMsg = [[#{html.page.organisation.createupdate.error}]];
+			var deleteButtonConfirm = [[#{html.button.delete}]];
+            var deleteButtonCancel = [[#{html.button.cancel}]];
+
+            var matchTypeMap = new Map();
+            [#th:block th:each="matchType : ${T(dk.digitalidentity.sofd.dao.model.enums.ProfessionMatchType).values()}"]
+            matchTypeMap.set([[${matchType}]],[[#{__${matchType.getMessage()}__}]]);            
+            [/th:block]
+
+		+]*/
+    
+        $(document).ready(function () {
+            $('#organisationSelect').change();
+        });
+
+		var token = $("meta[name='_csrf']").attr("content");
+        var generatedValues = [];
+        var tempMappings = [];
+        var professionMap = new Map();
+
+
+        function selectOrganisation() {
+            $('#generateProfessionsButton').hide();
+            let id = $('#organisationSelect').val();
+            $.ajax({
+                url: "/rest/admin/professions?organisationId=" + id,
+                headers: {
+                    'X-CSRF-TOKEN': token
+                },
+                type: 'GET',
+                contentType: 'application/json',
+                success: function(data, textStatus, jQxhr) {
+                    if (data.length === 0) {
+                        $('#generateProfessionsButton').show();
+                    }
+                    initProfessionTable(data);
+                },
+                error: function( jqXhr, textStatus, errorThrown ){
+                    $.notify({
+                        message: "Der opstod en teknisk fejl"
+                    }, {
+                        status: 'danger',
+                        autoHideDelay: 4000
+                    });
+                }
+            });
+        }
+        function openProfessions() {
+            $('#translations').hide();
+            $('#professions').show();
+        }
+
+        function openTranslations() {
+            $('#translations').show();
+            $('#professions').hide();
+        }
+
+        function initProfessionTable(data) {
+            professionMap.clear();
+            $('#listTable').DataTable({
+                "bDestroy": true,
+                'paging':   true,
+                'ordering': true,
+                'info':     true,
+                'pageLength': 10,
+                'data': data,
+                'columns': [
+                    {
+                        data: 'name',
+                        orderable: false,
+                        searchable: true,
+                        visible: true
+                    },
+                    {
+                        data: 'id',
+                        orderable: false,
+                        searchable: true,
+                        render: function (data, type, row, meta) {
+                            professionMap.set(row.id,row);
+                            return '<td>' +
+                                '<a onclick="openUpdateProfessionModal(' + row.id + ');" href="#"><em class="fa fa-fw fa-pencil" th:title="#{html.mouseover.edit}"></em></a>' +
+                                '<a href="#" onclick="deleteProfession(' + row.id + ')"><em class="fa fa-fw fa-trash"></em></a>' +
+                            '</td>';
+                        }
+                    }
+                ],
+                'language': {
+                    "search":       searchTxt,
+                    "lengthMenu":   dropdownTxt,
+                    "info":         infoDefaultTxt,
+                    "zeroRecords":  infoEmptyTxt,
+                    "infoEmpty":    "",
+                    "infoFiltered": infoFilteredTxt,
+                    "paginate": {
+                        "next": nextTxt,
+                        "previous": prevTxt
+                    }
+                }
+            });
+        }
+
+        function openUpdateProfessionModal(professionId) {
+            tempMappings = [];
+            $('#inputProfessionName').val("");
+            $('#inputProfessionId').val("");
+            $('#updateProfessionModal').modal("show");
+            var profession = professionMap.get(professionId);
+            if (profession) {                
+                // create a clone of profession mappings using slice
+                tempMappings = profession.mappings.slice();
+                // add a temporary key to handle client side deletions before we have a database id
+                tempMappings.forEach((mapping) => mapping.tempKey = self.crypto.randomUUID());
+                $('#inputProfessionName').val(profession.name);
+                $('#inputProfessionId').val(profession.id);                
+            }
+            drawMappingTable(tempMappings);
+        }
+
+        function drawMappingTable(mappings) {
+            $('#mappingTable').DataTable({
+                'destroy': true,
+                'ordering': false,
+                'paging': false,
+                'info': false,
+                'searching': false,
+                'data': mappings,
+                'columns': [                    
+                    {
+                      data: 'matchType',
+                      render: function (data, type, row, meta) {return matchTypeMap.get(data);}
+                    },
+                    {
+                      data: 'matchValue'
+                    },
+                    {
+                      data: 'tempKey',
+                      render: function (data, type, row, meta) {
+                        return '<span class="btn-label" onclick="removeMapping(\'' + data + '\')"><i class="fa fa-times"></i></span>'
+                      }
+                    }
+                ]
+            });            
+        }
+
+        function removeMapping(key) {
+            for (let i = 0; i < tempMappings.length; i++) {
+                if (tempMappings[i].tempKey === key) {
+                    tempMappings.splice(i, 1);
+                }
+            }
+            drawMappingTable(tempMappings);
+        }
+
+        function addMapping() {
+            let matchValue = $('#inputMatchValue').val();            
+            let matchType = $('#inputMatchType').val();
+            if (matchValue) {
+                tempMappings.push({
+                    id: 0,
+                    matchType: matchType,
+                    matchValue: matchValue,
+                    tempKey: self.crypto.randomUUID()
+                });                
+            }
+            // Reset the input after each submission
+            $('#inputMatchValue').val("");
+            drawMappingTable(tempMappings);
+            return false;
+        }
+
+        function openGenerateModal() {
+            let organisationId = $('#organisationSelect').val();
+            generatedValues = [];
+            $.ajax({
+                url: "/rest/admin/professions/uniquePositionNames?organisationId=" + organisationId,
+                headers: {
+                    'X-CSRF-TOKEN': token
+                },
+                type: 'GET',
+                contentType: 'application/json',
+                success: function(data, textStatus, jQxhr) {
+                    $('#generateProfessionsModal').modal("show");
+                    initGeneratedTable(data);
+                },
+                error: function( jqXhr, textStatus, errorThrown ){
+                    $.notify({
+                        message: createUpdateErrorMsg
+                    }, {
+                        status: 'danger',
+                        autoHideDelay: 4000
+                    });
+                }
+            });
+        }
+
+        function initGeneratedTable(positionNames) {
+            for (var i = 0; i<positionNames.length; i++) {
+                generatedValues[i] = {id: i, positionName: positionNames[i], checked: false};
+            }            
+
+            $('#generatedProfessionsTable').DataTable({
+                "bDestroy": true,
+                'paging': true,
+                'ordering': true,
+                'info': true,
+                'pageLength': 10,
+                'data': generatedValues,
+                'columns': [
+                    {
+                        data: 'positionName',
+                        orderable: false,
+                        searchable: true,
+                        visible: true
+                    },
+                    {
+                        data: 'id',
+                        orderable: false,
+                        searchable: true,
+                        render: function (data, type, row, meta) {
+                            return '<span><input class="checkbox" onclick="generatedValues[' + row.id + '].checked=this.checked;" type="checkbox"/></span>';
+                        }
+                    }
+                ],
+                'language': {
+                    "search": searchTxt,
+                    "lengthMenu": dropdownTxt,
+                    "info": infoDefaultTxt,
+                    "zeroRecords": infoEmptyTxt,
+                    "infoEmpty": "",
+                    "infoFiltered": infoFilteredTxt,
+                    "paginate": {
+                        "next": nextTxt,
+                        "previous": prevTxt
+                    }
+                }
+            });
+        }
+
+        function acceptGeneratedProfessions() {
+            let organisationId = $('#organisationSelect').val();
+            var acceptedValues = [];
+            for (let i = 0; i < generatedValues.length; i++) {
+                if (generatedValues[i].checked === true) {
+                    acceptedValues.push(generatedValues[i].positionName);
+                }
+            }
+            $.ajax({
+                url: "/rest/admin/professions/createInitial?organisationId=" + organisationId,
+                headers: {
+                    'X-CSRF-TOKEN': token
+                },
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(acceptedValues),
+                success: function(data, textStatus, jQxhr) {
+                    window.location.reload();
+                },
+                error: function(jqXhr, textStatus, errorThrown) {
+                    $.notify({
+                        message: createUpdateErrorMsg
+                    }, {
+                        status: 'danger',
+                        autoHideDelay: 4000
+                    });
+                }
+            });
+        }
+
+        function saveProfession() {
+            if ($('#inputProfessionName').val() == "") {
+                return;
+            }            
+            var data = {
+                "id": $('#inputProfessionId').val(),
+                "organisationId": $('#organisationSelect').val(),
+                "name": $('#inputProfessionName').val(),
+                "mappings": tempMappings
+            }
+
+            let url = "/rest/admin/professions";
+
+            $.ajax({
+                url: url,
+                headers: {
+                    'X-CSRF-TOKEN': token
+                },
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function( data, textStatus, jQxhr){
+                    window.location.reload();
+                },
+                error: function( jqXhr, textStatus, errorThrown ){
+                    $.notify({
+                        message: createUpdateErrorMsg + '\n' + jqXhr.responseText
+                    }, {
+                        status: 'danger',
+                        autoHideDelay: 3000
+                    });
+                }
+            });
+        }
+
+        function deleteProfession(professionId) {
+            swal({
+                    html : true,
+                    title : "Slet stilling?",
+                    text : "Hvis du sletter denne stilling, slettes også alle dens mapninger!",
+                    type : "warning",
+                    showCancelButton : true,
+                    confirmButtonColor : "#DD6B55",
+                    confirmButtonText : deleteButtonConfirm,
+                    cancelButtonText : deleteButtonCancel,
+                    closeOnConfirm : true,
+                    closeOnCancel : true
+                },
+                function(isConfirm) {
+                    if (isConfirm) {
+                        $.ajax({
+                            url: "/rest/admin/professions/" + professionId,
+                            headers: {
+                                'X-CSRF-TOKEN': token
+                            },
+                            type: 'delete',
+                            contentType: 'application/json',
+                            success: function( data, textStatus, jQxhr ) {
+                                selectOrganisation();
+                            },
+                            error: function( jqXhr, textStatus, errorThrown ) {
+                                $.notify({
+                                    message: "Fejl ved sletning af stilling"
+                                }, {
+                                    status: 'danger',
+                                    autoHideDelay: 4000
+                                });
+                            }
+                        });
+                    }
+                });
+        }
+
+
+        function initTranslationPage() {
+            openTranslations();
+            let id = $('#organisationSelect').val();
+            $.ajax({
+                url: "/rest/admin/professions/translations?organisationId=" + id,
+                headers: {
+                    'X-CSRF-TOKEN': token
+                },
+                type: 'GET',
+                contentType: 'application/json',
+                success: function(data, textStatus, jQxhr) {
+                    initTranslationTable(data);
+                },
+                error: function( jqXhr, textStatus, errorThrown ){
+                    $.notify({
+                        message: "Der opstod en teknisk fejl"
+                    }, {
+                        status: 'danger',
+                        autoHideDelay: 4000
+                    });
+                }
+            });
+        }
+
+        function initTranslationTable(data) {
+            $('#translationTable').DataTable({
+                "bDestroy": true,
+                'paging': true,
+                'ordering': true,
+                'info': true,
+                'pageLength': 10,
+                'data': data,
+                'columns': [
+                    {
+                      data: 'positionName',
+                      orderable: true,
+                      searchable: true
+                    },
+                    {
+                      data: "message",
+                      orderable: true,
+                      searchable: true,
+                    },
+                    {
+                      data: "translation",
+                      orderable: true,
+                      searchable: true,
+                    }
+                ],
+                'language': {
+                    "search": searchTxt,
+                    "lengthMenu": dropdownTxt,
+                    "info": infoDefaultTxt,
+                    "zeroRecords": infoEmptyTxt,
+                    "infoEmpty": "",
+                    "infoFiltered": infoFilteredTxt,
+                    "paginate": {
+                        "next": nextTxt,
+                        "previous": prevTxt
+                    }
+                }
+            });
+        }
+
+		/*]]>*/
+	</script>
+</body>
+</html>

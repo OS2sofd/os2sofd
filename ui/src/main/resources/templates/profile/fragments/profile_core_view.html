@@ -1,0 +1,39 @@
+<th:block th:fragment="profileCoreView" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+		<fieldset>
+				<input name="personUuid" type="hidden" th:value="${person.uuid}" />
+				<div class="row">
+					<label class="col-sm-3 control-label" th:text="#{html.entity.person.firstname}"></label>
+					<div class="col-sm-9">
+						<input name="firstname" th:value="${person.firstname}" class="form-control personMasterTooltip" readonly="readonly"/>
+					</div>
+				</div>
+
+				<div class="row">
+					<label class="col-sm-3 control-label" th:text="#{html.entity.person.surname}"></label>
+					<div class="col-sm-9">
+						<input name="surname" th:value="${person.surname}" class="form-control personMasterTooltip" readonly="readonly"/>
+					</div>
+				</div>
+
+				<div class="row">
+					<label class="col-sm-3 control-label" th:text="#{html.entity.person.chosenName}"></label>
+					<div class="col-sm-9">
+						<input name="chosenName" th:value="${person.chosenName}" class="form-control personMasterTooltip" readonly="readonly"/>
+					</div>
+				</div>
+		</fieldset>
+	
+	<div class="hidden">
+		<button id="editButton" class="btn btn-lg btn-primary" style="width:auto" onclick="loadEditCoreFragment()">
+			<em class="fa fa-pencil" aria-hidden="true"></em>&nbsp;
+			<span th:text="#{html.button.edit}"></span>
+		</button>
+	</div>
+	
+	<script type="text/javascript">
+		$(document).ready(function() {
+			$('#buttonsMenu').empty();
+			$('#buttonsMenu').append($('#editButton'));
+		});
+	</script>
+</th:block>

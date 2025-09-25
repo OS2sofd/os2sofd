@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'opusfilter', subpage = 'admin')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.page.opus.filter.headline}"></h3>
+
+				<div class="panel panel-default" style="padding-left: 20px; padding-right: 20px;">
+					<form class="form-horizontal">
+						<div class="panel-body">
+							<div class="form-group">
+								<label class="col-sm-3 control-label" th:text="#{html.setting.opus.filter.losIds}"></label>
+								<div class="col-sm-9">
+									<ul>
+										<li th:each="losId : ${losIds}" th:text="${losId}"></li>
+									</ul>
+								</div>
+							</div>
+						
+							<div class="form-group">
+								<label class="col-sm-3 control-label" th:text="#{html.setting.opus.filter.positionIds}"></label>
+								<div class="col-sm-9">
+									<ul>
+										<li th:each="positionId : ${positionIds}" th:text="${positionId}"></li>
+									</ul>
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label class="col-sm-3 control-label" th:text="#{html.setting.opus.filter.positionNames}"></label>
+								<div class="col-sm-9">
+									<ul>
+										<li th:each="positionName : ${positionNames}" th:text="${positionName}"></li>
+									</ul>
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label class="col-sm-3 control-label" th:text="#{html.setting.opus.filter.invalidPositionNames}"></label>
+								<div class="col-sm-9">
+									<ul>
+										<li th:each="positionName : ${invalidPositionNames}" th:text="${positionName}"></li>
+									</ul>
+								</div>
+							</div>
+							
+							<div class="form-group">
+								<label class="col-sm-3 control-label" th:text="#{html.setting.opus.filter.infix}"></label>
+								<div class="col-sm-9" style="padding-top: 7px;">
+									<span th:text="${orgUnitInfix}"></span>
+								</div>
+							</div>
+							
+							<div class="form-group">
+								<label class="col-sm-3 control-label">Tjenestemandspensioner</label>
+								<div class="col-sm-9" style="padding-top: 7px;">
+									<span>Filtreres</span>
+								</div>
+							</div>
+
+							<hr/>
+							<div class="form-group">
+								<div class="col-sm-12">
+									<p>
+									Ovenstående filtreringsregler påvirker hvilke enheder og medarbejdere der indlæses i SOFD
+									fra OPUS Løn og Personale.
+									</p>
+
+									<p>
+									Hvis man ønsker at få tilpasset filtrene, så skal man kontakte
+									driftoperatøren på <a href="mailto:helpdesk@digital-identity.dk">helpdesk@digital-identity.dk</a>.
+									</p>
+								</div>
+							</div>
+						</div>
+					</form>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<div th:replace="fragments/footer :: footer"></div>
+</body>
+</html>

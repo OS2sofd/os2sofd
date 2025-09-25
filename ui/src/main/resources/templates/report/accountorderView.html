@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'report')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'accountcreation', subpage = 'report')"></aside>
+
+	<section>
+		<div class="content-wrapper">
+			<h3>
+				<a th:href="@{/ui/report/accountorders}" class="btn btn-default">
+					<span><i class="fa fa-arrow-left"></i></span>
+				</a>
+
+				<span th:text="#{html.page.accountorders.header}"></span>
+			</h3>
+
+			<div class="panel panel-default">
+				<div class="panel-heading"></div>
+				<div class="panel-body">
+					<div class="form-horizontal">
+						<div class="row">	
+							<div class="col-md-12">
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.page.accountorders.personName}"></label>
+										<div class="col-sm-8">
+											<input th:value="${order.personName}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.page.accountorders.triggerAffiliation}"></label>
+										<div class="col-sm-8">
+											<input th:value="${order.triggerAffiliation}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+
+								<fieldset th:if="${order.employeeId != null}">
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.page.accountorders.employeeId}"></label>
+										<div class="col-sm-8">
+											<input th:value="${order.employeeId}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+								
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.page.accountorders.orderType}"></label>
+										<div class="col-sm-8">
+											<input th:value="#{__${order.orderType.messageId}__}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+								
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.page.accountorders.userType}"></label>
+										<div class="col-sm-8">
+											<input th:value="${@supportedUserTypeService.getPrettyName(order.getUserType())}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+								
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.page.accountorders.status}"></label>
+										<div class="col-sm-8">
+											<input th:value="#{__${order.status.messageId}__}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+								
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.page.accountorders.activationTime}"></label>
+										<div class="col-sm-8">
+											<input th:value="${#dates.format(order.activationTimestamp, 'yyyy-MM-dd HH:mm')}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+
+								<fieldset th:if="${order.endDate != null}">
+									<div class="row">
+										<label th:if="${order.orderType == T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderType).EXPIRE}" class="col-sm-2 control-label" th:text="#{html.page.accountorders.expireTime}"></label>
+										<label th:unless="${order.orderType == T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderType).EXPIRE}" class="col-sm-2 control-label" th:text="#{html.page.accountorders.deactivationTime}"></label>
+										<div class="col-sm-8">
+											<input th:if="${order.orderType == T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderType).EXPIRE}" th:value="${#dates.format(order.endDate, 'yyyy-MM-dd 05:00')}" class="form-control" readonly="readonly" />
+											<input th:unless="${order.orderType == T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderType).EXPIRE}" th:value="${#dates.format(order.endDate, 'yyyy-MM-dd HH:mm')}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.page.accountorders.lastModifiedTime}"></label>
+										<div class="col-sm-8">
+											<input th:value="${#dates.format(order.modifiedTimestamp, 'yyyy-MM-dd HH:mm')}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+								
+								<fieldset th:if="${order.actualUserId != null}">
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.page.accountorders.actualUserId}"></label>
+										<div class="col-sm-8">
+											<input th:value="${order.actualUserId}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+								</fieldset>
+
+								<fieldset th:if="${order.actualUserId == null}">
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.page.accountorders.userId}"></label>
+										<div class="col-sm-8">
+											<input id="userIdField" th:value="${order.requestedUserId}" class="form-control" th:readonly="${order.status != T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderStatus).FAILED or order.orderType != T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderType).CREATE}" />
+										</div>
+									</div>
+								</fieldset>
+								<fieldset>
+									<div class="row">
+										<label class="col-sm-2 control-label" th:text="#{html.page.accountorders.message}"></label>
+										<div class="col-sm-8">
+											<textarea th:text="${order.message}" rows="4" class="form-control" readonly="readonly"></textarea>
+										</div>
+									</div>
+								</fieldset>
+								
+								<fieldset th:if="${order.status == T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderStatus).FAILED}">
+									<div class="row">
+										<div class="col-sm-offset-2 col-sm-8">
+											<a class="btn btn-lg btn-primary" style="width: 100%;" id="retryButton">
+												<th:block th:text="#{html.page.accountorders.retry}"/>
+											</a>
+										</div>
+									</div>
+									
+									<div class="row" style="margin-top: 10px;">
+										<div class="col-sm-offset-2 col-sm-8">
+											<a class="btn btn-lg btn-danger" style="width: 100%;" th:href="@{/ui/report/accountorders/delete/} + ${order.id}">
+												<th:block th:text="#{html.page.accountorders.delete}"/>
+											</a>
+										</div>
+									</div>
+								</fieldset>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+
+<script th:inline="javascript">
+	/*<![CDATA[*/
+	/*[+
+		var url = [[@{/ui/report/accountorders/retry/} + ${order.id}]];
+	+]*/
+
+	$(document).ready(function () {
+		$("#retryButton").on('click', function() {
+			if($("#userIdField").val() && $("#userIdField").val() != "") {
+				var userId = $("#userIdField").val();
+				window.location = url + "/" + userId;
+			}
+			else {
+				$("#userIdField").css("background-color", "#FFD6E4");
+				swal({
+				 title: "Udfyld kontonavn",
+				 text: "Ønsket kontonavn skal udfyldes",
+				 timer: 1500,
+				 showConfirmButton: false
+				 });
+			}
+		});
+	});
+	
+	/*]]>*/
+</script>
+
+</body>
+</html>

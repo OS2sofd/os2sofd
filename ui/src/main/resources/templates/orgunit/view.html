@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.w3.org/1999/html">
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'orgunits', subpage='phonebook')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3>
+					<a th:href="@{/ui/orgunit}" class="btn btn-default">
+						<span>
+							<i class="fa fa-arrow-left"></i>
+						</span>
+					</a>
+					<span th:text="#{html.page.orgunit.view.title}"></span>
+					<th:block th:if="${(orgUnit != null && @securityUtil.canEditOrgUnit(orgUnit.uuid)) || orgUnit == null}">
+						<div sec:authorize="hasRole('ROLE_USER_EDIT')" id="buttonsMenu" style="position: absolute; right: 0; top: 0; margin-top:10px; margin-right: 20px;"></div>
+					</th:block>
+				</h3>
+
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<div id="core" class="row"></div>
+						<th:block th:if="${session.SESSION_FUTURE_DATE} == null">
+                            <ul id="main-tabs" class="nav nav-tabs">
+                                <li class="active">
+                                    <a data-toggle="tab" href="#employees_menu" th:text="#{html.page.orgunit.list.employees}"></a>
+                                </li>
+                                <li>
+                                    <a data-toggle="tab" href="#post_menu" th:text="#{html.page.orgunit.view.post.title}"></a>
+                                </li>
+                                <li>
+                                    <a data-toggle="tab" href="#phone_menu" th:text="#{html.page.orgunit.view.phone.title}"></a>
+                                </li>
+                                <li>
+                                    <a data-toggle="tab" href="#contactInfo_menu" th:text="#{html.page.orgunit.view.contactchannels.title}"></a>
+                                </li>
+                                <li>
+                                    <a data-toggle="tab" href="#kle_menu" th:text="#{html.page.orgunit.view.kle.title}"></a>
+                                </li>
+                                <li sec:authorize="hasRole('ROLE_USER_LOS_ADMIN')">
+                                    <a data-toggle="tab" href="#ouFutureChanges" th:text="#{html.page.person.view.future.changes}"></a>
+                                </li>
+                                <li>
+                                    <a data-toggle="tab" href="#tags_menu" th:text="#{html.page.orgunit.view.tags.title}" th:if="${#lists.size(tags) > 0}"></a>
+                                </li>
+
+                                <li sec:authorize="hasRole('ROLE_MODULE_ACCOUNT_CREATION')">
+                                    <a data-toggle="tab" href="#order_accounts_menu" th:text="#{html.page.orgunit.view.orderaccounts.title}"></a>
+                                </li>
+                                <li>
+                                    <a data-toggle="tab" href="#managed_titles_menu" th:text="#{html.page.orgunit.view.managedtitles.title}"></a>
+                                </li>
+								<li th:if="${@sofdConfiguration.getModules().getOrgUnitSubstitute().isEnabled()}">
+									<a data-toggle="tab" href="#substitutes_menu" th:text="#{html.page.orgunit.view.substitute.title}"></a>
+								</li>
+                                <li>
+                                    <a data-toggle="tab" href="#ean_menu" th:text="#{html.page.orgunit.view.ean.title}"></a>
+                                </li>
+                            </ul>
+
+                            <div class="tab-content">
+                                <div id="employees_menu" class="tab-pane fade in active">
+                                    <div class="btn-group">
+                                      <button type="button" style="width: auto !important;" class="btn btn-primary btn-lg dropdown-toggle" data-toggle="dropdown">
+                                        <em class="fa fa-fw fa-cog"></em>
+                                      </button>
+
+                                      <ul class="dropdown-menu" role="menu" id="dataTableUserDropdown">
+                                        <li><a href="#" data-cid="0" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.person.name}"></span></a></li>
+                                        <li><a href="#" data-cid="1" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.page.orgunit.view.employee.position}"></span></a></li>
+                                        <li><a href="#" data-cid="2" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.vendor}"></span></a></li>
+                                        <li><a href="#" data-cid="3" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.startDate}"></span></a></li>
+                                        <li><a href="#" data-cid="4" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.stopDate}"></span></a></li>
+                                        <li><a href="#" data-cid="5" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.page.orgunit.view.employee.accounts}"></span></a></li>
+                                        <li><a href="#" data-cid="6" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.employmentTerms}"></span></a></li>
+                                      </ul>
+                                    </div>
+
+                                    <div class="btn-group" sec:authorize="hasRole('ROLE_USER_EDIT')">
+										<th:block th:if="${(orgUnit != null && @securityUtil.canEditOrgUnit(orgUnit.uuid)) || orgUnit == null}">
+											<button class="btn btn-primary btn-lg dropdown-toggle" type="button" data-toggle="dropdown" style="width: 200px;">
+												<span>
+													<em class="fa fa-fw fa-plus"></em>&nbsp;
+													<span th:text="#{html.entity.orgunit.emplyee.add}"></span>&nbsp;
+													<em class="fa fa-fw fa-caret-down"></em>
+												</span>
+											</button>
+											<ul class="dropdown-menu">
+												<li><a th:href="@{'/ui/orgunit/view/' + ${orgUnit.uuid} + '/addemployee'}" th:text="#{html.entity.orgunit.employee.addOne}"></a></li>
+												<li><a th:href="@{'/ui/orgunit/view/' + ${orgUnit.uuid} + '/addemployees'}" th:text="#{html.entity.orgunit.employee.addAllFromOther}"></a></li>
+											</ul>
+										</th:block>
+									</div>
+
+									<div class="btn-group">
+										<button class="btn btn-primary btn-lg dropdown-toggle" type="button" data-toggle="dropdown" style="width: 290px;">
+											<span>
+												<em class="fa fa-fw fa-download"></em>&nbsp;
+												<span th:text="#{html.page.orgunit.view.employees.download}"></span>&nbsp;
+												<em class="fa fa-fw fa-caret-down"></em>
+											</span>
+										</button>
+										<ul class="dropdown-menu">
+											<li><a th:href="@{/ui/orgunit/view/download/employees/{uuid}(uuid=${orgUnit.uuid})}" th:text="#{html.page.orgunit.view.employees.download_normal}"></a></li>
+											<li><a th:href="@{/ui/orgunit/view/download/employees_nested/{uuid}(uuid=${orgUnit.uuid})}" th:text="#{html.page.orgunit.view.employees.download_nested}"></a></li>
+										</ul>
+									</div>
+
+                                    <table id="listTable1" class="table table-striped table-hover listTable">
+                                        <thead>
+                                            <th th:text="#{html.entity.person.name}"></th>
+                                            <th th:text="#{html.page.orgunit.view.employee.position}"></th>
+                                            <th th:text="#{html.entity.affiliation.vendor}"></th>
+                                            <th th:text="#{html.entity.affiliation.startDate}"></th>
+                                            <th th:text="#{html.entity.affiliation.stopDate}"></th>
+                                            <th th:text="#{html.page.orgunit.view.employee.accounts}"></th>
+                                            <th th:text="#{html.entity.affiliation.employmentTerms}"></th>
+                                            <th th:text="#{html.control.operations}"></th>
+                                        </thead>
+
+                                        <tbody>
+                                            <tr th:each="employee : ${employees}">
+                                                <td>
+                                                    <span th:text="${employee.name}"></span>
+                                                    <th:block th:if="${employee.leave == true}">
+                                                    	&nbsp;
+                                                    	<span class="badge badge-warning" th:text="#{html.entity.person.leave}"></span>
+                                                    </th:block>
+                                                    <th:block th:if="${employee.forceStop == true}">
+                                                    	&nbsp;
+                                                    	<span class="badge badge-alert" th:text="#{html.entity.person.forceStop}"></span>
+                                                    </th:block>
+                                                    <th:block th:if="${employee.disableAccountOrdersDelete == true || employee.disableAccountOrdersCreate == true || employee.disableAccountOrdersDisable == true}">
+                                                    	&nbsp;
+                                                    	<span class="badge badge-warning" th:text="#{html.entity.person.disableAccountOrders}"></span>
+                                                    </th:block>
+                                                    <th:block th:if="${employee.fictiveCpr == true}">
+                                                    	&nbsp;
+                                                    	<span class="badge badge-warning" th:text="#{html.entity.person.fakeCpr}"></span>
+                                                    </th:block>
+                                                </td>
+                                                <td th:text="${employee.positionName}"></td>
+                                                <td th:text="${employee.vendor}"></td>
+                                                <td th:text="${employee.startDate}"></td>
+                                                <td th:text="${employee.stopDate}"></td>
+                                                <td>
+                                                    <ul style="list-style-type: none; padding-left: 0px; margin-bottom: 0px;">
+                                                        <li th:each="account : ${employee.accounts}">
+                                                        	<span th:text="${account.getFirst()}"></span>
+                                                        	<span th:if="${account.getSecond() == true}" class="badge badge-alert" th:text="#{html.entity.user.disabled}"></span>
+                                                        </li>
+                                                    </ul>
+                                                </td>
+                                                <td th:text="${employee.employmentTermsText}"></td>
+                                                <td>
+                                                    <a th:href="@{/ui/person/view/{id}(id=${employee.uuid})}">
+                                                        <em class="fa fa-search"></em>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div id="kle_menu" class="tab-pane fade">
+	                                <div sec:authorize="hasRole('ROLE_USER_EDIT')" style="padding-bottom: 80px;">
+										<th:block th:if="${(orgUnit != null && @securityUtil.canEditOrgUnit(orgUnit.uuid)) || orgUnit == null}">
+											<div class="col-sm-1" style="width: 40px !important;">
+												<div class="checkbox c-checkbox">
+													<label>
+														<input class="checkboxaction" id="isInherit" type="checkbox" onchange="setInheritKLE()"/>
+														<span class="fa fa-check"></span>
+													</label>
+												</div>
+											</div>
+											<label class="col-sm-11" style="padding-top: 9px;" th:text="#{html.entity.kle.inherit}"></label>
+										</th:block>
+									</div>
+
+                                    <ul id="kle-tabs" class="nav nav-tabs">
+		                                <li class="active">
+		                                    <a data-toggle="tab" href="#kle_tertiary_menu" th:text="#{html.page.orgunit.view.kletertiary}"></a>
+		                                </li>
+		                                <li>
+		                                    <a data-toggle="tab" href="#kle_performing_menu" th:text="#{html.page.person.view.kleperform}"></a>
+		                                </li>
+		                                <li>
+		                                    <a data-toggle="tab" href="#kle_interest_menu" th:text="#{html.page.person.view.kleinterest}"></a>
+		                                </li>
+		                            </ul>
+
+		                            <div class="tab-content">
+			                            <div id="kle_performing_menu" class="tab-pane fade">
+											<th:block th:if="${(orgUnit != null && @securityUtil.canEditOrgUnit(orgUnit.uuid)) || orgUnit == null}">
+		                                    	<a sec:authorize="hasRole('ROLE_USER_EDIT')" onclick="editKLE('KlePrimary')" class="btn btn-lg btn-primary" style="margin-left:15px;"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i></a>
+											</th:block>
+
+		                                    <div class="content"></div>
+	                               		</div>
+
+	                                	<div id="kle_interest_menu" class="tab-pane fade">
+											<th:block th:if="${(orgUnit != null && @securityUtil.canEditOrgUnit(orgUnit.uuid)) || orgUnit == null}">
+	                                    		<a sec:authorize="hasRole('ROLE_USER_EDIT')" onclick="editKLE('KleSecondary')" class="btn btn-lg btn-primary" style="margin-left:15px;"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i></a>
+											</th:block>
+
+	                                    	<div class="content"></div>
+	                                	</div>
+
+	                                	<div id="kle_tertiary_menu" class="tab-pane fade in active">
+											<th:block th:if="${(orgUnit != null && @securityUtil.canEditOrgUnit(orgUnit.uuid)) || orgUnit == null}">
+	                                    		<a sec:authorize="hasRole('ROLE_USER_EDIT')" onclick="editKLE('KleTertiary')" class="btn btn-lg btn-primary" style="margin-left:15px;"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i></a>
+											</th:block>
+
+	                                    	<div class="content"></div>
+	                                	</div>
+	                                </div>
+                                </div>
+
+                                <div id="post_menu" class="tab-pane fade">
+                                    <div th:replace="orgunit/fragments/viewPostsTab :: postsTab (postAddresses = ${postAddresses})"></div>
+                                </div>
+
+                                <div id="phone_menu" class="tab-pane fade">
+                                    <div th:replace="fragments/phoneTab :: phoneTab"></div>
+                                </div>
+
+                                <div id="contactInfo_menu" class="tab-pane fade">
+									<div th:replace="orgunit/fragments/viewContactInfoTab :: contactInfoTab (contactAddress = ${orgUnit.contactAddress},openingHours = ${orgUnit.openingHours}, keyWords = ${orgUnit.keyWords}, notes = ${orgUnit.notes}, openingHoursPhone = ${orgUnit.openingHoursPhone}, email = ${orgUnit.email}, emailNotes = ${orgUnit.emailNotes}, location = ${orgUnit.location}, urlAddress = ${orgUnit.urlAddress})"></div>
+                                </div>
+                                <div id="ouFutureChanges" class="tab-pane fade">
+                                    <th:block th:replace="fragments/ouFutureChangesList :: ouFutureChangesList (changes = ${futureChanges})" />
+                                </div>
+
+                                <div id="tags_menu" class="tab-pane fade" th:if="${#lists.size(tags) > 0}">
+                                    <th:block th:replace="orgunit/fragments/tags :: tags" />
+                                </div>
+
+                                <div id="order_accounts_menu" class="tab-pane fade">
+                                    <div th:replace="orgunit/fragments/viewAccountOrdersTab :: accountOrdersTab (orgUnitAccountOrder = ${orgUnitAccountOrder})"></div>
+                                </div>
+
+                                <div id="managed_titles_menu" class="tab-pane fade">
+	                                <div id="managedTitlesPlaceholder"></div>
+                                </div>
+
+								<div id="substitutes_menu" class="tab-pane fade">
+									<div th:replace="orgunit/fragments/substitutesTab :: substitutesTab (substitutes = ${substitutes})"></div>
+								</div>
+
+                                <div id="ean_menu" class="tab-pane fade">
+	                                <div id="eanPlaceholder"></div>
+                                </div>
+                            </div>
+						</th:block>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<!-- Edit phone modal -->
+	<div th:replace="fragments/phoneTab :: phoneModal"></div>
+	<div id="phone_prime_modal">
+		<div th:replace="fragments/phoneTab :: phonePrimeModal"></div>
+	</div>
+
+	<!-- Copy rules modal -->
+	<div sec:authorize="hasRole('ROLE_USER_ADMIN') and hasRole('ROLE_MODULE_ACCOUNT_CREATION')" th:replace="orgunit/fragments/viewAccountOrdersTab :: copyModal"></div>
+
+	<!-- Edit post modal -->
+	<div th:replace="orgunit/fragments/viewPostsTab :: postModal"></div>
+
+	<!-- Delete future changes modal -->
+	<th:block th:replace="fragments/ouFutureChangesList :: ouFutureChangesModal" />
+
+	<!-- create managed title modal -->
+	<div th:replace="orgunit/fragments/managedTitlesTab :: managedTitlesCreateModal"></div>
+
+	<!-- create substitute modal -->
+	<div th:replace="orgunit/fragments/substitutesTab :: substitutesCreateModal"></div>
+	
+	<!-- create ean modal -->
+	<div th:replace="orgunit/fragments/eanTab :: eanCreateModal"></div>
+	<!-- prime ean modal -->
+	<div th:replace="orgunit/fragments/eanTab :: eanPrimeModal"></div>
+
+	<nav th:replace="fragments/footer :: footer"></nav>
+
+	<script id="datatablesScript" th:replace="fragments/datatables :: datatables(paging=false, autoLoad=false)"></script>
+	<script th:replace="fragments/phoneTab :: phoneScript"></script>
+	<script th:replace="orgunit/fragments/tags :: tagsScript"></script>
+	<script sec:authorize="hasRole('ROLE_USER_ADMIN') and hasRole('ROLE_MODULE_ACCOUNT_CREATION')" th:replace="orgunit/fragments/viewAccountOrdersTab :: viewAccountOrdersScript"></script>
+	<script th:replace="orgunit/fragments/orgunit_tree :: orgUnitTreeScript(configObj='ouJSTreeAccountOrderCopyConfig')"></script>
+	<script th:replace="orgunit/fragments/viewPostsTab :: viewPostsTabScript"></script>
+
+	<th:block th:replace="fragments/ouFutureChangesList :: ouFutureChangesScript" />
+
+	<style>
+	.row {
+		margin-bottom: 5px;
+	}
+	.control-label {
+		margin-top: 5px;
+		text-align: right;
+	}
+
+	/* edit fragment */
+	.autocomplete-suggestions { border: 1px solid #999; background: #FFF; overflow: auto; width: 500px !important; }
+	.autocomplete-suggestion { padding: 2px 5px; white-space: nowrap; overflow: hidden; }
+	.autocomplete-selected { background: #F0F0F0; }
+	.autocomplete-suggestions strong { font-weight: normal; color: #3399FF; }
+	.autocomplete-group { padding: 2px 5px; }
+	.autocomplete-group strong { display: block; border-bottom: 1px solid #000; }
+
+	</style>
+
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		/*[+
+			var url = [[@{/ui/orgunit}]];
+			var restUrl = [[@{/rest/orgunit}]];
+			var uuid = [[${orgUnit.uuid}]];
+			var inherit = [[${orgUnit.inheritKle}]];
+			var phones = [[${phones}]];
+
+			var entityType = [[${entityType}]];
+
+			var orgUnitMaster = [[${orgUnit.master}]];
+			var allKles = [[${allKles}]];
+
+			var allTags = [[${allTags}]];
+
+			var fieldUpdatedMsg = [[#{html.page.orgunit.edit.kle.update.success}]];
+			var fieldNotUpdatedMsg = [[#{html.page.orgunit.edit.kle.update.failure}]];
+
+			var inheritUpdatedMsg = [[#{html.page.orgunit.edit.kle.inherit.update.success}]];
+			var inheritNotUpdatedMsg = [[#{html.page.orgunit.edit.kle.inherit.update.failure}]];
+
+			var msgUpdateFail = [[#{html.page.orgunit.update.failure}]];
+			var msgFieldUpdated = [[#{html.page.orgunit.update.success}]];
+
+			var tooltipTxt = [[#{html.entity.person.master}]];
+
+			var confirmRulesTitleTxt = [[#{html.page.orgunit.edit.rules.title}]]
+			var yesButtonTxt = [[#{html.button.yes}]];
+			var noButtonTxt = [[#{html.button.no}]];
+
+			var orgId = [[${orgUnit.belongsTo.id}]];
+			var orgUnitSourceName = [[${orgUnit.sourceName}]];
+
+			var managedTitleError = [[#{html.page.orgunit.view.managedtitles.create.error}]];
+			var swalDeleteTitleTitle = [[#{html.page.orgunit.view.managedtitles.delete}]];
+			var swalDeleteTitleText = [[#{html.page.orgunit.view.managedtitles.delete.text}]];
+			var managedTitleDeleteError = [[#{html.page.orgunit.view.managedtitles.delete.error}]];
+
+			var eanError = [[#{html.page.orgunit.view.ean.create.error}]];
+			var swalDeleteEanTitle = [[#{html.page.orgunit.view.ean.delete}]];
+			var swalDeleteEanText = [[#{html.page.orgunit.view.ean.delete.text}]];
+			var eanDeleteError = [[#{html.page.orgunit.view.ean.delete.error}]];
+			var eanPrimeError = [[#{html.page.orgunit.view.ean.prime.error}]];
+
+			var orgUnitSubstituteEnabled = [[${@sofdConfiguration.getModules().getOrgUnitSubstitute().isEnabled()}]];
+			var substituteRestUrl = [[@{/rest/substituteOrgUnitAssignment}]];
+			var substituteAutocompleteRestUrl = [[@{/rest/substituteAssignment}]];
+			var removeSubstituteAssignmentTitle = [[#{html.page.person.substitute.msg.delete.Title}]];
+			var removeSubstituteAssignmentText = [[#{html.page.person.substitute.msg.delete.Text}]];
+			var removeSubstituteAssignmentFail = [[#{html.page.person.substitute.msg.delete.Fail}]];
+			var btnCancel = [[#{html.button.cancel}]];
+			var btnDelete = [[#{html.button.delete}]];
+			var msgSubstituteAddFail = [[#{html.page.person.view.substitute.failure}]];
+
+			var orgDeleteTitle = [[#{html.page.orgunit.delete.title}]];
+			var orgDeleteMessage = [[#{html.page.orgunit.delete.message}]];
+			var orgDeleteFailure = [[#{html.page.orgunit.delete.failure}]];
+
+			var confirmEditKLETitle = [[#{html.page.orgunit.kle.confirmEditKLETitle}]];
+			var confirmEditKLEText = [[#{html.page.orgunit.kle.confirmEditKLEText}]];
+			var confirmEditKLEButtonText = [[#{html.page.orgunit.kle.confirmEditKLEButtonText}]];
+			var cancelEditKLEButtonText = [[#{html.page.orgunit.kle.cancelEditKLEButtonText}]];
+
+		+]*/
+		var token = $("meta[name='_csrf']").attr("content");
+
+		// polyfill for IE
+		if (!String.prototype.startsWith) {
+			String.prototype.startsWith = function(searchString, position) {
+				position = position || 0;
+				return this.substr(position, searchString.length) === searchString;
+			};
+		}
+
+		var managedTitleService, substituteService, eanService;
+		$("document").ready(function() {
+			managedTitleService = new ManagedTitleService();
+			managedTitleService.init();
+			
+			eanService = new EanService();
+			eanService.init();
+
+			if (orgUnitSubstituteEnabled) {
+				substituteService = new SubstituteService();
+				substituteService.init();
+			}
+
+			loadViewCoreFragment();
+			$("#kle_performing_menu .content").load(url + "/viewKLE/" + uuid + "/KlePrimary");
+			$("#kle_interest_menu .content").load(url + "/viewKLE/" + uuid + "/KleSecondary");
+			$("#kle_tertiary_menu .content").load(url + "/viewKLE/" + uuid + "/KleTertiary");
+
+			$("#isInherit").prop('checked',inherit);
+
+			addTooltips('masterTooltip', orgUnitMaster);
+
+			// on active click/show of tab, initalize
+			$('a[data-toggle="tab"]').on("shown.bs.tab", function (e) {
+				var id = $(e.target).attr("href");
+				localStorage.setItem(uuid, id);
+
+				var tab = $($(this).attr("href"));
+				loadDataTableWithState(tab.find("table"), "orgUnitTab" + id, [], tab.find(".dropdown-menu"));
+			});
+
+			// restore active tab on page load
+			var selectedTab = localStorage.getItem(uuid);
+			if (selectedTab != null) {
+			    //if selectedTab belongs to main tabs
+			    if ($("#main-tabs").find('a[data-toggle="tab"][href="' + selectedTab + '"]').length > 0) {
+			        $('#main-tabs a[data-toggle="tab"][href="' + selectedTab + '"]').tab('show');
+			    } else {
+			        // maybe it is a kle tab
+			    	if (selectedTab.startsWith('#kle_')) {
+			    		$('#main-tabs a[data-toggle="tab"][href="' + "#kle_menu" + '"]').tab('show');
+			    		$('#kle-tabs a[data-toggle="tab"][href="' + selectedTab + '"]').tab('show');
+			    	} else {
+			    	    //we tried to find matching tab but no luck default to #employees_menu
+			    	    selectedTab = null;
+			    	}
+			    }
+			}
+
+			// default to employee tab
+			if (selectedTab == null) {
+				selectedTab = "#employees_menu";
+			}
+
+			// make sure DataTables is loaded on first tab (no event is triggered on initial load)
+			var tab = $($('a[data-toggle="tab"][href="' + selectedTab + '"]').attr("href"));
+
+			var filter = [];
+			if ("#employees_menu" === selectedTab) {
+				filter = [2];
+			}
+
+			loadDataTableWithState(tab.find("table"), ("orgUnitTab" + selectedTab), filter, tab.find(".dropdown-menu"));
+		});
+
+		function addTooltips(id, master) {
+			$('.' + id).tooltip({title: tooltipTxt + ": " + master});
+		}
+
+		//Phone tab
+		function toggleModal(id) {
+			$('#' + id).modal("toggle");
+		}
+
+		// Delete orgUnit
+
+		function deleteOrgUnit() {
+			swal({
+						html : true,
+						title : orgDeleteTitle,
+						text : orgDeleteMessage,
+						type : "warning",
+						showCancelButton : true,
+						confirmButtonColor : "#DD6B55",
+						confirmButtonText : yesButtonTxt,
+						cancelButtonText : noButtonTxt,
+						closeOnConfirm : true,
+						closeOnCancel : true
+					},
+					function(isConfirm) {
+						if (isConfirm) {
+							$.ajax({
+							url: restUrl + "/" + uuid,
+							method : "DELETE",
+							headers: {
+								'X-CSRF-TOKEN': token
+							},
+							error: function(response) {
+								$.notify({
+									message: orgDeleteFailure
+								}, {
+									status: 'danger',
+									autoHideDelay: 4000
+								});
+							},
+							success: function(response) {
+								location.replace(url);
+							}
+						});
+
+						}
+					});
+		}
+
+		//Core view/edit
+
+		function loadEditCoreFragment() {
+			$("#core").load(url + "/core/" + uuid + "/edit");
+		}
+
+		function loadViewCoreFragment() {
+			$('#core').load(url + "/core/" + uuid + "/view");
+		}
+
+		function saveCoreChanges() {
+			var name = $("#sourceName").val();
+			if (orgUnitSourceName != name) {
+				$.ajax({
+					url: restUrl + "/check?sourceName=" + name,
+					method : "GET",
+					headers: {
+						'X-CSRF-TOKEN': token
+					},
+					error: function(response) {
+						$.notify({
+							message: msgUpdateFail
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					},
+					success: function(response) {
+						if (!response) {
+							ajaxSave();
+						}else{
+							swal({
+								title: "Navnedublikering",
+								text : "Der findes allerede en enhed med navnet " + name + " i OS2sofd. Er du sikker på du vil gemme?",
+								type : "warning",
+								showCancelButton : true,
+								confirmButtonColor : "#DD6B55",
+								confirmButtonText : "Ja",
+								cancelButtonText : "Nej",
+								closeOnConfirm : true,
+								closeOnCancel : true
+							},
+							function(isConfirm) {
+								if(isConfirm) {
+									ajaxSave();
+								}
+							});
+						}
+					}
+				});
+			} else {
+				ajaxSave();
+			}
+
+		}
+
+		function ajaxSave() {
+			var fields = $('#core input[id]');
+			var data = {};
+			fields.map(function(index, value) {
+				data[value.id] = value.value;
+			});
+
+			// deal with root in a sane way
+			if (data.parent == '') {
+				data.parent = null;
+			}
+
+			// don't allow non-integer values for these
+			data.senr = parseInt(data.senr);
+			data.pnr = parseInt(data.pnr);
+			data.cvr = parseInt(data.cvr);
+			data.ean = parseInt(data.ean);
+
+			// deal with type
+			data.orgUnitType = $("#orgUnitType").val();
+
+			// fix checkbox
+			data.doNotTransferToFKOrg = $("#doNotTransferToFKOrgCheckbox").is(':checked');
+
+			$('.validationMessage').hide();
+
+			$.ajax({
+				contentType: 'application/json',
+				url: restUrl + "/" + uuid + "/update/coreInfo",
+				method : "POST",
+				data: JSON.stringify(data),
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				error: function(response) {
+					setValidationMessages(response.responseJSON);
+					$.notify({
+						message: msgUpdateFail
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				},
+				success: function(response) {
+					$.notify({
+						message: msgFieldUpdated
+					}, {
+						status: 'success',
+						autoHideDelay: 2000
+					});
+
+					loadViewCoreFragment();
+
+					// reload post_menu - cvr address might have changed or been added if p-number changed
+					$("#post_menu").load(url + "/postsTab/" + uuid, function() {
+						loadDataTables();
+					});
+				}
+			});
+		}
+
+		function setValidationMessages(errors) {
+			if( errors ) {
+				for (var i = 0; i < errors.length; i++) {
+					$('#' + errors[i].field + "-validationMessage").show();
+					$('#' + errors[i].field + "-validationMessage").text(errors[i].defaultMessage);
+				}
+			}
+		}
+
+		// Account Order Tab
+
+		function loadEditAccountOrderTab() {
+			$("#order_accounts_menu").load(url + "/orderAccounts/" + uuid + "/edit");
+		}
+
+		function loadViewAccountOrderTab() {
+			$('#order_accounts_menu').load(url + "/orderAccounts/" + uuid + "/view");
+		}
+
+		function saveAccountOrder() {
+			var payload = { "orgunitUuid": uuid, "types": [] };
+
+			$('#accountOrderTable').find("> tbody > tr").each(function() {
+				var row = $(this);
+				var usertype = row.data('usertype');
+
+				var payloadElem = { "userType": usertype, "rule": "", "positions": [], "deactivateAndDeleteRule": $('#deactivateAndDeleteRule-' + usertype).val(), "requiresApproval": true };
+			
+				// each() only returns one element, everything is okay ;)
+				row.find("> td > select").each(function() {
+					payloadElem[this.id] = $(this).val();
+				});
+
+				row.find("> td > div > label > input").each(function() {
+					if( this.id == "requiresApproval") {
+						payloadElem.requiresApproval = $(this).is(':checked');
+					}
+				});
+
+				$('#positionRules-' + usertype).find("> table > tbody > tr").each(function() {
+					$(this).find("> td > select").each(function() {
+						var positionname = $(this).data('positionname');
+						var rule = $(this).val();
+
+						var positionRuleElem = { "positionName": positionname, "rule": rule };
+
+						payloadElem.positions.push(positionRuleElem);
+					});
+				});
+
+				payload.types.push(payloadElem);
+			});
+
+			$.ajax({
+				method : "POST",
+				url: restUrl + "/" + uuid + "/update/accountOrderRules/try",
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				data: JSON.stringify(payload),
+				dataType: "json",
+				contentType: "application/json; charset=utf-8"
+			}).done(function (data) {
+				var keys = 0;
+				var alertMsg = '<ul style="list-style: none; padding-left: 0px;">';
+				for (var key in data.result) {
+					keys++;
+
+					alertMsg += '<li>' + data.result[key] + ' ' + key + '</li>';
+				}
+				alertMsg += "</ul>";
+
+				if (keys > 0) {
+					swal({
+						html : true,
+						title : confirmRulesTitleTxt,
+						text : alertMsg,
+						type : "warning",
+						showCancelButton : true,
+						confirmButtonColor : "#DD6B55",
+						confirmButtonText : yesButtonTxt,
+						cancelButtonText : noButtonTxt,
+						closeOnConfirm : true,
+						closeOnCancel : true
+					},
+					function(isConfirm) {
+						if (isConfirm) {
+							saveRules(payload);
+						}
+						else {
+							location.reload(true);
+						}
+					});
+				}
+				else {
+					saveRules(payload);
+				}
+			}).fail(function (jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: msgUpdateFail
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		}
+
+		function saveRules(payload) {
+			$.ajax({
+				method : "POST",
+				url: restUrl + "/" + uuid + "/update/accountOrderRules",
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				data: JSON.stringify(payload),
+				dataType: "json",
+				contentType: "application/json; charset=utf-8"
+			}).done(function (data) {
+				$.notify({
+					message: msgFieldUpdated
+				}, {
+					status: 'success',
+					autoHideDelay: 2000
+				});
+
+				loadViewAccountOrderTab();
+			}).fail(function (jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: msgUpdateFail
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		}
+
+		//Contact Info Tab
+
+		function loadEditContactInfoTab() {
+			$("#contactInfo_menu").load(url + "/contactInfo/" + uuid + "/edit");
+		}
+
+		function loadViewContactInfoTab() {
+			$('#contactInfo_menu').load(url + "/contactInfo/" + uuid + "/view");
+		}
+
+		function saveContactInfo() {
+			var contactAddress = $('#contactAddress').val();
+			var openinghours = $('#openinghours').val();
+			var openinghoursphone = $('#openinghoursphone').val();
+			var keywords = $('#keywords').val();
+			var notes = $('#notes').val();
+			var emailNotes = $('#emailNotes').val();
+			var location = $('#location').val();
+			var urlAddress = $('#urlAddress').val();
+			var email = $('#email').val();
+
+			$.ajax({
+				method : "POST",
+				url: restUrl + "/update/contactinfo",
+				headers: {
+					"uuid": uuid,
+					'X-CSRF-TOKEN': token
+				},
+				data: JSON.stringify({
+					contactAddress: contactAddress,
+					openingHours: openinghours,
+					openingHoursPhone: openinghoursphone,
+					keywords: keywords,
+					notes: notes,
+					emailNotes: emailNotes,
+					location: location,
+					urlAddress: urlAddress,
+					email: email
+				}),
+				dataType: "json",
+				contentType: "application/json; charset=utf-8"
+			}).done(function (data) {
+				$.notify({
+					message: msgFieldUpdated
+				}, {
+					status: 'success',
+					autoHideDelay: 2000
+				});
+				loadViewContactInfoTab();
+			}).fail(function (jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: msgUpdateFail
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		}
+
+
+		//KLE Tab
+
+		function setInheritKLE(){
+			$.ajax({
+				contentType: 'application/json',
+				url: restUrl + "/update/kle/inherit",
+				method : "POST",
+				headers: {
+					"uuid": uuid,
+					'X-CSRF-TOKEN': token,
+					"inherit": $('#isInherit').prop('checked')
+				},
+				error: function(response) {
+					$.notify({
+						message: inheritNotUpdatedMsg
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				},
+				success: function(response) {
+					$.notify({
+						message: inheritUpdatedMsg
+					}, {
+						status: 'success',
+						autoHideDelay: 2000
+					});
+				}
+			});
+		}
+
+		function editKLE(type){
+			if(type == "KlePrimary"){
+				$("#kle_performing_menu a").hide();
+				$("#kle_performing_menu .content").load(url + "/editKLE/" + uuid + "/KlePrimary");
+			}
+			if(type == "KleSecondary"){
+				$("#kle_interest_menu a").hide();
+				$("#kle_interest_menu .content").load(url + "/editKLE/" + uuid + "/KleSecondary");
+			}
+			if(type == "KleTertiary"){
+				$("#kle_tertiary_menu a").hide();
+				$("#kle_tertiary_menu .content").load(url + "/editKLE/" + uuid + "/KleTertiary");
+			}
+		}
+
+		function saveChanges(id) {
+			if( id != "KleTertiary" ) {
+				commitChanges(id);
+			}
+			else {
+				swal({
+						html : true,
+						title : confirmEditKLETitle,
+						text : confirmEditKLEText,
+						type : "warning",
+						showCancelButton : true,
+						confirmButtonColor : "#DD6B55",
+						confirmButtonText : confirmEditKLEButtonText,
+						cancelButtonText : cancelEditKLEButtonText,
+						closeOnConfirm : true,
+						closeOnCancel : true
+					},
+					function(isConfirm) {
+						if( isConfirm ) {
+							commitChanges(id);
+						}
+					}
+				);
+			}
+		}
+
+		function commitChanges(id) {
+			var codes = $('#' + id).jstree('get_top_selected')
+			$.ajax({
+				contentType: 'application/json',
+				url: restUrl + "/update/kle",
+				method : "POST",
+				headers: {
+					"uuid": uuid,
+					"type": id,
+					'X-CSRF-TOKEN': token
+				},
+				data: JSON.stringify(codes),
+				error: function(response) {
+					$.notify({
+						message: fieldNotUpdatedMsg
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				},
+				success: function(response) {
+					$.notify({
+						message: fieldUpdatedMsg
+					}, {
+						status: 'success',
+						autoHideDelay: 2000
+					});
+					$('#' + id).parent().parent().find("a").show();
+					$('#' + id).parent().parent().find(".content").load(url + "/viewKLE/" + uuid + "/"+ id);
+				}
+			});
+		}
+
+		function abortChanges(id) {
+			$('#' + id).parent().parent().find("a").show();
+			$('#' + id).parent().parent().find(".content").load(url + "/viewKLE/" + uuid + "/"+ id);
+		}
+
+		var ouJSTreeSelectParentConfig = {
+			namespace: 'parent',
+			refreshCallback: null,
+			staticOrg: orgId
+		};
+
+		var ouJSTreeAccountOrderCopyConfig = {
+			namespace: 'accountOrderCopy',
+			refreshCallback: function () {
+				$("#accountOrderCopyorgUnitTreeHierarchy").on("select_node.jstree", function(e, data) {
+					selectedOU = data.node;
+				});
+			},
+			staticOrg: orgId,
+			enableCheckboxes: true,
+			disableState: true
+		};
+
+		function ManagedTitleService() {
+			this.init = function() {
+				managedTitleService.loadFragment();
+			}
+
+			this.loadFragment = function() {
+				$("#managedTitlesPlaceholder").load(url + "/" + uuid + "/fragments/managedtitles");
+			}
+
+			this.startCreate = function() {
+				$("#managedTitleName").val("");
+				$("#modal-create-managed-title").modal("show");
+			}
+
+			this.create = function() {
+				var titleName = $("#managedTitleName").val();
+
+				$.ajax({
+					contentType: 'application/json',
+					url: restUrl + "/" + uuid + "/managedtitles/create",
+					method : "POST",
+					headers: {
+						'X-CSRF-TOKEN': token
+					},
+					data: titleName,
+					error: function(response) {
+						$("#modal-create-managed-title").modal("hide");
+						if (response != null && response.responseText != null && response.responseText != "") {
+							$.notify({
+								message: response.responseText
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						} else {
+							$.notify({
+								message: managedTitleError
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						}
+					},
+					success: function(response) {
+						$("#modal-create-managed-title").modal("hide");
+						managedTitleService.loadFragment();
+					}
+				});
+			}
+
+			this.deleteTitle = function(elem) {
+				var id = $(elem).data("id");
+
+				swal({
+					html : true,
+					title : swalDeleteTitleTitle,
+					text : swalDeleteTitleText,
+					type : "warning",
+					showCancelButton : true,
+					confirmButtonColor : "#DD6B55",
+					confirmButtonText : yesButtonTxt,
+					cancelButtonText : noButtonTxt,
+					closeOnConfirm : true,
+					closeOnCancel : true
+				},
+				function(isConfirm) {
+					if (isConfirm) {
+						$.ajax({
+							contentType: 'application/json',
+							url: restUrl + "/" + uuid + "/managedtitles/" + id + "/delete",
+							method : "POST",
+							headers: {
+								'X-CSRF-TOKEN': token
+							},
+							error: function(response) {
+								$.notify({
+									message: managedTitleDeleteError
+								}, {
+									status: 'danger',
+									autoHideDelay: 4000
+								});
+							},
+							success: function(response) {
+								managedTitleService.loadFragment();
+							}
+						});
+					}
+					else {
+						return;
+					}
+				});
+			}
+		}
+
+		function EanService() {
+			this.init = function() {
+				eanService.loadFragment();
+			}
+
+			this.loadFragment = function(reload) {
+				$("#eanPlaceholder").load(url + "/" + uuid + "/fragments/ean", function() {
+				});
+				
+				if (reload) {
+					$("#modal-create-ean").load(url + "/" + uuid + "/fragments/ean-create-modal #modal-create-ean > *");
+					$("#modal-prime-ean").load(url + "/" + uuid + "/fragments/ean-prime-modal #modal-prime-ean > *");
+				}
+			}
+
+			this.startCreate = function() {
+				$("#eanNumber").val("");
+				$("#modal-create-ean").modal("show");
+			}
+
+			this.selectPrime = function() {
+				$("#modal-prime-ean").modal("show");
+			}
+
+			this.setPrime = function() {
+				var primeEan = $('input[name=prime]:checked', '#selectPrimeEanForm').val();
+				if (primeEan) {
+					$.ajax({
+						contentType: 'application/json',
+						url: restUrl + "/" + uuid + "/ean/setPrime",
+						method : "POST",
+						headers: {
+							'X-CSRF-TOKEN': token
+						},
+						data: primeEan,
+						error: function(response) {
+							if (response != null && response.responseText != null && response.responseText != "") {
+								$.notify({
+									message: response.responseText
+								}, {
+									status: 'danger',
+									autoHideDelay: 4000
+								});
+							} else {
+								$.notify({
+									message: eanPrimeError
+								}, {
+									status: 'danger',
+									autoHideDelay: 4000
+								});
+							}
+						},
+						success: function(response) {
+							eanService.loadFragment();
+						}
+					});
+				}
+				$("#modal-prime-ean").modal("hide");
+			}
+
+			this.create = function() {
+				var eanNumber = $("#eanNumber").val();
+
+				$.ajax({
+					contentType: 'application/json',
+					url: restUrl + "/" + uuid + "/ean/create",
+					method : "POST",
+					headers: {
+						'X-CSRF-TOKEN': token
+					},
+					data: eanNumber,
+					error: function(response) {
+						$("#modal-create-ean").modal("hide");
+						if (response != null && response.responseText != null && response.responseText != "") {
+							$.notify({
+								message: response.responseText
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						} else {
+							$.notify({
+								message: eanError
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						}
+					},
+					success: function(response) {
+						$("#modal-create-ean").modal("hide");
+						eanService.loadFragment(true);
+					}
+				});
+			}
+
+			this.deleteEan = function(elem) {
+				var id = $(elem).data("id");
+
+				swal({
+					html : true,
+					title : swalDeleteEanTitle,
+					text : swalDeleteEanText,
+					type : "warning",
+					showCancelButton : true,
+					confirmButtonColor : "#DD6B55",
+					confirmButtonText : yesButtonTxt,
+					cancelButtonText : noButtonTxt,
+					closeOnConfirm : true,
+					closeOnCancel : true
+				},
+				function(isConfirm) {
+					if (isConfirm) {
+						$.ajax({
+							contentType: 'application/json',
+							url: restUrl + "/" + uuid + "/ean/" + id + "/delete",
+							method : "POST",
+							headers: {
+								'X-CSRF-TOKEN': token
+							},
+							error: function(response) {
+								$.notify({
+									message: eanDeleteError
+								}, {
+									status: 'danger',
+									autoHideDelay: 4000
+								});
+							},
+							success: function(response) {
+								eanService.loadFragment(true);
+							}
+						});
+					}
+					else {
+						return;
+					}
+				});
+			}
+		}
+
+		function SubstituteService() {
+			this.init = function() {
+				$("#addSubstituteSelectedContext").on("change", function() {
+					substituteService.handleSubstituteContextChange();
+				});
+				$("#addSubstituteBtn").on("click", function() {
+					substituteService.showAddSubstituteModal();
+				});
+				$("#addAssignmentBtn").on("click", function() {
+					substituteService.addSubstituteAssignment();
+				});
+
+				//Substitute autocomplete
+				$('#addSubstituteAutocompletePerson').autocomplete({
+					serviceUrl: substituteAutocompleteRestUrl + "/search/person/" + uuid,
+					onSelect: function(suggestion) {
+						// strip markup
+						var textValue = suggestion.value;
+						var idx = textValue.indexOf("-XXXX");
+						if (idx > 0) {
+							textValue = textValue.substr(0, idx);
+
+							idx = textValue.lastIndexOf("-");
+							if (idx > 0) {
+								textValue = textValue.substr(0, idx - 1);
+							}
+						}
+
+						$("#realPersonField").val(suggestion.data);
+
+						$(this).val(textValue);
+					},
+					preventBadQueries: true,
+					triggerSelectOnValidInput: false
+				});
+			}
+
+			this.showAddSubstituteModal = function() {
+				$("#realPersonField").val("");
+				$("#addSubstituteAutocompletePerson").val("");
+				$("#addSubstituteSelectedContext option:selected").prop("selected", false);
+				$("#addSubstituteSelectedContext option:first").attr('selected', true);
+				substituteService.handleSubstituteContextChange();
+				$('#modal-add-substitute').modal("show");
+			}
+
+			this.handleSubstituteContextChange = function() {
+				var supportsConstraints = $("#addSubstituteSelectedContext").find(':selected').data("supportsconstraints");
+				$('#chbxSubstituteContextConstraints').prop('checked', false);
+				$('#chbxSubstituteContextConstraints').prop('disabled', !supportsConstraints);
+				$("#subConstraintOrgUnitsTable").hide();
+			}
+
+			this.removeSubstituteAssignment = function(elem) {
+				var assignmentId = $(elem).data('assignmentid');
+
+				swal({
+					html : true,
+					title : removeSubstituteAssignmentTitle,
+					text : removeSubstituteAssignmentText,
+					type : "warning",
+					showCancelButton : true,
+					confirmButtonColor : "#DD6B55",
+					confirmButtonText : btnDelete,
+					cancelButtonText : btnCancel,
+					closeOnConfirm : true,
+					closeOnCancel : true
+				},
+				function(isConfirm) {
+					if (isConfirm) {
+						$.ajax({
+							method : "DELETE",
+							url: substituteRestUrl + "/delete/" + assignmentId,
+							headers: {
+								'X-CSRF-TOKEN': token
+							}
+						}).done(function (data) {
+							location.reload(true);
+						}).fail(function (jqXHR, textStatus, errorThrown) {
+							$.notify({
+								message: removeSubstituteAssignmentFail
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						});
+					}
+				});
+			}
+
+			this.addSubstituteAssignment = function() {
+				payload = {
+					context : $("#addSubstituteSelectedContext option:selected").val(),
+					substitute : $("#realPersonField").val(),
+					orgUnit : uuid
+				};
+
+				$.ajax({
+					contentType: 'application/json',
+					url: substituteRestUrl + "/add",
+					method : "POST",
+					data: JSON.stringify(payload),
+					headers: {
+						'X-CSRF-TOKEN': token
+					},
+					error: function(jqXHR, textStatus, errorThrown) {
+						if (jqXHR.status == 404) {
+							$('#addSubstitutePersonError').show();
+							$('#addSubstitutePersonError').html("");
+							$('#addSubstitutePersonError').append('<li>Der skal vælges en stedfortræder</li>');
+						} else {
+							$.notify({
+								message: msgSubstituteAddFail
+							}, {
+								status: 'danger',
+								autoHideDelay: 4000
+							});
+						}
+					},
+					success: function(response) {
+						location.reload(true);
+					}
+				});
+			}
+		}
+
+		/*]]>*/
+	</script>
+</body>
+</html>

@@ -1,0 +1,2232 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'persons', subpage='phonebook')"></aside>
+
+	<section>
+		<div class="content-wrapper">
+			<h3>
+				<th:block th:if="${backRef != null}">
+					<a onclick="window.history.back()" href="#" class="btn btn-default">
+						<span><i class="fa fa-arrow-left"></i></span>
+					</a>
+				</th:block>
+				<span th:text="#{html.page.person.view.title}"></span>
+
+				<div id="buttonsMenu" style="position: absolute; right: 0; top: 0; margin-top:10px; margin-right: 20px;"></div>
+			</h3>
+
+			<div class="panel panel-default">
+				<div class="panel-heading"></div>
+				<div class="panel-body">
+					<div class="row">
+						<div class="col-lg-6">
+							<fieldset>
+								<div class="row">
+									<label class="col-sm-3 control-label" th:text="#{html.entity.person.cpr}"></label>
+									<div class="col-sm-9">
+										<span class="col-sm-9 form-control personMasterTooltip" style="background-color: #edf1f2">
+											<em class="fa fa-fw fa-eye" onclick="toggleHiddenField('#cpr')"></em>
+											<span id="cpr" th:text="${'********'}" th:attr="data-key=${person.cpr}"></span>
+										</span>
+									</div>
+								</div>
+							</fieldset>
+
+							<div id="core">
+								<fieldset>
+									<input name="personUuid" type="hidden" th:value="${person.uuid}" />
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.person.firstname}"></label>
+										<div class="col-sm-9">
+											<input name="firstname" th:value="${person.firstname}" class="form-control personMasterTooltip" readonly="readonly"/>
+										</div>
+									</div>
+					
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.person.surname}"></label>
+										<div class="col-sm-9">
+											<input name="surname" th:value="${person.surname}" class="form-control personMasterTooltip" readonly="readonly"/>
+										</div>
+									</div>
+					
+									<div class="row">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.person.chosenName}"></label>
+										<div class="col-sm-9">
+											<input name="chosenName" th:value="${person.chosenName}" class="form-control personMasterTooltip" readonly="readonly"/>
+										</div>
+									</div>
+								</fieldset>
+							</div>
+
+							<fieldset>
+								<div class="row">
+									<label class="col-sm-3 control-label" th:text="#{html.entity.person.firstEmploymentDate}"></label>
+									<div class="col-sm-9">
+										<input th:value="${person.firstEmploymentDate}" class="form-control personMasterTooltip" readonly="readonly" />
+									</div>
+								</div>
+
+								<div class="row">
+									<label class="col-sm-3 control-label" th:text="#{html.entity.person.anniversaryDate}"></label>
+									<div class="col-sm-9">
+										<input th:value="${person.anniversaryDate}" class="form-control personMasterTooltip" readonly="readonly" />
+									</div>
+								</div>
+								
+								<div class="row">
+									<label class="col-sm-3 control-label" th:text="#{html.entity.person.primeManager}"></label>
+									<div class="col-sm-9">
+										<input th:value="${primeManagerName}" class="form-control personMasterTooltip" readonly="readonly" />
+									</div>
+								</div>
+							</fieldset>							
+						</div>
+
+						<div class="col-lg-6">
+							<fieldset>
+								<div class="row">
+									<label class="col-sm-3 control-label" th:text="#{html.entity.person.workAddress}"></label>
+									<div class="col-sm-9">
+										<input th:value="${person.workAddress}" class="form-control" readonly="readonly" />
+									</div>
+								</div>
+							</fieldset>
+
+							<fieldset>
+								<div class="row">
+									<label class="col-sm-3 control-label" th:text="#{html.entity.person.created}"></label>
+									<div class="col-sm-9">
+										<input th:value="${#dates.format(person.created, 'yyyy-MM-dd  HH:mm')}" class="form-control personMasterTooltip" readonly="readonly" />
+									</div>
+								</div>
+
+								<div class="row">
+									<label class="col-sm-3 control-label" th:text="#{html.entity.person.lastchanged}"></label>
+									<div class="col-sm-9">
+										<input th:value="${person.lastChanged != null ? #dates.format(person.lastChanged, 'yyyy-MM-dd  HH:mm') : ''}" class="form-control personMasterTooltip" readonly="readonly" />
+									</div>
+								</div>
+							</fieldset>
+							
+							<fieldset sec:authorize="hasRole('ROLE_MODULE_TELEPHONY')">
+								<div class="row">
+									<label class="col-sm-3 control-label" th:text="#{html.entity.person.taxedPhone}"></label>
+									<div class="col-sm-9">
+										<div class="checkbox c-checkbox">
+											<label>
+												<input class="checkboxaction" id="taxedPhone" type="checkbox" onchange="handleCheckboxChange()" th:checked="${person.taxedPhone}"/>
+												<span class="fa fa-check"></span>
+											</label>
+										</div>
+									</div>
+								</div>
+							</fieldset>
+						</div>
+					</div>
+
+					<ul class="nav nav-tabs">
+						<li class="active">
+							<a data-toggle="tab" href="#affiliation_menu" th:text="#{html.entity.person.affiliations}"></a>
+						</li>
+						<li>
+							<a data-toggle="tab" href="#user_menu" th:text="#{html.entity.person.users}"></a>
+						</li>
+						<li>
+							<a data-toggle="tab" href="#phone_menu" th:text="#{html.entity.person.phones}"></a>
+						</li>
+						<li>
+							<a data-toggle="tab" href="#keywords_menu" th:text="#{html.page.person.view.contact.title}"></a>
+						</li>
+						<li sec:authorize="hasRole('ROLE_MODULE_PERSON_COMMENT')">
+							<a data-toggle="tab" href="#comment_menu" th:text="#{html.page.person.view.comment.title}"></a>
+						</li>
+						<li th:if="${isManager}">
+							<a data-toggle="tab" href="#substitutes_menu" th:text="#{html.page.person.view.substitute.title}"></a>
+						</li>
+						<li>
+							<a data-toggle="tab" href="#local_extensions_menu" th:text="#{html.page.person.view.localextensions.title}"></a>
+						</li>
+						<li th:if="${#lists.size(person.authorizationCodes) gt 0}">
+							<a data-toggle="tab" href="#authorization_codes_menu" th:text="#{html.page.person.view.authorization_codes.title}"></a>
+						</li>
+						<li>
+							<a data-toggle="tab" href="#uuids_menu" th:text="#{html.page.person.view.uuids.title}"></a>
+						</li>
+						<li th:if="${showFunctions}">
+							<a data-toggle="tab" href="#functions_menu" th:text="#{html.page.person.view.functions.title}"></a>
+						</li>
+						<li>
+							<a data-toggle="tab" href="#address_menu" th:text="#{html.page.person.view.addresses.title}"></a>
+						</li>
+					</ul>
+
+					<div class="tab-content">
+						<div id="affiliation_menu" class="tab-pane fade in active">
+							<div class="btn-group">
+							  <button type="button" style="width: auto !important;" class="btn btn-primary btn-lg dropdown-toggle" data-toggle="dropdown">
+							    <em class="fa fa-fw fa-cog"></em>
+							  </button>
+							  
+							  <ul class="dropdown-menu" role="menu" id="dataTableAffiliationDropdown">
+							    <li><a href="#" data-cid="0" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.positionName}"></span></a></li>
+							    <li><a href="#" data-cid="1" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.orgunit}"></span></a></li>
+								<li><a href="#" data-cid="2" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.altorgunit}"></span></a></li>
+							    <li><a href="#" data-cid="3" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.vendor}"></span></a></li>
+							    <li><a href="#" data-cid="4" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.startDate}"></span></a></li>
+							    <li><a href="#" data-cid="5" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.stopDate}"></span></a></li>
+								<li><a href="#" data-cid="6" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.inheritPrivileges}"></span></a></li>
+								<li><a href="#" data-cid="7" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.status}"></span></a></li>
+								<li><a href="#" data-cid="8" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.employmentTerms}"></span></a></li>
+							  	<li><a href="#" data-cid="9" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.doNotTransferToFKOrg}"></span></a></li>
+								<li><a href="#" data-cid="10" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.person.affiliations.deactivateAndDeleteRule}"></span></a></li>
+							  	<li th:if="${@sofdConfiguration.getModules().getAffiliationWorkplaces().isEnabled()}"><a href="#" data-cid="11" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.workplaces}"></span></a></li>
+							  </ul>
+							</div>
+
+							<th:block sec:authorize="hasRole('ROLE_USER_EDIT') OR hasRole('ROLE_USER_PERSON_CREATER')">
+								<a th:href="@{/ui/person/affiliation/{personUUID}(personUUID=${person.uuid})}">
+									<div style="width:200px" class="btn btn-lg btn-primary">
+										<i class="fa fa-fw fa-handshake-o" aria-hidden="true"></i>&nbsp;
+										<span th:text="#{html.entity.person.create.affiliation}"></span>
+									</div>
+								</a>
+							</th:block>
+							
+							<th:block sec:authorize="hasRole('ROLE_USER_EDIT')">
+								<button th:if="${affiliations.size()} &gt; 1" style="width:230px" onclick="showPrimeAffiliationModal()" class="btn btn-lg btn-primary">
+									<div>
+										<i class="fa fa-paperclip"></i>
+										<span th:text="#{html.page.person.view.choose.primary.affiliation}"></span>
+									</div>
+								</button>
+							</th:block>
+
+							<th:block sec:authorize="hasRole('ROLE_USER_EDIT')">
+								<button style="width:240px" onclick="showInheritPrivilegesModal()" class="btn btn-lg btn-primary">
+									<div>
+										<i class="fa fa-fw fa-cog"></i>
+										<span th:text="#{html.page.person.view.modal.inherit.privileges.select}"></span>
+									</div>
+								</button>
+							</th:block>
+
+							<th:block sec:authorize="hasRole('ROLE_USER_EDIT') and hasRole('ROLE_MODULE_ACCOUNT_CREATION')">
+								<a href="#" onclick="flagService.toggleLeaveModal(false);">
+									<th:block th:if="${person.leave == true}">
+										<div style="width:250px" class="btn btn-lg btn-warning">
+											<i class="fa fa-fw fa-ban" aria-hidden="true"></i>&nbsp;
+											<span th:text="#{html.entity.person.leave.remove}"></span>
+										</div>
+									</th:block>
+									<th:block th:if="${person.leave == false}">
+										<div style="width:250px" class="btn btn-lg btn-primary">
+											<i class="fa fa-fw fa-ban" aria-hidden="true"></i>&nbsp;
+											<span th:text="#{html.entity.person.leave.add}"></span>
+										</div>
+									</th:block>
+								</a>
+							</th:block>
+							
+							<table id="listTable1" class="table table-striped table-hover listTable">
+								<thead>
+									<th th:text="#{html.entity.affiliation.positionName}"></th>
+									<th th:text="#{html.entity.affiliation.orgunit}"></th>
+									<th th:text="#{html.entity.affiliation.altorgunit}"></th>
+									<th th:text="#{html.entity.affiliation.vendor}"></th>
+									<th th:text="#{html.entity.affiliation.startDate}"></th>
+									<th th:text="#{html.entity.affiliation.stopDate}"></th>
+									<th th:text="#{html.entity.affiliation.inheritPrivileges}"></th>
+									<th th:text="#{html.entity.affiliation.status}"></th>
+                                    <th th:text="#{html.entity.affiliation.employmentTerms}"></th>
+                                    <th th:text="#{html.entity.affiliation.doNotTransferToFKOrg}"></th>
+									<th th:text="#{html.entity.person.affiliations.deactivateAndDeleteRule}"></th>
+                                    <th th:if="${@sofdConfiguration.getModules().getAffiliationWorkplaces().isEnabled()}" th:text="#{html.entity.affiliation.workplaces}"></th>
+									<th class="col-md-1" th:text="#{html.control.operations}"></th>
+								</thead>
+
+								<tbody>
+								<tr th:each="affiliation : ${person.affiliations.?[deleted == false]}">
+									<td th:text="${@affiliationService.getPositionName(affiliation)}" th:title="${affiliation.master}"></td>
+									<td>
+										<th:block th:if="${affiliation.getOrgUnit() != null}">
+											<th:block th:unless="${affiliation.getOrgUnit().deleted}">
+												<a th:href="@{/ui/orgunit/view/} + ${affiliation.getOrgUnit().uuid}" style="color: inherit; text-decoration: none;">
+													<span th:text="${affiliation.getOrgUnit().name}"></span>&nbsp;<em class="fa fa-external-link"></em>
+												</a>
+											</th:block>
+											<th:block th:if="${affiliation.getOrgUnit().deleted}">
+												<span th:text="${affiliation.getOrgUnit().name + ' (slettet enhed)'}"></span>
+											</th:block>
+										</th:block>
+									</td>
+									<td>
+										<th:block th:if="${affiliation.getCalculatedOrgUnit() != null && affiliation.getCalculatedOrgUnit() != affiliation.getOrgUnit()}">
+											<th:block th:unless="${affiliation.getCalculatedOrgUnit().deleted}">
+												<a th:href="@{/ui/orgunit/view/} + ${affiliation.getCalculatedOrgUnit().uuid}" style="color: inherit; text-decoration: none;">
+													<span th:text="${affiliation.getCalculatedOrgUnit().name}"></span>&nbsp;<em class="fa fa-external-link"></em>
+												</a>
+											</th:block>
+											<th:block th:if="${affiliation.getCalculatedOrgUnit().deleted}">
+												<span th:text="${affiliation.getCalculatedOrgUnit().name + ' (slettet enhed)'}"></span>
+											</th:block>
+										</th:block>
+									</td>
+									<td th:text="${affiliation.vendor}"></td>
+									<td th:text="${affiliation.startDate != null ? #dates.format(affiliation.startDate, 'yyyy-MM-dd') : ''}"></td>
+									<td th:text="${affiliation.stopDate != null ? #dates.format(affiliation.stopDate, 'yyyy-MM-dd') : ''}"></td>
+									<td>
+										<em th:if="${affiliation.inheritPrivileges}" class="fa fa-fw fa-check"></em>
+									</td>
+									<td>
+										<span th:if="${@affiliationService.inactiveAndNotStopped(affiliation) == true}" class="badge badge-warning" th:text="#{html.entity.affiliation.status.inactive}"></span>
+										<span th:if="${@affiliationService.activeAndNotStopped(affiliation) == true}" class="badge badge-success" th:text="#{html.entity.affiliation.status.active}"></span>
+									</td>
+									<td th:text="${affiliation.employmentTermsText != null} ? ${affiliation.employmentTermsText} : ${affiliation.employmentTerms}"></td>
+									<td>
+										<em th:if="${affiliation.doNotTransferToFkOrg}" class="fa fa-fw fa-check"></em>
+									</td>
+									<td th:text="#{__${affiliation.deactivateAndDeleteRule.message}__}"></td>
+									<td th:if="${@sofdConfiguration.getModules().getAffiliationWorkplaces().isEnabled()}" th:text="${not #lists.isEmpty(affiliation.workplaces)} ? ${#lists.size(affiliation.workplaces)} + ' arbejdssteder' : ''"></td>
+									<td>
+										<a th:href="@{/ui/affiliation/view/{id}?backRef=person(id=${affiliation.uuid})}"><em class="fa fa-fw fa-search"></em></a>
+										<th:block sec:authorize="hasRole('ROLE_USER_EDIT') OR hasRole('ROLE_USER_ADMIN')">
+											<a th:href="@{/ui/affiliation/view/{id}(id=${affiliation.uuid})}+'?edit=true&backRef=person'"><em class="fa fa-fw fa-pencil"></em></a>
+											<a th:if="${affiliation.master == 'SOFD'}" onclick="deleteAffiliation(this);" th:attr="data-affiliationuuid=${affiliation.uuid}"><em style="cursor:pointer;" class="fa fa-fw fa-times"></em></a>
+										</th:block>
+										<th:block sec:authorize="!hasRole('ROLE_USER_EDIT') AND hasRole('ROLE_USER_PERSON_CREATER')" th:if="${affiliation.master == 'SOFD'} AND (${#lists.contains(constraintOUs, affiliation.orgUnit.uuid)} OR ${#lists.isEmpty(constraintOUs)})">
+											<a th:href="@{/ui/affiliation/view/{id}(id=${affiliation.uuid})}+'?edit=true&backref=person'"><em class="fa fa-fw fa-pencil"></em></a>
+											<a th:if="${affiliation.master == 'SOFD'}" onclick="deleteAffiliation(this);" th:attr="data-affiliationuuid=${affiliation.uuid}"><em  style="cursor:pointer;" class="fa fa-fw fa-times"></em></a>
+										</th:block>
+									</td>
+								</tr>
+								</tbody>
+							</table>
+						</div>
+
+						<div id="user_menu" class="tab-pane fade">
+							<div class="btn-group">
+							  <button type="button" style="width: auto !important;" class="btn btn-primary btn-lg dropdown-toggle" data-toggle="dropdown">
+							    <em class="fa fa-fw fa-cog"></em>
+							  </button>
+							  
+							  <ul class="dropdown-menu" role="menu" id="dataTableUserDropdown">
+							    <li><a href="#" data-cid="0" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.user.userId}"></span></a></li>
+							    <li><a href="#" data-cid="1" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.user.userType}"></span></a></li>
+								<li><a href="#" data-cid="2" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.user.affiliation}"></span></a></li>
+							    <li><a href="#" data-cid="3" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.user.employeeId}"></span></a></li>
+							    <li><a href="#" data-cid="4" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.user.prime}"></span></a></li>
+							  </ul>
+							</div>
+
+							<div class="btn-group" th:if="${#lists.size(userTypes)} > 0" sec:authorize="hasRole('ROLE_USER_EDIT') and hasRole('ROLE_MODULE_ACCOUNT_CREATION')">
+							  <button class="btn btn-primary btn-lg dropdown-toggle" type="button" data-toggle="dropdown" style="width: 200px;">
+								  <span>
+									<em class="fa fa-fw fa-shopping-cart"></em>&nbsp;
+									<span th:text="#{html.entity.person.order.it.user}"></span>&nbsp;
+									<em class="fa fa-fw fa-caret-down"></em>
+								  </span>
+							  </button>
+							  <ul class="dropdown-menu">
+							    <li th:each="userType : ${userTypes}"><a th:href="@{/ui/account/order/{personUUID}/{userType}(personUUID=${person.uuid},userType=${userType.key})}" th:text="${userType.name}"></a></li>
+							    <li th:if="${activeDirectoryAndExchange != null}"><a th:href="@{/ui/account/order/{personUUID}/{userType}/double(personUUID=${person.uuid},userType=${activeDirectoryAndExchange.key})}" th:text="${activeDirectoryAndExchange.name}"></a></li>
+							  </ul>
+							</div>
+
+							<th:block sec:authorize="hasRole('ROLE_USER_EDIT') and hasRole('ROLE_MODULE_ACCOUNT_CREATION')">
+								<a href="#" th:data-one="${person.isDisableAccountOrdersCreate}" th:data-two="${person.isDisableAccountOrdersDelete}" th:data-three="${person.isDisableAccountOrdersDisable}" onclick="flagService.openChangeFlagModal(this);">
+									<th:block th:if="${person.isDisableAccountOrdersDisable == true || person.isDisableAccountOrdersDelete == true || person.isDisableAccountOrdersCreate == true}">
+										<div style="width:220px" class="btn btn-lg btn-warning">
+											<i class="fa fa-fw fa-ban" aria-hidden="true"></i>&nbsp;
+											<span id="hoverSpan" th:text="#{html.entity.person.disableAccountOrders.remove}" data-toggle="tooltip" data-placement="top"></span>
+										</div>
+									</th:block>
+									<th:block th:if="${person.isDisableAccountOrdersDisable == false && person.isDisableAccountOrdersDelete == false && person.isDisableAccountOrdersCreate == false}">
+										<div style="width:220px" class="btn btn-lg btn-primary">
+											<i class="fa fa-fw fa-ban" aria-hidden="true"></i>&nbsp;
+											<span th:text="#{html.entity.person.disableAccountOrders}"></span>
+										</div>
+									</th:block>
+								</a>
+							</th:block>
+
+							<th:block sec:authorize="hasRole('ROLE_USER_EDIT')">
+								<button style="width:220px" onclick="showPrimeModal()" class="btn btn-lg btn-primary">
+									<div>
+										<i class="fa fa-fw fa-cog"></i>
+										<span th:text="#{html.page.person.view.modal.prime.select}"></span>
+									</div>
+								</button>
+							</th:block>
+
+							<table id="listTable2" class="table table-striped table-hover listTable">
+								<thead>
+									<th class="col-md-3" th:text="#{html.entity.user.userId}"></th>
+									<th class="col-md-2" th:text="#{html.entity.user.userType}"></th>
+									<th class="col-md-2" th:text="#{html.entity.user.affiliation}"></th>
+									<th class="col-md-2" th:text="#{html.entity.user.employeeId}"></th>
+									<th class="col-md-2" th:text="#{html.entity.user.prime}"></th>
+									<th class="col-md-1" th:text="#{html.control.operations}"></th>
+								</thead>
+
+								<tbody>
+								<tr th:each="user : ${person.users}">
+									<td>
+										<span th:text="${user.userId}"></span>
+										<span th:if="${user.substituteAccount == true}" class="badge badge-warning" th:text="#{html.entity.user.substitute}"></span>
+										<span th:if="${user.disabled == true}" class="badge badge-alert" th:text="#{html.entity.user.disabled}"></span>
+										<span th:if="${user.expired == true}" class="badge badge-alert" th:text="#{html.entity.user.expired}"></span>
+										<span th:if="${@sofdConfiguration.getModules().getBadge().isEnablePasswordLockedBadge() == true and user.passwordLocked == true}" class="badge badge-alert" th:text="#{html.entity.user.passwordlocked}"></span>
+										<span th:if="${user.pendingDeactivation == true}" class="badge badge-warning" th:text="#{html.entity.user.pending_deactivation}"></span>
+									</td>
+									<td th:text="${@supportedUserTypeService.getPrettyName(user.userType)}"></td>
+									<td>
+										<p th:text="${user.employeeIdDisplay}"></p>
+									</td>
+									<td>
+										<p th:text="${user.employeeId}"></p>
+										<p th:unless="${user.userChangeEmployeeIdQueueDTO == null}" style="font-size: small" th:text="'(' + ${user.userChangeEmployeeIdQueueDTO.date} + ': skifter til ' + ${user.userChangeEmployeeIdQueueDTO.employeeId} + ')'"></p>
+									</td>
+									<td>
+										<em th:if="${user.prime}" class="fa fa-check"></em>
+									</td>
+									<td>
+										<th:block th:if="${user.id gt 0 and @supportedUserTypeService.findByKey(user.userType).isCanOrder()}" sec:authorize="hasRole('ROLE_USER_EDIT') and hasRole('ROLE_MODULE_ACCOUNT_CREATION')">
+											<th:block th:if="${user.disabled == false}">
+												<a href="#" onclick="deleteUser(this);" th:attr="data-userid=${user.userId},data-usertype=${user.userType}"><em class="fa fa-times" th:title="#{html.entity.user.deactivate}"></em></a>
+											</th:block>
+											<th:block th:if="${user.disabled == true}">
+												<a href="#" onclick="reactivateUser(this);" th:attr="data-userid=${user.userId},data-usertype=${user.userType}"><em class="fa fa-user-plus" th:title="#{html.entity.user.reactivate}"></em></a>
+											</th:block>
+										</th:block>
+										
+										<th:block th:if="${@sofdConfiguration.integrations.opus.enableActiveDirectoryEmployeeIdAssociation and user.userType == 'ACTIVE_DIRECTORY'}">
+											<a th:if="${user.userChangeEmployeeIdQueueDTO == null}" href="#" onclick="editUser(this);" th:attr="data-userid=${user.userId},data-usertype=${user.userType},data-employeeid=${user.employeeId}"><em class="fa fa-fw fa-pencil"></em></a>
+											<a th:unless="${user.userChangeEmployeeIdQueueDTO == null}" href="#" onclick="editUser(this);" th:attr="data-userid=${user.userId},data-usertype=${user.userType},data-employeeid=${user.employeeId},data-queuedate=${user.userChangeEmployeeIdQueueDTO.date},data-queueemployeeid=${user.userChangeEmployeeIdQueueDTO.employeeId}"><em class="fa fa-fw fa-pencil"></em></a>
+										</th:block>
+										
+										<a th:if="${#strings.equals(user.userType, 'ACTIVE_DIRECTORY')}" href="#" onclick="showKombitUuid(this);" th:attr="data-kombituuid=${user.kombitUuid}"><em class="fa fa-fw fa-info uuidTooltip"></em></a>
+									</td>
+								</tr>
+								</tbody>
+							</table>
+						</div>
+
+						<div id="phone_menu" class="tab-pane">
+							<th:block th:replace="fragments/phoneTab :: phoneTab" />
+						</div>
+
+						<div id="keywords_menu" class="tab-pane fade">
+							<div th:replace="person/fragments/viewKeywordsTab :: keywordsTab(keyWords = ${person.keyWords}, notes = ${person.notes})"></div>
+						</div>
+
+						<div id="comment_menu" class="tab-pane fade" sec:authorize="hasRole('ROLE_MODULE_PERSON_COMMENT')">
+							<div th:replace="person/fragments/viewCommentTab :: commentTab"></div>
+						</div>
+
+						<div id="substitutes_menu" class="tab-pane fade" th:if="${isManager}">
+							<th:block sec:authorize="hasRole('ROLE_USER_EDIT')">
+								<button style="width:220px" onclick="showAddSubstituteModal()" class="btn btn-lg btn-primary">
+									<div>
+										<em class="fa fa-fw fa-user-plus"></em>
+										<span th:text="#{html.page.person.view.modal.add.substitute}"></span>
+									</div>
+								</button>
+							</th:block>
+
+							<table id="listTable4" class="table table-striped table-hover listTable">
+								<thead>
+									<th class="col-md-4" th:text="#{html.entity.substitute.name}"></th>
+									<th class="col-md-3" th:text="#{html.entity.substitute.context}"></th>
+									<th class="col-md-4" th:text="#{html.entity.substitute.constraint}"></th>
+									<th class="col-md-1" th:text="#{html.control.operations}"></th>
+								</thead>
+
+								<tbody>
+								<tr th:each="substitute : ${person.substituteAssignments}">
+									<td>
+										<span th:text="${substitute.substituteName}"></span>
+										<div th:if="${substitute.orgUnitAssignment}" style="font-size: smaller; color: red;">
+											<span th:if="${substitute.inherited}" th:text="#{html.page.person.substitute.indirect.inherited(${substitute.orgUnits[0]}, ${substitute.inheritedFrom})}"></span>
+											<span th:unless="${substitute.inherited}" th:text="#{html.page.person.substitute.indirect(${substitute.orgUnits[0]})}"></span>
+										</div>
+									</td>
+									<td th:text="${substitute.substituteContext}"></td>
+									<td>
+										<ul style="list-style-type: none; padding-left: 0px; margin-bottom: 0px;">
+											<li th:each="orgUnit : ${substitute.orgUnits}" th:text="${orgUnit}"></li>
+										</ul>
+									</td>
+									<td>
+										<th:block sec:authorize="hasRole('ROLE_USER_EDIT')">
+											<a th:unless="${substitute.orgUnitAssignment}" href="#" onclick="removeSubstituteAssignment(this);" th:attr="data-assignmentid=${substitute.id}"><em class="fa fa-fw fa-times"></em></a>
+										</th:block>
+									</td>
+								</tr>
+								</tbody>
+							</table>
+						</div>
+
+						<div id="local_extensions_menu" class="tab-pane fade">
+							<table id="listTable5" class="table table-striped table-hover listTable">
+								<thead>
+									<th class="col-md-2" th:text="#{html.page.person.view.localextensions.type}"></th>
+									<th class="col-md-3" th:text="#{html.page.person.view.localextensions.object}"></th>
+									<th class="col-md-3" th:text="#{html.page.person.view.localextensions.field}"></th>
+									<th class="col-md-4" th:text="#{html.page.person.view.localextensions.value}"></th>
+								</thead>
+
+								<tbody>
+								<tr th:each="extension : ${person.localExtensions}">
+									<td th:text="#{__${extension.type.message}__}"></td>
+									<td th:text="${extension.object}"></td>
+									<td th:text="${extension.field}"></td>
+									<td th:text="${extension.value}"></td>
+								</tr>
+								</tbody>
+							</table>
+						</div>
+
+						<div id="authorization_codes_menu" class="tab-pane fade" th:if="${#lists.size(person.authorizationCodes) gt 0}">
+							<table id="listTable6" class="table table-striped table-hover listTable">
+								<thead>
+									<th class="col-md-5" th:text="#{html.page.person.view.authorization_codes.name}"></th>
+									<th class="col-md-5" th:text="#{html.page.person.view.authorization_codes.code}"></th>
+									<th class="col-md-1" th:text="#{html.page.person.view.authorization_codes.prime}"></th>
+									<th class="col-md-1" th:text="#{html.control.operations}"></th>
+								</thead>
+
+								<tbody>
+								<tr th:each="authCode : ${person.authorizationCodes}">
+									<td th:text="${authCode.name}"></td>
+									<td th:text="${authCode.code}"></td>
+									<td>
+										<em th:if="${authCode.prime}" class="fa fa-check"></em>
+									</td>
+									<td>
+										<th:block sec:authorize="hasRole('ROLE_USER_EDIT')">
+											<a th:title="#{html.page.person.view.authorization_codes.prime.title}" th:if="${authCode.prime != true}" href="#" onclick="selectPrimeAuthorizationCode(this);" th:attr="data-authorizationid=${authCode.id}, data-authorizationname=${authCode.name}"><em class="fa fa-fw fa-arrow-left"></em></a>
+										</th:block>
+									</td>
+								</tr>
+								</tbody>
+							</table>
+						</div>
+						
+						<div id="uuids_menu" class="tab-pane fade">
+							<table id="listTable7" class="table table-striped table-hover listTable">
+								<thead>
+									<th class="col-md-2" th:text="#{html.page.person.view.uuids.type}"></th>
+									<th class="col-md-2" th:text="#{html.page.person.view.uuids.account}"></th>
+									<th class="col-md-8" th:text="#{html.page.person.view.uuids.value}"></th>
+								</thead>
+
+								<tbody>
+									<tr>
+										<td>Person UUID (API)</td>
+										<td>&nbsp;</td>
+										<td th:text="${person.uuid}"></td>
+									</tr>
+
+									<tr th:each="user : ${person.users}" th:if="${user.userType} == 'ACTIVE_DIRECTORY' or ${user.userType} == 'ACTIVE_DIRECTORY_SCHOOL'">
+										<td>KOMBIT UUID</td>
+										<td th:text="${user.userId}"></td>
+										<td th:text="${user.kombitUuid}"></td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+
+						<div th:if="${showFunctions}" id="functions_menu" class="tab-pane fade">
+							<table id="listTableFunctions" class="table table-striped table-hover listTable">
+								<thead>
+									<th class="col-md-12" th:text="#{html.page.person.view.functions.table.headers.function}"></th>
+								</thead>
+
+								<tbody>
+								<tr th:each="function : ${functions}">
+									<td th:text="${function}"></td>
+								</tr>
+								</tbody>
+							</table>
+						</div>
+						
+						<div id="address_menu" class="tab-pane fade">
+							<table id="listTableAddresses" class="table table-striped table-hover listTable">
+								<thead>
+									<th class="col-md-2" th:text="#{html.page.person.view.functions.table.headers.addresstype}"></th>
+									<th class="col-md-10" th:text="#{html.page.person.view.functions.table.headers.addressvalue}"></th>
+								</thead>
+
+								<tbody>
+									<tr th:if="${person.registeredPostAddress != null}">
+										<td th:text="#{html.entity.person.registeredPostAddress}"></td>
+										<th:block th:switch="${person.registeredPostAddress.addressProtected or @sofdConfiguration.hidePersonAddresses}">
+											<td th:case="${true}">
+												<em class="fa fa-fw fa-eye" onclick="toggleHiddenField('#registeredPostAddress')"></em>
+												<span id="registeredPostAddress" th:text="${'********'}" th:attr="data-key=${person.registeredPostAddress.street + ', ' + person.registeredPostAddress.postalCode + ' ' + person.registeredPostAddress.city + (person.registeredPostAddress.addressProtected ? ' (adressebeskyttet)' : '')}"></span>
+											</td>
+											<td th:case="${false}" th:text="${person.registeredPostAddress.street + ', ' + person.registeredPostAddress.postalCode + ' ' + person.registeredPostAddress.city}"></td>											
+										</th:block>
+									</tr>
+									
+									<tr th:if="${person.residencePostAddress != null}">
+										<td th:text="#{html.entity.person.residencePostAddress}"></td>
+										<th:block th:switch="${person.residencePostAddress.addressProtected or @sofdConfiguration.hidePersonAddresses}">
+											<td th:case="${true}">
+												<em class="fa fa-fw fa-eye" onclick="toggleHiddenField('#residencePostAddress')"></em>
+												<span id="residencePostAddress" th:text="${'********'}" th:attr="data-key=${person.residencePostAddress.street + ', ' + person.residencePostAddress.postalCode + ' ' + person.residencePostAddress.city + (person.residencePostAddress.addressProtected ? ' (adressebeskyttet)' : '')}"></span>
+											</td>
+											<td th:case="${false}" th:text="${person.residencePostAddress.street + ', ' + person.residencePostAddress.postalCode + ' ' + person.residencePostAddress.city}"></td>											
+										</th:block>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<!-- Choose primary account modal -->
+<div class="modal fade" id="modal-prime-select" role="dialog">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h4 th:text="#{html.page.person.view.modal.prime.select.header}"></h4>
+			</div>
+
+			<div class="modal-body">
+				<table class="table table-striped table-hover">
+					<thead>
+						<th class="col-md-1" th:text="#{html.entity.user.userId}"></th>
+						<th class="col-md-5" th:text="#{html.entity.user.userType}"></th>
+						<th class="col-md-3" th:text="#{html.entity.user.prime}"></th>
+					</thead>
+
+					<tbody>
+						<th:block th:each="type : ${allUserTypes}">
+							<tr th:each="user : ${person.users.?[userType == '__${type.key}__']}" class="primeUserRadioTr" th:attr="data-key=${user.uuid}" th:unless="${user.pending or user.isExpired() or user.isDisabled()}">
+								<td style="vertical-align: middle !important;" th:text="${user.userId}"></td>
+								<td style="vertical-align: middle !important;" th:text="${@supportedUserTypeService.getPrettyName(user.userType)}"></td>
+
+								<td>
+									<input type="radio" th:id="user + ${user.uuid}" th:name="${user.userType}" th:checked="${user.prime}" class="userTypePrime custom-control-input"/>
+								</td>
+							</tr>
+						</th:block>
+					</tbody>
+				</table>
+			</div>
+
+			<div class="modal-footer">
+				<button type="button" class="btn btn-primary" th:text="#{html.control.button.save}" onclick="saveUserPrime()"></button>
+				<button type="button" class="btn btn-danger" th:text="#{html.control.button.cancel}" data-dismiss="modal"></button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- leave modal -->
+<div class="modal fade" id="modal-leave" role="dialog">
+	<div class="form-horizontal modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h4 th:text="#{html.page.person.view.modal.stop.header}"></h4>
+			</div>
+
+			<div class="modal-body">
+ 				<div class="col-md-12" th:utext="#{html.page.person.view.modal.stop.body}"></div>
+ 				<br/><br/>
+
+				<div class="form-group">
+					<label class="col-sm-2 control-label" th:text="#{html.page.person.view.modal.leave.enable}"></label>
+					<div class="col-sm-8">
+						<div class="checkbox c-checkbox">
+							<label>
+								<input id="chbxLeave" type="checkbox" th:checked="${person.leave}" onchange="flagService.toggleLeaveForm()"/>
+								<span class="fa fa-check"></span>
+							</label>
+						</div>
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label class="col-sm-2 control-label" th:text="#{html.page.person.view.modal.leave.startDate}"></label>
+					<div class="col-sm-8">
+						<div class="input-group date" id="startDatePicker">
+							<input id="leaveStartDate" class="form-control" th:value="${person.leaveStartDate} != null ? ${person.leaveStartDate} : ${today}"/>
+							<span class="input-group-addon">
+								<span class="fa fa-calendar"></span>
+							</span>
+						</div>
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label class="col-sm-2 control-label" th:text="#{html.page.person.view.modal.leave.stopDate}"></label>
+					<div class="col-sm-8">
+						<div class="input-group date" id="stopDatePicker">
+							<input id="leaveStopDate" class="form-control" th:value="${person.leaveStopDate}"/>
+							<span class="input-group-addon">
+								<span class="fa fa-calendar"></span>
+							</span>
+						</div>
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label class="col-sm-2 control-label" th:text="#{html.page.person.view.modal.leave.reason}"></label>
+					<div class="col-sm-8">
+						<select class="form-control" id="reason">
+							<option th:each="type : ${T(dk.digitalidentity.sofd.dao.model.enums.LeaveReason).values()}" th:selected="${person.leaveReason == type}" th:value="${type}" th:text="#{__${type.getMessage()}__}"></option>
+						</select>
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label class="col-sm-2 control-label" th:text="#{html.page.person.view.modal.leave.reasonText}"></label>
+					<div class="col-sm-8">
+						<textarea id="reasonText" class="md-textarea form-control" rows="4" th:text="${person.leaveReasonText}"></textarea>
+					</div>
+				</div>
+				
+				<div class="form-group">
+					<label class="col-sm-2 control-label">
+						<span th:text="#{html.page.person.view.modal.leave.disableAccountOrders}"></span>
+						<a tabindex="0" class="hintPopovers" data-toggle="popover" data-trigger="focus" data-placement="right" th:attr="data-content=#{html.page.person.view.modal.leave.disableAccountOrdersHint}" style="text-decoration: none;">
+							<em style="color: black;" class="fa fa-fw fa-question"></em>
+						</a>
+					</label>
+					<div class="col-sm-8">
+						<div class="checkbox c-checkbox">
+							<label>
+								<input id="disableAccountOrders" type="checkbox" th:checked="${person.leaveDisableAccountOrders}" />
+								<span class="fa fa-check"></span>
+							</label>
+						</div>
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label class="col-sm-2 control-label">
+						<span th:text="#{html.page.person.view.modal.leave.expireADAccounts}"></span>
+						<a tabindex="0" class="hintPopovers" data-toggle="popover" data-trigger="focus" data-placement="right" th:attr="data-content=#{html.page.person.view.modal.leave.expireHint}" style="text-decoration: none;">
+							<em style="color: black;" class="fa fa-fw fa-question"></em>
+						</a>
+					</label>
+					<div class="col-sm-8">
+						<div class="checkbox c-checkbox">
+							<label>
+								<input id="deactivateAccounts" type="checkbox" th:checked="${person.leaveExpireAccounts}" onchange="flagService.deactivateAccounts()"/>
+								<span class="fa fa-check"></span>
+							</label>
+						</div>
+					</div>
+				</div>
+
+				<div class="form-group">
+					<div th:if="${#lists.size(person.affiliations) gt 1}" class="col-sm-10 col-sm-offset-2" th:utext="#{html.page.person.view.modal.leave.affiliationwarning}"></div>
+				</div>
+			</div>
+
+			<div class="modal-footer">
+				<button type="button" class="btn btn-primary" th:text="#{html.control.button.save}" onclick="flagService.saveLeaveModal();"></button>
+				<button type="button" class="btn btn-danger" th:text="#{html.control.button.cancel}" onclick="flagService.toggleLeaveModal(true);"></button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- choose prime affiliation modal -->
+<div class="modal fade" id="modal-prime-affiliation" role="dialog">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h4 th:text="#{html.page.person.view.choose.primary.affiliation}"></h4>
+			</div>
+
+			<div class="modal-body">
+				<table class="table table-striped table-hover">
+					<thead>
+						<th class="col-md-5" th:text="#{html.entity.affiliation.positionName}"></th>
+						<th class="col-md-5" th:text="#{html.entity.affiliation.orgunit}"></th>
+						<th class="col-md-2" th:text="#{html.entity.affiliation.prime}"></th>
+					</thead>
+
+					<tbody>
+						<tr th:each="affiliation : ${affiliations}" class="primeRadioTrAffiliation" th:attr="data-key=${affiliation.id}, data-future=${affiliation.activeInFuture}">
+							<td style="vertical-align: middle !important;" th:text="${affiliation.positionName}"></td>
+							<td style="vertical-align: middle !important;" th:text="${affiliation.orgUnitName}"></td>
+							<td>
+								<input type="radio" th:id="'affiliation-' + ${affiliation.id}" name="affiliationPrimeRadio" class="affiliationPrime custom-control-input" onclick="handleOnChangeForRadios()"/>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+
+			<div class="modal-footer">
+				<button type="button" class="btn btn-primary" th:text="#{html.button.sofdChoose}" onclick="letSofdChoose()"></button>
+				<button type="button" class="btn btn-primary" th:text="#{html.control.button.save}" onclick="saveAffiliationPrime()"></button>
+				<button type="button" class="btn btn-danger" th:text="#{html.control.button.cancel}" data-dismiss="modal"></button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- select inherit privileges affiliation modal -->
+<div class="modal fade" id="modal-inherit-privileges-affiliation" role="dialog">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h4 th:text="#{html.page.person.view.modal.inherit.privileges.select}"></h4>
+			</div>
+
+			<div class="modal-body">
+				<table class="table table-striped table-hover">
+					<thead>
+						<th class="col-md-5" th:text="#{html.entity.affiliation.positionName}"></th>
+						<th class="col-md-5" th:text="#{html.entity.affiliation.orgunit}"></th>
+						<th class="col-md-2" th:text="#{html.entity.affiliation.inheritPrivileges}"></th>
+					</thead>
+
+					<tbody>
+						<tr th:each="affiliation : ${affiliations}" th:attr="data-key=${affiliation.id}">
+							<td style="vertical-align: middle !important;" th:text="${affiliation.positionName}"></td>
+							<td style="vertical-align: middle !important;" th:text="${affiliation.orgUnitName}"></td>
+							<td>
+								<div class="checkbox c-checkbox">
+									<label>
+										<input th:id="'affiliation-' + ${affiliation.id}" type="checkbox" th:checked="${affiliation.inheritPrivileges}" th:attr="data-affiliationid=${affiliation.id}"/>
+										<span class="fa fa-check"></span>
+									</label>
+								</div>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+
+			<div class="modal-footer">
+				<button type="button" class="btn btn-primary" th:text="#{html.control.button.save}" onclick="saveAffiliationInheritPrivileges()"></button>
+				<button type="button" class="btn btn-danger" th:text="#{html.control.button.cancel}" data-dismiss="modal"></button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- edit user modal -->
+<div class="modal fade" id="modal-edit-user" role="dialog">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h4 th:text="#{html.page.person.view.edit.user.modal}"></h4>
+			</div>
+
+			<div class="modal-body">
+				<form>
+					<input id="editUserUserId" type="hidden" />
+					<input id="editUserUserType" type="hidden" />
+	
+					<div class="row">
+						<label class="col-sm-2 control-label" th:text="#{html.entity.user.affiliation}"></label>
+						<div class="col-sm-9">
+							<select class="form-control" id="editUserEmployeeId">
+								<option value="0">Ikke tilknyttet noget tilhørsforhold</option>
+								<option th:each="affiliation : ${affiliations}" th:if="${@sofdConfiguration.getIntegrations().getOpus().adEmployeeIdAssociationLimitedToPrimeAffiliation == false}  or (${@sofdConfiguration.getIntegrations().getOpus().adEmployeeIdAssociationLimitedToPrimeAffiliation == true} and ${affiliation.master == @sofdConfiguration.getModules().getLos().getPrimeAffiliationMaster()})" th:value="${affiliation.employeeId}" th:text="${affiliation.positionName} + ' i ' + ${affiliation.orgUnitName} + ' (' + ${affiliation.employeeId} + ')'"></option>
+							</select>
+						</div>
+					</div>
+					
+					<div class="row">
+						<label class="col-sm-2 control-label" th:text="#{html.entity.user.date}"></label>
+						<div class="col-sm-9" style="display: flex">
+							<div class="input-group date col-lg-4" id="editUserDatePicker">
+								<input id="editUserDate" class="form-control" th:value="${person.leaveStartDate} != null ? ${person.leaveStartDate} : ${today}"/>
+								<span class="input-group-addon">
+									<span class="fa fa-calendar"></span>
+								</span>
+							</div>
+							&nbsp;&nbsp;&nbsp;&nbsp;
+							<button type="button" class="btn btn-warning col-lg-3" th:text="#{html.entity.user.remove_future_change}" onclick="removeFutureChange(); return false;"></button>
+						</div>
+					</div>
+				</form>
+			</div>
+
+			<div class="modal-footer">
+				<button type="button" class="btn btn-primary" th:text="#{html.button.save}" onclick="saveEditUser();"></button>
+				<button type="button" class="btn btn-danger" th:text="#{html.control.button.cancel}" data-dismiss="modal"></button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- add substitute modal -->
+<div class="modal fade" id="modal-add-substitute" role="dialog">
+	<div class="form-horizontal modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h4 th:text="#{html.page.person.view.modal.add.substitute}"></h4>
+			</div>
+
+			<div class="modal-body">
+				<div class="form-group">
+					<label class="col-sm-2 control-label" th:text="#{html.page.person.view.modal.add.substitute.context}"></label>
+					<div class="col-sm-8">
+						<select class="form-control" id="addSubstituteSelectedContext" onchange="handleSubstituteContextChange();">
+							<option th:each="subContext : ${substituteContexts}" th:value="${subContext.id}" th:attr="data-supportsconstraints=${subContext.supportsConstraints}" th:text="${subContext.name}"></option>
+						</select>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label" th:text="#{html.page.person.view.modal.add.substitute.person}"></label>
+					<div class="col-sm-8">
+						<input class="form-control" id="addSubstituteAutocompletePerson" />
+						<input id="realPersonField" type="hidden" />
+						<ul id="addSubstitutePersonError" class="error">
+						</ul>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label" th:text="#{html.page.person.view.modal.add.substitute.constraints}"></label>
+					<div class="col-sm-8">
+						<div class="checkbox c-checkbox">
+							<label>
+								<input id="chbxSubstituteContextConstraints" type="checkbox" th:checked="${false}" onchange="toggleSubstituteContextConstraints()"/>
+								<span class="fa fa-check"></span>
+							</label>
+						</div>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label"></label>
+					<div class="col-sm-8">
+						<table id="subConstraintOrgUnitsTable" style="display:none;" class="table table-striped table-hover">
+<!-- 							<thead> -->
+<!-- 								<th class="col-md-1" /> -->
+<!-- 								<th class="col-md-11" th:text="'OrgUnit'"/> -->
+<!-- 							</thead> -->
+		
+							<tbody>
+								<tr th:each="orgunit : ${managedOrgUnits}" class="subConstraintOrgUnit">
+									<td class="col-md-1">
+										<div class="checkbox c-checkbox">
+											<label>
+												<input type="checkbox" th:checked="${false}" th:attr="data-uuid=${orgunit.uuid}" />
+												<span class="fa fa-check"></span>
+											</label>
+										</div>
+									</td>
+									<td class="col-md-11" style="vertical-align: middle !important;" th:text="${orgunit.name}"></td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+
+			<div class="modal-footer">
+				<button type="button" class="btn btn-primary" th:text="#{html.button.add}" onclick="addSubstituteAssignment()"></button>
+				<button type="button" class="btn btn-danger" th:text="#{html.button.cancel}" data-dismiss="modal"></button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- user KOMBIT uuid -->
+<div class="modal fade" id="modal-user-kombit-uuid" role="dialog">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h4 th:text="#{html.entity.person.uuid.kombit}"></h4>
+			</div>
+
+			<div class="modal-body">
+				<form>
+					<div class="row">
+						<label class="col-sm-2 control-label" th:text="#{html.entity.person.uuid.kombit}"></label>
+						<div class="col-sm-9">
+							<input id="userKombitUuid" class="form-control" readonly="readonly"/>
+						</div>
+					</div>
+				</form>
+			</div>
+
+			<div class="modal-footer">
+				<button type="button" class="btn btn-danger" th:text="#{html.control.button.close}" data-dismiss="modal"></button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Flag change Modal -->
+<div class="modal fade" id="modal-user-flag-change" role="dialog">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h4 th:text="#{html.entity.person.disableAccountOrders}"></h4>
+				<h3 th:text="#{html.entity.person.disableAccountOrders.text}"></h3>
+			</div>
+			<div class="modal-body">
+				<form>
+					<div class="row" style="display: flex; align-items: center;">
+						<label class="col-sm-5 control-label" style="text-align: left; margin-bottom: 0; padding-right: 15px;" th:text="#{html.entity.person.disableAccountOrdersCreate.add}"></label>
+						<div class="col-sm-5">
+							<div class="checkbox c-checkbox">
+								<label>
+									<input th:id="isCreateCheck" type="checkbox" th:checked="${person.isDisableAccountOrdersCreate}" style="margin: 0; vertical-align: middle; margin-top: 2px;"/>
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+						</div>
+					</div>
+					<div class="row" style="display: flex; align-items: center;">
+						<label class="col-sm-5 control-label" style="text-align: left; margin-bottom: 0; padding-right: 15px;" th:text="#{html.entity.person.disableAccountOrdersDisable.add}"></label>
+						<div class="col-sm-5">
+							<div class="checkbox c-checkbox">
+								<label>
+									<input th:id="isDisableCheck" type="checkbox" th:checked="${person.isDisableAccountOrdersDisable}" style="margin: 0; vertical-align: middle; margin-top: 2px;"/>
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+						</div>
+					</div>
+					<div class="row" style="display: flex; align-items: center;">
+						<label class="col-sm-5 control-label" style="text-align: left; margin-bottom: 0; padding-right: 15px;" th:text="#{html.entity.person.disableAccountOrdersDelete.add}"></label>
+						<div class="col-sm-5">
+							<div class="checkbox c-checkbox">
+								<label>
+									<input th:id="isDeleteCheck" type="checkbox" th:checked="${person.isDisableAccountOrdersDelete}" style="margin: 0; vertical-align: middle; margin-top: 2px;"/>
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+						</div>
+					</div>
+				</form>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-primary" th:text="#{html.control.button.save}"  onclick="flagService.changeFlag()" data-dismiss="modal"></button>
+				<button type="button" class="btn btn-danger" th:text="#{html.control.button.close}" onclick="flagService.closeChangeFlagModal()" data-dismiss="modal"></button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Edit phone modal -->
+<div th:replace="fragments/phoneTab :: phoneModal"></div>
+<div id="phone_prime_modal">
+	<div th:replace="fragments/phoneTab :: phonePrimeModal"></div>
+</div>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+<script th:replace="fragments/datatables :: datatables(paging=false, autoLoad=false) "></script>
+<script th:replace="fragments/phoneTab :: phoneScript "></script>
+
+<style>
+	.row {
+		margin-bottom: 5px;
+	}
+	.control-label {
+		margin-top: 5px;
+		text-align: right;
+	}
+
+	.modal .control-label {
+		margin-top: 0px;
+	}
+
+	.popover-content {
+		width: 400px;
+	}
+
+	.autocomplete-suggestions { border: 1px solid #999; background: #FFF; overflow: auto; width: 500px !important; }
+	.autocomplete-suggestion { padding: 2px 5px; white-space: nowrap; overflow: hidden; }
+	.autocomplete-selected { background: #F0F0F0; }
+	.autocomplete-suggestions strong { font-weight: normal; color: #3399FF; }
+	.autocomplete-group { padding: 2px 5px; }
+	.autocomplete-group strong { display: block; border-bottom: 1px solid #000; }
+
+	#stopReason {
+		width: 100%;
+		max-width: 100%;
+		min-width: 100%;
+		max-height: 500px;
+		min-height: 120px;
+	}
+
+	.sweet-alert-lg {
+		width:600px !important;
+	}
+</style>
+
+<script th:inline="javascript">
+	/*<![CDATA[*/
+
+		var stars = '********';
+
+		/*[+
+			var url = [[@{/ui/person}]]
+			var restUrl = [[@{/rest/person}]];
+			var substituteRestUrl = [[@{/rest/substituteAssignment}]];
+			var affiliationRestUrl = [[@{/rest/affil}]];
+			var uuid = [[${person.uuid}]];
+			var phones = [[${person.phones}]];
+			var allUserTypes = [[${allUserTypes}]];
+			var one = [[${person.isDisableAccountOrdersCreate}]];
+			var two = [[${person.isDisableAccountOrdersDelete}]];
+			var three = [[${person.isDisableAccountOrdersDisable}]];
+
+			var personMaster = [[${person.master}]];
+			var affiliations = [[${affiliations}]];
+			
+			var tooltipTxt = [[#{html.entity.person.master}]];
+			
+			var msgFetching = [[#{html.page.person.view.msg.fetching}]];
+			var msgFetchFail = [[#{html.page.person.view.msg.fetchFail}]];
+			var msgFieldNotUpdated = [[#{html.page.person.view.ad.update.failure}]];
+
+			var msgUpdateFail = [[#{html.page.orgunit.update.failure}]];
+			var msgFieldUpdated = [[#{html.page.orgunit.update.success}]];
+
+			var msgSubstituteAddFail = [[#{html.page.person.view.substitute.failure}]];
+
+			var msgProfileUpdateFail = [[#{html.page.person.view.profile.update.failure}]];
+			var msgProfileUpdated = [[#{html.page.person.view.profile.update.succes}]];
+			
+			var btnCancel = [[#{html.button.cancel}]];
+			var btnDeactivate = [[#{html.button.deactivate}]];
+			var btnActivate = [[#{html.button.activate}]];
+			var deactivateUserTitle = [[#{html.page.person.user.msg.delete.Title}]];
+			var deactivateUserText = [[#{html.page.person.user.msg.delete.Text}]];
+			var deactivateUserFail = [[#{html.page.person.user.msg.delete.Fail}]];
+			var deactivateUserSuccess = [[#{html.page.person.user.msg.delete.Success}]];
+
+			var deleteAffiliationTitle = [[#{html.page.person.affiliation.msg.delete.Title}]];
+			var deleteAffiliationText = [[#{html.page.person.affiliation.msg.delete.Text}]];
+
+			var btnDelete = [[#{html.button.delete}]];
+			var removeSubstituteAssignmentTitle = [[#{html.page.person.substitute.msg.delete.Title}]];
+			var removeSubstituteAssignmentText = [[#{html.page.person.substitute.msg.delete.Text}]];
+			var removeSubstituteAssignmentFail = [[#{html.page.person.substitute.msg.delete.Fail}]];
+			
+			var reactivateUserTitle = [[#{html.page.person.user.msg.reactivate.Title}]];
+			var reactivateUserText = [[#{html.page.person.user.msg.reactivate.Text}]];
+			var reactivateUserFail = [[#{html.page.person.user.msg.reactivate.Fail}]];
+			var reactivateUserSuccess = [[#{html.page.person.user.msg.reactivate.Success}]];
+
+			var swalFutureAffiliationWarningTitle = [[#{html.entity.person.futureAffiliationWarning.title}]];
+			var swalFutureAffiliationWarningText = [[#{html.entity.person.futureAffiliationWarning.text}]];
+			var swalBtnYes = [[#{html.button.yes}]];
+			var swalBtnNo = [[#{html.button.no}]];
+			
+			var swalPrimeAuthorizationCodeTitle = [[#{html.page.person.view.authorization_codes.prime.title}]];
+			var swalPrimeAuthorizationCodeText = [[#{html.page.person.view.authorization_codes.prime.text}]];
+
+			var dataChangedSuccess = [[#{html.page.person.change.success}]];
+			var dataChangedFail = [[#{html.page.person.change.fail}]];
+
+			var uuidWarning = [[#{html.entity.person.uuid.warning}]];
+			var kombitUuidText = [[#{html.entity.person.uuid.kombit}]];
+			
+			var affiliationWorkplacesEnabled = [[${@sofdConfiguration.getModules().getAffiliationWorkplaces().isEnabled()}]];
+		+]*/
+		var token = $("meta[name='_csrf']").attr("content");
+
+		var flagService;
+		$(document).ready(function () {
+			flagService = new FlagService();
+
+			loadViewCoreFragment();
+			
+			addTooltips('personMasterTooltip', personMaster);
+			$('.personUuidTooltip').tooltip({title: uuidWarning, placement: 'right', template: '<div class="tooltip" style="width: 200px" role="tooltip"><div class="arrow"></div><div class="tooltip-inner"></div></div>'});
+			$('.uuidTooltip').tooltip({title: kombitUuidText});
+
+			$('#startDatePicker').datetimepicker({
+				format: 'YYYY-MM-DD'
+			});
+			$('#stopDatePicker').datetimepicker({
+				format: 'YYYY-MM-DD'
+			});
+			
+			$('#editUserDatePicker').datetimepicker({
+				format: 'YYYY-MM-DD',
+				minDate: new Date()
+			});
+
+			// on active click/show of tab, initalize
+			$('a[data-toggle="tab"]').on("shown.bs.tab", function (e) {
+				var id = $(e.target).attr("href");
+				localStorage.setItem(uuid, id);
+				
+				if ("#comment_menu" == id) {
+					loadComments();
+				}
+				
+				var tab = $($(this).attr("href"));				
+				loadDataTableWithState(tab.find("table"), "personTab" + id, [], tab.find(".dropdown-menu"));
+			});
+
+			// restore active tab from localStorate
+			var selectedTab = localStorage.getItem(uuid);
+			if (selectedTab != null) {
+				$('a[data-toggle="tab"][href="' + selectedTab + '"]').tab('show');
+			}
+
+			// default to affiliation tab
+			if (selectedTab == null) {
+				selectedTab = "#affiliation_menu";
+			}
+
+			// make sure DataTables is loaded on first tab (no event is triggered on initial load)
+			var tab = $($('a[data-toggle="tab"][href="' + selectedTab + '"]').attr("href"));
+			
+			var filter = [];
+			if ("#affiliation_menu" === selectedTab) {
+				if (affiliationWorkplacesEnabled) {
+					filter = [2,3,6,8,9,10,11];
+				}
+				else {
+					filter = [2,3,6,8,9,10];
+				}
+			}
+
+			loadDataTableWithState(tab.find("table"), ("personTab" + selectedTab), filter, tab.find(".dropdown-menu"));
+			flagService.init();
+			
+			//Substitute autocomplete
+			$('#addSubstituteAutocompletePerson').autocomplete({
+				serviceUrl: substituteRestUrl + "/search/person/" + uuid,
+				onSelect: function(suggestion) {
+					// strip markup
+					var textValue = suggestion.value;
+					var idx = textValue.indexOf("-XXXX");
+					if (idx > 0) {
+						textValue = textValue.substr(0, idx);
+
+						idx = textValue.lastIndexOf("-");
+						if (idx > 0) {
+							textValue = textValue.substr(0, idx - 1);
+						}
+					}
+					
+					$("#realPersonField").val(suggestion.data);
+					
+					$(this).val(textValue);
+				},
+				preventBadQueries: true,
+				triggerSelectOnValidInput: false
+			});
+
+			$("[data-toggle=tooltip]").hover(function (obj) {
+				let stringValue = "";
+
+				if (one) {
+					stringValue += "Undtaget for oprettelse af brugere \n";
+				}
+				if (two) {
+					stringValue += "Undaget for sletning af brugere \n";
+				}
+				if (three) {
+					stringValue += "Undtaget for deaktivering af brugere \n"
+				}
+				$(this).attr('title', stringValue);
+			});
+		});
+
+		function toggleHiddenField(field) {
+			if ($(field).text() == stars) {
+				$(field).text($(field).data("key"));
+			}
+			else {
+				$(field).text(stars);
+			}
+		}
+
+		function handleCheckboxChange() {
+			var checked = $('#taxedPhone').is(":checked");
+
+			$.ajax({
+				method : "POST",
+				url: restUrl + "/taxedPhone/" + uuid,
+				headers: {
+					'X-CSRF-TOKEN': token,
+					'checked': checked
+				}
+			}).done(function (data) {
+				$.notify({
+					message: dataChangedSuccess
+				}, {
+					status: 'success',
+					autoHideDelay: 4000
+				});
+			}).fail(function (jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: dataChangedFail
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		}
+
+		function addTooltips(id, master) {
+			$('.' + id).tooltip({title: tooltipTxt + ": " + master});
+		}
+
+		function saveEditUser() {
+			$('#modal-edit-user').modal("toggle");
+
+			var userId = $('#editUserUserId').val();
+			var userType = $('#editUserUserType').val();
+			var employeeId = $('#editUserEmployeeId').val();
+			var date = $('#editUserDate').val();
+			
+			$.ajax({
+				method : "POST",
+				url: restUrl + "/" + uuid + "/setEmployeeId/" + userType + "/" + userId + "/" + employeeId + "?date=" + date,
+				headers: {
+					'X-CSRF-TOKEN': token
+				}
+			}).done(function (data) {
+				location.reload(true);
+			}).fail(function (jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: msgUpdateFail
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		}
+		
+		function removeFutureChange() {
+			$('#modal-edit-user').modal("toggle");
+
+			var userId = $('#editUserUserId').val();
+			var userType = $('#editUserUserType').val();
+			var employeeId = $('#editUserEmployeeId').val();
+			var date = $('#editUserDate').val();
+			
+			$.ajax({
+				method : "POST",
+				url: restUrl + "/" + uuid + "/removefuturechange/" + userType + "/" + userId,
+				headers: {
+					'X-CSRF-TOKEN': token
+				}
+			}).done(function (data) {
+				location.reload(true);
+			}).fail(function (jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: msgUpdateFail
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		}
+
+		function editUser(elem) {
+			var userId = $(elem).data('userid');
+			var userType = $(elem).data('usertype');
+			var employeeId = $(elem).data('employeeid');
+			
+			var date = $(elem).data('queuedate');
+			var queueEmployeeId = $(elem).data('queueemployeeid');
+			
+			if (date != null) {
+				$('#editUserDatePicker').data("DateTimePicker").date(new Date(date));
+			} else {
+				$('#editUserDatePicker').data("DateTimePicker").date(new Date());
+			}
+			
+			$('#editUserUserId').val(userId);
+			$('#editUserUserType').val(userType);
+
+			if (queueEmployeeId != null) {
+				$('#editUserEmployeeId').val(queueEmployeeId);
+			} else if (employeeId) {
+				$('#editUserEmployeeId').val(employeeId);
+			}
+			
+			if (!$('#editUserEmployeeId').val()) {
+				$('#editUserEmployeeId').val('0');
+			}
+			
+			$('#modal-edit-user').modal("toggle");
+		}
+
+		function showKombitUuid(elem) {
+			var kombitUuid = $(elem).data("kombituuid");
+			$('#userKombitUuid').val(kombitUuid);
+			$('#modal-user-kombit-uuid').modal("toggle");
+		}
+		
+		function reactivateUser(elem) {
+			var userId = $(elem).data('userid');
+			var userType = $(elem).data('usertype');
+
+			swal({
+				html : true,
+				title : reactivateUserTitle,
+				text : reactivateUserText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : btnActivate,
+				cancelButtonText : btnCancel,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						method : "POST",
+						url: restUrl + "/reactivateUser/" + userType + "/" + userId,
+						headers: {
+							'X-CSRF-TOKEN': token
+						}
+					}).done(function (data) {
+						$.notify({
+							message: reactivateUserSuccess
+						}, {
+							status: 'success',
+							autoHideDelay: 4000
+						});
+					}).fail(function (jqXHR, textStatus, errorThrown) {
+						$.notify({
+							message: reactivateUserFail
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					});
+				}
+			});
+		}
+
+		function deleteUser(elem) {
+			var userId = $(elem).data('userid');
+			var userType = $(elem).data('usertype');
+
+			swal({
+				html : true,
+				title : deactivateUserTitle,
+				text : deactivateUserText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : btnDeactivate,
+				cancelButtonText : btnCancel,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						method : "POST",
+						url: restUrl + "/deleteUser/" + userType + "/" + userId,
+						headers: {
+							'X-CSRF-TOKEN': token
+						}
+					}).done(function (data) {
+						$.notify({
+							message: deactivateUserSuccess
+						}, {
+							status: 'success',
+							autoHideDelay: 4000
+						});
+					}).fail(function (jqXHR, textStatus, errorThrown) {
+						$.notify({
+							message: deactivateUserFail
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					});
+				}
+			});
+		}
+
+		function deleteAffiliation(elem) {
+			var affiliationUuid = $(elem).data('affiliationuuid');
+
+			swal({
+				html : true,
+				title : deleteAffiliationTitle,
+				text : deleteAffiliationText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : btnDelete,
+				cancelButtonText : btnCancel,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						method : "POST",
+						url: affiliationRestUrl + "/delete/" + affiliationUuid,
+						headers: {
+							'X-CSRF-TOKEN': token
+						}
+					}).done(function (data) {
+						location.reload(true);
+					}).fail(function (jqXHR, textStatus, errorThrown) {
+						$.notify({
+							message: deactivateUserFail + 'todo'
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					});
+				}
+			});
+		}
+
+
+		function fetchFromCpr() {
+			$.notify({
+				message: msgFetching
+			}, {
+				status: 'success',
+				autoHideDelay: 4000
+			});
+			$.ajax({
+				method : "POST",
+				url: restUrl + "/updateFromCPR",
+				headers: {
+					"uuid": uuid,
+					'X-CSRF-TOKEN': token
+				},
+			}).done(function (data) {
+				location.reload(true);
+			}).fail(function (jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: msgFetchFail
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		}
+		
+		// Substitutes Tab
+
+		function showAddSubstituteModal() {
+			$("#realPersonField").val("");
+			$("#addSubstituteAutocompletePerson").val("");
+			$("#addSubstituteSelectedContext option:selected").prop("selected", false);
+			$("#addSubstituteSelectedContext option:first").attr('selected', true);
+			handleSubstituteContextChange();
+			$("#subConstraintOrgUnitsTable .c-checkbox input").attr("checked", false);
+			$('#modal-add-substitute').modal("show");
+		}
+
+		function addSubstituteAssignment() {
+			payload = {
+				context : $("#addSubstituteSelectedContext option:selected").val(),
+				substitute : $("#realPersonField").val(),
+				person : uuid,
+				constraint : null,
+			};
+
+			var includeConstraints = $('#chbxSubstituteContextConstraints').prop("checked");
+			if (includeConstraints) {
+				payload.constraint = $("#subConstraintOrgUnitsTable input[type=checkbox]:checked").map(function() {
+					return this.dataset.uuid;
+				}).get();
+			}
+
+			$.ajax({
+				contentType: 'application/json',
+				url: substituteRestUrl + "/add",
+				method : "POST",
+				data: JSON.stringify(payload),
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				error: function(jqXHR, textStatus, errorThrown) {
+					if (jqXHR.status == 404) {
+						$('#addSubstitutePersonError').show();
+						$('#addSubstitutePersonError').html("");
+						$('#addSubstitutePersonError').append('<li>Person cannot be null</li>');
+					} else {
+						$.notify({
+							message: msgSubstituteAddFail
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					}
+				},
+				success: function(response) {
+					location.reload(true);
+				}
+			});
+		}
+		
+		function removeSubstituteAssignment(elem) {
+			var assignmentId = $(elem).data('assignmentid');
+
+			swal({
+				html : true,
+				title : removeSubstituteAssignmentTitle,
+				text : removeSubstituteAssignmentText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : btnDelete,
+				cancelButtonText : btnCancel,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						method : "DELETE",
+						url: substituteRestUrl + "/delete/" + assignmentId,
+						headers: {
+							'X-CSRF-TOKEN': token
+						}
+					}).done(function (data) {
+						location.reload(true);
+					}).fail(function (jqXHR, textStatus, errorThrown) {
+						$.notify({
+							message: removeSubstituteAssignmentFail
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					});
+				}
+			});
+		}
+
+		function handleSubstituteContextChange() {
+			var supportsConstraints = $("#addSubstituteSelectedContext").find(':selected').data("supportsconstraints");
+			$('#chbxSubstituteContextConstraints').prop('checked', false);
+			$('#chbxSubstituteContextConstraints').prop('disabled', !supportsConstraints);
+			$("#subConstraintOrgUnitsTable").hide();
+		}
+		
+		function toggleSubstituteContextConstraints() {
+			$("#subConstraintOrgUnitsTable").toggle();
+		}
+
+		//Keywords Tab
+
+		function loadEditContactsTab() {
+			$("#keywords_menu").load(url + "/contacts/" + uuid + "/edit");
+		}
+
+		function loadViewContactsTab() {
+			$('#keywords_menu').load(url + "/contacts/" + uuid + "/view");
+		}
+
+		function saveContacts() {
+			var keywords = $('#keywords').val();
+			var notes = $('#notes').val();
+			var payload = {
+				keywords: keywords,
+				notes: notes
+			};
+
+			$.ajax({
+				method : "POST",
+				url: restUrl + "/update/contacts",
+				headers: {
+					"uuid": uuid,
+					'X-CSRF-TOKEN': token
+				},
+				data: JSON.stringify(payload),
+			    contentType: "application/json; charset=utf-8",
+			    dataType: "json"
+			}).done(function (data) {
+				$.notify({
+					message: msgFieldUpdated
+				}, {
+					status: 'success',
+					autoHideDelay: 2000
+				});
+				loadViewContactsTab();
+			}).fail(function (jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: msgUpdateFail
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		}
+
+		// the FlagService is used for the OnLeave, DisableAccountOrders and ForceStop flags that can be set on persons
+		// and is used by three different buttons on the page (for those three purposes)
+		function FlagService() {
+		/*[+
+			var url = [[@{/rest/person/} + ${person.uuid}]];
+
+		    var forceStop = [[${person.forceStop}]];
+		    var stopReason = [[${#objects.nullSafe(person.stopReason,'')}]];
+
+		    var onLeave = [[${person.leave}]];
+		    
+		    var swalForceStopAddTitle = [[#{html.entity.person.stop.add}]];
+		    var swalForceStopRemoveTitle = [[#{html.entity.person.stop.remove}]];
+		    var swalForceStopText = [[#{html.entity.person.stop.text}]];
+		    var swalAddDescription = [[#{html.entity.person.stop.addDescription}]];
+		    var swalRemoveDescription = [[#{html.entity.person.stop.removeDescription}]];
+
+		    var swalBtnConfirm = [[#{html.button.yes}]];
+		    var swalBtnCancelCancel = [[#{html.button.cancel}]];
+		    var swalFailureMsg = [[#{html.generic.msg.failedupdate}]];
+		    
+		    var supportedUserTypes = [[${supportedUserTypes}]];
+		+]*/
+		
+			this.init = function() {
+				this.toggleLeaveForm();
+			};
+
+			this.changeStopFlag = function() {
+				var content = "";
+				if (forceStop) {
+					content += swalRemoveDescription + '</br></br><p style="text-align:left; margin-bottom: 6px;">Årsag til STOP markering:</p><textarea class="form-control" rows="5" id="stopReason" readonly>' + stopReason + '</textarea>';
+				} else {
+					content += swalAddDescription + '</br></br><textarea class="form-control" rows="5" placeholder="Angiv en begrundelse. Henvis evt. til en sag og undlad følsomme oplysninger i dette felt." id="stopReason"></textarea>';
+				}
+				
+				swal({
+					title : (forceStop) ? swalForceStopRemoveTitle : swalForceStopAddTitle,
+					text : content,
+					html: true,
+					type : "warning",
+					showCancelButton : true,
+					confirmButtonColor : "#DD6B55",
+					confirmButtonText : swalBtnConfirm,
+					cancelButtonText : swalBtnCancelCancel,
+					closeOnConfirm : true,
+					closeOnCancel : true,
+					customClass: 'sweet-alert-lg'
+				},
+				function(inputValue) {
+					if (inputValue === false) { return false; }
+					else {
+						$.ajax({
+							method: 'POST',
+							url: url + '/forceStop',
+							headers: {
+								'X-CSRF-TOKEN': token
+							},
+							contentType: 'application/json',
+							data: document.getElementById('stopReason').value,
+							success: function(data, textStatus, jQxhr) {
+								location.reload(true);
+							},
+							error: function(jqXhr, textStatus, errorThrown) {
+								$.notify({
+									message: swalFailureMsg
+								}, {
+									status: 'danger',
+									autoHideDelay: 4000
+								});
+							}
+						});
+					}
+				});
+			};
+
+
+			this.openChangeFlagModal = function (obj) {
+				$('#modal-user-flag-change').modal("show");
+				$('#isCreateCheck').prop("checked", $(obj).data("one"));
+				$('#isDeleteCheck').prop("checked", $(obj).data("two"));
+				$('#isDisableCheck').prop("checked", $(obj).data("three"));
+
+			}
+
+			this.closeChangeFlagModal = function () {
+				$('#modal-user-flag-change').modal("hide");
+			}
+
+			this.changeFlag = function () {
+
+				var data = {
+					"create" : $('#isCreateCheck').prop("checked"),
+					"disable" : $('#isDisableCheck').prop("checked"),
+					"delete" : $('#isDeleteCheck').prop("checked")
+				}
+
+				$.ajax({
+					method: 'POST',
+					url: url + '/disableAccountOrders',
+					headers: {
+						'X-CSRF-TOKEN': token,
+						"content-type": "application/json",
+					},
+					data: JSON.stringify(data),
+
+					success: function(data, textStatus, jQxhr) {
+						location.reload(true);
+					},
+					error: function(jqXhr, textStatus, errorThrown) {
+						$.notify({
+							message: errorThrown
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					}
+				});
+			}
+			
+			this.toggleLeaveForm = function() {
+				var enableForm = $("#chbxLeave").prop("checked");
+				$('#reasonText').prop('disabled', !enableForm);
+				$('#reason').prop('disabled', !enableForm);
+				$('#leaveStopDate').prop('disabled', !enableForm);
+
+				// those below can only be modified on creation of leave
+				$('#leaveStartDate').prop('disabled', !enableForm || onLeave);
+				$('#disableAccountOrders').prop('disabled', !enableForm || onLeave );
+				$('#deactivateAccounts').prop('disabled', !enableForm || onLeave);
+			};
+
+			this.toggleLeaveModal = function(refresh) {
+				if (refresh) {
+					location.reload();
+				}
+				else {
+					if ($('#modal-leave').hasClass('in')) {
+						$('#modal-leave').modal("toggle");
+					}
+					else {
+						$('#modal-leave').modal({
+						    backdrop: 'static',
+						    keyboard: false
+						});
+					}
+				}
+			}
+			
+			this.saveLeaveModal = function() {
+				flagService.toggleLeaveModal(false);
+
+				var enableLeave = $("#chbxLeave").prop("checked");
+				if (enableLeave) {
+					payload = {
+						leave : $("#chbxLeave").prop("checked"),
+						leaveStartDate : $('#leaveStartDate').val(),
+						leaveStopDate : $('#leaveStopDate').val(),
+						reason : $('#reason').val(),
+						reasonText : $('#reasonText').val(),
+						expireAccounts : $('#deactivateAccounts').prop('checked'),
+						disableAccountOrders : $('#disableAccountOrders').prop('checked')
+					};
+				}
+				else {
+					payload = {
+						leave : false,
+					};
+				}
+
+				$.ajax({
+					contentType: 'application/json',
+					url: restUrl + "/" + uuid + "/leave",
+					method : "POST",
+					data: JSON.stringify(payload),
+					headers: {
+						'X-CSRF-TOKEN': token
+					},
+					error: function(response) {
+						$.notify({
+							message: msgUpdateFail
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					},
+					success: function(response) {
+						location.reload(true);
+					}
+				});
+			}
+		}
+		
+		// Modal code begin
+
+		// select prime modal
+		
+		function showPrimeModal() {
+			$('#modal-prime-select').modal("show");
+		}
+
+		function saveUserPrime() {
+			var userPrimeDataList = [];
+
+			$('.primeUserRadioTr').each(function(index, element) {
+				var row = $(element);
+
+				userPrimeDataList.push({
+					uuid: row.data('key'),
+					prime: row.find("input.userTypePrime").is(':checked'),
+					userType: row.find("input.userTypePrime").attr('name')
+				});
+			});
+			
+			$.ajax({
+				method : "POST",
+				url: restUrl + "/updatePrimaryUserAccounts",
+				headers: {
+					"content-type": "application/json",
+					"uuid": uuid,
+					'X-CSRF-TOKEN': token
+				},
+				data: JSON.stringify(userPrimeDataList)
+			}).done(function (data) {
+				$('#modal-prime-select').modal("hide");
+				location.reload(true);
+			}).fail(function (jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: msgFieldNotUpdated
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		}
+		
+		// Comments tab
+		
+		function loadComments() {
+			$('#comment_menu').load(url + "/comments/"+ uuid);
+		}
+		
+		function addComment(){
+			var comment = $('#newComment').val();
+
+			$.ajax({
+				method : "POST",
+				url: restUrl + "/add/comment",
+				headers: {
+					"uuid": uuid,
+					'X-CSRF-TOKEN': token
+				},
+				data: comment,
+				contentType: "application/json; charset=utf-8",
+				dataType: "json"
+			}).done(function(data) {
+
+				$.notify({
+					message: msgFieldUpdated
+				}, {
+					status: 'success',
+					autoHideDelay: 2000
+				});
+
+				loadComments();
+			}).fail(function (jqXHR, textStatus, errorThrown) {
+
+				$.notify({
+					message: msgUpdateFail
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		}
+		
+		//Core view/edit
+		function loadEditCoreFragment() {
+			$("#core").load(url + "/core/" + uuid + "/edit");
+		}
+		
+		function loadViewCoreFragment() {
+			$('#core').load(url + "/core/" + uuid + "/view");
+		}
+		
+		function saveCoreChanges() {
+			var fields = $('#core input, #core select');
+			var data = {};
+			fields.map(function(index, value) {
+				data[value.name] = value.value;
+			});
+			
+			// deal with root in a sane way
+			if (data.parent == '') {
+				data.parent = null;
+			}
+			
+			$.ajax({
+				contentType: 'application/json',
+				url: restUrl + "/profile/update",
+				method : "POST",
+				data: JSON.stringify(data),
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				error: function(response) {
+					
+					$.notify({
+						message: msgProfileUpdateFail
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				},
+				success: function(response) {
+					$.notify({
+						message: msgProfileUpdated
+					}, {
+						status: 'success',
+						autoHideDelay: 2000
+					});
+
+					loadViewCoreFragment();
+				}
+			});
+		}
+
+		// inherit privileges
+		function showInheritPrivilegesModal() {
+			$('#modal-inherit-privileges-affiliation').modal("show");
+		}
+
+		function saveAffiliationInheritPrivileges() {
+			var affiliationInheritPrivilegesDataList = [];
+
+			$('#modal-inherit-privileges-affiliation').find('input[type="checkbox"]').each(function(index, element) {
+				var checkbox = $(element);
+				affiliationInheritPrivilegesDataList.push({
+					id: checkbox.data('affiliationid'),
+					inheritPrivileges: checkbox.is(':checked')
+				});
+			});
+			
+			$.ajax({
+				method : "POST",
+				url: restUrl + "/updateInheritPrivileges",
+				headers: {
+					"content-type": "application/json",
+					"uuid": uuid,
+					'X-CSRF-TOKEN': token
+				},
+				data: JSON.stringify(affiliationInheritPrivilegesDataList)
+			}).done(function (data) {
+				$('#modal-inherit-privileges-affiliation').modal("hide");
+				location.reload(true);
+			}).fail(function (jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: msgUpdateFail
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		}
+		
+		// prime affiliation modal
+		function showPrimeAffiliationModal() {
+			selectPrimeAffiliation();
+			handleOnChangeForRadios();
+			$('#modal-prime-affiliation').modal("show");
+		}
+
+		function handleOnChangeForRadios() {
+			var selectedPrime = $("input[name='affiliationPrimeRadio']:checked");
+			var selectedPrimeId = selectedPrime.attr('id');
+		}
+
+		function selectPrimeAffiliation() {
+			for (var i = 0; i < affiliations.length; i++) {
+				var id = affiliations[i].id;
+
+				var primeRadio = $("input.affiliationPrime[id='affiliation-" + id + "']");
+
+				primeRadio.prop('checked', affiliations[i].prime);
+				primeRadio.attr('disabled',false);
+			}
+		}
+
+		function saveAffiliationPrime() {
+			var affiliationPrimeDataList = [];
+			var futurePrimeSelected = false;
+
+			$('.primeRadioTrAffiliation').each(function(index, element) {
+				var row = $(element);
+				affiliationPrimeDataList.push({
+					id: row.data('key'),
+					prime: row.find("input.affiliationPrime").is(':checked'),
+				});
+				if (row.data("future") == true && row.find("input.affiliationPrime").is(':checked')) {
+					futurePrimeSelected = true;
+				}
+			});
+
+			if (futurePrimeSelected) {
+				swal({
+					title : swalFutureAffiliationWarningTitle,
+					text : swalFutureAffiliationWarningText,
+					type : "warning",
+					showCancelButton : true,
+					confirmButtonColor : "#DD6B55",
+					confirmButtonText : swalBtnYes,
+					cancelButtonText : swalBtnNo,
+					closeOnConfirm : true,
+					closeOnCancel : true
+				},
+				function(isConfirm) {
+					if (isConfirm) {
+						saveAffiliationPrimeAjaxPost(affiliationPrimeDataList);
+					}
+				});
+			} else {
+				saveAffiliationPrimeAjaxPost(affiliationPrimeDataList);
+			}
+		}
+		
+		function saveAffiliationPrimeAjaxPost(affiliations) {
+			$.ajax({
+				method : "POST",
+				url: restUrl + "/updatePrimaryAffiliations",
+				headers: {
+					"content-type": "application/json",
+					"uuid": uuid,
+					'X-CSRF-TOKEN': token
+				},
+				data: JSON.stringify(affiliations)
+			}).done(function (data) {
+				$('#modal-prime-affiliation').modal("hide");
+				location.reload(true);
+			}).fail(function (jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: msgUpdateFail
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		}
+		
+		function letSofdChoose(){
+			$.ajax({
+				method : "POST",
+				url: restUrl + "/sofdUpdatePrimaryAffiliations",
+				headers: {
+					"uuid": uuid,
+					'X-CSRF-TOKEN': token
+				}
+			}).done(function (data) {
+				$('#modal-prime-affiliation').modal("hide");
+
+				location.reload(true);
+			}).fail(function (jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: msgUpdateFail
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		}
+		
+		// Authorization Codes Tab
+		
+		function selectPrimeAuthorizationCode(elem) {
+			var authorizationCodeId = $(elem).data('authorizationid');
+			var authorizationCodeName = $(elem).data('authorizationname');
+
+			swal({
+				html : true,
+				title : swalPrimeAuthorizationCodeTitle,
+				text : swalPrimeAuthorizationCodeText.replace('{0}', authorizationCodeName),
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : swalBtnYes,
+				cancelButtonText : swalBtnNo,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						method : "POST",
+						url: restUrl + "/updatePrimaryAuthorizationCode/" + uuid + "/" + authorizationCodeId,
+						headers: {
+							'X-CSRF-TOKEN': token
+						}
+					}).done(function (data) {
+						location.reload(true);
+					}).fail(function (jqXHR, textStatus, errorThrown) {
+						$.notify({
+							message: msgUpdateFail
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					});
+				}
+			});
+		}
+
+		// Poke Person
+		
+		function pokePerson() {
+		/*[+
+		    var swalPokePersonTitle = [[#{html.entity.person.poke.title}]];
+		    var swalPokePersonText = [[#{html.entity.person.poke.text}]];
+
+		    var swalFailureMsg = [[#{html.generic.msg.failedupdate}]];
+		+]*/
+			swal({
+				html : true,
+				title : swalPokePersonTitle,
+				text : swalPokePersonText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : swalBtnYes,
+				cancelButtonText : swalBtnNo,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						method : "POST",
+						url: restUrl + "/" + uuid  + "/poke",
+						headers: {
+							'X-CSRF-TOKEN': token
+						}
+					}).done(function (data) {
+						$.notify({
+							message: 'Succes'
+						}, {
+							status: 'success',
+							autoHideDelay: 2000
+						});
+					}).fail(function (jqXHR, textStatus, errorThrown) {
+						$.notify({
+							message: msgUpdateFail
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					});
+				}
+			});
+		}
+
+		/*]]>*/
+</script>
+</body>
+</html>

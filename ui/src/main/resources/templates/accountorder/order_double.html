@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'accountcreation')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'list', subpage = 'accountcreation')"></aside>
+ 
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.entity.person.order.it.user}"></h3>
+
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<div class="row">
+							<div class="col-lg-12">
+								<div class="form-group" style="margin-bottom: 50px;">
+									<span class="col-sm-12" th:utext="#{html.page.person.new.user.double.intro(${adPrettyName}, ${exchangePrettyName}, ${order.personName})}"></span>
+								</div>
+
+								<form class="form-horizontal" id="user-form" th:action="@{/ui/account/order/double}" method="post" th:object="${order}">
+									<input type="hidden" th:field="*{personUuid}" />
+									<input type="hidden" th:field="*{userType}" />
+
+									<div class="form-group">
+										<h4 class="col-sm-12" style="margin-left: 15px;" th:text="${adPrettyName}"></h4>
+									</div>
+
+									<div class="form-group" th:if="${not #lists.isEmpty(adAffiliations)}">
+										<label class="col-sm-3 control-label" th:text="#{html.entity.person.order.it.user.positionName}"></label>
+										<div class="col-sm-8">
+											<select th:field="*{adAffiliationUuid}" class="form-control">
+												<option th:each="affiliation : ${adAffiliations}" th:value="${affiliation.uuid}" th:text="${@affiliationService.getPositionName(affiliation)} + (${affiliation.orgUnit != null} ? (' (' +  ${affiliation.orgUnit.name} + ')') : '')"></option>
+											</select>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-3 control-label" th:text="#{html.page.person.new.user.endDate}"></label>
+										<div class="col-sm-8">
+											<select class="form-control m-b col-sm-8" th:field="*{adUserEndDate}">
+												<option th:each="time : ${T(dk.digitalidentity.sofd.dao.model.enums.EndDate).values()}" th:value="${time}" th:text="#{__${time.getMessage()}__}"></option>
+											</select>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-3 control-label" th:text="#{html.page.person.new.user.chosenUserId}"></label>
+										<div class="col-sm-8">
+											<input class="form-control" th:field="*{adChosenUserId}"/>
+										</div>
+									</div>
+
+									<div class="form-group" th:if="${@sofdConfiguration.getModules().getAccountCreation().isAccountOrderApprove() == true}">
+										<label th:text="#{html.entity.usertype.requireApproval}" class="col-sm-3 control-label"></label>
+										<div class="col-sm-8">
+											<div class="checkbox c-checkbox">
+												<label>
+													<input th:field="*{requireApproval}" id="requireApproval" type="checkbox" value="false"/>
+													<span class="fa fa-check"></span>
+												</label>
+											</div>
+										</div>
+									</div>
+
+									<br/><br/>
+									
+									<div class="form-group">
+										<h4 class="col-sm-12" style="margin-left: 15px;" th:text="${exchangePrettyName}"></h4>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-3 control-label" th:text="#{html.page.person.new.user.chosenUserId}"></label>
+										<div class="col-sm-8">
+											<input class="form-control" th:field="*{exchangeChosenUserId}"/>
+										</div>
+									</div>
+
+									<br/>
+									<div class="form-group">
+										<div class="col-sm-offset-3 col-sm-10">
+											<button type="submit" style="margin-right: 5px;" class="btn btn-lg btn-primary col-xs-2"  th:text="#{html.control.button.order}"></button>
+											<a th:href="@{/ui/person/view/} + ${order.personUuid}" style="margin-right: 5px;" class="btn btn-lg btn-danger col-xs-2" th:text="#{html.control.button.cancel}"></a>
+										</div>
+									</div>
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<div th:replace="fragments/footer :: footer"></div>
+	<script th:replace="fragments/datatables :: datatables (paging=false)"></script>
+
+	<script th:inline="javascript">
+	/*<![CDATA[*/
+	
+		/*[+
+		+]*/
+		var token = $("meta[name='_csrf']").attr("content");
+
+		$(document).ready(function () {
+		});
+
+		function handleOnChangeEventForCollapse(id, flip){
+			if ($('#' + id).is(':checked')) {
+				$('#real' + id).val(true);
+				$('#collapse' + id).collapse(flip ? 'hide' : 'show');
+			} else {
+				$('#real' + id).val(false);
+				$('#collapse' + id).collapse(flip ? 'show' : 'hide');
+			}
+		}
+
+		/*]]>*/
+	</script>
+</body>
+</html>

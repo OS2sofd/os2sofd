@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'index')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<div class="panel panel-default">
+					<div class="panel-body">
+						<h3 th:text="#{html.global.title}"></h3>
+						<p th:utext="#{html.index.content}"></p>
+
+						<h3 th:text="#{html.index.header.downloads}"></h3>
+						<ul>
+							<li><a th:href="@{/download/brugermanual.pdf}" th:text="#{html.index.link.usermanual}"></a></li>
+						</ul>
+
+						<th:block th:if="${clients != null}">
+							<h3 style="margin-top: 30px;" th:text="#{html.index.client.header}"></h3>
+							<div class="row">
+								<div th:each="client : ${clients}" class="col-lg-4 col-sm-6">
+									<div class="panel widget" th:classappend="${client.color}">
+										<div class="row row-table">
+											<div class="col-xs-4 text-center pv-lg" th:classappend="${client.colorDark}">
+												<em class="fa fa-laptop fa-3x"></em>
+											</div>
+											<div class="col-xs-8 pv-lg">
+												<th:block th:if="${client.lastActive}">
+													<div class="h2 mt0" th:attr="title=${#dates.format(client.lastActive, 'yyyy-MM-dd HH:mm')}" th:text="${#dates.format(client.lastActive, 'yyyy-MM-dd')}"></div>
+												</th:block>
+												<th:block th:unless="${client.lastActive}">
+													<div class="h2 mt0" th:text="#{html.constant.never}"></div>
+												</th:block>
+												<div>
+													<span class="text-uppercase" th:text="${client.name} + (${client.version != null } ? ' (' + ${client.version} + ')' : '')"></span>
+													<em th:if="${client.outdated}" class="fa fa-warning" th:title="#{html.index.version.outdated}"></em>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</th:block>
+					</div>
+				</div>
+	        </div>
+	    </section>
+	</div>
+	
+	<nav th:replace="fragments/footer :: footer"></nav>
+</body>
+</html>

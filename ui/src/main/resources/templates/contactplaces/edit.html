@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'contactPlaces', subpage='phonebook')"></aside>
+
+	<section>
+		<div class="content-wrapper">
+			<h3 th:text="#{html.page.contactplace.edit.title}"></h3>
+
+			<div class="panel panel-default">
+				<div class="panel-heading"></div>
+				<div class="panel-body">
+					<form class="form-horizontal">
+						<div class="row">
+							<div class="col-lg-12">
+								<div class="form-group">
+									<label class="col-sm-2 control-label" th:text="#{html.entity.contactplace.contactplace}"></label>
+									<div class="col-sm-8">
+										<input th:value="${contactPlace.contactPlace.name}" class="form-control" readonly="readonly" />
+									</div>
+								</div>
+							</div>
+						</div>
+						<hr/>
+						<div class="row">
+							<div class="col-lg-12">
+								<ul class="nav nav-tabs">
+									<li class="active">
+										<a data-toggle="tab" href="#tasks_menu" th:text="#{html.page.contactplace.edit.tasks}"></a>
+									</li>
+									<li>
+										<a data-toggle="tab" href="#users_menu" th:text="#{html.page.contactplace.edit.users}"></a>
+									</li>
+								</ul>
+	
+								<div class="tab-content">
+								
+									<div id="tasks_menu" class="tab-pane fade in active">
+										<div class="row">
+											<div class="col-lg-12">
+												<button class="btn btn-primary btn-lg" type="button" th:text="#{html.page.contactplace.edit.add.task}" onclick="editKLE()"></button>
+											</div>
+										</div>
+										<div class="content"></div>
+									</div>
+
+									<div id="users_menu" class="tab-pane fade">
+										<div class="row">
+											<div class="col-lg-12">
+												<button class="btn btn-primary btn-lg" type="button" th:text="#{html.page.contactplace.edit.add.user}" onclick="showAddUserModal()"></button>
+											</div>
+										</div>
+										<div class="content"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<!-- Modal -->
+<div id="addUserModal" class="modal fade" role="dialog">
+	<form class="form-horizontal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 class="modal-title" th:text="#{html.page.contactplace.list.modal.title}"></h4>
+				</div>
+
+				<div class="modal-body">
+					<label class="control-label" th:text="#{html.action.search}" style="margin-top: 10px;"></label>
+					<input class="form-control" id='orgUnitTreeSearchField' autofocus="autofocus" style="margin-bottom: 40px;" />
+						
+					<div id="ouWrapper">
+						<div th:id='orgUnitTreeHierarchy'></div>
+					</div>
+					
+					<label class="control-label" th:text="#{html.page.contactplace.list.modal.selected.orgunit}" style="margin-top: 10px;"></label>
+					<input class="form-control" readonly="readonly" id="orgUnitTreeSelectedOU" />
+					<ul id="selectError" class="error" style="display: none;">
+						<li th:text="#{html.page.contactplace.edit.add.user.select.error}"></li>
+					</ul>
+				</div>
+
+				<div class="modal-footer">
+					<div class="col-sm-12">
+						<button class="btn btn-primary" type="button" th:text="#{html.control.button.save}" onclick="addUser()"></button>
+						<button class="btn btn-danger" type="button" data-dismiss="modal" th:text="#{html.action.abortChanges}"></button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</form>
+</div>
+<!-- End Modal -->
+
+<nav th:replace="fragments/footer :: footer"></nav>
+
+<script th:replace="fragments/datatables :: datatables"></script>
+
+<script th:inline="javascript">
+	/*<![CDATA[*/
+	var token = $("meta[name='_csrf']").attr("content");
+
+	/*[+
+		var contactPlace = [[${contactPlace.id}]];
+		var contactPlacesUrl = [[@{/ui/contactplaces}]];
+		var contactPlacesRestUrl = [[@{/rest/contactplaces}]];
+
+		var ouRestURL = [[@{/rest/orgunit}]];
+		var orgUnits;
+		var allKles = [[${allKles}]];
+		
+		var msgAddUserFailed = [[#{html.page.contactplace.edit.add.user.error}]];
+		var deleteUserErrorMsg = [[#{html.page.contactplace.delete.error}]];
+		
+		var userDeleteTitle = [[#{html.page.contactplace.delete.title}]];
+		var userDeleteText = [[#{html.page.contactplace.delete.text}]];
+		var userDeleteButtonConfirm = [[#{html.button.delete}]];
+		var userDeleteButtonCancel = [[#{html.button.cancel}]];
+
+		// TODO.... dårlig tekst her
+		var fieldUpdatedMsg = [[#{html.page.orgunit.edit.kle.update.success}]];
+		var fieldNotUpdatedMsg = [[#{html.page.orgunit.edit.kle.update.failure}]];
+	+]*/
+
+	$(document).ready(function() {
+		//Initialize jsTree for selecting users
+		fetchOrgUnits();
+		$("#orgUnitTreeHierarchy").on("select_node.jstree", function(e, data) {
+			$("#orgUnitTreeSelectedOU").val(data.node.text);
+			selectedOrgUnit = data.node.id;
+		});
+
+		// Load datatables when switching tabs
+		$('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+			var target = $(e.target).attr("href") // activated tab
+			if (target == "#users_menu") {
+				$("#users_menu .content").load(contactPlacesUrl + "/usersFragment/" + contactPlace);
+			}
+			if (target == "#tasks_menu") {
+				$("#tasks_menu .content").load(contactPlacesUrl + "/viewKLE/" + contactPlace);
+			}
+		});
+		
+		// Load users fragment
+		$("#users_menu .content").load(contactPlacesUrl + "/usersFragment/" + contactPlace);
+		
+		// Load kle fragment
+		$("#tasks_menu .content").load(contactPlacesUrl + "/viewKLE/" + contactPlace);
+	});
+
+	function editKLE() {
+		$("#tasks_menu button").hide();
+		$("#tasks_menu .content").load(contactPlacesUrl + "/editKLE/" + contactPlace);
+	}
+
+	function saveChanges() {
+		var codes = $('#kleTree').jstree('get_top_selected')
+		$.ajax({
+			contentType: 'application/json',
+			url: contactPlacesRestUrl + "/update/kle",
+			method : "POST",
+			headers: {
+				"id": contactPlace,
+				'X-CSRF-TOKEN': token
+			},
+			data: JSON.stringify(codes),
+			error: function(response) {
+				$.notify({
+					message: fieldNotUpdatedMsg
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			},
+			success: function(response) {
+				$.notify({
+					message: fieldUpdatedMsg
+				}, {
+					status: 'success',
+					autoHideDelay: 2000
+				});
+				$('#tasks_menu button').show();
+				$("#tasks_menu .content").load(contactPlacesUrl + "/viewKLE/" + contactPlace, function() { loadDataTables(); });
+			}
+		});
+	}
+
+	function abortChanges(id) {
+		$('#tasks_menu button').show();
+		$("#tasks_menu .content").load(contactPlacesUrl + "/viewKLE/" + contactPlace, function() { loadDataTables(); });
+	}
+
+	function showAddUserModal() {
+		$("#orgUnitTreeSelectedOU").val("");
+		selectedOrgUnit = null;
+		$('#addUserModal').modal("show");
+	}
+
+	function addUser() {
+		if (!selectedOrgUnit) {
+			$('#selectError').show();
+			return false;
+		}
+		$.ajax({
+			contentType: 'application/json',
+			url: contactPlacesRestUrl + "/" + contactPlace + '/addUser/' + selectedOrgUnit,
+			method : "PUT",
+			headers: {
+				'X-CSRF-TOKEN': token
+			},
+			error: function(response) {
+				reloadUsersFragment();
+
+				if (response.status == 404) {
+					$.notify({
+						message: msgAddUserFailed
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+				} else if (response.status == 400) {
+					$.notify({
+						message: response.responseText
+					}, {
+						status: 'warning',
+						autoHideDelay: 4000
+					});
+				}
+			},
+			success: function(response) {
+				reloadUsersFragment();
+			}
+		});
+	}
+
+	function reloadUsersFragment() {
+		// Reload users fragment
+		$('#selectError').hide();
+		$("#users_menu .content").load(contactPlacesUrl + "/usersFragment/" + contactPlace, function() {loadDataTables();});
+		$('#addUserModal').modal("hide");
+	}
+
+	function deleteUser(obj) {
+		var uuid = $(obj).attr('data-uuid');
+		
+		swal({
+			html : true,
+			title : userDeleteTitle,
+			text : userDeleteText,
+			type : "warning",
+			showCancelButton : true,
+			confirmButtonColor : "#DD6B55",
+			confirmButtonText : userDeleteButtonConfirm,
+			cancelButtonText : userDeleteButtonCancel,
+			closeOnConfirm : true,
+			closeOnCancel : true
+		},
+		function(isConfirm) {
+			if (isConfirm) {
+				$.ajax({
+					url: contactPlacesRestUrl + "/" + contactPlace + '/removeUser/' + uuid,
+					headers: {
+						'X-CSRF-TOKEN': token
+					},
+					type: 'delete',
+					success: function( data, textStatus, jQxhr ){
+						reloadUsersFragment();
+					},
+					error: function( jqXhr, textStatus, errorThrown ){
+						$.notify({
+							message: deleteUserErrorMsg
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					}
+				});
+			}
+		});
+	}
+	
+	function fetchOrgUnits() {
+		// Use default org
+		orgId = 0;
+
+		// Get OrgUnits by Id
+		$.ajax({
+			contentType: 'application/json',
+			url: ouRestURL + '/get-by-org/' + orgId,
+			method : "GET",
+			headers: {
+				'X-CSRF-TOKEN': token
+			},
+			error: function(response) {
+				$.notify({
+					message: msgParentOrganisationFetchFailed
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			},
+			success: function(response) {
+				initOrgUnitTree(response);
+				orgUnits=response
+				$("#orgUnitTreeSelectedOU").val("");
+				selectedOrgUnit = null;
+			}
+		});
+	}
+
+	function initOrgUnitTree(orgUnits) {
+		$('#orgUnitTreeHierarchy').jstree('destroy');
+
+		var config = {
+			"core": {
+				"data": orgUnits,
+				"themes": {
+					"icons": false
+				}
+			},
+			"search" : {
+				"show_only_matches": true,
+				"search_callback": function(str, node) {
+					var manager = node.original.manager;
+					var managerSearchMatch = manager != null && manager.toUpperCase().includes(str.toUpperCase());
+					
+					return (node.text.toUpperCase().includes(str.toUpperCase()) || node.id.toUpperCase().startsWith(str.toUpperCase()) || managerSearchMatch);
+				}
+			},
+			"plugins" : [
+				"wholerow", "search"
+			]
+		};
+
+		// Init OrgUnitTree
+		$('#orgUnitTreeHierarchy').jstree(config);
+
+		// searching in the JSTree
+		var to = false;
+		$('#orgUnitTreeSearchField').keyup(function() {
+			if (to) {
+				clearTimeout(to);
+			}
+
+			to = setTimeout(function() {
+				var v = $('#orgUnitTreeSearchField').val();
+
+				$('#orgUnitTreeHierarchy').jstree(true).search(v);
+			}, 400);
+		});
+		
+		$('#orgUnitTreeHierarchy').on('close_node.jstree', function(e, data) {
+			if (data.node.parent == '#') {
+				$('#orgUnitTreeHierarchy').jstree("close_all");
+			}
+		});
+	}
+
+	/*]]>*/
+</script>
+</body>
+</html>

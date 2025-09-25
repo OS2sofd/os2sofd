@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'facets', subpage='admin')"></aside>
+
+	<section>
+		<div class="content-wrapper">
+			<h3 th:unless="${edit}" th:text="#{html.page.functionHierarchy.facets.new.title}"></h3>
+			<h3 th:if="${edit}" th:text="#{html.page.functionHierarchy.facets.edit.title}"></h3>
+			<div class="panel panel-default">
+				<div class="panel-body">
+					<div class="row">
+						<div class="col-lg-12">
+							<form class="form-horizontal" id="facet-form" th:action="@{/ui/admin/functionhierarchy/facets/update}" method="post" th:object="${facetDTO}">
+								<input type="hidden" th:field="*{id}" />
+								<input type="hidden" th:field="*{listItems}" />
+
+								<div class="form-group">
+									<label class="col-sm-2 control-label" th:text="#{html.page.functionHierarchy.labels.name}"></label>
+									<div class="col-sm-8">
+										<input th:field="*{name}" class="form-control" autofocus="autofocus" />
+										<ul th:if="${#fields.hasErrors('name')}" class="error">
+											<li th:each="err : ${#fields.errors('name')}" th:text="${err}"></li>
+										</ul>
+									</div>
+								</div>
+
+								<div class="form-group">
+									<label class="col-sm-2 control-label" th:text="#{html.page.functionHierarchy.labels.description}"></label>
+									<div class="col-sm-8">
+										<textarea th:field="*{description}" class="form-control"></textarea>
+									</div>
+								</div>
+
+								<div class="form-group">
+									<label class="col-sm-2 control-label" th:text="#{html.page.functionHierarchy.labels.type}"></label>
+									<div class="col-sm-8">
+										<select th:unless="${edit}" class="form-control m-b" th:field="*{type}">
+											<option th:each="facetType : ${facetTypes}" th:value="${facetType}" th:text="#{${facetType.message}}"></option>
+										</select>
+										<select th:if="${edit}"  class="form-control m-b" th:field="*{type}" readonly="readonly">
+											<option th:each="facetType : ${facetTypes}" th:value="${facetType}" th:text="#{${facetType.message}}"></option>
+										</select>
+										<ul th:if="${#fields.hasErrors('type') || listItemEmptyError != null}" class="error">
+											<li th:if="${listItemEmptyError != null}" th:text="${listItemEmptyError}"></li>
+											<li th:each="err : ${#fields.errors('type')}" th:text="${err}"></li>
+										</ul>
+									</div>
+								</div>
+								
+								<div class="form-group" id="patternGroup">
+									<label class="col-sm-2 control-label" th:text="#{html.page.functionHierarchy.labels.pattern}"></label>
+									<div class="col-sm-8">
+										<input th:field="*{pattern}" class="form-control"/>
+									</div>
+								</div>
+								
+								<div  id="addListItemGroup">
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.page.functionHierarchy.labels.listItem}"></label>
+										<div class="col-sm-6">
+											<input id="newListItem" class="form-control"/>
+										</div>
+										<button th:text="#{html.button.add}" onclick="facetService.addListItem(); return false;" class="btn btn-lg btn-primary col-sm-2"></button>
+									</div>
+									
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.page.functionHierarchy.labels.listItems}"></label>
+										<div class="col-sm-6">
+											<ul style="list-style: none; padding-left: 0px;" id="listItems_ul">
+		                   					</ul>
+										</div>
+									</div>
+									
+								</div>
+								
+
+								<div class="form-group">
+									<div class="col-sm-offset-2 col-sm-10">
+										<button type="submit" style="margin-right: 5px;" class="btn btn-lg btn-primary col-xs-2"  th:text="#{html.control.button.save}"></button>
+										<a th:href="@{/ui/admin/functionhierarchy/facets}" style="margin-right: 5px;" class="btn btn-lg btn-danger col-xs-2" th:text="#{html.control.button.cancel}"></a>
+									</div>
+								</div>
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+
+<script th:inline="javascript">
+	/*<![CDATA[*/
+	var token = $("meta[name='_csrf']").attr("content");
+
+	/*[+
+		var listItemList = [[${facetDTO.listItems}]];
+	    var duplicateListItem = [[#{html.page.functionHierarchy.facets.listitem.duplicate}]];
+	+]*/
+	
+	var facetService;
+	$(document).ready(function() {
+		facetService = new FacetService();
+		facetService.init();
+		
+	});
+	
+	function FacetService() {
+		this.init = function() {
+			if (listItemList != null) {
+				var ulElement = $('#listItems_ul');
+				$(listItemList.split(",")).each(function (index, listItem) {
+					var txtHtml  = '<li id="listItem_' + listItem + '">\n';
+					    txtHtml += '<a style="color: black;" title="Fjern valgmulighed" onclick="facetService.removeListItem(\'' + listItem + '\');"><em class="fa fa-fw fa-remove"></em></a>\n'; 
+					    txtHtml += '<span class="listItem_texts">' + listItem + '</span>\n';
+					    txtHtml += '</li>';
+					
+					ulElement.append(txtHtml);
+				});
+			}
+			
+			
+			var val = $("#type").val();
+			facetService.typeChanged(val);
+			
+			$("#type").change(function() {
+				var val = $(this).val();
+				facetService.typeChanged(val);
+			});
+			
+			$("#facet-form").submit(function(){
+				$("#listItems").val(facetService.getAllListItems);
+				return true;
+			});
+		}
+		
+		this.typeChanged = function(val) {
+			if (val == "FREETEXT") {
+				$("#patternGroup").show();
+				$("#addListItemGroup").hide();
+			} else if (val == "ORG" || val == "EMPLOYEE") {
+				$("#patternGroup").hide();
+				$("#addListItemGroup").hide();
+				$("#pattern").val("");
+			} else if (val == "LIST") {
+				$("#patternGroup").hide();
+				$("#addListItemGroup").show();
+				$("#pattern").val("");
+			} else if (val == "FOLLOW_UP_DATE") {
+				$("#patternGroup").hide();
+				$("#addListItemGroup").hide();
+				$("#pattern").val("");
+			}
+		}
+		
+		this.addListItem = function() {
+			var listItem = $("#newListItem").val();
+			var match = false;
+			
+			$(facetService.getAllListItems().split(",")).each(function (index, existingListItem) {
+				if (listItem == existingListItem) {
+					$.notify({
+						message: duplicateListItem
+					}, {
+						status: 'danger',
+						autoHideDelay: 4000
+					});
+					
+					match = true;
+				}
+			});
+			
+			if (!match) {
+				var ulElement = $('#listItems_ul');
+				var txtHtml  = '<li id="listItem_' + listItem + '">\n';
+				    txtHtml += '<a style="color: black;" title="Fjern valgmulighed" onclick="facetService.removeListItem(\'' + listItem + '\');"><em class="fa fa-fw fa-remove"></em></a>\n'; 
+				    txtHtml += '<span class="listItem_texts">' + listItem + '</span>\n';
+				    txtHtml += '</li>';
+				
+				ulElement.append(txtHtml);
+				
+				$("#newListItem").val("");
+			}
+		}
+		
+		this.removeListItem = function(listItem) {
+			$('[id="listItem_' + listItem + '"]').remove();
+		}
+		
+		this.getAllListItems = function() {
+			var listItems = "";
+			$(".listItem_texts").each(function(index) {
+				if (index == 0) {
+					listItems += $(this).text();
+				} else {
+					listItems += "," + $(this).text();
+				}
+			})
+			return listItems;
+		}
+	}
+
+
+	/*]]>*/
+</script>
+</body>
+</html>

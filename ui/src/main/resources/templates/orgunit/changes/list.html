@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+    <header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
+    <aside th:replace="fragments/navbar :: navbar-aside (page = 'futureChanges', subpage='phonebook')"></aside>
+
+    <section>
+        <div class="content-wrapper">
+            <h3 th:text="#{html.page.orgunitchange.title}"></h3>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                </div>
+
+                <div class="panel-body">
+                    <th:block th:replace="fragments/ouFutureChangesList :: ouFutureChangesList" />
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+<th:block th:replace="fragments/ouFutureChangesList :: ouFutureChangesModal" />
+
+<nav th:replace="fragments/footer :: footer"></nav>
+<script th:replace="fragments/datatables :: datatables"></script>
+
+<th:block th:replace="fragments/ouFutureChangesList :: ouFutureChangesScript" />
+</body>
+</html>

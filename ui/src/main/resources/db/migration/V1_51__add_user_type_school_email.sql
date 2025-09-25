@@ -1,0 +1,1 @@
+INSERT INTO supported_user_types (can_order, unique_key, name, username_prefix, username_infix, username_suffix, single_user_mode) VALUES (0, 'SCHOOL_EMAIL', 'Skole Email', 'NONE', 'RANDOM', 'NONE', 1);

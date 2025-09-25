@@ -1,0 +1,40 @@
+<th:block th:fragment="commentTab" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<div class="row" sec:authorize="hasRole('ROLE_USER_EDIT')">
+		<div class="col-sm-2">
+			<label class="control-label" th:utext="#{html.page.person.view.comment.new.comment}"></label>
+		</div>
+
+		<div class="col-sm-8">
+			<div class="col-sm-12" style="margin-bottom: 20px;">
+				<textarea id="newComment" class="md-textarea form-control" rows="4" maxlength="1000"></textarea>
+			</div>
+
+			<div class="col-sm-10" style="margin-bottom: 20px;">
+				<button class="btn btn-lg btn-primary" th:text="#{html.action.comment}" onclick="addComment()"></button>
+			</div>
+		</div>
+	</div>
+
+	<div class="row">
+		<div class="col-sm-offset-2 col-sm-8">
+			<div class="panel-group">
+				<div class="panel panel-info" th:each="comment : ${comments}">
+					<div class="panel-heading">
+						<span th:text="${comment.author}"></span>
+						<span style="padding-left: 10px; font-size: smaller;" th:text="'(' + ${#dates.format(comment.timestamp, 'yyyy-MM-dd  HH:mm:ss')} + ')'"></span>
+					</div>
+					<div class="panel-body">
+						<span class="preformat wrap-text" th:text="${comment.comment}"></span>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<style>
+	.panel-info > .panel-heading {
+	    color: #000;
+	    background-color: #edf1f2;
+	    border-color: #cfdbe2;
+	</style>
+</th:block>

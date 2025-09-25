@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'sms')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'sms.message', subpage = 'sms')"></aside>
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.page.sms.message.title}"></h3>
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<div class="row">
+							<div class="col-sm-12">
+								<form class="form-horizontal" id="search-form" method="post" th:object="${recipients}" th:action="@{/ui/sms/filter}">
+									<div class="form-group">
+										<div class="col-sm-offset-1 col-sm-10">
+											<div class="table-responsive">
+												<table id="listTable" class="table table-striped table-hover listTable">
+													<thead>
+														<tr>
+															<th class="col-md-1"></th>
+															<th class="col-md-2" th:text="#{html.page.sms.filter.name}"></th>
+															<th class="col-md-3" th:text="#{html.page.sms.filter.email}"></th>
+															<th class="col-md-3" th:text="#{html.page.sms.filter.sms}"></th>
+															<th class="col-md-3" th:text="#{html.page.sms.filter.type}"></th>
+														</tr>
+													</thead>
+													<tbody>
+														<tr th:each="recipient : ${recipients.values()}">
+															<td>
+																<span class="checkbox c-checkbox" style="display: inline;">
+																	<label>
+																		<input th:id="'checkbox-' + ${recipient.uuid}" type="checkbox" onchange="checkboxChange(this)" checked="checked" th:value="${recipient.uuid}"/>
+																		<span class="fa fa-check"></span>
+																	</label>
+																</span>
+															</td>
+															<td th:text="${recipient.name}"></td>
+															<td th:text="${recipient.email}"></td>
+															<td th:text="${#strings.listJoin(recipient.phones, ',')}"></td>
+															<td th:text="#{__${recipient.type.message}__}"></td>
+														</tr>
+													</tbody>
+												</table>
+											</div>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<div class="col-sm-10 col-sm-offset-1">
+											<button type="button" onclick="sendMessage()" class="btn btn-primary btn-block" th:text="#{html.button.send}"></button>
+										</div>
+									</div>
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<div th:replace="fragments/footer :: footer"></div>
+	<script th:replace="fragments/datatables :: datatables (pageLength=10)"></script>
+
+	<script th:inline="javascript">
+		/*<![CDATA[*/1
+
+		/*[+
+			var sendMessageUrl  = [[@{/ui/sms/sendmessage}]];
+			var successUrl = [[@{/ui/sms/message}]];
+			var msgSuccess = [[#{html.page.sms.message.success}]];
+			var msgFailure = [[#{html.page.sms.message.failure}]];
+			var recipientMap = [[${recipients}]];
+		+]*/
+
+		var token = $("meta[name='_csrf']").attr("content");
+
+		function checkboxChange(cbox) {
+			recipientMap[cbox.value].selected = cbox.checked;
+		}
+
+		function sendMessage() {
+			$.ajax({
+				contentType: 'application/json',
+				url: sendMessageUrl,
+				method: "POST",
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				data: JSON.stringify(recipientMap),
+				error: function (response) {
+					swal({
+						title: msgFailure,
+						type: 'error',
+						confirmButtonColor: '#3085d6',
+					});
+				},
+				success: function (response) {
+					swal({
+								title: msgSuccess,
+								type: 'success',
+								confirmButtonColor: '#3085d6',
+							},
+							function (isConfirm) {
+								if (isConfirm) {
+									window.location = successUrl;
+								}
+							});
+				}
+			});
+		}
+
+		/*]]>*/
+	</script>
+</body>
+</html>

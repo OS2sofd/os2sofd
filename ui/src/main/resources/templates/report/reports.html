@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'report')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'reports', subpage = 'report')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3 th:text="#{html.report.list.headline}"></h3>
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<th:block th:if="${historicalReportsFeatureEnabled}">
+						<ul class="nav nav-tabs">
+							<li class="active">
+								<a data-toggle="tab" href="#reports_menu" th:text="#{html.report.tab.reports}"></a>
+							</li>
+							<li>
+								<a data-toggle="tab" href="#orgunit_history_menu" th:text="#{html.report.tab.orgunit_history}"></a>
+							</li>
+						</ul>
+
+						<div class="tab-content">
+							<div id="reports_menu" class="tab-pane fade in active">
+								<table class="listTable table table-responsive table-striped">
+									<thead>
+										<tr>
+											<th class="col-md-11" th:text="#{html.report.entity}"></th>
+											<th class="col-md-1" th:text="#{html.control.operations}"></th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr th:each="report : ${reports}">
+											<td th:text="#{__${report.title}__}"></td>
+											<td>
+												<a th:href="@{/ui/report/reports/} + ${report}">
+													<em class="fa fa-fw fa-search"></em>
+												</a>
+											</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+
+							<div id="orgunit_history_menu" class="tab-pane fade">
+								<table class="listTable table table-responsive table-striped">
+									<thead>
+										<tr>
+											<th class="col-md-11" th:text="#{html.report.entity}"></th>
+											<th class="col-md-1" th:text="#{html.control.operations}"></th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr th:each="report : ${ouReports}">
+											<td th:text="${report}"></td>
+											<td>
+												<a th:href="@{/ui/report/historical_reports/} + ${report}">
+													<em class="fa fa-fw fa-download"></em>
+												</a>
+											</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+						</th:block>
+
+						<th:block th:unless="${historicalReportsFeatureEnabled}">
+							<table class="listTable table table-responsive table-striped">
+								<thead>
+									<tr>
+										<th class="col-md-11" th:text="#{html.report.entity}"></th>
+										<th class="col-md-1" th:text="#{html.control.operations}"></th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr th:each="report : ${reports}">
+										<td th:text="#{__${report.title}__}"></td>
+										<td>
+											<a th:href="@{/ui/report/reports/} + ${report}">
+												<em class="fa fa-fw fa-search"></em>
+											</a>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+							<div class="col-md-12" th:text="#{html.report.footer}"></div>
+						</th:block>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+	
+	<nav th:replace="fragments/footer :: footer"></nav>
+	<script th:replace="fragments/datatables :: datatables"></script>
+</body>
+</html>

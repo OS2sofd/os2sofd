@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: header"></head>
+<body>
+	<div class="wrapper">
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'sms')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'sms.log', subpage = 'sms')"></aside>
+
+		<section>
+			<div class="content-wrapper">
+				<h3>
+					<a th:href="@{/ui/sms/log}" class="btn btn-default">
+						<span>
+							<i class="fa fa-arrow-left"></i>
+						</span>
+					</a>
+				</h3>
+
+				<div class="panel panel-default">
+					<div class="panel-heading"></div>
+					<div class="panel-body">
+						<div class="row">
+							<div class="col-sm-12">
+								<form class="form-horizontal">
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.page.sms.log.timestamp}"></label>
+										<div class="col-sm-8">
+											<input th:value="${#dates.format(log.timestamp, 'yyyy-MM-dd  HH:mm')}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.page.sms.log.userId}"></label>
+										<div class="col-sm-8">
+											<input th:value="${log.userId}" class="form-control" readonly="readonly" />
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.page.sms.log.message}"></label>
+										<div class="col-sm-8">
+											<textarea rows="5" th:text="${log.message}" class="form-control" readonly="readonly"></textarea>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.page.sms.log.recipients}"></label>
+										<div class="col-sm-8">
+											<div class="table-responsive">
+												<table id="listTable" class="table table-striped table-hover listTable">
+													<thead>
+														<tr>
+															<th class="col-md-4" th:text="#{html.page.sms.filter.name}"></th>
+															<th class="col-md-4" th:text="#{html.page.sms.filter.sms}"></th>
+															<th class="col-md-4" th:text="#{html.page.sms.filter.email}"></th>
+															<th class="col-md-3" th:text="#{html.page.sms.filter.type}"></th>
+														</tr>
+													</thead>
+													<tbody>
+														<tr th:each="recipient : ${log.recipients}">
+															<td th:text="${recipient.name}"></td>
+															<td th:text="${recipient.phone}"></td>
+															<td th:text="${recipient.email}"></td>
+															<td th:text="#{__${recipient.type.message}__}"></td>
+														</tr>
+													</tbody>
+												</table>
+											</div>
+										</div>
+									</div>
+
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<div th:replace="fragments/footer :: footer"></div>
+	<script th:replace="fragments/datatables :: datatables"></script>
+
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+		+]*/
+
+		var token = $("meta[name='_csrf']").attr("content");
+
+		$(document).ready(function() {
+		});
+
+		/*]]>*/
+	</script>
+</body>
+</html>

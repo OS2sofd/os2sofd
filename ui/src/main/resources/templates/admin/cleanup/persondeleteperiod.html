@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'persondeleteperiod', subpage = 'admin')"></aside>
+		
+	<section>
+		<div class="content-wrapper">
+			<h3 th:text="#{html.setting.cleanup.persondeletesetting.title}"></h3>
+
+			<div class="panel panel-default" style="padding-left: 20px; padding-right: 20px;">
+				<form id="setting-form" class="form-horizontal" method="post" th:object="${personDeleteSettingsForm}" th:action="@{/ui/admin/cleanup/persondeleteperiod}">
+					<div class="panel-body">
+						<div class="panel-heading"></div>
+
+						<fieldset>
+							<div class="form-group">
+								<div class="col-sm-12" th:text="#{html.setting.cleanup.persondeletesetting.text}"></div>
+							</div>
+						</fieldset>
+
+						<fieldset>
+							<div class="form-group">
+								<label class="col-sm-2 control-label" th:text="#{html.setting.cleanup.persondeletesetting.period}"></label>
+								<div class="col-sm-8">
+									<select th:field="*{personDeletePeriod}" class="form-control">
+										<option th:each="period : ${T(dk.digitalidentity.sofd.service.model.PersonDeletePeriod).values()}"
+											th:value="${period}" th:text="#{__${period.getMessage()}__}"
+											th:selected="${period} == *{personDeletePeriod}"></option>
+									</select>
+								</div>
+							</div>
+						</fieldset>
+						
+						<fieldset>
+							<div class="form-group">
+								<div class="col-md-offset-2 col-md-8">
+								<button type="submit" class="btn btn-primary btn-block" th:text="#{html.control.button.save}"></button>
+								</div>
+							</div>
+						</fieldset>
+					</div>
+				</form>
+			</div>
+		</div>
+	</section>
+</div>
+
+<div th:replace="fragments/footer :: footer"></div>
+
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+		 var successMsg = [[#{html.setting.update.msg.success}]];
+		 var failedMsg = [[#{html.setting.update.msg.failed}]];
+		 +]*/
+
+		$("document").ready(function() {
+			var saved = [[${saved}]];
+
+			if (typeof saved != "undefined" && saved != null) {
+				if (saved) {
+					$.notify({
+						message: successMsg
+					},{
+						status: 'success',
+						autoHideDelay: 4000
+					});
+				} else if(!saved) {
+					$.notify({
+						message: failedMsg
+					},{
+						status: 'warning',
+						autoHideDelay: 4000
+					});
+				}
+			}
+			
+		});
+		
+		/*]]>*/
+	</script>
+</body>
+</html>

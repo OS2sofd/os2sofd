@@ -1,0 +1,170 @@
+<th:block th:fragment="orgUnitTree" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+    <th:block th:if="${@sofdConfiguration.getModules().getLos().isAltOrgsEnabled() == true}">
+    <label class="control-label" th:text="#{html.entity.organisation.title}"></label>
+    <select th:id="${namespace} + 'organisationDropdown'" class="form-control" onchange="organisationDropdownChanged()"></select>
+    </th:block>
+    
+    <label class="control-label" th:text="#{html.action.search}" style="margin-top: 10px;"></label>
+    <input class="form-control" th:id="${namespace} + 'orgUnitTreeSearchField'" style="margin-bottom: 40px;" autofocus="autofocus" />
+    <div id="ouWrapper">
+        <div th:id="${namespace} + 'orgUnitTreeHierarchy'"></div>
+    </div>
+</th:block>
+
+<th:block th:fragment="orgUnitTreeScript" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+    <script th:inline="javascript">
+		/*<![CDATA[*/
+
+            var token = $("meta[name='_csrf']").attr("content");
+
+            /*[+
+            	var msgParentOrganisationFetchFailed = [[#{html.page.organisation.error.failure}]];
+                var orgRestURL = [[@{/rest/organisation}]];
+                var ouRestURL = [[@{/rest/orgunit}]];
+                var configObj = null;
+                var namespace = null;
+            +]*/
+
+            function initOrganisationDropdown() {
+                // Fetch orgList
+                $.ajax({
+                    contentType: 'application/json',
+                    url: orgRestURL + '/get-orgs',
+                    method : "GET",
+                    headers: {
+                        'X-CSRF-TOKEN': token
+                    },
+                    error: function(response) {
+                        $.notify({
+                            message: msgParentOrganisationFetchFailed
+                        }, {
+                            status: 'danger',
+                            autoHideDelay: 4000
+                        });
+                    },
+                    success: function(response) {
+                        //Initialise dropdown
+                        $('#' + namespace + 'organisationDropdown').empty();
+
+                        for (i = 0; i < response.length; i++) {
+                            $('#' + namespace + 'organisationDropdown').append(
+                                '<option data-short-name="' + response[i].shortName + '"  value="' + response[i].id + '">' + response[i].name + '</option>');
+                        }
+
+                        if (configObj.staticOrg == null) {
+                            $("#" + namespace + "organisationDropdown option[data-short-name='ADMORG']").prop('selected', true);
+                        } else {
+                            $("#" + namespace + "organisationDropdown option[value='" + configObj.staticOrg + "']").prop('selected', true);
+                            $('#' + namespace + 'organisationDropdown').prop('disabled', true);
+                        }
+
+                        organisationDropdownChanged();
+                    }
+                });
+            }
+
+            function organisationDropdownChanged() {
+                // Get Org Id
+                var orgId = $('#' + namespace + 'organisationDropdown').children("option:selected").val();
+				if (orgId === undefined) {
+					orgId = 0;
+				}
+				
+                // Get OrgUnits by Id
+                $.ajax({
+                    contentType: 'application/json',
+                    url: ouRestURL + '/get-by-org/' + orgId,
+                    method : "GET",
+                    headers: {
+                        'X-CSRF-TOKEN': token
+                    },
+                    error: function(response) {
+                        $.notify({
+                            message: msgParentOrganisationFetchFailed
+                        }, {
+                            status: 'danger',
+                            autoHideDelay: 4000
+                        });
+                    },
+                    success: function(response) {
+                        initOrgUnitTree(response);
+                    }
+                });
+            }
+
+            function initOrgUnitTree(orgUnits) {
+                $('#' + namespace + 'orgUnitTreeHierarchy').jstree('destroy');
+
+                var config = {
+	                "core": {
+	                    "data": orgUnits,
+	                    "themes": {
+	                        "icons": false
+	                    }
+	                },
+	                "search" : {
+	                    "show_only_matches": true,
+	                    "search_callback": function(str, node) {
+	                        return (node.text.toUpperCase().includes(str.toUpperCase()));
+	                    }
+	                },
+                    "plugins" : [
+                        "wholerow", "search"
+                    ]
+                };
+                
+                if (!configObj.disableState) {
+                	config.plugins.push("state");
+                }
+                
+                if (configObj.enableCheckboxes) {
+                	config.checkbox = {
+						"keep_selected_style" : false,
+						"cascade": "down",
+						"three_state": false
+                	};
+                	
+                	config.plugins.push("checkbox");
+                }
+
+                // Init OrgUnitTree
+				$('#' + namespace + 'orgUnitTreeHierarchy').jstree(config);
+
+                // searching in the JSTree
+                var to = false;
+                $('#' + namespace + 'orgUnitTreeSearchField').keyup(function() {
+                    if (to) {
+                        clearTimeout(to);
+                    }
+
+                    to = setTimeout(function() {
+                        var v = $('#' + namespace + 'orgUnitTreeSearchField').val();
+
+                        $('#' + namespace + 'orgUnitTreeHierarchy').jstree(true).search(v);
+                    }, 400);
+                });
+
+                if (configObj.refreshCallback != null) {
+                    configObj.refreshCallback();
+                }
+                
+                $('#' + namespace + 'orgUnitTreeHierarchy').on('close_node.jstree', function(e, data) {
+                	if (data.node.parent == '#') {
+                		$('#' + namespace + 'orgUnitTreeHierarchy').jstree("close_all");
+                	}
+                });
+            }
+
+            $(document).ready(function() {
+                /*[+
+                    var configObjStr = [[${configObj}]];
+                    configObj = eval(configObjStr);
+                    namespace = configObj.namespace;
+                +]*/
+
+                initOrganisationDropdown();
+            });
+
+		/*]]>*/
+	</script>
+</th:block>

@@ -1,0 +1,1 @@
+ALTER TABLE orgunits_aud ADD COLUMN `id` BIGINT NULL AFTER uuid;

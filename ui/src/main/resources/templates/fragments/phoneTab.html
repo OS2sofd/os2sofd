@@ -1,0 +1,488 @@
+<th:block th:fragment="phoneTab" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">	
+	<th:block th:if="${true}">
+		<div class="btn-group">
+		  <button type="button" style="width: auto !important;" class="btn btn-primary btn-lg dropdown-toggle" data-toggle="dropdown">
+		    <em class="fa fa-fw fa-cog"></em>
+		  </button>
+		  
+		  <ul class="dropdown-menu" role="menu" id="dataTablePhoneDropdown">
+		    <li><a href="#" data-cid="0" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.phone.phoneNumber}"></span></a></li>
+		    <li><a href="#" data-cid="1" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.phone.phoneType}"></span></a></li>
+		    <li><a href="#" data-cid="2" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.phone.prime}"></span></a></li>
+		    <li><a href="#" data-cid="3" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.phone.typePrime}"></span></a></li>
+		  </ul>
+		</div>
+	</th:block>
+
+	<th:block th:if="${(orgUnit != null && @securityUtil.canEditOrgUnit(orgUnit.uuid)) || orgUnit == null}">
+		<th:block th:if="${@sofdConfiguration.getModules().getTelephony().isEnabled() == false}">
+			<button style="width:200px" onclick="openPhoneEditModal()" class="btn btn-lg btn-primary"><div><i class="fa fa-fw fa-phone"></i>&nbsp; <span th:text="#{html.page.person.view.phone.create}"></span></div></button>
+		</th:block>
+		<button th:if="${phones.size()} &gt; 1" style="width:200px" onclick="showPrimePhoneModal()" class="btn btn-lg btn-primary">
+			<div>
+				<i class="fa fa-fw fa-cog"></i>
+				<span th:text="#{html.page.person.view.choose.primary.phone}"></span>
+			</div>
+		</button>
+	</th:block>
+
+	<table id="listTable3" class="table table-striped table-hover listTable">
+		<thead>
+			<th class="col-lg-4" th:text="#{html.entity.phone.phoneNumber}"></th>
+			<th class="col-lg-4" th:text="#{html.entity.phone.phoneType}"></th>
+			<th class="col-lg-3" th:text="#{html.entity.phone.prime}"></th>
+			<th class="col-lg-3" th:text="#{html.entity.phone.typePrime}"></th>
+			<th class="col-lg-1" th:text="#{html.control.operations}"></th>
+		</thead>
+
+		<tbody>
+		<tr th:each="phone : ${phones}" id="phoneData">
+			<td class="col-lg-4">
+				<div th:switch="${phone.visibility == T(dk.digitalidentity.sofd.dao.model.enums.Visibility).VISIBLE}">
+					<span th:case="${false}" class="" style="width: 100%; text-align: left;">
+						<em class="fa fa-fw fa-eye" onclick="togglePhoneNumberVisibility(this)"></em>
+						<span  th:text="${'********'}" th:attr="data-key=${phone.phoneNumber}"></span>
+					</span>
+					<span th:case="${true}" th:text="${phone.phoneNumber}" class="" readonly="readonly" style="width: 100%;"></span>
+				</div>
+			</td>
+
+			<td class="col-lg-3">
+				<span th:text="#{__${phone.phoneType.message}__}"></span>
+				<span th:if="${phone.functionTypeName != null}" th:text="' (' + ${phone.functionTypeName} + ')'"></span>
+			</td>
+			<td class="col-lg-2">
+				<em th:if="${phone.prime}" class="fa fa-check"></em>
+			</td>
+			<td class="col-lg-2">
+				<em th:if="${phone.typePrime}" class="fa fa-check"></em>
+			</td>
+			<td class="col-lg-1">
+				<th:block th:if="${phone.master == 'SOFD'}">
+				<a href="#" onclick="openPhoneDeleteModal(this.getAttribute('data-phone-id'));" th:data-phone-id="${phone.id}"> <em class="fa fa-times"></em></a>
+				<a href="#" onclick="openPhoneEditModal(this.getAttribute('data-phone-id'));" th:data-phone-id="${phone.id}"> <em class="fa fa-pencil"></em></a>
+				</th:block>
+				<th:block th:if="${!#strings.isEmpty(phone.notes)} ">
+					<a tabindex="0" class="phonePopovers" data-toggle="popover" data-trigger="focus" data-placement="left" th:attr="data-content=${phone.notes},title=#{html.entity.phone.notes}">
+						<em class="fa fa-sticky-note-o"></em>
+					</a>
+				</th:block>
+			</td>
+		</tr>
+		</tbody>
+	</table>
+	
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+			/*[+
+				var phones = [[${phones}]];
+			+]*/
+		/*]]>*/
+	</script>
+</th:block>
+
+<th:block th:fragment="phoneModal" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<div class="modal fade" id="modal-edit-phone" role="dialog">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h4 th:text="#{html.page.person.view.modal.phone.header}"></h4>
+				</div>
+
+				<div class="modal-body">
+					<div class="form-horizontal">
+						<input id="phoneID" style="display: none;" class="form-control"/>
+
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.phone.phoneNumber}"></label>
+							<div class="col-sm-10">
+								<input class="form-control" id="phoneNumber"/>
+							</div>
+						</div>
+						
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.phone.phoneType}"></label>
+							<div class="col-sm-10">
+								<select class="form-control" id="phoneType" onchange="handlePhoneTypeChange()">
+									<option th:each="type : ${T(dk.digitalidentity.sofd.dao.model.enums.PhoneType).values()}" th:value="${type}" th:text="#{__${type.getMessage()}__}"></option>
+								</select>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.phone.visibility}"></label>
+							<div class="col-sm-10">
+								<select class="form-control" id="visibility">
+									<option th:each="type : ${T(dk.digitalidentity.sofd.dao.model.enums.Visibility).values()}" th:value="${type}" th:text="#{__${type.getMessage()}__}"></option>
+								</select>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.phone.functionPhone}"></label>
+							<div class="col-sm-10">
+								<div class="checkbox c-checkbox">
+									<label>
+										<input class="checkboxaction" id="IsFunctionPhone" type="checkbox" onchange="handleOnChangeEventForCollapse('IsFunctionPhone', false)"/>
+										<span class="fa fa-check"></span>
+									</label>
+								</div>
+							</div>
+						</div>
+
+						<div class="collapse form-group" id="collapseIsFunctionPhone">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.phone.functionType}"></label>
+							<div class="col-sm-10">
+								<select class="form-control" id="functionType">
+								</select>
+
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label class="col-sm-2 control-label" th:text="#{html.entity.phone.notes}"></label>
+							<div class="col-sm-10">
+								<textarea id="phoneNotes" class="md-textarea form-control" rows="4"></textarea>
+							</div>
+						</div>
+
+					</div>
+				</div>
+				
+
+				<div class="modal-footer">
+					<button type="button" class="btn btn-primary" th:text="#{html.control.button.save}" onclick="editOrCreatePhone()"></button>
+					<button type="button" class="btn btn-danger" th:text="#{html.control.button.cancel}" onclick="togglePhoneModal()"></button>
+				</div>
+			</div>
+		</div>
+	</div>
+	</th:block>
+
+	<th:block th:fragment="phonePrimeModal" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<!-- Choose prime phone modal -->
+	<div class="modal fade" id="modal-prime-phone" role="dialog">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h4 th:text="#{html.page.person.view.choose.primary.phone}"></h4>
+				</div>
+
+				<div class="modal-body">
+					<table class="table table-striped table-hover">
+						<thead>
+							<th class="col-md-1" th:text="#{html.entity.phone.phoneNumber}"></th>
+							<th class="col-md-5" th:text="#{html.entity.phone.phoneType}"></th>
+							<th class="col-md-3" th:text="#{html.entity.phone.prime}"></th>
+							<th class="col-md-3" th:text="#{html.entity.phone.typePrime}"></th>
+						</thead>
+
+						<tbody>
+							<th:block th:each="type : ${T(dk.digitalidentity.sofd.dao.model.enums.PhoneType).values()}">
+								<tr th:each="phone : ${phones.?[phoneType.name() == '__${type}__']}" class="primeRadioTr" th:attr="data-key=${phone.Id}">
+									<td style="vertical-align: middle !important;" th:text="${phone.phoneNumber}"></td>
+									<td style="vertical-align: middle !important;" th:text="#{__${phone.phoneType.message}__}"></td>
+
+									<td>
+										<input type="radio" th:id="phone + ${phone.Id}" name="phonePrimeRadio" class="phonePrime custom-control-input" onclick="handleOnChangeForRadios()"/>
+									</td>
+
+									<td>
+										<input type="radio" th:id="phone + ${phone.Id}" th:name="${phone.phoneType}" class="phoneTypePrime custom-control-input" onclick="handleOnChangeForRadios()"/>
+									</td>
+								</tr>
+							</th:block>
+						</tbody>
+					</table>
+				</div>
+
+				<div class="modal-footer">
+					<button type="button" class="btn btn-primary" th:text="#{html.control.button.save}" onclick="savePhonePrime()"></button>
+					<button type="button" class="btn btn-danger" th:text="#{html.control.button.cancel}" data-dismiss="modal"></button>
+				</div>
+			</div>
+		</div>
+	</div>
+</th:block>
+
+<th:block th:fragment="phoneScript" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+
+			/*[+
+				var msgPhoneDeleteFail = [[#{html.fragment.phone.msg.delete.Fail}]];
+				var msgEditPhoneFail = [[#{html.fragment.phone.msg.edit.Fail}]];
+
+				var phoneDeleteTitle = [[#{html.fragment.phone.msg.delete.Title}]];
+				var phoneDeleteText = [[#{html.fragment.phone.msg.delete.Text}]];
+				var phoneDeleteButtonConfirm = [[#{html.button.delete}]];
+				var phoneDeleteButtonCancel = [[#{html.button.cancel}]];
+
+				var phoneTypeValues = [[${T(dk.digitalidentity.sofd.dao.model.enums.PhoneType).values()}]];
+				var functionTypes = [[${functionTypes}]];
+			+]*/
+
+		//fragment="phoneTab"
+		function togglePhoneNumberVisibility(obj) {
+			var stars = '********';
+			var number = $(obj).parent().find("span");
+
+			if (number.text() == stars) {
+				number.text(number.data("key"));
+			}
+			else {
+				number.text(stars);
+			}
+		}
+
+		function openPhoneEditModal(id) {
+			$('#phoneID').val(id);
+			if (id != null) {
+				for (var i = 0; i < phones.length; i++) {
+					if (phones[i].id == id) {
+						$('#phoneNumber').val(phones[i].phoneNumber);
+						$('#phoneType option[value="' + phones[i].phoneType.$name + '"]').prop('selected', true);
+						$('#phoneNotes').val(phones[i].notes);
+						handlePhoneTypeChange();
+
+						if(phones[i].functionType != null) {
+							$('#IsFunctionPhone').prop('checked', true);
+							$('#functionType option[value="' + phones[i].functionType.id + '"]').prop('selected', true);
+						} else {
+							$('#IsFunctionPhone').prop('checked', false);
+							handleOnChangeEventForCollapse('IsFunctionPhone', false);
+						}
+
+					}
+				}
+			} else {
+				$('#phoneNumber').val("");
+				$('#phoneType option[value="MOBIL"]').prop('selected', true);
+				handlePhoneTypeChange();
+				$('#functionType option[value="NONE"]').prop('selected', true);
+				$('#IsFunctionPhone').prop('checked', false);
+				handleOnChangeEventForCollapse("IsFunctionPhone", false);
+				$('#functionType option[value="0"]').prop('selected', true);
+				$('#phoneNotes').val("");
+			}
+			togglePhoneModal();
+		}
+
+		function openPhoneDeleteModal(id) {
+			swal({
+				html : true,
+				title : phoneDeleteTitle,
+				text : phoneDeleteText,
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : phoneDeleteButtonConfirm,
+				cancelButtonText : phoneDeleteButtonCancel,
+				closeOnConfirm : true,
+				closeOnCancel : true
+			},
+			function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						method : "POST",
+						url: restUrl + "/deletePhone",
+						headers: {
+							"content-type": "application/json",
+							"uuid": uuid,
+							"id": id,
+							'X-CSRF-TOKEN': token
+						}
+					}).done(function (data) {
+						$("#phone_menu").load(url + "/phoneTab/" + uuid, function() {
+							loadDataTables();
+							$('.phonePopovers').popover();
+						});
+						$("#phone_prime_modal").load(url + "/phonePrime/" + uuid);
+					}).fail(function (jqXHR, textStatus, errorThrown) {
+						$.notify({
+							message: msgPhoneDeleteFail
+						}, {
+							status: 'danger',
+							autoHideDelay: 4000
+						});
+					});
+				}
+			});
+		}
+
+		//fragment="phoneModal"
+		$('#modal-edit-phone').on('shown.bs.modal', function () {
+    		$('#phoneNumber').focus();
+		})
+
+		function handlePhoneTypeChange() {
+			var functionTypeSelect = $('#functionType');
+			functionTypeSelect.children('option').remove();
+
+			var phoneType = $('#phoneType').find(":selected").val();
+
+			$("#IsFunctionPhone").prop('disabled', false);
+
+			for (var i = 0; i < functionTypes.length; i++) {
+				for (var j = 0; j < functionTypes[i].phoneTypes.length; j++) {
+					if(functionTypes[i].phoneTypes[j].$name == phoneType) {
+						functionTypeSelect
+							.append($("<option></option>")
+							.attr("value", functionTypes[i].id)
+							.text(functionTypes[i].name));
+					}
+				}
+			}
+
+			if($('#functionType').children().length < 1) {
+				$("#IsFunctionPhone").prop('disabled', true);
+				$("#IsFunctionPhone").prop('checked', false);
+				handleOnChangeEventForCollapse('IsFunctionPhone', false);
+			}
+
+		}
+
+		function handleOnChangeEventForCollapse(id, flip){
+			if ($('#' + id).is(':checked')) {
+				$('#collapse' + id).collapse(flip ? 'hide' : 'show');
+			} else {
+				$('#collapse' + id).collapse(flip ? 'show' : 'hide');
+			}
+		}
+
+		function togglePhoneModal() {
+			$('#modal-edit-phone').modal("toggle");
+		}
+
+		function editOrCreatePhone() {
+			togglePhoneModal();
+
+			var functionPhone = null;
+			if($('#IsFunctionPhone').is(':checked')) {
+				functionPhone = $('#functionType').find(":selected").val();
+			}
+
+			var phoneObj = {
+				id: $('#phoneID').val(),
+				phoneNumber: $('#phoneNumber').val(),
+				master: "SOFD",
+				masterId: "SOFD",
+				phoneType: $('#phoneType').val(),
+				functionType: functionPhone,
+				visibility: $('#visibility').val(),
+				notes: $('#phoneNotes').val(),
+				prime: false
+			}
+
+			$.ajax({
+				method : "POST",
+				url: restUrl + "/editPhone",
+				headers: {
+					"content-type": "application/json",
+					"uuid": uuid,
+					'X-CSRF-TOKEN': token
+				},
+				data: JSON.stringify(phoneObj)
+			}).done(function (data) {
+				$("#phone_menu").load(url + "/phoneTab/" + uuid, function() {
+					loadDataTables();
+					$('.phonePopovers').popover();
+				});
+				$("#phone_prime_modal").load(url + "/phonePrime/" + uuid);
+			}).fail(function (jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: msgEditPhoneFail
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		}
+
+		//fragment="phonePrimeModal"
+		function showPrimePhoneModal() {
+			selectPrimePhones();
+			handleOnChangeForRadios();
+			$('#modal-prime-phone').modal("show");
+		}
+
+		function handleOnChangeForRadios() {
+			var selectedPrime = $("input[name='phonePrimeRadio']:checked");
+			var selectedPrimeId = selectedPrime.attr('id');
+
+			var typePrime = $("input.phoneTypePrime[id='" + selectedPrimeId + "']");
+			typePrime.prop('checked',true);
+
+			var phoneType = typePrime.attr('name');
+			$("input.phoneTypePrime").attr('disabled',false);
+			$("input.phoneTypePrime[name='" + phoneType + "']").attr('disabled',true);
+
+			selectAndDisableSingleTypePrime();
+		}
+
+		function selectAndDisableSingleTypePrime() {
+			for (var i = 0; i < phoneTypeValues.length; i++) {
+				var radioBtns = $("input.phoneTypePrime[name='" + phoneTypeValues[i].$name + "']");
+
+				if (radioBtns.length == 1) {
+					radioBtns.prop('checked',true);
+					radioBtns.attr('disabled',true);
+				}
+			}
+		}
+
+		function selectPrimePhones() {
+			for (var i = 0; i < phones.length; i++) {
+				var id = phones[i].id;
+
+				var primeRadio = $("input.phonePrime[id='phone" + id + "']");
+				var typePrimeRadio = $("input.phoneTypePrime[id='phone" + id + "']")
+
+				primeRadio.prop('checked',phones[i].prime);
+				primeRadio.attr('disabled',false);
+				typePrimeRadio.prop('checked',phones[i].typePrime);
+				typePrimeRadio.attr('disabled',false);
+			}
+		}
+
+		function savePhonePrime() {
+			var phonePrimeDataList = [];
+
+			$('.primeRadioTr').each(function(index, element) {
+				var row = $(element);
+
+				phonePrimeDataList.push({
+					id: row.data('key'),
+					prime: row.find("input.phonePrime").is(':checked'),
+					typePrime: row.find("input.phoneTypePrime").is(':checked'),
+				});
+			});
+
+			$.ajax({
+				method : "POST",
+				url: restUrl + "/updatePrimaryPhones",
+				headers: {
+					"content-type": "application/json",
+					"uuid": uuid,
+					'X-CSRF-TOKEN': token
+				},
+				data: JSON.stringify(phonePrimeDataList)
+			}).done(function (data) {
+				$('#modal-prime-phone').modal("hide");
+				$("#phone_menu").load(url + "/phoneTab/" + uuid, function() {
+					loadDataTables();
+					$('.phonePopovers').popover();
+				});
+			}).fail(function (jqXHR, textStatus, errorThrown) {
+				$.notify({
+					message: msgEditPhoneFail
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+			});
+		}
+
+		/*]]>*/
+	</script>
+</th:block>

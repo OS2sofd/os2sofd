@@ -1,0 +1,45 @@
+#!/bin/bash
+
+elbArn="arn:aws:elasticloadbalancing:eu-west-1:711926434486:loadbalancer/app/SOFD/02fa122c1792c4d2"
+ec2Id="i-0b3d01ccd0cf24621"
+
+# basic error handling enabled
+set -euo pipefail
+
+log_info() {
+  MESSAGE=$1
+
+  echo "$(date +'%F %H:%M:%S') - INFO - $MESSAGE"
+}
+
+get_target_groups() {
+  local result=$(/usr/bin/aws elbv2 describe-target-groups)
+  echo "$result"
+}
+
+register() {
+  arn=$1
+
+  $(/usr/bin/aws elbv2 register-targets --target-group-arn $arn --targets Id=$ec2Id)
+}
+
+log_info "Running register script"
+
+tg=$(get_target_groups)
+len=$(echo $tg | jq -r '.[]' | jq length)
+
+for ((i = 0; i < $len; i++))
+do
+  jqArg1=".TargetGroups[$i].TargetGroupArn"
+  jqArg2=".TargetGroups[$i].TargetGroupName"
+  targetGroupArn=$(echo $tg | jq -r $jqArg1)
+  targetGroupName=$(echo $tg | jq -r $jqArg2)
+
+  if [[ $targetGroupName == SOFD-* ]] &&
+     [[ $targetGroupName != SOFD-SyddjursTest* ]] &&
+     [[ $targetGroupName != SOFD-Signaturcentral ]]
+  then
+    log_info "Registering $targetGroupName on SOFD #1"
+    register $targetGroupArn
+  fi
+done

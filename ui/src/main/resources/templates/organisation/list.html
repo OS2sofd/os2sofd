@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+    <header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+    <aside th:replace="fragments/navbar :: navbar-aside (page = 'organisations', subpage='admin')"></aside>
+
+    <section>
+        <div class="content-wrapper">
+            <h3 th:text="#{html.page.organisation.title}"></h3>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <a class="btn btn-primary btn-lg" href="#" onclick="editOrg(this)" data-id="0">
+                        <i class="fa fa-plus"></i>
+                        <span th:text="#{html.page.organisation.new}"></span>
+                    </a>
+                </div>
+
+                <div class="panel-body">
+                    <div class="table-responsive">
+                        <table id="listTable" class="table table-striped listTable">
+                            <thead>
+                            <tr>
+                                <th class="col-md-3" th:text="#{html.entity.organisation.name}"></th>
+                                <th class="col-md-3" th:text="#{html.entity.organisation.short.name}"></th>
+                                <th class="col-md-5" th:text="#{html.entity.organisation.description}"></th>
+                                <th class="col-md-1" th:text="#{html.control.operations}"></th>
+                            </tr>
+                            </thead>
+
+                            <tbody>
+                            <tr th:each="org : ${organisations}">
+                                <td th:text="${org.name}" th:attr="data-id=orgTableName + ${org.id}"></td>
+                                <td th:text="${org.shortName}" th:attr="data-id=orgTableShortName + ${org.id}"></td>
+                                <td th:text="${org.description}" th:attr="data-id=orgTableDescription + ${org.id}"></td>
+                                <td>
+                                    <a onclick="editOrg(this);" href="#" th:attr="data-id=${org.id}"><em class="fa fa-fw fa-pencil" th:title="#{html.mouseover.edit}"></em></a>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Modal -->
+<div id="editOrgModal" class="modal fade" role="dialog">
+    <form class="form-horizontal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title" th:text="#{html.page.functiontype.list.modal.title}"></h4>
+                </div>
+
+                <div class="modal-body">
+                    <input id="editOrgId" class="form-control" style="display:none;"/>
+
+                    <div class="form-group">
+                        <label th:text="#{html.entity.organisation.name}" class="col-sm-2 control-label"></label>
+                        <div class="col-sm-10">
+                            <input id="editOrgName" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label th:text="#{html.entity.organisation.short.name}" class="col-sm-2 control-label"></label>
+                        <div class="col-sm-10">
+                            <input id="editOrgShortName" class="form-control"/>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label th:text="#{html.entity.organisation.description}" class="col-sm-2 control-label"></label>
+                        <div class="col-sm-10">
+                            <textarea id="editOrgDescription" class="form-control"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <div class="col-sm-12">
+                        <button class="btn btn-primary" type="button" th:text="#{html.control.button.save}" onclick="postEditOrg()"></button>
+                        <button class="btn btn-danger" type="button" data-dismiss="modal" th:text="#{html.action.abortChanges}"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+<script th:replace="fragments/datatables :: datatables"></script>
+
+<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+			var restUrl = [[@{/rest/organisation}]];
+			var orgs = [[${organisations}]];
+			var createUpdateErrorMsg = [[#{html.page.organisation.createupdate.error}]];
+		+]*/
+		var token = $("meta[name='_csrf']").attr("content");
+
+		$('#editOrgModal').on('shown.bs.modal', function () {
+			$('#editOrgName').focus();
+		});
+
+		function editOrg(obj) {
+		    var id = $(obj).attr('data-id');
+
+            $('#editOrgShortName').prop('disabled', id != 0);
+
+            $('#editOrgId').val(id);
+            $('#editOrgShortName').val($("td[data-id=orgTableShortName" + id + "]").text());
+            $('#editOrgName').val($("td[data-id=orgTableName" + id + "]").text());
+            $('#editOrgDescription').val($("td[data-id=orgTableDescription" + id + "]").text());
+
+			$('#editOrgModal').modal("show");
+        }
+
+        function postEditOrg() {
+            $('#editOrgModal').modal("hide");
+            $.ajax({
+				url: restUrl + '/update',
+				headers: {
+					'X-CSRF-TOKEN': token
+				},
+				type: 'post',
+				contentType: 'application/json',
+				data: JSON.stringify({
+                    'id' : $('#editOrgId').val(),
+                    'name' : $('#editOrgName').val(),
+                    'shortName' : $('#editOrgShortName').val(),
+                    'description' : $('#editOrgDescription').val()
+                }),
+				success: function(data, textStatus, jQxhr) {
+                    location.reload(true);
+				},
+				error: function(jqXhr, textStatus, errorThrown) {
+				    if (jqXhr.responseText != null) {
+				        $.notify({
+						    message: jqXhr.responseText
+                        }, {
+                            status: 'danger',
+                            autoHideDelay: 4000
+                        });
+				    } else {
+				        $.notify({
+						    message: createUpdateErrorMsg
+                        }, {
+                            status: 'danger',
+                            autoHideDelay: 4000
+                        });
+				    }
+				}
+			});
+        }
+
+		/*]]>*/
+	</script>
+</body>
+</html>

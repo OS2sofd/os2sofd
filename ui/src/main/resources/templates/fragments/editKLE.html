@@ -1,0 +1,65 @@
+<th:block th:fragment="content" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<h4 th:text="#{html.action.search}"></h4>
+	<input class="form-control" th:id="${type + 'Search'}" style="margin-bottom: 5px;"/>
+	<button class="btn btn-lg btn-primary" style="margin-bottom: 20px;" th:text="#{html.action.saveChanges}" onclick="saveChanges(this.getAttribute('data-type'));" th:data-type="${type}"></button>
+	<button class="btn btn-lg btn-primary" style="margin-bottom: 20px;" th:text="#{html.action.abortChanges}" onclick="abortChanges(this.getAttribute('data-type'));" th:data-type="${type}"></button>
+	<div th:id="${type}"></div>
+	
+	<script th:inline="javascript">
+	/*<![CDATA[*/
+		/*[+
+			var type = [[${type}]];
+			window[type+'Selected'] = [[${kleSelected}]];
+		+]*/
+		
+		function initJSTree(id, search, selected) {
+			$('#' + id).jstree({
+					"core": {
+						"data": allKles,
+						"themes": {
+							"icons": false
+						}
+					},
+					"checkbox" : {
+						"keep_selected_style" : false,
+						"three_state": false,
+						"cascade": "undetermined"
+					},
+					"search" : {
+						"show_only_matches": true,
+						"search_callback": function(str, node) {
+							return (node.text.toUpperCase().includes(str.toUpperCase()));
+						}
+					},
+					"plugins" : [
+						"wholerow", "search", "checkbox"
+					]
+			});
+	
+			// selecting in the JSTree
+			$('#' + id).on("ready.jstree", function(e, data) {
+				$('#' + id).jstree('select_node', selected);
+			});
+	
+			// searching in the JSTree
+			var to = false;
+			$('#' + search).keyup(function() {
+				if (to) {
+					clearTimeout(to);
+				}
+	
+				to = setTimeout(function() {
+					var v = $('#' + search).val();
+	
+					$('#' + id).jstree(true).search(v);
+				}, 400);
+			});
+		};
+		
+		$("document").ready(function() {
+			initJSTree(type, type+"Search", window[type+'Selected']);
+		});
+
+		/*]]>*/
+	</script>
+</th:block>
