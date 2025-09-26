@@ -59,5 +59,6 @@ public class OrgUnitManager {
 		this.managerUuid = manager.getUuid();
 		this.name = PersonService.getName(manager);
 		this.inherited = inherited;
+		this.source = OrgUnitManagerSource.SELECTED;
 	}
 }
