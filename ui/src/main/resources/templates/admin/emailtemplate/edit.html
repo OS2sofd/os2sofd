@@ -8,25 +8,25 @@
  
 		<section>
 			<div class="content-wrapper">
-				<h3 th:text="#{html.page.email_template.edit.headline}"></h3>
+				<h3 th:if="${isNew}" th:text="#{html.page.email_template.edit.headline.new}"></h3>
+				<h3 th:unless="${isNew}" th:text="#{html.page.email_template.edit.headline.edit}"></h3>
 
 				<div class="panel panel-default">
 					<div class="panel-body">
 						<div class="row" style="margin-bottom: 30px;">
 							<div class="col-lg-10 col-lg-offset-1">
-								<h3 style="margin-top: 0px;" th:text="#{html.page.email_template.header}"></h3>
-								<p th:text="#{html.page.email_template.intro}"></p>
+								<p th:utext="#{html.page.email_template.intro}"></p>
 							</div>
 						</div>
 						
-						<div class="row" th:style="${#httpServletRequest.requestURI.contains('/edit') ? 'display: none;' : ''}">
+						<div class="row">
 							<div class="col-lg-12">
 								<form class="form-horizontal">
 									<div class="form-group">
 										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.template}"></label>
 
 										<div class="col-sm-8">
-											<select class="form-control m-b col-sm-8" id="templateDropdown">
+											<select class="form-control m-b col-sm-8" id="templateDropdown" th:disabled="${!isNew}">
 												<option th:each="template : ${templates}" th:value="${template.id}" th:text="#{__${template.templateTypeText}__}" th:attr="data-template=${template.emailTemplateType}"></option>
 											</select>
 										</div>

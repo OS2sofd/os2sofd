@@ -113,7 +113,7 @@ public class MailTemplateController {
 		
 		List<OUTreeForm> allOus = orgUnitService.getAllTree();
 		model.addAttribute("allOus", allOus);
-
+		model.addAttribute("isNew", true);
 		return "admin/emailtemplate/edit";
 	}
 	
@@ -179,6 +179,7 @@ public class MailTemplateController {
 		
 		List<OUTreeForm> allOus = orgUnitService.getAllTree();
 		model.addAttribute("allOus", allOus);
+		model.addAttribute("isNew", false);
 
 		return "admin/emailtemplate/edit";
 	}

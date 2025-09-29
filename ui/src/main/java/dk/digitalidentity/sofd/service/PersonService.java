@@ -18,6 +18,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import dk.digitalidentity.sofd.dao.model.enums.LeaveReason;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -138,6 +139,9 @@ public class PersonService {
 
 	@Autowired
 	private SubstituteOrgUnitAssignmentService substituteOrgUnitAssignmentService;
+
+	@Autowired
+	private ObjectMapper mapper;
 
 
 	public boolean isManager(Person person) {
@@ -555,7 +559,7 @@ public class PersonService {
 
 			// set expiry on all not disabled AD accounts
 			List<AccountOrder> newOrders = new ArrayList<AccountOrder>();
-			List<AccountOrder> orders = generateExpireOrders(person, new Date(), new Date());
+			List<AccountOrder> orders = generateExpireOrders(person, new Date(), new Date(), null, null, null, null, null);
 			newOrders.addAll(orders);
 
 			person.setDisableAccountOrdersCreate(true);
@@ -1064,7 +1068,7 @@ public class PersonService {
 			accountOrderService.deletePendingExpireOrders(person);
 
 			// generate fresh expire orders
-			newOrders = generateExpireOrders(person, new Date(), null);
+			newOrders = generateExpireOrders(person, new Date(), null, null, person.getLeave().getReason(), person.getLeave().getReasonText(), person.getLeave().isExpireAccounts(), person.getLeave().isDisableAccountOrders());
 		}
 
 		// send mail templates with leave ended
@@ -1083,7 +1087,8 @@ public class PersonService {
 		return newOrders;
 	}
 
-	public List<AccountOrder> generateExpireOrders(Person person, Date activationDate, Date expireDate) {
+	public record ExpireToken(String startDate, String stopDate,String reason, String reasonText, boolean expireAccounts, boolean disableAccountOrders) {}
+	public List<AccountOrder> generateExpireOrders(Person person, Date activationDate, Date expireDate, Date stopDate, LeaveReason reason, String reasonText, Boolean expireAccounts, Boolean disableAccountOrders) {
 		if (expireDate != null) {
 			// move the supplied timestamp to mid-day - our agent will make sure the actual
 			// time is set to the beginning of that day (but timezone issues can be a problem
@@ -1102,6 +1107,23 @@ public class PersonService {
 			.filter(u -> u.isDisabled() == false)
 			.collect(Collectors.toList());
 
+		String expireTokenJson = null;
+		if (reason != null) {
+			ExpireToken expireToken = new ExpireToken(
+					expireDate != null ? toLocalDate(expireDate).toString() : null,
+					stopDate != null ? toLocalDate(stopDate).toString() : null,
+					reason.name(),
+					reasonText,
+					expireAccounts,
+					disableAccountOrders);
+            try {
+                expireTokenJson = mapper.writeValueAsString(expireToken);
+            } catch (JsonProcessingException e) {
+                log.warn("Failed to serialize ExpireToken to JSON", e);
+            }
+
+        }
+
 		for (User user : activeADUsers) {
 			AccountOrder order = new AccountOrder();
 			order.setActivationTimestamp(activationDate);
@@ -1112,6 +1134,7 @@ public class PersonService {
 			order.setRequestedUserId(user.getUserId());
 			order.setStatus(AccountOrderStatus.PENDING);
 			order.setUserType(user.getUserType());
+			order.setToken(expireTokenJson);
 
 			orders.add(order);
 		}
