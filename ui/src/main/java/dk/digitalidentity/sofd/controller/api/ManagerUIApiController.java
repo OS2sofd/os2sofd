@@ -345,7 +345,7 @@ public class ManagerUIApiController {
 
 				boolean disableAccountOrders = dto.disableAccountOrders();
 				if (dto.expireAccounts()) {
-					List<AccountOrder> orders = personService.generateExpireOrders(match, startDate, startDate);
+					List<AccountOrder> orders = personService.generateExpireOrders(match, startDate, startDate, stopDate, dto.reason, dto.reasonText, dto.expireAccounts, dto.disableAccountOrders);
 					newOrders.addAll(orders);
 
 					// the UI enforces this, but lets make sure

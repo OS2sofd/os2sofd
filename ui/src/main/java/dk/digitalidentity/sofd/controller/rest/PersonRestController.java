@@ -173,7 +173,7 @@ public class PersonRestController {
 					// as this is just for a single-use deactivation of a SET of user accounts (not always all of them)
 					// person.setForceStop(true);
 
-					List<AccountOrder> orders = personService.generateExpireOrders(person, startDate, startDate);
+					List<AccountOrder> orders = personService.generateExpireOrders(person, startDate, startDate, stopDate,leaveDTO.getReason(),leaveDTO.getReasonText(),leaveDTO.isExpireAccounts(), leaveDTO.isDisableAccountOrders());
 					newOrders.addAll(orders);
 
 					// the UI enforces this, but lets make sure
