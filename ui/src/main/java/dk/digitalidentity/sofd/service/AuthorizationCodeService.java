@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -36,6 +37,11 @@ public class AuthorizationCodeService {
 
     @Autowired
     private PersonService personService;
+    
+    // SST uses a certificate that Java does not trust by default (Sectigo issued)
+    @Qualifier("trustEverythingRestTemplate")
+    @Autowired
+	private RestTemplate restTemplate;
 
 	public void syncAll(boolean forceAll) {
     	SecurityUtil.fakeLoginSession();
@@ -120,7 +126,6 @@ public class AuthorizationCodeService {
     		return changes;
     	}
     	
-    	RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = getHeaders();
         String url = "https://autregwebservice.sst.dk/autregservice.asmx/GetHealthProfessionals?name=" + name + "&authorizationId=\"\"&birthdayFrom=" + date + "&birthdayTo=" + date + "&authorizationDateFrom=1950-01-01&authorizationDateTo=2030-01-01&professionGroup=\"\"&specialityName=\"\"&authorizationStatus=NotSpecified&seventyFiveYearsRule=NotSpecified";
 
