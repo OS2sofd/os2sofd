@@ -30,11 +30,36 @@ public class RestTemplateConfiguration {
 	private SofdConfiguration configuration;
 
 	@Autowired
-	RequestResponseLoggingInterceptor responseLoggingInterceptor;
+	private RequestResponseLoggingInterceptor responseLoggingInterceptor;
 
 	@Bean(name = "defaultRestTemplate")
 	public RestTemplate restTemplate() {
 		return new RestTemplate();
+	}
+	
+	@Bean(name = "trustEverythingRestTemplate")
+	public RestTemplate trustEverythingRestTemplate() throws Exception {
+		TrustStrategy acceptingTrustStrategy = (X509Certificate[] chain, String authType) -> true;
+
+		RequestConfig requestConfig = RequestConfig.custom()
+			.setConnectionRequestTimeout(30000)
+			.setConnectTimeout(30000)
+			.setSocketTimeout(60000)
+			.setCookieSpec(CookieSpecs.STANDARD)
+			.build();
+
+		SSLContext sslContext = SSLContextBuilder.create()
+            .loadTrustMaterial(acceptingTrustStrategy)
+            .build();
+
+		CloseableHttpClient client = HttpClients.custom()
+			.setSSLContext(sslContext)
+			.setDefaultRequestConfig(requestConfig)
+			.build();			
+
+		BufferingClientHttpRequestFactory requestFactory = new BufferingClientHttpRequestFactory(new HttpComponentsClientHttpRequestFactory(client));
+
+		return new RestTemplate(requestFactory);
 	}
 	
 	@Bean(name = "opusRestTemplate")
@@ -72,7 +97,7 @@ public class RestTemplateConfiguration {
 		BufferingClientHttpRequestFactory requestFactory = new BufferingClientHttpRequestFactory(new HttpComponentsClientHttpRequestFactory(client));
 
 		RestTemplate restTemplate = new RestTemplate(requestFactory);
-		restTemplate.setInterceptors(Collections.singletonList(new RequestResponseLoggingInterceptor()));
+		restTemplate.setInterceptors(Collections.singletonList(responseLoggingInterceptor));
 		restTemplate.setErrorHandler(new ResponseErrorHandler() {
 			
 			@Override
