@@ -490,8 +490,8 @@
 		//handles various potential problems with date 
 		var startDate = $('#startDatePicker').data('DateTimePicker').date();
 		var stopDate = $('#stopDatePicker').data('DateTimePicker').date();
-		var staDate = (startDate == null || startDate == undefined || startDate == "") ? new Date(initialStartDate) : Date(startDate);
-		var stoDate = (stopDate == null || stopDate == undefined || stopDate == "") ? null : Date(stopDate);
+		var staDate = (startDate == null || startDate == undefined || startDate == "") ? new Date(initialStartDate) : new Date(startDate);
+		var stoDate = (stopDate == null || stopDate == undefined || stopDate == "") ? null : new Date(stopDate);
 
 		if ( displayName && displayName.length > 255) {
 			$.notify({
