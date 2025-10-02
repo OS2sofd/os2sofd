@@ -518,10 +518,7 @@ public class PersonRestController {
 		reactivateAccount(person, user);
 		
 		// remove any pending deactivate/delete orders
-		List<AccountOrder> pendingOrders = accountOrderService.findPendingByUserTypeAndUserId(userType, userId);
-		for (AccountOrder order : pendingOrders) {
-			accountOrderService.delete(order);
-		}
+		accountOrderService.deletePendingDeactivateAndDeleteOrders(userType,userId);
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}

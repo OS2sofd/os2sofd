@@ -48,8 +48,6 @@ public interface AccountOrderDao extends CrudRepository<AccountOrder, Long> {
 
 	long countByUserTypeAndOrderTypeAndRequestedUserId(String userType, AccountOrderType orderType, String userId);
 
-	List<AccountOrder> findByStatusAndUserTypeAndRequestedUserId(AccountOrderStatus status, String userType, String userId);
-	
     List<AccountOrder> findByUserTypeAndOrderTypeAndStatusAndActualUserId(String userType, AccountOrderType orderType, AccountOrderStatus status, String actualUserId);
 
 	/*
@@ -70,4 +68,6 @@ public interface AccountOrderDao extends CrudRepository<AccountOrder, Long> {
 	void cleanupByTriggerAffiliation();
 
 	boolean existsByUserTypeAndOrderTypeAndRequestedUserIdAndStatusIn(String userType, AccountOrderType accountOrderType, String userId, List<AccountOrderStatus> pending);
+
+	void deleteByStatusInAndOrderTypeInAndUserTypeAndRequestedUserId(Set<AccountOrderStatus> statuses, Set<AccountOrderType> orderTypes, String userType, String userId);
 }
