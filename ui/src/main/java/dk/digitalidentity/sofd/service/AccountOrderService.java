@@ -198,10 +198,6 @@ public class AccountOrderService {
 	public List<AccountOrder> getPendingOrders(Person person) {
 		return accountOrderDao.findByPersonUuidAndStatus(person.getUuid(), AccountOrderStatus.PENDING);
 	}
-	
-	public List<AccountOrder> findPendingByUserTypeAndUserId(String userType, String userId) {
-		return accountOrderDao.findByStatusAndUserTypeAndRequestedUserId(AccountOrderStatus.PENDING, userType, userId);
-	}
 
 	public AccountOrder save(AccountOrder order) {
 		return save(order, null);
@@ -1434,6 +1430,17 @@ public class AccountOrderService {
 	public void deletePendingCreateOrders(Person person) {
 		accountOrderDao.deleteByStatusInAndPersonUuidInAndOrderTypeIn(Set.of(AccountOrderStatus.PENDING, AccountOrderStatus.PENDING_APPROVAL), Collections.singleton(person.getUuid()), Collections.singletonList(AccountOrderType.CREATE));
 	}
+
+	@Transactional(rollbackFor = Exception.class)
+	public void deletePendingDeactivateAndDeleteOrders(String userType, String userId) {
+		accountOrderDao.deleteByStatusInAndOrderTypeInAndUserTypeAndRequestedUserId(
+				Set.of(AccountOrderStatus.PENDING,
+				AccountOrderStatus.PENDING_APPROVAL),
+				Set.of(AccountOrderType.DEACTIVATE,AccountOrderType.DELETE)
+				,userType
+				, userId);
+	}
+
 
 	@Transactional(rollbackFor = Exception.class)
 	public void deletePendingExpireOrders(Person person) {
