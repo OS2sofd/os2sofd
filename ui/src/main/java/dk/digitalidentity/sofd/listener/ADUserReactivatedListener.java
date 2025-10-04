@@ -1,7 +1,6 @@
 package dk.digitalidentity.sofd.listener;
 
 import java.util.List;
-import java.util.Objects;
 
 import org.springframework.stereotype.Component;
 
@@ -9,14 +8,12 @@ import dk.digitalidentity.sofd.dao.model.EmailTemplate;
 import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
 import dk.digitalidentity.sofd.dao.model.EntityChangeQueueDetail;
 import dk.digitalidentity.sofd.dao.model.Person;
-import dk.digitalidentity.sofd.dao.model.User;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplatePlaceholder;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplateType;
 import dk.digitalidentity.sofd.listener.EntityListenerService.ChangeType;
 import dk.digitalidentity.sofd.service.EmailQueueService;
 import dk.digitalidentity.sofd.service.EmailTemplateService;
 import dk.digitalidentity.sofd.service.PersonService;
-import dk.digitalidentity.sofd.service.SupportedUserTypeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
