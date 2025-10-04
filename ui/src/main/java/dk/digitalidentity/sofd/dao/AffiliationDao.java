@@ -10,7 +10,6 @@ import org.springframework.data.repository.CrudRepository;
 
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
-import dk.digitalidentity.sofd.dao.model.Person;
 
 public interface AffiliationDao extends CrudRepository<Affiliation, Long> {
 	

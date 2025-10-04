@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -22,8 +21,7 @@ import dk.digitalidentity.sofd.dao.model.enums.EmailOrgUnitFilterType;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplateType;
 import dk.digitalidentity.sofd.dao.model.enums.EmployeeFilter;
 import dk.digitalidentity.sofd.dao.model.enums.SendTo;
-
-import javax.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
