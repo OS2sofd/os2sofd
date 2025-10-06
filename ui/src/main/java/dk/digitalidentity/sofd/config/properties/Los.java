@@ -23,4 +23,6 @@ public class Los {
 	private String preferredPrimeEmploymentTerms;
 	
 	private boolean allowSettingMasterId = false;
+
+	private boolean editPnrOnAllOrgUnitsEnabled = false;
 }

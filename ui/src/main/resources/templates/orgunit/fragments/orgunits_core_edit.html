@@ -127,7 +127,7 @@
 			<div class="row">
 				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.pnr}"></label>
 				<div class="col-sm-9">
-					<div th:if="${canEditAll == true}">
+						<div th:if="${canEditAll == true or canEditPnr == true}">
 						<div th:if="${@sofdConfiguration.integrations.cvr.isEnabled()}">
 							<div class="row">
 								<div class="col-sm-9">
@@ -146,7 +146,7 @@
 						</div>
 					</div>
 					
-					<input th:if="${canEditAll == false}" th:field="${orgUnit.pnr}" class="form-control masterTooltip" readonly="readonly" />
+					<input th:if="${canEditAll == false and canEditPnr == false}" th:field="${orgUnit.pnr}" class="form-control masterTooltip" readonly="readonly" />
 				</div>
 			</div>
 	
