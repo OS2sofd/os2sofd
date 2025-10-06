@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
+import dk.digitalidentity.sofd.config.SofdConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.data.util.Pair;
@@ -120,7 +121,9 @@ public class OrgUnitController {
 
 	@Autowired
 	private SubstituteContextService substituteContextService;
-	
+    @Autowired
+    private SofdConfiguration sofdConfiguration;
+
 	record TagAssignmentDTO(String uuid, String value, String shortValue) {}
 	@GetMapping("/ui/orgunit")
 	public String list(Model model) {
@@ -730,8 +733,10 @@ public class OrgUnitController {
 			List<OrgUnitType> orgUnitTypes = orgUnitService.getTypes();
 
 			boolean canEditAll = SecurityUtil.getUserRoles().contains(RoleConstants.USER_ROLE_LOS_ADMIN) && "SOFD".equals(orgUnit.getMaster());
+			boolean canEditPnr = SecurityUtil.getUserRoles().contains(RoleConstants.USER_ROLE_LOS_ADMIN) && sofdConfiguration.getModules().getLos().isEditPnrOnAllOrgUnitsEnabled();
 
 			model.addAttribute("canEditAll", canEditAll);
+			model.addAttribute("canEditPnr", canEditPnr);
 			model.addAttribute("orgUnits", orgUnits);
 			model.addAttribute("orgUnitTypes", orgUnitTypes);
 
