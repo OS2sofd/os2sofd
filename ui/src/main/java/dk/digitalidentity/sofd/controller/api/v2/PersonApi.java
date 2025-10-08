@@ -175,10 +175,12 @@ public class PersonApi {
 			seedPrefix = sofdConfiguration.getCustomer().getCvr() + record.getCpr();
 		}
 
-		Person person = personService.save(record.toPerson(null, seedPrefix));
-		
+
+		Person person = record.toPerson(null, seedPrefix);
 		checkForADUserWithSameUserId(person);
-		
+
+		person = personService.save(record.toPerson(null, seedPrefix));
+
 		return new ResponseEntity<>(new PersonApiRecord(person), HttpStatus.CREATED);
 	}
 
