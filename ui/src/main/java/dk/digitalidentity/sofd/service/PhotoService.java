@@ -14,7 +14,9 @@ import org.springframework.stereotype.Service;
 
 import dk.digitalidentity.sofd.dao.PhotoDao;
 import dk.digitalidentity.sofd.dao.model.Photo;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class PhotoService {
 
@@ -32,11 +34,16 @@ public class PhotoService {
             photo = new Photo();
             photo.setPersonUuid(personUuid);
         }
+        
         photo.setLastChanged(new Date());
         photo.setData(data);
         photo.setChecksum(getCRC32Checksum(data));
         photo.setFormat(getImageFormat(data));
-        photoDao.save(photo);
+        
+        // if the image cannot be parsed, photo will be null
+        if (photo.getFormat() != null) {
+        	photoDao.save(photo);
+        }
     }
 
     @Transactional
@@ -54,7 +61,9 @@ public class PhotoService {
         try {
             String contentType = URLConnection.guessContentTypeFromStream(new ByteArrayInputStream(data));
             return contentType.startsWith("image/") ? contentType.substring("image/".length()) : null;
-        } catch (Exception e) {
+        }
+        catch (Exception ex) {
+        	log.warn("Unable to parse photo: " + ex.getMessage());
             return null;
         }
     }
