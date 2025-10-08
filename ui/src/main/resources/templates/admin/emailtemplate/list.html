@@ -34,10 +34,10 @@
 										<td th:text="${template.title}"></td>
 										<td>
 											<span th:if="${template.enabled}"><i class="fa fa-check" aria-hidden="true"></i><span style="display: none;">Activated</span></span>
-											<span th:unless="${template.enabled}"><i class="fa fa-times" aria-hidden="true"></i><span style="display: none;">Deactivated</span></span>
+											<span th:unless="${template.enabled}"><span style="display: none;">Deactivated</span></span>
 										</td>
 										<td>
-											<a th:href="@{/ui/admin/mailtemplates/edit(childId=${template.id}, templateId=${template.getTemplateId})}" title="Rediger skabalon"><em class="fa fa-fw fa-search"></em></a>
+											<a th:href="@{/ui/admin/mailtemplates/edit(childId=${template.id}, templateId=${template.getTemplateId})}" title="Rediger skabalon"><em class="fa fa-fw fa-pencil"></em></a>
 											<form th:if="${!template.enabled}" th:action="@{/rest/mailtemplates/activatechild/{id}(id=${template.id})}" method="post" style="display:inline;">
 											    <button type="submit" style="border:none; background:none; padding:0; cursor:pointer; color:inherit;" title="Aktiver skabelon">
 											        <em class="fa fa-fw fa-toggle-off"></em>

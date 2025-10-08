@@ -53,7 +53,7 @@ public class MailTemplateController {
 	
 	@GetMapping("/ui/admin/mailtemplates/new")
 	public String newTemplate(Model model, Locale locale) {
-		List<EmailTemplate> templates = emailTemplateService.findAllUnused();
+		List<EmailTemplate> templates = emailTemplateService.getAll();
 
 		if (!configuration.getModules().getAccountCreation().isEnabled()) {
 			templates = templates.stream()
@@ -87,24 +87,10 @@ public class MailTemplateController {
 			emailTemplateDTO.setTemplateTypeText(template.getTemplateType().getMessage());
 			
 			List<EmailTemplateChildDTO> templateChildDTOs = new ArrayList<>();
-			for (EmailTemplateChild child : template.getChildren()) {
-				EmailTemplateChildDTO childDto = new EmailTemplateChildDTO(child);
-				List<AttachmentDTO> attachmentDTOs = new ArrayList<>();
-
-				if (child.getAttachments() != null && !child.getAttachments().isEmpty()) {
-					for (Attachment attachment : child.getAttachments()) {
-						AttachmentDTO attachmentDTO = new AttachmentDTO();
-						attachmentDTO.setFilename(attachment.getFilename());
-						attachmentDTO.setId(attachment.getId());
-						
-						attachmentDTOs.add(attachmentDTO);
-					}
-				}
-
-				childDto.setAttachments(attachmentDTOs);
-				templateChildDTOs.add(childDto);
-			}
-
+			EmailTemplateChildDTO childDto = new EmailTemplateChildDTO(emailTemplateService.generateDefaultChild(template));
+			List<AttachmentDTO> attachmentDTOs = new ArrayList<>();
+			childDto.setAttachments(attachmentDTOs);
+			templateChildDTOs.add(childDto);
 			emailTemplateDTO.setChildren(templateChildDTOs);
 			templateDTOs.add(emailTemplateDTO);
 		}
@@ -119,7 +105,7 @@ public class MailTemplateController {
 	
 	@GetMapping("/ui/admin/mailtemplates/edit")
 	public String editTemplate(Model model, Locale locale) {
-		List<EmailTemplate> templates = emailTemplateService.findAll();
+		List<EmailTemplate> templates = emailTemplateService.getAll();
 
 		if (!configuration.getModules().getAccountCreation().isEnabled()) {
 			templates = templates.stream()
