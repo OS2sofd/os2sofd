@@ -42,16 +42,6 @@ public class EmailTemplateService {
 	@Autowired
 	private EmailTemplateChildDao emailTemplateChildDao;
 
-	public List<EmailTemplate> findAll() {
-		List<EmailTemplate> result = new ArrayList<>();
-		
-		for (EmailTemplateType type : EmailTemplateType.values()) {
-			result.add(findByTemplateType(type));
-		}
-		
-		return result;
-	}
-
 	private void createMissingTemplates() {
 		for (EmailTemplateType type : EmailTemplateType.values()) {
 			if (!emailTemplateDao.existsByTemplateType(type)) {
@@ -62,13 +52,9 @@ public class EmailTemplateService {
 		}
 	}
 	
-	public List<EmailTemplate> findAllUnused() {
+	public List<EmailTemplate> getAll() {
 		createMissingTemplates();
-		List<EmailTemplate> result = new ArrayList<>();
-		for (EmailTemplateType type : EmailTemplateType.values()) {
-			result.add(findUnusedByTemplateType(type));
-		}
-		return result.stream().filter(Objects::nonNull).toList();
+		return emailTemplateDao.findAll();
 	}
 	
 	public EmailTemplateChild generateDefaultChild(EmailTemplate template) {
@@ -215,27 +201,6 @@ public class EmailTemplateService {
 			template = emailTemplateDao.save(template);
 		}
 		
-		return template;
-	}
-
-	//finds unused templates childs and creates, but doesn't save, them
-	private EmailTemplate findUnusedByTemplateType(EmailTemplateType type) {
-		EmailTemplate template = emailTemplateDao.findByTemplateType(type);
-		if (template == null) {
-			log.error("No template found for type " + type);
-			return null;
-		}
-		else if (template.getChildren().isEmpty()) {
-			//creates a childTemplate with the default settings and titles
-			template.getChildren().add(generateDefaultChild(template));
-			return template;
-		}
-		//creates default child with no title
-		List<EmailTemplateChild> blankChildren = new ArrayList<>();
-		EmailTemplateChild blankChild = generateDefaultChild(template);
-		blankChild.setTitle("");
-		blankChildren.add(blankChild);
-		template.setChildren(blankChildren);
 		return template;
 	}
 
