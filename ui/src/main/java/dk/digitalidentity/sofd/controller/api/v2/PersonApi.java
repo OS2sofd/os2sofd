@@ -175,10 +175,8 @@ public class PersonApi {
 			seedPrefix = sofdConfiguration.getCustomer().getCvr() + record.getCpr();
 		}
 
-
 		Person person = record.toPerson(null, seedPrefix);
-		checkForADUserWithSameUserId(person);
-
+		personService.deleteExistingDuplicateUsers(person);
 		person = personService.save(record.toPerson(null, seedPrefix));
 
 		return new ResponseEntity<>(new PersonApiRecord(person), HttpStatus.CREATED);
@@ -225,6 +223,8 @@ public class PersonApi {
 		}
 
 		Person record = personRecord.toPerson(person, seedPrefix);
+		// we need to delete duplicates before attempting to do any changes
+		personService.deleteExistingDuplicateUsers(record);
 		boolean changes = false;
 		
 		// in patch() fields are only updated if the supplied record is non-null, meaning PATCH cannot
@@ -446,7 +446,6 @@ public class PersonApi {
 				}
 
 				for (T recordEntry : recordCollection) {
-					checkForADUserWithSameUserId(recordEntry);
 					personCollection.add(recordEntry);
 				}
 				
@@ -489,8 +488,6 @@ public class PersonApi {
 
 					// add if it does not exist
 					if (!found) {
-						checkForADUserWithSameUserId(recordEntry);
-						
 						personCollection.add(recordEntry);
 						changes = true;
 					}
@@ -820,55 +817,6 @@ public class PersonApi {
 	    return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 	}
 
-	// this is called when a PATCH operation on a Person adds an ACTIVE_DIRECTORY user object. We need to ensure
-	// that this User object does not exist on other persons, to avoid duplicate issues in our synchronization with
-	// other external systems. This removes the User object from the other Person
-	private <T extends MappedEntity> void checkForADUserWithSameUserId(T recordEntry) {
-		try {
-			MasteredEntity recordMasteredEntity = recordEntry.getEntity();
-			
-			if (recordMasteredEntity instanceof User &&
-				Objects.equals(((User) recordMasteredEntity).getUserType(), SupportedUserTypeService.getActiveDirectoryUserType())) {
-	
-				String userId = ((User) recordMasteredEntity).getUserId();
-				List<Person> personsWithSameAD = personService.findByUserTypeAndUserId(SupportedUserTypeService.getActiveDirectoryUserType(), userId);
-				
-				for (Person personWithSameAD : personsWithSameAD) {
-					log.info("Deleting user with userId " + userId + " of type Active Directory from person with uuid " + personWithSameAD.getUuid());
-
-					personWithSameAD.getUsers().removeIf(u -> Objects.equals(u.getUser().getUserId(), userId) && SupportedUserTypeService.isActiveDirectory(u.getUser().getUserType()));
-					personService.save(personWithSameAD);
-				}
-			}
-		}
-		catch (Exception ex) {
-			log.error("Failed to remove '" + recordEntry.getEntity().getMasterId() + "' from other person", ex);
-		}
-	}
-
-	// same as above, but this is called when creating a new Person
-	private void checkForADUserWithSameUserId(Person person) {
-		try {
-			for (User user : PersonService.getUsers(person)) {
-				if (SupportedUserTypeService.isActiveDirectory(user.getUserType())) {					
-					List<Person> personsWithSameAD = personService.findByUserTypeAndUserId(SupportedUserTypeService.getActiveDirectoryUserType(), user.getUserId());
-	
-					for (Person personWithSameAD : personsWithSameAD) {
-						if (!Objects.equals(personWithSameAD.getUuid(), person.getUuid())) {
-							log.info("Deleting user with userId " + user.getUserId() + " of type Active Directory from person with uuid " + personWithSameAD.getUuid());
-		
-							personWithSameAD.getUsers().removeIf(u -> Objects.equals(u.getUser().getUserId(), user.getUserId()) && SupportedUserTypeService.isActiveDirectory(u.getUser().getUserType()));				
-							personService.save(personWithSameAD);
-						}
-					}
-				}
-			}
-		}
-		catch (Exception ex) {
-			log.error("Failed to remove duplicate users based on source '" + PersonService.maskCpr(person.getCpr()) + "' from other person", ex);
-		}
-	}
-	
 	private boolean patchActiveDirectoryFields(Person person, User user, User userRecord) {
 		boolean changes = false;
 
