@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -18,7 +19,9 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import dk.digitalidentity.sofd.dao.PersonDaoCustom;
 import dk.digitalidentity.sofd.dao.model.enums.LeaveReason;
+import dk.digitalidentity.sofd.dao.model.mapping.PersonUserMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -82,6 +85,9 @@ public class PersonService {
 
 	@Autowired
 	private PersonDao personDao;
+
+	@Autowired
+	private PersonDaoCustom personDaoCustom;
 
 	@Autowired
 	private NotificationService notificationService;
@@ -300,10 +306,28 @@ public class PersonService {
 
 	public Person save(Person person) {
 		person.setLastChanged();
-
 		return personDao.save(person);
 	}
-	
+
+	public void deleteExistingDuplicateUsers(Person person) {
+		var personsWithDuplicateUsers = personDaoCustom.findPersonsWithDuplicateUsers(person);
+		for (var personWithDuplicateUsers : personsWithDuplicateUsers) {
+			for (var conflictingUser : person.getUsers())
+			{
+				Iterator<PersonUserMapping> iterator = personWithDuplicateUsers.getUsers().iterator();
+				while (iterator.hasNext()) {
+					var u = iterator.next();
+					if (Objects.equals(u.getUser().getMaster(), conflictingUser.getUser().getMaster())
+							&& Objects.equals(u.getUser().getMasterId(), conflictingUser.getUser().getMasterId())) {
+						log.info("Deleting duplicate user with master " + u.getUser().getMaster() + " and masterId " + u.getUser().getMasterId() + " from person with uuid " + personWithDuplicateUsers.getUuid());
+						iterator.remove();
+					}
+				}
+			}
+			self.save(personWithDuplicateUsers);
+		}
+	}
+
 	@Transactional
 	public void saveBulkWithTransaction(List<Person> persons) {
 		for (Person person : persons) {
