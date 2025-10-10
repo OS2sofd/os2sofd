@@ -159,7 +159,7 @@ public class PersonApiRecord extends BaseRecord {
 		person.setUuid(uuid);
 		person.setAnniversaryDate(toDate(anniversaryDate));
 		person.setChosenName(chosenName);
-		person.setCpr(actualPerson.getCpr()); // used for deleting existing duplicate users on other persons
+		person.setCpr(cpr);
 		person.setFirstEmploymentDate(toDate(firstEmploymentDate));
 		person.setFirstname(firstname);
 		person.setLocalExtensions(mapToString(localExtensions));

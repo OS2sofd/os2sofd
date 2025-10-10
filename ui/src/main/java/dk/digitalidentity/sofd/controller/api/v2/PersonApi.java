@@ -176,7 +176,7 @@ public class PersonApi {
 		}
 
 		Person person = record.toPerson(null, seedPrefix);
-		personService.deleteExistingDuplicateUsers(person);
+		personService.deleteExistingDuplicateUsers(person,record.getUuid());
 		person = personService.save(record.toPerson(null, seedPrefix));
 
 		return new ResponseEntity<>(new PersonApiRecord(person), HttpStatus.CREATED);
@@ -224,7 +224,7 @@ public class PersonApi {
 
 		Person record = personRecord.toPerson(person, seedPrefix);
 		// we need to delete duplicates before attempting to do any changes
-		personService.deleteExistingDuplicateUsers(record);
+		personService.deleteExistingDuplicateUsers(record, person.getUuid());
 		boolean changes = false;
 		
 		// in patch() fields are only updated if the supplied record is non-null, meaning PATCH cannot
