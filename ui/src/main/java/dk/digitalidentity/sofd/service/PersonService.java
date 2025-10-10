@@ -309,8 +309,8 @@ public class PersonService {
 		return personDao.save(person);
 	}
 
-	public void deleteExistingDuplicateUsers(Person person) {
-		var personsWithDuplicateUsers = personDaoCustom.findPersonsWithDuplicateUsers(person);
+	public void deleteExistingDuplicateUsers(Person person, String personUuid) {
+		var personsWithDuplicateUsers = personDaoCustom.findPersonsWithDuplicateUsers(person, personUuid);
 		for (var personWithDuplicateUsers : personsWithDuplicateUsers) {
 			for (var conflictingUser : person.getUsers())
 			{

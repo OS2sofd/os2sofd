@@ -18,7 +18,7 @@ public class PersonDaoCustomImpl implements PersonDaoCustom {
 	private EntityManager entityManager;
 
 	@Override
-	public List<Person> findPersonsWithDuplicateUsers(Person person) {
+	public List<Person> findPersonsWithDuplicateUsers(Person person, String personUuid) {
 		if (person == null || person.getUsers() == null || person.getUsers().isEmpty()) {
 			return Collections.emptyList();
 		}
@@ -28,7 +28,7 @@ public class PersonDaoCustomImpl implements PersonDaoCustom {
             FROM persons p
             INNER JOIN persons_users pu ON pu.person_uuid = p.uuid
             INNER JOIN users u ON u.id = pu.user_id
-            WHERE p.cpr <> ?
+            WHERE p.uuid <> ?
             AND (u.master, u.master_id) IN (
             """);
 
@@ -44,8 +44,8 @@ public class PersonDaoCustomImpl implements PersonDaoCustom {
 		Query query = entityManager.createNativeQuery(sql.toString(), Person.class);
 		query.setFlushMode(FlushModeType.COMMIT); // don't flush before this query
 
-		// set CPR parameter
-		query.setParameter(1, person.getCpr());
+		// set uuid parameter - empty string instead of null for sql syntax reasons (<> null does not give valid results))
+		query.setParameter(1, personUuid == null ? "" : personUuid);
 
 		// set composite key parameters
 		int paramIndex = 2;
