@@ -27,14 +27,17 @@
         <div class="row" th:if="${@sofdConfiguration.getModules().getAffiliation().isAlternativeOUAssignable()}" id="altOURow">
             <label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.altorgunit}"></label>
             <div class="col-sm-9">
-                <input id="alternativeOrgUnitUuid" type="hidden" th:field="${affiliation.alternativeOrgUnit.uuid}"/>
-                <input id="alternativeOrgUnit" th:field="${affiliation.alternativeOrgUnit.name}" class="form-control" style="background-color: #fff;" readonly="readonly" onfocus="chooseOU('alt')"/>
-                <!-- <input th:unless="${affiliation.alternativeOrgUnit != null}" id="alternativeOrgUnit" class="form-control" style="background-color: #fff;" readonly="readonly" onfocus="chooseOU()"/> -->
+            	<th:block th:if="${affiliation.alternativeOrgUnit != null}">
+	                <input id="alternativeOrgUnitUuid" type="hidden" th:field="${affiliation.alternativeOrgUnit.uuid}"/>
+	                <input id="alternativeOrgUnit" th:field="${affiliation.alternativeOrgUnit.name}" class="form-control" style="background-color: #fff;" readonly="readonly" onfocus="chooseOU('alt')"/>
+                </th:block>
+            	<th:block th:if="${affiliation.alternativeOrgUnit == null}">
+	                <input id="alternativeOrgUnitUuid" type="hidden" />
+	                <input id="alternativeOrgUnit" class="form-control" style="background-color: #fff;" readonly="readonly" onfocus="chooseOU('alt')"/>
+                </th:block>
             </div>
         </div>
     </div>
-
-
 
     <script th:inline="javascript" type="text/javascript">
 		/*<![CDATA[*/
