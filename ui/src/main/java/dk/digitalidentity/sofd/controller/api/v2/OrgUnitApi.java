@@ -147,7 +147,7 @@ public class OrgUnitApi {
 			managerService.sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, orgUnit.getManager().getName());
 		}
 
-		orgUnit.setManager(null);
+		orgUnit.setSelectedManagerUuid(null);
 		orgUnitService.save(orgUnit);
 		
 		return new ResponseEntity<>(HttpStatus.OK);
