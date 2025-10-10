@@ -14,6 +14,32 @@ DROP PROCEDURE IF EXISTS update_orgunit_manager_recursive;
 DELIMITER $$
 CREATE PROCEDURE update_orgunit_manager_recursive(IN in_orgunit_uuid VARCHAR(36), IN in_initialize BOOLEAN)
 BEGIN
+
+    -- delete all rows for the subtree that will be recalculated
+    IF in_initialize THEN
+        -- clear everything when initializing
+        DELETE FROM orgunits_manager;
+    ELSE
+        -- delete the subtree starting from in_orgunit_uuid
+        DELETE FROM orgunits_manager
+        WHERE orgunit_uuid IN (
+            SELECT uuid FROM (
+                WITH RECURSIVE subtree AS (
+                    SELECT uuid
+                    FROM orgunits
+                    WHERE uuid = in_orgunit_uuid
+
+                    UNION ALL
+
+                    SELECT o.uuid
+                    FROM orgunits o
+                    INNER JOIN subtree s ON o.parent_uuid = s.uuid
+                )
+                SELECT uuid FROM subtree
+            ) AS derived_subtree
+        );
+    END IF;
+
     INSERT INTO orgunits_manager (orgunit_uuid, manager_uuid, inherited, name, source)
     WITH RECURSIVE cte AS
                        (
