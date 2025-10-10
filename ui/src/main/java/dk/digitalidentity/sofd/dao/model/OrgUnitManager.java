@@ -49,7 +49,7 @@ public class OrgUnitManager {
 	@JsonBackReference
 	private OrgUnit orgUnit;
 
-	public OrgUnitManager() {}
+	public OrgUnitManager() { }
 
 	// this constructor is used for generating a future manager for UI - not for actually creating a new manager in the db.
 	public OrgUnitManager(OrgUnit orgUnit, Person manager, boolean inherited) {

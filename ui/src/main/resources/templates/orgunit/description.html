@@ -14,7 +14,8 @@
             <div class="form-group">
                 <label class="col-sm-2 control-label" th:text="#{html.entity.orgunit.manager}"></label>
                 <div class="col-sm-10">
-                    <input th:field="${orgUnit.manager.name}" class="form-control" disabled="disabled"/>
+                    <input th:if="${orgUnit.manager != null}" th:field="${orgUnit.manager.name}" class="form-control" disabled="disabled"/>
+                    <input th:if="${orgUnit.manager == null}" class="form-control" disabled="disabled"/>
                 </div>
             </div>
         </fieldset>
