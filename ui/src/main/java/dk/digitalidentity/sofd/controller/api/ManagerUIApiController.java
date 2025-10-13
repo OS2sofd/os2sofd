@@ -196,7 +196,7 @@ public class ManagerUIApiController {
 		}
 	}
 
-	private record AffiliationDTO(long id, String personName, String positionName, String positionDisplayName, String orgUnitName, boolean active, @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")  Date startDate, @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd") Date stopDate, String internalReference, String adUserInfo) {}
+	private record AffiliationDTO(long id, String personName, String positionName, String positionDisplayName, String orgUnitName, boolean active, @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")  LocalDate startDate, @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd") LocalDate stopDate, String internalReference, String adUserInfo) {}
 	@GetMapping("/api/manager/{uuid}/affiliations")
 	public ResponseEntity<?> getEditableAffiliations(@PathVariable String uuid) {
 		Person person = personService.getByUuid(uuid);
@@ -221,7 +221,7 @@ public class ManagerUIApiController {
 					adUserInfo += " (deaktiveret)";
 				}
 			}
-			var affiliationDto = new AffiliationDTO(a.getId(), PersonService.getName(a.getPerson()), a.getPositionName(), a.getPositionDisplayName(), a.getCalculatedOrgUnit().getName(), AffiliationService.activeAndNotStopped(a), a.getStartDate(), a.getStopDate(), a.getInternalReference(),adUserInfo);
+			var affiliationDto = new AffiliationDTO(a.getId(), PersonService.getName(a.getPerson()), a.getPositionName(), a.getPositionDisplayName(), a.getCalculatedOrgUnit().getName(), AffiliationService.activeAndNotStopped(a), toLocalDate(a.getStartDate()), toLocalDate(a.getStopDate()), a.getInternalReference(),adUserInfo);
 			result.add(affiliationDto);
 		}
 
