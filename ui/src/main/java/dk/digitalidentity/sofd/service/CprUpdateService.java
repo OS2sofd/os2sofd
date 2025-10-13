@@ -81,13 +81,19 @@ public class CprUpdateService {
 		}
 	}
 	
-	@Transactional
 	public void updatePersonsWithLastCprDigit(String digit) {
 		Authentication authentication = SecurityUtil.getLoginSession();
 		try {
 			SecurityUtil.fakeLoginSession();
 
-			List<Person> activePersons = personService.getActive();
+			// preload data, so we do not need a transaction
+			List<Person> activePersons = personService.getActive(p -> {
+				if (p.getChildren() != null && p.getChildren().size() > 0) {
+					p.getChildren().forEach(c -> {
+						c.getName();
+					});
+				}
+			});
 
 			int count = 0;
 			for (Person person : activePersons) {

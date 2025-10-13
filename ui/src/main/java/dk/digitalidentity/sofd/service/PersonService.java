@@ -554,10 +554,11 @@ public class PersonService {
 				if (dead) {
 					sendDeadOrDisenfranchisedNotification(person, NotificationType.PERSON_DEAD, "Personen er blevet meldt død eller bortkommet i cpr registeret");
 	
-					if( person.getUsers().stream().anyMatch(u -> SupportedUserTypeService.isActiveDirectory(u.getUser().getUserType())) ) {
+					if (person.getUsers().stream().anyMatch(u -> SupportedUserTypeService.isActiveDirectory(u.getUser().getUserType()))) {
 						sendDeadOrDisenfranchisedNotification(person, NotificationType.PERSON_DEAD_AD_ONLY, "Personen er registreret med en AD-konto og er blevet meldt død eller bortkommet i cpr registeret");
 					}
-					if( person.getUsers().stream().anyMatch(u -> !u.getUser().isDisabled() && SupportedUserTypeService.isActiveDirectory(u.getUser().getUserType())) ) {
+
+					if (person.getUsers().stream().anyMatch(u -> !u.getUser().isDisabled() && SupportedUserTypeService.isActiveDirectory(u.getUser().getUserType()))) {
 						sendDeadOrDisenfranchisedNotification(person, NotificationType.PERSON_DEAD_ACTIVE_AD_ONLY, "Personen er registreret med en aktiv AD-konto og er blevet meldt død eller bortkommet i cpr registeret");
 					}
 				}
@@ -594,7 +595,7 @@ public class PersonService {
 			}
 		}
 
-		if( !Objects.equals(person.getFirstname(), firstname) || !Objects.equals(person.getSurname(), surname) ) {
+		if (!Objects.equals(person.getFirstname(), firstname) || !Objects.equals(person.getSurname(), surname)) {
 			person.setFirstname(firstname);
 			person.setSurname(surname);
 
@@ -604,10 +605,11 @@ public class PersonService {
 			}
 
 			// if person has no users - delete reserved usernames so they will get generated from new name
-			if( person.getUsers().size() == 0 ) {
+			if (person.getUsers().size() == 0) {
 				reservedUsernameDao.deleteByPersonUuid(person.getUuid());
 			}
 		}
+
 		person.setUpdatedFromCpr(true);
 		self.save(person);
 	}
