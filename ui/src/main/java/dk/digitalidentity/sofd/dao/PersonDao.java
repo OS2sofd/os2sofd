@@ -180,8 +180,9 @@ public interface PersonDao extends JpaRepository<Person, String>, JpaSpecificati
 	long countSofdSubstituteAssignments(String personUuid);
 
 	<S extends Person> List<S> findByDeletedFalse();
-	
-	@Query(nativeQuery = true, value = "SELECT pa.rev AS rev,r.auditor_name as auditorName, FROM_UNIXTIME(r.timestamp/1000) as lastChanged FROM persons_aud pa JOIN revisions r ON r.id = pa.rev WHERE pa.uuid = ?1 order by r.id")
+
+	// using UTC as baseline to get correct time regardless of db connection timezone settings
+	@Query(nativeQuery = true, value = "SELECT pa.rev AS rev, r.auditor_name as auditorName, CAST(TIMESTAMPADD(SECOND, r.timestamp/1000, '1970-01-01 00:00:00') + INTERVAL 2 HOUR AS DATETIME) as lastChanged FROM persons_aud pa JOIN revisions r ON r.id = pa.rev WHERE pa.uuid = ?1 ORDER BY r.id")
 	List<RevisionId> getRevisionIds(String id);
 
 	@Modifying
