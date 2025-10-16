@@ -706,11 +706,6 @@ public class AccountOrderService {
 				continue;
 			}
 
-			// find active affiliations of types that can affect account orders
-			List<Affiliation> affiliations = person.getAffiliations().stream()
-					.filter(a -> masters.contains(a.getMaster()))
-					.collect(Collectors.toList());
-
 			// if the person never had affiliations controlled by masters that are used in the IdM process (including aud table)
 			// we skip deactivation - unless configured to generate those delete orders anyway
 			if (configuration.getScheduled().getAccountOrderGeneration().isIgnoreDeleteOrdersIfNoAffiliations() && !personUuidsWithAffiliationHistory.contains(person.getUuid())) {
@@ -732,6 +727,11 @@ public class AccountOrderService {
 					log.warn("Unknown userType when iterating over persons user accounts: " + user.getUserType());
 					continue;
 				}
+				
+				// find active affiliations of types that can affect account orders
+				List<Affiliation> affiliations = person.getAffiliations().stream()
+						.filter(a -> masters.contains(a.getMaster()))
+						.collect(Collectors.toList());
 
 				affiliations = AffiliationService.notStoppedAffiliations(affiliations);
 
