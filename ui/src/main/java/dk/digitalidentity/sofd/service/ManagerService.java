@@ -216,8 +216,8 @@ public class ManagerService {
 
 			if( !child.isOnlyManualRecipients())
 			{
-				if( orgUnit.getManager() != null ) {
-					var managerOrSubstitutes = emailTemplateService.getManagerOrSubstitutes(child, orgUnit.getManager().getManager(), orgUnit.getUuid());
+				if( managerPerson != null ) {
+					var managerOrSubstitutes = emailTemplateService.getManagerOrSubstitutes(child, managerPerson, orgUnit.getUuid());
 					for( var managerOrSubstitute : managerOrSubstitutes ) {
 						var email = PersonService.getEmail(managerOrSubstitute);
 						if( StringUtils.hasLength(email) ) {
