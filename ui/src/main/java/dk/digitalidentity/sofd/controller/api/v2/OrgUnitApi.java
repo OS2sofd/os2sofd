@@ -143,8 +143,8 @@ public class OrgUnitApi {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 
-		if (orgUnit.getManager() != null && StringUtils.hasLength(orgUnit.getManager().getName())) {
-			managerService.sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, orgUnit.getManager().getName());
+		if (orgUnit.getManager() != null) {
+			managerService.sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, orgUnit.getManager().getManager());
 		}
 
 		orgUnit.setSelectedManagerUuid(null);
