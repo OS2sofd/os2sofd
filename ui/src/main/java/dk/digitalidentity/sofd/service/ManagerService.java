@@ -49,9 +49,10 @@ public class ManagerService {
 					var validManager = getValidManager(orgUnit.getImportedManagerUuid());
 					if( validManager == null )
 					{
-						var previousManager = orgUnit.getImportedManagerUuid();
+						var previousManagerUuid = orgUnit.getImportedManagerUuid();
+						var previousManager = personService.getByUuid(previousManagerUuid);
 						// manager is no longer valid, remove it
-						log.info("Removing invalid imported manager " + previousManager + " from orgunit " + orgUnit.getName() + " (" + orgUnit.getUuid() + ")");
+						log.info("Removing invalid imported manager " + previousManagerUuid + " from orgunit " + orgUnit.getName() + " (" + orgUnit.getUuid() + ")");
 						orgUnit.setImportedManagerUuid(null);
 						orgUnitService.save(orgUnit);
 						// if orgunit has no selected manager, this change should trigger email templates
@@ -66,9 +67,10 @@ public class ManagerService {
 					var validManager = getValidManager(orgUnit.getSelectedManagerUuid());
 					if( validManager == null )
 					{
-						var previousManager = orgUnit.getSelectedManagerUuid();
+						var previousManagerUuid = orgUnit.getSelectedManagerUuid();
+						var previousManager = personService.getByUuid(previousManagerUuid);
 						// manager is no longer valid, remove it
-						log.info("Removing invalid selected manager " + previousManager + " from orgunit " + orgUnit.getName() + " (" + orgUnit.getUuid() + ")");
+						log.info("Removing invalid selected manager " + previousManagerUuid + " from orgunit " + orgUnit.getName() + " (" + orgUnit.getUuid() + ")");
 						orgUnit.setSelectedManagerUuid(null);
 						// since we prefer selected over imported managers this removal should always trigger email templates
 						sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, previousManager);
@@ -90,7 +92,8 @@ public class ManagerService {
 				var validManager = importedManagerUuid != null ? getValidManager(importedManagerUuid) : null;
 				var validManagerUuid = validManager != null ? validManager.getUuid() : null;
 				if( !Objects.equals(orgUnit.getImportedManagerUuid(),validManagerUuid) ) {
-					var previousManager = orgUnit.getImportedManagerUuid();
+					var previousManagerUuid = orgUnit.getImportedManagerUuid();
+					var previousManager = previousManagerUuid != null ? personService.getByUuid(previousManagerUuid) : null;
 					orgUnit.setImportedManagerUuid(validManagerUuid);
 					orgUnitService.save(orgUnit);
 					// if orgUnit does not have a selected manager, this change should trigger email templates
@@ -102,7 +105,7 @@ public class ManagerService {
 						else
 						{
 							// the manager was changed or added
-							sendMail(orgUnit, EmailTemplateType.NEW_MANAGER, PersonService.getName(validManager));
+							sendMail(orgUnit, EmailTemplateType.NEW_MANAGER, validManager);
 						}
 					}
 				}
@@ -128,13 +131,13 @@ public class ManagerService {
 		if( orgUnit.getManager() != null && orgUnit.getManager().getSource() == OrgUnitManagerSource.IMPORTED && Objects.equals(orgUnit.getManager().getManagerUuid(), validManagerUuid ))
 		{
 			if( orgUnit.getSelectedManagerUuid() != null ) {
-				var previousManager = orgUnit.getSelectedManagerUuid();
-				var previousManagerName = orgUnit.getManager().getName();
+				var previousManagerUuid = orgUnit.getSelectedManagerUuid();
+				var previousManager = personService.getByUuid(previousManagerUuid);
 				log.trace("Clearing selected manager");
 				orgUnit.setSelectedManagerUuid(null);
-				if( !Objects.equals(previousManager,validManagerUuid) ) {
+				if( !Objects.equals(previousManagerUuid,validManagerUuid) ) {
 					// the manager was removed
-					sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, previousManagerName);
+					sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, previousManager);
 				}
 				return true;
 			}
@@ -151,12 +154,12 @@ public class ManagerService {
 			orgUnit.setSelectedManagerUuid(validManagerUuid);
 			if( orgUnit.getSelectedManagerUuid() == null && previousManager != null) {
 				// the manager was removed
-				sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, previousManager.getName());
+				sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, previousManager.getManager());
 			}
 			else
 			{
 				// the manager was changed or added
-				sendMail(orgUnit, EmailTemplateType.NEW_MANAGER, PersonService.getName(validManager));
+				sendMail(orgUnit, EmailTemplateType.NEW_MANAGER, validManager);
 			}
 			return true;
 		}
@@ -195,7 +198,8 @@ public class ManagerService {
 		return substitutes.toString();
 	}
 	
-	public void sendMail(OrgUnit orgUnit, EmailTemplateType type, String employeeName) {
+	public void sendMail(OrgUnit orgUnit, EmailTemplateType type, Person managerPerson) {
+		String managerName = managerPerson != null ? PersonService.getName(managerPerson) : "";
 		EmailTemplate template = emailTemplateService.findByTemplateType(type);
 
 		var substituteReplacementString = getSubstituteReplacementString(orgUnit);
@@ -236,18 +240,18 @@ public class ManagerService {
 				String message = child.getMessage();
 				message = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 				message = message.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnit.getName());
-				message = message.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), employeeName);
+				message = message.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), managerName);
 				message = message.replace(EmailTemplatePlaceholder.SUBSTITUTE_LIST.getPlaceholder(), substituteReplacementString);
 
 				String title = child.getTitle();
 				title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 				title = title.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnit.getName());
-				title = title.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), employeeName);
+				title = title.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), managerName);
 
 				var logContext = new StringBuilder();
 				logContext.append("Skabelon: ").append(child.getTitle());
 				logContext.append(", ").append("Enhed: ").append(orgUnit.getName());
-				logContext.append(", ").append("Medarbejder: ").append(employeeName);
+				logContext.append(", ").append("Medarbejder: ").append(managerName);
 				emailQueueService.queueEmailToSystemMailbox(recipient, title, message, 0, child, logContext.toString());
 			}
 		}
