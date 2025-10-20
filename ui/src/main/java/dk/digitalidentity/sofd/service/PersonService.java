@@ -1486,19 +1486,44 @@ public class PersonService {
 	}
 
 	// resets chosenName on persons that has affiliations but do not have any active or future active affiliations
-	@Transactional
+	@Transactional(readOnly = true)
 	public void removeChosenNameOnInactivePersons()
 	{
-		var personsWithChosenName = personDao.findByChosenNameNotNull();
-		for (var person : personsWithChosenName) {
-			var totalAffiliationCount = person.getAffiliations().size();
-			var activeAffiliationCount = AffiliationService.notStoppedAffiliations(person.getAffiliations()).size();
-			if (totalAffiliationCount > 0 && activeAffiliationCount == 0) {
-				log.info("Removing chosenName " + person.getChosenName() + " from person " + PersonService.getCprName(person) + " (" + person.getUuid() + ") due to no active affiliations");
-				person.setChosenName(null);
-				personDao.save(person);
+		Authentication authentication = SecurityUtil.getLoginSession();
+		try {
+			SecurityUtil.fakeLoginSession();
+
+			var personsWithChosenName = personDao.findByChosenNameNotNull();
+			for (var person : personsWithChosenName) {
+				if (person.getAffiliations().isEmpty()) {
+					// don't reset if we have no affiliation info at all
+					continue;
+				}
+				var shouldReset = true;
+				for (var affiliation : person.getAffiliations()) {
+					if (affiliation.getStopDate() == null) {
+						shouldReset = false;
+						break;
+					} else if (toLocalDate(affiliation.getStopDate()).isAfter(LocalDate.now().minusDays(sofdConfiguration.getModules().getPerson().getResetChosenNameWhenInactiveDays()))) {
+						shouldReset = false;
+						break;
+					}
+				}
+				if (shouldReset) {
+					log.info("Removing chosenName " + person.getChosenName() + " from person " + PersonService.getCprName(person) + " (" + person.getUuid() + ") due to no active affiliations");
+					self.resetChosenName(person);
+				}
 			}
 		}
+		finally {
+			SecurityUtil.setLoginSession(authentication);
+		}
+	}
+
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	public void resetChosenName(Person person) {
+		person.setChosenName(null);
+		self.save(person);
 	}
 
 }
