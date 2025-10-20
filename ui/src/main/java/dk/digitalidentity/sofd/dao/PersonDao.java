@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -217,5 +218,6 @@ public interface PersonDao extends JpaRepository<Person, String>, JpaSpecificati
 
 	Person findByAffiliationsMasterAndAffiliationsMasterId(String master, String masterId);
 
+	@EntityGraph(attributePaths = {"affiliations"})
     List<Person> findByChosenNameNotNull();
 }
