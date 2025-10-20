@@ -216,4 +216,6 @@ public interface PersonDao extends JpaRepository<Person, String>, JpaSpecificati
 	Person findByAffiliationsMasterId(String masterId);
 
 	Person findByAffiliationsMasterAndAffiliationsMasterId(String master, String masterId);
+
+    List<Person> findByChosenNameNotNull();
 }

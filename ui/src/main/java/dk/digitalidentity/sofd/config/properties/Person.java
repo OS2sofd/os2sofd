@@ -8,6 +8,7 @@ import lombok.Setter;
 public class Person {
 	private boolean chosenNameEditable = false;
 	private boolean resetChosenNameOnNameChange = false;
+	private boolean resetChosenNameWhenInactive = false;
 	//following two auto checks leave checkboxes as default value
 	private boolean leaveAutoCheckIdM = false;
 	private boolean leaveAutoCheckAD = false;

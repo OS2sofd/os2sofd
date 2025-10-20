@@ -1485,4 +1485,20 @@ public class PersonService {
 		}
 	}
 
+	// resets chosenName on persons that has affiliations but do not have any active or future active affiliations
+	@Transactional
+	public void removeChosenNameOnInactivePersons()
+	{
+		var personsWithChosenName = personDao.findByChosenNameNotNull();
+		for (var person : personsWithChosenName) {
+			var totalAffiliationCount = person.getAffiliations().size();
+			var activeAffiliationCount = AffiliationService.notStoppedAffiliations(person.getAffiliations()).size();
+			if (totalAffiliationCount > 0 && activeAffiliationCount == 0) {
+				log.info("Removing chosenName " + person.getChosenName() + " from person " + PersonService.getCprName(person) + " (" + person.getUuid() + ") due to no active affiliations");
+				person.setChosenName(null);
+				personDao.save(person);
+			}
+		}
+	}
+
 }
