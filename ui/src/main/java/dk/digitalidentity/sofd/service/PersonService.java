@@ -210,7 +210,7 @@ public class PersonService {
 	    		p.getPhones().forEach(ph -> ph.getPhone().getPhoneNumber());
 	    		p.getAffiliations().forEach(a -> {
 	    			a.getWorkplaces().forEach(w -> w.getOrgUnit().getUuid());
-	    			a.getOrgUnit().getUuid();
+	    			a.getOrgUnit().getAffiliations().forEach(aff -> aff.getUuid());
 
 	    			OrgUnit unit = a.getCalculatedOrgUnit();
 	    			if (unit != null) {
