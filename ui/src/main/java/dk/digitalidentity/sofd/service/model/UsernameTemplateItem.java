@@ -11,6 +11,7 @@ import org.apache.commons.lang.math.NumberUtils;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ public class UsernameTemplateItem {
             case CHOSENNAME -> getLengthLimitedValue(PersonService.getName(person));
             case NAMESEQUENCE -> getNameSequence(PersonService.getName(person), remainingPermutations);
             case LETTERS -> getLengthLimitedPermutation("abcdefghijklmnopqrstuvwxyz", remainingPermutations);
+            case RANDOMLETTERS -> getRandomPermutation("abcdefghijklmnopqrstuvwxyz", remainingPermutations);
             case NUMBERS -> getLengthLimitedPermutation("0123456789", remainingPermutations);
             case SERIAL -> getSerial(remainingPermutations);
             case DATE -> getDateValue();
@@ -154,6 +156,49 @@ public class UsernameTemplateItem {
         } catch (Exception e) {
             return "";
         }
+    }
+
+    private static AtomicInteger randomPermutationCounter = new AtomicInteger(1);
+
+    private String getRandomPermutation(String charPool, AtomicInteger remainingPermutations) {
+        try {
+            int lengthLimit = Integer.parseInt(parameter.replaceAll("\\D", ""));
+            int base = charPool.length();
+            if (base < 1 || lengthLimit < 1) {
+                return "";
+            }
+
+            int maxPermutations = (int) Math.pow(base, lengthLimit);
+            int currentCount = remainingPermutations.get();
+            if (currentCount <= 0) {
+                return "";
+            }
+
+            // get sequential index and ensure it's positive
+            int sequentialIndex = randomPermutationCounter.getAndIncrement();
+            // handle overflow by using bitwise AND to keep it positive, then modulo
+            sequentialIndex = (sequentialIndex & Integer.MAX_VALUE) % maxPermutations;
+
+            int scrambledIndex = scrambleIndex(sequentialIndex, maxPermutations);
+
+            // convert scrambled index to base-n representation
+            char[] result = new char[lengthLimit];
+            int tempIndex = scrambledIndex;
+            for (int i = lengthLimit - 1; i >= 0; i--) {
+                result[i] = charPool.charAt(tempIndex % base);
+                tempIndex /= base;
+            }
+
+            remainingPermutations.decrementAndGet();
+            return new String(result);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private int scrambleIndex(int index, int maxPermutations) {
+        long prime = 2654435761L;
+        return (int) ((index * prime) % maxPermutations);
     }
 
     private String getSerial(AtomicInteger remainingPermutations) {
