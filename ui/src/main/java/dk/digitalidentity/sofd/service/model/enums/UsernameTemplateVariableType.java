@@ -16,6 +16,7 @@ public enum UsernameTemplateVariableType {
 	CHOSENNAME("kaldenavn"),
 	NAMESEQUENCE("navnesekvens"),
 	LETTERS("bogstaver"),
+	RANDOMLETTERS("tilfældig"),
 	NUMBERS("tal"),
 	SERIAL("løbenummer"),
 	DATE("dato"),
