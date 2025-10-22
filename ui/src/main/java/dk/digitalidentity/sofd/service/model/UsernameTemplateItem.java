@@ -169,10 +169,7 @@ public class UsernameTemplateItem {
             }
 
             int maxPermutations = (int) Math.pow(base, lengthLimit);
-            int currentCount = remainingPermutations.get();
-            if (currentCount <= 0) {
-                return "";
-            }
+            int index = Math.min(remainingPermutations.get(), maxPermutations - 1); // clamp index
 
             // get sequential index and ensure it's positive
             int sequentialIndex = randomPermutationCounter.getAndIncrement();
@@ -189,12 +186,13 @@ public class UsernameTemplateItem {
                 tempIndex /= base;
             }
 
-            remainingPermutations.decrementAndGet();
+            remainingPermutations.addAndGet(-index);
             return new String(result);
         } catch (Exception e) {
             return "";
         }
     }
+
 
     private int scrambleIndex(int index, int maxPermutations) {
         long prime = 2654435761L;
