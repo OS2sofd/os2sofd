@@ -211,12 +211,17 @@ public class ManagerUIApiController {
 		var result = new ArrayList<AffiliationDTO>();
 		for( var a : editableAffiliations )
 		{
-			var primeADUser = PersonService.getUsers(a.getPerson()).stream().filter(u -> Objects.equals(u.getUserType(), SupportedUserTypeService.getActiveDirectoryUserType()) && u.isPrime()).findFirst().orElse(null);
+			// first check if we have a linked AD user
+			var adUser = PersonService.getUsers(a.getPerson()).stream().filter(u -> Objects.equals(u.getUserType(), SupportedUserTypeService.getActiveDirectoryUserType()) && Objects.equals(u.getEmployeeId(),a.getEmployeeId())).findFirst().orElse(null);
+			if (adUser == null) {
+				// fallback to prime AD user
+				adUser = PersonService.getUsers(a.getPerson()).stream().filter(u -> Objects.equals(u.getUserType(), SupportedUserTypeService.getActiveDirectoryUserType()) && u.isPrime()).findFirst().orElse(null);
+			}
 			var adUserInfo = "";
-			if( primeADUser != null )
+			if( adUser != null )
 			{
-				adUserInfo = primeADUser.getUserId();
-				if( primeADUser.isDisabled() )
+				adUserInfo = adUser.getUserId();
+				if( adUser.isDisabled() )
 				{
 					adUserInfo += " (deaktiveret)";
 				}
