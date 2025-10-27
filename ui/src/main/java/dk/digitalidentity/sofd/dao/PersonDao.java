@@ -182,8 +182,15 @@ public interface PersonDao extends JpaRepository<Person, String>, JpaSpecificati
 
 	<S extends Person> List<S> findByDeletedFalse();
 
-	// using UTC as baseline to get correct time regardless of db connection timezone settings
-	@Query(nativeQuery = true, value = "SELECT pa.rev AS rev, r.auditor_name as auditorName, CAST(TIMESTAMPADD(SECOND, r.timestamp/1000, '1970-01-01 00:00:00') + INTERVAL 2 HOUR AS DATETIME) as lastChanged FROM persons_aud pa JOIN revisions r ON r.id = pa.rev WHERE pa.uuid = ?1 ORDER BY r.id")
+	@Query(nativeQuery = true, value = """
+    SELECT pa.rev AS rev, 
+           r.auditor_name as auditorName,
+           CONVERT_TZ(TIMESTAMPADD(SECOND, r.timestamp/1000, '1970-01-01 00:00:00'), '+00:00', '+01:00') as lastChanged 
+    FROM persons_aud pa 
+    JOIN revisions r ON r.id = pa.rev 
+    WHERE pa.uuid = ?1 
+    ORDER BY r.id
+    """)
 	List<RevisionId> getRevisionIds(String id);
 
 	@Modifying
