@@ -10,10 +10,13 @@ CREATE OR REPLACE VIEW view_syncservice_users AS
     u.user_type,
     e.email,
     ph.phone_number,
-    prof.name AS profession_name,
+    CASE
+        WHEN syncservice_use_positiontype.enabled = 1 THEN a.position_type_name
+        ELSE prof.name
+    END  AS profession_name,
     CASE
       WHEN TRIM(IFNULL(a.position_display_name, '')) <> '' THEN a.position_display_name
-      WHEN prof.id IS NOT NULL AND setting.disable_professions IS NULL THEN prof.name ELSE a.position_name
+      WHEN prof.id IS NOT NULL AND disable_professions.enabled IS NULL THEN prof.name ELSE a.position_name
     END AS position_name,
     a.pay_grade_text,
     COALESCE(a.start_date, '1979-05-21 00:00:00') AS start_date,
@@ -69,8 +72,11 @@ CREATE OR REPLACE VIEW view_syncservice_users AS
     )
   LEFT JOIN professions prof on prof.id = a.profession_id
   LEFT JOIN (
-    SELECT 1 AS disable_professions FROM settings WHERE setting_key = 'DISABLE_PROFESSIONS' AND setting_value = 'true'
-  ) setting ON 1 = 1
+    SELECT 1 AS enabled FROM settings WHERE setting_key = 'DISABLE_PROFESSIONS' AND setting_value = 'true'
+  ) disable_professions ON 1 = 1
+  LEFT JOIN (
+      SELECT 1 AS enabled FROM settings WHERE setting_key = 'SYNCSERVICE_USE_JOBTYPE' AND setting_value = 'true'
+  ) syncservice_use_positiontype ON 1 = 1
   LEFT JOIN (
      SELECT orgunit_uuid, affiliation_id
      FROM affiliations_workplaces aw
