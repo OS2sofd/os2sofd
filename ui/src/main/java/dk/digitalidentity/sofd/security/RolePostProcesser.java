@@ -191,6 +191,10 @@ public class RolePostProcesser implements SamlLoginPostProcessor {
 				newAuthorities.add(new SamlGrantedAuthority(RoleConstants.USER_ROLE_PERSON_CREATER, grantedAuthority.getConstraints(), grantedAuthority.getScope()));
 				newAuthorities.add(new SamlGrantedAuthority(RoleConstants.USER_ROLE_READ, null, null));
 			}
+			else if ("ROLE_chart_editor".equals(grantedAuthority.getAuthority())) {
+				newAuthorities.add(new SamlGrantedAuthority(RoleConstants.USER_ROLE_CHART_EDITOR, null, null));
+				newAuthorities.add(new SamlGrantedAuthority(RoleConstants.USER_ROLE_READ, null, null));
+			}
 		}
 
 		tokenUser.setAuthorities(newAuthorities);

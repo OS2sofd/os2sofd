@@ -10,6 +10,7 @@ public class RoleConstants {
 	public static final String USER_ROLE_SMS = "ROLE_USER_SMS";       							// access to SMS module
 	public static final String USER_ROLE_CPR_ACCESS = "ROLE_USER_CPR_ACCESS";					// shows full CPR numbers
 	public static final String USER_ROLE_PERSON_CREATER = "ROLE_USER_PERSON_CREATER";			// allow creating persons from list.html
+	public static final String USER_ROLE_CHART_EDITOR = "ROLE_USER_CHART_EDITOR";		    	// allow edtiting charts
 
 	// module roles, given to all users, depending on global configuration
 	public static final String MODULE_ROLE_ACCOUNT_CREATION = "ROLE_MODULE_ACCOUNT_CREATION";
