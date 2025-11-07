@@ -46,4 +46,6 @@ public class OrgUnitCoreInfo {
 	private Long belongsTo;
 
 	private boolean doNotTransferToFKOrg;
+
+	private boolean blockUpdate;
 }

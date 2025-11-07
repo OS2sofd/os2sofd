@@ -797,6 +797,7 @@ public class OrgUnitRestController {
 		orgUnit.setBelongsTo(organisation);
 		orgUnit.setPostAddresses(new ArrayList<>());
 		orgUnit.setDoNotTransferToFkOrg(orgUnitDTO.isDoNotTransferToFKOrg());
+		orgUnit.setBlockUpdate(orgUnitDTO.isBlockUpdate());
 
 		if (orgUnitDTO.getPnr() != null) {
 			Post post = new Post();

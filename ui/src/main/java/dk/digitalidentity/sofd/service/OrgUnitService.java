@@ -618,6 +618,12 @@ public class OrgUnitService {
 			shouldUpdateChildren = true;
 		}
 
+		if (!Objects.equals(orgUnit.isBlockUpdate(), coreInfoDTO.isBlockUpdate())) {
+			orgUnit.setBlockUpdate(coreInfoDTO.isBlockUpdate());
+			changes = true;
+		}
+
+
 		if (SecurityUtil.getUserRoles().contains(RoleConstants.USER_ROLE_LOS_ADMIN)) {
 			if (configuration.getModules().getLos().isEnabled()) {
 

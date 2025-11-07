@@ -165,6 +165,9 @@ public class OrgUnit implements Loggable {
 	@Column
 	private boolean doNotTransferToFkOrg;
 
+	@Column
+	private boolean blockUpdate;
+
 	@BatchSize(size = 100)
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, mappedBy = "orgUnit")
 	@Valid

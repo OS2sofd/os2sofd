@@ -131,6 +131,20 @@
 				</div>
 			</div>
 		</fieldset>
+
+		<fieldset>
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.blockUpdate}"></label>
+				<div class="col-sm-9 row">
+					<div class="col-sm-1 checkbox c-checkbox">
+						<label>
+							<input type="checkbox" th:checked="${orgUnit.blockUpdate}" disabled/>
+							<span class="fa fa-check"></span>
+						</label>
+					</div>
+				</div>
+			</div>
+		</fieldset>
 	</div>
 
 	<div class="hidden" th:if="${deletable}">

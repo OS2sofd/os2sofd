@@ -1,0 +1,2 @@
+ALTER TABLE orgunits ADD COLUMN block_update BOOLEAN NOT NULL DEFAULT 0;
+ALTER TABLE orgunits_aud ADD COLUMN block_update BOOLEAN NULL;
