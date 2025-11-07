@@ -124,6 +124,11 @@ public class OrgUnitApi {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 
+		if (orgUnit.isBlockUpdate()) {
+			log.warn("Attempt to update blocked OrgUnit: {} ({})", orgUnit.getName(), orgUnit.getUuid());
+			return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
+		}
+
 		boolean changes = patch(orgUnit, record);
 		if (!changes) {
 			return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
