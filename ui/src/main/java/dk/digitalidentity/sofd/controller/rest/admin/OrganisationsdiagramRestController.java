@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import dk.digitalidentity.sofd.security.RequireAdminOrChartEditorAccess;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -21,13 +22,12 @@ import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Organisation;
 import dk.digitalidentity.sofd.dao.model.enums.DepthLimit;
 import dk.digitalidentity.sofd.dao.model.enums.VerticalStart;
-import dk.digitalidentity.sofd.security.RequireAdminAccess;
 import dk.digitalidentity.sofd.service.ChartService;
 import dk.digitalidentity.sofd.service.OrgUnitService;
 import dk.digitalidentity.sofd.service.OrganisationService;
 import dk.digitalidentity.sofd.service.model.OUTreeForm;
 
-@RequireAdminAccess
+@RequireAdminOrChartEditorAccess
 @RestController
 public class OrganisationsdiagramRestController {
 
