@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.ProfessionDao;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
+import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Profession;
 import dk.digitalidentity.sofd.dao.model.enums.ProfessionMatchType;
 import dk.digitalidentity.sofd.dao.model.projection.ProfessionLookup;
@@ -126,8 +127,20 @@ public class ProfessionService {
 	}
 
 	public void updateAffiliation(Affiliation affiliation) {
+		final String field = switch (configuration.getModules().getProfessions().getField()) {
+			case PAY_GRADE -> {
+				yield affiliation.getPayGrade();
+			}
+			case POSITION_NAME -> {
+				yield affiliation.getPositionName();
+			}
+			default -> {
+				yield affiliation.getPositionName();
+			}
+		};
+		
 		Profession matchingProfession = self.findAllCached().stream()
-				.filter(p -> professionMatchesPosition(p, affiliation.getPositionName(), affiliation.getOrgUnit().getBelongsTo().getId()))
+				.filter(p -> professionMatchesPosition(p, field, affiliation.getOrgUnit().getBelongsTo().getId()))
 				.findFirst()
 				.orElse(null);
 
@@ -176,10 +189,11 @@ public class ProfessionService {
 				changeCount++;
 
 				// need to make changes to affiliation - get the real entity from database and update it
-				var person = personService.findbyAffiliationId(lookupAffiliation.getAffiliationId());
+				Person person = personService.findbyAffiliationId(lookupAffiliation.getAffiliationId());
 				if (person != null) {
-					var affiliation = person.getAffiliations().stream().filter(a -> a.getId() == lookupAffiliation.getAffiliationId()).findFirst().get();
+					Affiliation affiliation = person.getAffiliations().stream().filter(a -> a.getId() == lookupAffiliation.getAffiliationId()).findFirst().get();
 					affiliation.setProfession(matchingProfession);
+
 					personService.save(person);
 				}
 				else {
