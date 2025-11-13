@@ -25,5 +25,6 @@ public class EmployeeWithUsersDTO {
 	private String employeeNumber;
 	private boolean primeAffiliation;
 	private boolean isOnLeave;
-
+	private boolean inheritPrivileges;
+	private String managerEmail;
 }
