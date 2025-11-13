@@ -257,15 +257,6 @@
 			<artifactId>microsoft-graph</artifactId>
 			<version>5.24.0</version>
 		</dependency>
-
-		<!-- Spring boot devtools -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-devtools</artifactId>
-			<optional>true</optional>
-			<scope>runtime</scope>
-		</dependency>
-
 	</dependencies>
 
 	<repositories>
