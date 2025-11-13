@@ -263,6 +263,19 @@ public class Person implements Loggable {
 	}
 
 	@JsonIgnore
+	public String getPrimeEmail() {
+		var primeEmail = PersonService.getUsers(this).stream().filter(u -> u.isPrime() && SupportedUserTypeService.isExchange(u.getUserType())).findFirst().orElse(null);
+		if (primeEmail == null) {
+			primeEmail = PersonService.getUsers(this).stream().filter(u -> u.isPrime() && SupportedUserTypeService.isActiveDirectorySchool(u.getUserType())).findFirst().orElse(null);
+		}
+		if (primeEmail != null) {
+			return primeEmail.getUserId();
+		}
+		return null;
+	}
+
+
+	@JsonIgnore
 	public String getActiveADAccounts() {
 		var adAccounts = PersonService.getUsers(this).stream().filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType()) && !u.isDisabled()).map(User::getUserId).collect(Collectors.joining(", "));
 		return adAccounts;

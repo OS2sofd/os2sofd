@@ -589,6 +589,7 @@ public class OrgUnitController {
 			if( manager != null ) {
 				employeeDTO.setManager(PersonService.getName(manager.getManager()));
 				employeeDTO.setManagerUsername(manager.getManager().getPrimeADAccount());
+				employeeDTO.setManagerEmail(manager.getManager().getPrimeEmail());
 				var managerPrimeAffiliation = manager.getManager().getPrimeAffiliation();
 				if( managerPrimeAffiliation != null ) {
 					employeeDTO.setManagerEmployeeNumber(managerPrimeAffiliation.isFromWageSystem() ? managerPrimeAffiliation.getEmployeeId() : null);
@@ -600,6 +601,7 @@ public class OrgUnitController {
 			employeeDTO.setPrimeAffiliation(affiliation.isPrime());
 			employeeDTO.setEmployeeNumber(affiliation.isFromWageSystem() ? affiliation.getEmployeeId() : null);
 			employeeDTO.setOnLeave(person.isOnActiveLeave());
+			employeeDTO.setInheritPrivileges(affiliation.isInheritPrivileges());
 
 			for (User user : PersonService.getUsers(person)) {
 				SupportedUserType userType = supportedUserTypeService.findByKey(user.getUserType());
