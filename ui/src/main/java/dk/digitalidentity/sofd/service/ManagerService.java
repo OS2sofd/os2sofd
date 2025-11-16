@@ -84,13 +84,17 @@ public class ManagerService {
 	}
 
 	public record OrgUnitManagerDto(String orgunitUuid, String managerUuid ) { }
-	public void importManagers(List<OrgUnitManagerDto> importManagers) {
+	public void importManagers(List<OrgUnitManagerDto> importManagers, boolean fullsync) {
 		var allOrgUnits = orgUnitService.getAll();
 		// do not allow updating manager from external source if orgunit is blocked from updates
 		allOrgUnits.removeIf(OrgUnit::isBlockUpdate);
 		for( var orgUnit : allOrgUnits ) {
 			try {
-				var importedManagerUuid = importManagers.stream().filter(o -> o.orgunitUuid.equalsIgnoreCase(orgUnit.getUuid())).map(o -> o.managerUuid).findFirst().orElse(null);
+				if (!fullsync && !importManagers.stream().anyMatch(o -> Objects.equals(o.orgunitUuid,orgUnit.getUuid()))) {
+					// skip orgUnit if doing delta sync and orgunit uuid is not in payload
+					continue;
+				}
+				var importedManagerUuid = importManagers.stream().filter(o -> Objects.equals(o.orgunitUuid,orgUnit.getUuid())).map(o -> o.managerUuid).findFirst().orElse(null);
 				var validManager = importedManagerUuid != null ? getValidManager(importedManagerUuid) : null;
 				var validManagerUuid = validManager != null ? validManager.getUuid() : null;
 				if( !Objects.equals(orgUnit.getImportedManagerUuid(),validManagerUuid) ) {
