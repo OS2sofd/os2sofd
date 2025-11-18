@@ -11,6 +11,7 @@ import org.apache.commons.lang.math.NumberUtils;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -30,8 +31,8 @@ public class UsernameTemplateItem {
 
         String result = switch(usernameTemplateVariableType) {
             case STATIC -> getStaticValue();
-            case FIRSTNAME -> getLengthLimitedValue(person.getFirstname().replaceAll("\\s",""));
-            case SURNAME -> getLengthLimitedValue(person.getSurname().replaceAll("\\s",""));
+            case FIRSTNAME -> getLengthLimitedValue(person.getFirstname());
+            case SURNAME -> getLengthLimitedValue(person.getSurname());
             case FULLNAME -> getLengthLimitedValue(person.getFirstname() + " " + person.getSurname());
             case CHOSENNAME -> getLengthLimitedValue(PersonService.getName(person));
             case NAMESEQUENCE -> getNameSequence(PersonService.getName(person), remainingPermutations);
@@ -61,7 +62,10 @@ public class UsernameTemplateItem {
                 return "";
             }
 
-            var nameParts = Transliteration.transliterate(fullName, null).toLowerCase().split("\\s");
+            var nameParts = Arrays.stream(Transliteration.transliterate(fullName, null).toLowerCase().split("\\s"))
+                    .map(part -> part.replaceAll("\\W", ""))
+                    .toArray(String[]::new);
+
             var permutations = new LinkedHashSet<String>();
 
             // Generate permutations for each length limit
@@ -126,6 +130,7 @@ public class UsernameTemplateItem {
     private String getLengthLimitedValue(String value) {
         try {
             value = Transliteration.transliterate(value.trim(),null).replaceAll("\\s",separator);
+            value = value.replaceAll("[^\\w.]","");
             var lengthLimit = Integer.parseInt(parameter.replaceAll("\\D",""));
             return value.length() <= lengthLimit ? value : value.substring(0, lengthLimit);
         }catch(Exception e) {

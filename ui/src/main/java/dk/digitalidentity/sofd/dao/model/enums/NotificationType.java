@@ -20,8 +20,7 @@ public enum NotificationType {
 	PERSON_DISENFRANCHISED_AD_ONLY("html.enum.notificationtype.person_disenfranchised_ad_only", false),
 	PERSON_DISENFRANCHISED_ACTIVE_AD_ONLY("html.enum.notificationtype.person_disenfranchised_active_ad_only", false),
 	NEW_AFFILIATION_SOFD("html.enum.notificationtype.new_affiliation_sofd"),
-	NEW_AFFILIATION_IN_EMPTY_ORGUNIT("html.enum.notificationtype.new_affiliation_empty_orgunit", false),
-    MANUAL_NOTIFICATION("html.setting.notification.manual", false, 0, false)
+	NEW_AFFILIATION_IN_EMPTY_ORGUNIT("html.enum.notificationtype.new_affiliation_empty_orgunit", false)
 	;
 
 	private String message;
@@ -50,13 +49,6 @@ public enum NotificationType {
 	
 	private NotificationType(String message, int days, boolean visibleInUI) {
 		this.message = message;
-		this.expire = days;
-		this.visibleInUI = visibleInUI;
-	}
-
-    private NotificationType(String message, boolean defaultEnabled, int days, boolean visibleInUI) {
-		this.message = message;
-        this.defaultEnabled = defaultEnabled;
 		this.expire = days;
 		this.visibleInUI = visibleInUI;
 	}
