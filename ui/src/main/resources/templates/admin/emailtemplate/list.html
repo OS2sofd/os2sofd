@@ -31,7 +31,7 @@
 								<tbody>
 									<tr th:each="template : ${templates}">
 										<td th:text="#{${template.templateName}}"></td>
-										<td th:text="${template.title}"></td>
+										<td  th:text="${template.title}"></td>
 										<td>
 											<span th:if="${template.enabled}"><i class="fa fa-check" aria-hidden="true"></i><span style="display: none;">Activated</span></span>
 											<span th:unless="${template.enabled}"><span style="display: none;">Deactivated</span></span>
@@ -48,9 +48,15 @@
 											        <em class="fa fa-fw fa-toggle-on"></em>
 											    </button>
 											</form>
-											<button type="button" th:onclick="|deleteChild(${template.id})|" style="border:none; background:none; padding:0; cursor:pointer; color:inherit;" title="Slet skabelon">
-										        <em class="fa fa-fw fa-trash"></em>
-										    </button>
+											<button th:if="${!template.enabled}"
+													type="button"
+													th:data-id="${template.id}"
+													th:data-title="${template.title}"
+													onclick="deleteChild(this.dataset.id, this.dataset.title)"
+													style="border:none; background:none; padding:0; cursor:pointer; color:inherit;"
+													title="Slet skabelon">
+												<em class="fa fa-fw fa-trash"></em>
+											</button>
 										</td>
 									</tr>
 								</tbody>
@@ -102,11 +108,11 @@
 		    });
 		});
 
-		function deleteChild(childId) {
+		function deleteChild(childId, childTitle) {
 			swal({
 				html : true,
 				title : childDeleteTitle,
-				text : childDeleteText,
+				text : childDeleteText + '<h4>' + childTitle + '</h4>',
 				type : "warning",
 				showCancelButton : true,
 				confirmButtonColor : "#DD6B55",
