@@ -518,6 +518,21 @@
 							</li>
 						</th:block>
 
+						<th:block sec:authorize="hasRole('ROLE_MANAGER') or hasRole('ROLE_USER_EDIT')" th:if="${@environment.getProperty('sofd.integrations.os2ilm.enabled') == 'true'}">
+							<li class="nav-heading">
+								<span th:text="#{html.navbar.ilm}"></span>
+							</li>
+
+							<li>
+								<a th:href="${@environment.getProperty('sofd.integrations.os2ilm.url')}" target="_blank" rel="noopener noreferrer" class="nav-link">
+									<em class="fa fa-external-link"></em>
+									<span th:text="#{html.navbar.ilm.approvals}"></span>
+									<span class="badge badge-alert" th:text="${@OS2IlmService.getPendingApprovalCount()}"></span>
+									<em class="fa fa-external-link-alt" style="font-size: 0.8em; margin-left: 5px;"></em>
+								</a>
+							</li>
+						</th:block>
+
 						<th:block sec:authorize="hasRole('ROLE_USER_READ')">
 							<li class="nav-heading">
 								<span th:text="#{html.navbar.auditlog}"></span>
