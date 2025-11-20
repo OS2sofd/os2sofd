@@ -292,7 +292,7 @@
 										<em th:if="${affiliation.doNotTransferToFkOrg}" class="fa fa-fw fa-check"></em>
 									</td>
 									<td th:text="#{__${affiliation.deactivateAndDeleteRule.message}__}"></td>
-                                    <td th:text="${affiliation.affiliationType != null} ? ${affiliation.affiliationType} : 'Ukendt'"></td>
+									<td th:text="${affiliation.affiliationType != null} ? #{__${affiliation.affiliationType.message}__} : 'Ukendt'"></td>
 									<td th:if="${@sofdConfiguration.getModules().getAffiliationWorkplaces().isEnabled()}" th:text="${not #lists.isEmpty(affiliation.workplaces)} ? ${#lists.size(affiliation.workplaces)} + ' arbejdssteder' : ''"></td>
 									<td>
 										<a th:href="@{/ui/affiliation/view/{id}?backRef=person(id=${affiliation.uuid})}"><em class="fa fa-fw fa-search"></em></a>
