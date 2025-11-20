@@ -1,7 +1,10 @@
 package dk.digitalidentity.sofd.service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,10 +24,15 @@ import org.springframework.web.client.RestTemplate;
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.mvc.dto.PUnitDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.PnrSearchResultDTO;
+import dk.digitalidentity.sofd.dao.model.OrgUnit;
+import dk.digitalidentity.sofd.dao.model.Post;
+import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPostMapping;
+import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.model.CvrLookupDTO;
 import dk.digitalidentity.sofd.service.model.PUnitLookupDTO;
 import dk.digitalidentity.sofd.service.model.PnrLookupDTO;
 import dk.digitalidentity.sofd.service.model.PostLookupDTO;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -37,7 +45,103 @@ public class CvrService {
 	
 	@Autowired 
 	private CvrService self;
+	
+	@Autowired
+	private OrgUnitService orgUnitService;
 
+	@SneakyThrows
+	public void cvrMaintenance() {
+		SecurityUtil.fakeLoginSession();
+		Map<String, PUnitDTO> cvrMap = new HashMap<String, PUnitDTO>();
+
+		for (OrgUnit orgUnit : orgUnitService.getAll(o -> {
+			o.getPostAddresses().stream().forEach(pa -> pa.getPost().getMasterId());
+		})) {
+			boolean changes = false;
+			List<Post> postsWithMasterCvr = OrgUnitService.getPosts(orgUnit).stream().filter(p -> p.getMaster().equals("CVR")).collect(Collectors.toList());
+
+			// add a cvr post if one doesn't exist
+			if (orgUnit.getPnr() != null && postsWithMasterCvr.size() == 0) {
+				PUnitDTO pUnitDTO = cvrMap.get(orgUnit.getPnr().toString());
+				if (pUnitDTO == null) {
+					pUnitDTO = getPUnitByPnr(orgUnit.getPnr().toString());
+
+					if (pUnitDTO != null) {
+						cvrMap.put(orgUnit.getPnr().toString(), pUnitDTO);
+					}
+				}
+
+				if (pUnitDTO != null) {
+					Post post = new Post();
+					post.setMaster("CVR");
+					post.setMasterId(orgUnit.getPnr().toString());
+					post.setCountry("Danmark");
+					String street = pUnitDTO.getStreet() + " " + pUnitDTO.getNumber();
+					post.setStreet(street);
+					post.setPostalCode(pUnitDTO.getPostalCode());
+					post.setCity(pUnitDTO.getCity());
+					post.setPrime(orgUnit.getPostAddresses().isEmpty());
+					OrgUnitPostMapping postMapping = new OrgUnitPostMapping();
+					postMapping.setOrgUnit(orgUnit);
+					postMapping.setPost(post);
+					orgUnit.getPostAddresses().add(postMapping);
+					changes = true;
+				}
+			}
+
+			// update existing cvr posts
+			for (Post post : postsWithMasterCvr) {
+				PUnitDTO pUnitDTO = cvrMap.get(post.getMasterId());
+
+				if (pUnitDTO == null) {
+					pUnitDTO = getPUnitByPnr(post.getMasterId());
+					cvrMap.put(post.getMasterId(),pUnitDTO);
+				}
+
+				if (pUnitDTO != null) {
+					String street = pUnitDTO.getStreet() + " " + pUnitDTO.getNumber();
+					if (!Objects.equals(post.getStreet(), street)) {
+						post.setStreet(street);
+						changes = true;
+					}
+
+					if (!Objects.equals(post.getPostalCode(), pUnitDTO.getPostalCode())) {
+						post.setPostalCode(pUnitDTO.getPostalCode());
+						changes = true;
+					}
+
+					if (!Objects.equals(post.getCity(), pUnitDTO.getCity())) {
+						post.setCity(pUnitDTO.getCity());
+						changes = true;
+					}
+				}
+			}
+
+			if (orgUnit.getPnr() != null) {
+				PUnitDTO pUnitDTO = cvrMap.get(orgUnit.getPnr().toString());
+				if (pUnitDTO == null) {
+					pUnitDTO = getPUnitByPnr(orgUnit.getPnr().toString());
+					if (pUnitDTO != null) {
+						cvrMap.put(orgUnit.getPnr().toString(), pUnitDTO);
+					}
+				}
+
+				if (pUnitDTO != null) {
+					// update cvr name
+					// it is on purpose we only update if we get a non-null response from cvrService (to prevent nulling cvrName field if service is down or fails).
+					if (!Objects.equals(orgUnit.getCvrName(), pUnitDTO.getName())) {
+						orgUnit.setCvrName(pUnitDTO.getName());
+						changes = true;
+					}
+				}
+			}
+
+			if (changes) {
+				orgUnitService.save(orgUnit);
+			}
+		}
+	}
+	
 	public PUnitDTO getPUnitByPnr(String pnr) {
 		
 		if (!configuration.getIntegrations().getCvr().isEnabled()) {
