@@ -18,10 +18,11 @@
 						  
 						  <ul class="dropdown-menu" role="menu" id="dataTableDropdown">
 						    <li><a href="#" data-cid="0" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.person.name}"></span></a></li>
-							  <li><a href="#" data-cid="1" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.person.obs}"></span></a></li>
-						    <li><a href="#" data-cid="1" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.person.affiliations}"></span></a></li>
-							<li><a href="#" data-cid="2" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.user.ad_accounts}"></span></a></li>
-						    <li><a href="#" data-cid="3" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.phone.phoneNumber}"></span></a></li>
+                            <li><a href="#" data-cid="1" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.person.obs}"></span></a></li>
+						    <li><a href="#" data-cid="2" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.person.affiliations}"></span></a></li>
+							<li><a href="#" data-cid="3" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.user.ad_accounts}"></span></a></li>
+						    <li><a href="#" data-cid="4" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.phone.phoneNumber}"></span></a></li>
+						    <li><a href="#" data-cid="5" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.person.affiliations.vendors}"></span></a></li>
 						  </ul>
 						</div>
 
@@ -57,20 +58,22 @@
 									<tr>
 										<th class="col-md-3" th:text="#{html.entity.person.name}"></th>
 										<th class="col-md-2" th:text="#{html.entity.person.obs}"></th>
-										<th class="col-md-3" th:text="#{html.entity.person.affiliations}"></th>
+										<th class="col-md-2" th:text="#{html.entity.person.affiliations}"></th>
 										<th class="col-md-2" th:text="#{html.entity.user.ad_accounts}"></th>
 										<th class="col-md-1" th:text="#{html.entity.phone.phoneNumber}"></th>
+										<th class="col-md-1" th:text="#{html.entity.person.affiliations.vendors}"></th>
 										<th class="col-md-1" th:text="#{html.control.operations}"></th>
 									</tr>
 								</thead>
 								
 								<tfoot style="display: table-row-group">
 									<tr>
-                                         <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
-                                         <td class="input-filter" id="customFilter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                        <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                        <td class="input-filter" id="customFilter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
 										<td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
-                                         <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
-                                         <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                        <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                        <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+                                        <td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
 										<td>&nbsp;</td>
 									</tr>
 								</tfoot>
@@ -234,6 +237,9 @@
 					}
 				}, {
 					data : 'phoneNumber'
+                }, {
+                    data: 'vendors',
+                    visible: false
 				}, {
 					data : 'uuid',
 					orderable: false,
@@ -295,8 +301,11 @@
 			var cId = $(elem).data("cid");
 
 			//Reset search
-			$('.input-filter input')[cId].value = '';
-			currentTable.column(cId).search('').draw();
+            var footerInput = $('input', currentTable.column(cId).footer());
+            if (footerInput.length > 0) {
+                footerInput.val('');
+                currentTable.column(cId).search('').draw();
+            }
 
 			currentTable.column(cId).visible(!currentTable.column(cId).visible());
 			

@@ -183,7 +183,8 @@
 								<li><a href="#" data-cid="8" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.employmentTerms}"></span></a></li>
 							  	<li><a href="#" data-cid="9" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.doNotTransferToFKOrg}"></span></a></li>
 								<li><a href="#" data-cid="10" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.person.affiliations.deactivateAndDeleteRule}"></span></a></li>
-							  	<li th:if="${@sofdConfiguration.getModules().getAffiliationWorkplaces().isEnabled()}"><a href="#" data-cid="11" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.workplaces}"></span></a></li>
+								<li><a href="#" data-cid="11" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.person.affiliation.type}"></span></a></li>
+							  	<li th:if="${@sofdConfiguration.getModules().getAffiliationWorkplaces().isEnabled()}"><a href="#" data-cid="12" onclick="return dataTablesToggleColumn(this);"><em class="fa fa-fw"></em><span th:text="#{html.entity.affiliation.workplaces}"></span></a></li>
 							  </ul>
 							</div>
 
@@ -243,7 +244,8 @@
 									<th th:text="#{html.entity.affiliation.status}"></th>
                                     <th th:text="#{html.entity.affiliation.employmentTerms}"></th>
                                     <th th:text="#{html.entity.affiliation.doNotTransferToFKOrg}"></th>
-									<th th:text="#{html.entity.person.affiliations.deactivateAndDeleteRule}"></th>
+                                    <th th:text="#{html.entity.person.affiliations.deactivateAndDeleteRule}"></th>
+                                    <th th:text="#{html.entity.person.affiliation.type}"></th>
                                     <th th:if="${@sofdConfiguration.getModules().getAffiliationWorkplaces().isEnabled()}" th:text="#{html.entity.affiliation.workplaces}"></th>
 									<th class="col-md-1" th:text="#{html.control.operations}"></th>
 								</thead>
@@ -290,6 +292,7 @@
 										<em th:if="${affiliation.doNotTransferToFkOrg}" class="fa fa-fw fa-check"></em>
 									</td>
 									<td th:text="#{__${affiliation.deactivateAndDeleteRule.message}__}"></td>
+                                    <td th:text="${affiliation.affiliationType != null} ? ${affiliation.affiliationType} : 'Ukendt'"></td>
 									<td th:if="${@sofdConfiguration.getModules().getAffiliationWorkplaces().isEnabled()}" th:text="${not #lists.isEmpty(affiliation.workplaces)} ? ${#lists.size(affiliation.workplaces)} + ' arbejdssteder' : ''"></td>
 									<td>
 										<a th:href="@{/ui/affiliation/view/{id}?backRef=person(id=${affiliation.uuid})}"><em class="fa fa-fw fa-search"></em></a>

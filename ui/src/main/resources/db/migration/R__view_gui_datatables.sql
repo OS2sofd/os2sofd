@@ -31,6 +31,7 @@ CREATE OR REPLACE VIEW view_datatables_persons AS SELECT
     p.disable_account_orders_disable,
     p.stop_reason,
     GROUP_CONCAT(usrs.user_id ORDER BY usrs.prime DESC, usrs.user_id) AS user_ids,
+    GROUP_CONCAT(DISTINCT av.vendor ORDER BY av.vendor SEPARATOR ', ') AS vendors,
     p.fictive_cpr,
     p.dead AS dead,
     p.disenfranchised AS disenfranchised,
@@ -49,6 +50,11 @@ CREATE OR REPLACE VIEW view_datatables_persons AS SELECT
   LEFT JOIN subview_datatables_affiliations a ON p.uuid = a.person_uuid
   LEFT JOIN persons_leave l ON p.leave_id = l.id
   LEFT JOIN orgunits o ON o.uuid = a.orgunit_uuid
+  LEFT JOIN (
+    SELECT aff.person_uuid, aff.vendor
+    FROM affiliations aff
+    WHERE aff.start_date <= CURDATE() AND (aff.stop_date IS NULL OR aff.stop_date >= CURDATE()) AND aff.vendor IS NOT NULL AND aff.vendor != ''
+    ) av ON p.uuid = av.person_uuid
   WHERE p.deleted = 0
   GROUP BY p.uuid;
 

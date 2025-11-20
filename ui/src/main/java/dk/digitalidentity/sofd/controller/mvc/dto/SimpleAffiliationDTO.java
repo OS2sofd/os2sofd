@@ -1,6 +1,7 @@
 package dk.digitalidentity.sofd.controller.mvc.dto;
 
 import dk.digitalidentity.sofd.dao.model.Affiliation;
+import dk.digitalidentity.sofd.dao.model.enums.AffiliationType;
 import dk.digitalidentity.sofd.service.AffiliationService;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,6 +19,8 @@ public class SimpleAffiliationDTO {
 	private String master;
 	private boolean activeInFuture;
 	private boolean inheritPrivileges;
+    private AffiliationType affiliationType;
+    private String vendor;
 	
 	public SimpleAffiliationDTO(Affiliation affiliation) {
 		this.id = affiliation.getId();
@@ -27,5 +30,7 @@ public class SimpleAffiliationDTO {
 		this.employeeId = affiliation.getEmployeeId();
 		this.master = affiliation.getMaster();
 		this.inheritPrivileges = affiliation.isInheritPrivileges();
+        this.affiliationType = affiliation.getAffiliationType();
+        this.vendor = affiliation.getVendor();
 	}
 }
