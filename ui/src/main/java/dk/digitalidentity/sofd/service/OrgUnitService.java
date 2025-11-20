@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -214,6 +215,15 @@ public class OrgUnitService {
 
 	public List<OrgUnit> getAll() {
 		return getAll(organisationService.getAdmOrg());
+	}
+
+	@Transactional
+	public List<OrgUnit> getAll(Consumer<OrgUnit> consumer) {
+		List<OrgUnit> orgUnits = getAll(organisationService.getAdmOrg());
+		
+		orgUnits.forEach(consumer);
+		
+		return orgUnits;
 	}
 
 	public List<OrgUnit> getAll(Organisation organisation) {
@@ -532,6 +542,7 @@ public class OrgUnitService {
 		return rootLevel;
 	}
 
+	@Transactional
 	public OrgUnit save(OrgUnit orgUnit) throws Exception {
 		Date date = getFutureDateFromSession();
 		if (date != null) {
@@ -906,97 +917,6 @@ public class OrgUnitService {
 		}
 
 		return orgUnit.getPostAddresses().stream().map(p -> p.getPost()).collect(Collectors.toList());
-	}
-
-	@Transactional
-	public void cvrMaintenance() {
-		SecurityUtil.fakeLoginSession();
-		Map<String, PUnitDTO> cvrMap = new HashMap<String, PUnitDTO>();
-
-		for (OrgUnit orgUnit : orgUnitDao.findAll()) {
-			boolean changes = false;
-			List<Post> postsWithMasterCvr = getPosts(orgUnit).stream().filter(p -> p.getMaster().equals("CVR")).collect(Collectors.toList());
-
-			// add a cvr post if one doesn't exist
-			if (orgUnit.getPnr() != null && postsWithMasterCvr.size() == 0) {
-				PUnitDTO pUnitDTO = cvrMap.get(orgUnit.getPnr().toString());
-				if (pUnitDTO == null) {
-					pUnitDTO = cvrService.getPUnitByPnr(orgUnit.getPnr().toString());
-
-					if (pUnitDTO != null) {
-						cvrMap.put(orgUnit.getPnr().toString(), pUnitDTO);
-					}
-				}
-
-				if (pUnitDTO != null) {
-					Post post = new Post();
-					post.setMaster("CVR");
-					post.setMasterId(orgUnit.getPnr().toString());
-					post.setCountry("Danmark");
-					String street = pUnitDTO.getStreet() + " " + pUnitDTO.getNumber();
-					post.setStreet(street);
-					post.setPostalCode(pUnitDTO.getPostalCode());
-					post.setCity(pUnitDTO.getCity());
-					post.setPrime(orgUnit.getPostAddresses().isEmpty());
-					OrgUnitPostMapping postMapping = new OrgUnitPostMapping();
-					postMapping.setOrgUnit(orgUnit);
-					postMapping.setPost(post);
-					orgUnit.getPostAddresses().add(postMapping);
-					changes = true;
-				}
-			}
-
-			// update existing cvr posts
-			for (Post post : postsWithMasterCvr) {
-				PUnitDTO pUnitDTO = cvrMap.get(post.getMasterId());
-
-				if (pUnitDTO == null) {
-					pUnitDTO = cvrService.getPUnitByPnr(post.getMasterId());
-					cvrMap.put(post.getMasterId(),pUnitDTO);
-				}
-
-				if (pUnitDTO != null) {
-					String street = pUnitDTO.getStreet() + " " + pUnitDTO.getNumber();
-					if (!Objects.equals(post.getStreet(), street)) {
-						post.setStreet(street);
-						changes = true;
-					}
-
-					if (!Objects.equals(post.getPostalCode(), pUnitDTO.getPostalCode())) {
-						post.setPostalCode(pUnitDTO.getPostalCode());
-						changes = true;
-					}
-
-					if (!Objects.equals(post.getCity(), pUnitDTO.getCity())) {
-						post.setCity(pUnitDTO.getCity());
-						changes = true;
-					}
-				}
-			}
-
-			if (orgUnit.getPnr() != null) {
-				PUnitDTO pUnitDTO = cvrMap.get(orgUnit.getPnr().toString());
-				if (pUnitDTO == null) {
-					pUnitDTO = cvrService.getPUnitByPnr(orgUnit.getPnr().toString());
-					if (pUnitDTO != null) {
-						cvrMap.put(orgUnit.getPnr().toString(), pUnitDTO);
-					}
-				}
-
-				if (pUnitDTO != null) {
-					// update cvr name
-					// it is on purpose we only update if we get a non-null response from cvrService (to prevent nulling cvrName field if service is down or fails).
-					if (!Objects.equals(orgUnit.getCvrName(), pUnitDTO.getName())) {
-						orgUnit.setCvrName(pUnitDTO.getName());
-						changes = true;
-					}
-				}
-			}
-
-			if (changes) {
-				orgUnitDao.save(orgUnit);
-			}
-		}
 	}
 
 	public List<OrgUnit> getAllWhereManagerIs(Person manager) {

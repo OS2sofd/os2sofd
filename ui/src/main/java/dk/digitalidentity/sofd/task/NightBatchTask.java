@@ -23,6 +23,7 @@ import dk.digitalidentity.sofd.service.AccountOrderService;
 import dk.digitalidentity.sofd.service.AffiliationService;
 import dk.digitalidentity.sofd.service.AuthorizationCodeService;
 import dk.digitalidentity.sofd.service.BatchJobExecutionService;
+import dk.digitalidentity.sofd.service.CvrService;
 import dk.digitalidentity.sofd.service.FunctionAssignmentService;
 import dk.digitalidentity.sofd.service.KleService;
 import dk.digitalidentity.sofd.service.KnownUsernamesService;
@@ -31,7 +32,6 @@ import dk.digitalidentity.sofd.service.ModificationHistoryService;
 import dk.digitalidentity.sofd.service.NotificationService;
 import dk.digitalidentity.sofd.service.OS2SyncService;
 import dk.digitalidentity.sofd.service.OrgUnitFutureChangesService;
-import dk.digitalidentity.sofd.service.OrgUnitService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.SubstituteAssignmentService;
 import dk.digitalidentity.sofd.service.SubstituteOrgUnitAssignmentService;
@@ -65,7 +65,7 @@ public class NightBatchTask {
 	private OS2SyncService os2SyncService;
 	
 	@Autowired
-	private OrgUnitService orgUnitService;
+	private CvrService cvrService;
 	
 	@Autowired
 	private NotificationService notificationService;
@@ -140,7 +140,7 @@ public class NightBatchTask {
 					.name("CVR Maintenance Task")
 					.time(LocalTime.of(1, random.nextInt(30)))
 					.function(() -> {
-						orgUnitService.cvrMaintenance();
+						cvrService.cvrMaintenance();
 
 						return true;
 					}).build());
