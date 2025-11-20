@@ -799,7 +799,27 @@ public class OrgUnitRestController {
 		orgUnit.setDoNotTransferToFkOrg(orgUnitDTO.isDoNotTransferToFKOrg());
 		orgUnit.setBlockUpdate(orgUnitDTO.isBlockUpdate());
 
-		if (orgUnitDTO.getPnr() != null) {
+        Post parentPost = parent.getPostAddresses().stream().map(OrgUnitPostMapping::getPost).filter(Post::isPrime).findAny().orElse(null);
+		if (orgUnitDTO.isInheritAddressFromParent() && parentPost != null) {
+            Post post = new Post();
+            post.setPrime(true);
+            post.setStreet(parentPost.getStreet());
+            post.setPostalCode(parentPost.getPostalCode());
+            post.setCity(parentPost.getCity());
+            post.setCountry(parentPost.getCountry());
+            post.setAddressProtected(parentPost.isAddressProtected());
+            post.setReturnAddress(parentPost.isReturnAddress());
+            post.setMaster(parentPost.getMaster());
+            post.setMasterId(parentPost.getMasterId());
+            post.setLocalname(parentPost.getLocalname());
+
+            OrgUnitPostMapping mapping = new OrgUnitPostMapping();
+            mapping.setOrgUnit(orgUnit);
+            mapping.setPost(post);
+
+            orgUnit.getPostAddresses().add(mapping);
+        }
+        else if (orgUnitDTO.getPnr() != null) {
 			Post post = new Post();
 			post.setPrime(true);
 			post.setStreet(orgUnitDTO.getStreet());
