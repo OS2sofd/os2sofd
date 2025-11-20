@@ -15,6 +15,7 @@ public class Integrations {
 	private RoleCatalogue roleCatalogue = new RoleCatalogue();
 	private OPUS opus = new OPUS();
 	private AppManager appManager = new AppManager();
+	private OS2ilm os2ilm = new OS2ilm();
 
 	@JsonIgnore
 	private Cpr cpr = new Cpr();
