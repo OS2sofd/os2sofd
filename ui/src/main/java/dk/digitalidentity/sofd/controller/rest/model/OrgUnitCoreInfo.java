@@ -48,4 +48,6 @@ public class OrgUnitCoreInfo {
 	private boolean doNotTransferToFKOrg;
 
 	private boolean blockUpdate;
+
+    private boolean inheritAddressFromParent;
 }
