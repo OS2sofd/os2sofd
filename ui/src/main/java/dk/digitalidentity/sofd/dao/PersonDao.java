@@ -79,6 +79,7 @@ public interface PersonDao extends JpaRepository<Person, String>, JpaSpecificati
 					or trim(leading '0' from a.employee_id) = trim(leading '0' from :query)
 					or (:cprAccess and p.cpr like concat(:query,'%'))
 					or p.key_words like concat('%',:query,'%')
+					or a.vendor like concat('%',:query,'%')
 				group by p.uuid
 				order by ifnull(p.chosen_name,concat(p.firstname,p.surname))
 				limit 20
