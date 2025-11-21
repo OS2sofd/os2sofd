@@ -105,6 +105,12 @@ public class EmailTemplateService {
 				// Uuid for tilhørsforhold: {tilhørsforholduuid}
 				message = "Kære {modtager}\n<br/>\n<br/>{medarbejder} starter i din afdeling {orgenhed} d. {tidspunkt}.";
 				break;
+			case NEW_AFFILIATION_SOFD:
+				title = "Ny medarbejder";
+				// følgende er også muligt, men ønskes ikke vist i std skabelonen
+				// Uuid for tilhørsforhold: {tilhørsforholduuid}
+				message = "Kære {modtager}\n<br/>\n<br/>{medarbejder} starter i din afdeling {orgenhed} d. {tidspunkt}.";
+				break;
 			case NEW_EMPLOYEE_DIGITAL_POST:
 				title = "Ny ansættelse";
 				message = "Kære {medarbejder}\n<br/>\n<br/>Velkommen til {orgenhed}";
@@ -175,6 +181,14 @@ public class EmailTemplateService {
 				title = "Pausemarkering ophørt";
 				message = "Kære {modtager}\n<br/>\n<br/>Din pausemarkering er nu ophørt.\n<br/>\n<br/>Primær AD-konto: {primærekonto}\n<br/>\n<br/>Alle AD-konti:\n<br/>{konti}";
 				break;
+            case CICS_CREATE_EMPLOYEE:
+                title = "Brugerkonto oprettet";
+                message = "Kære {modtager}\n<br/>\n<br/>\nDer er blevet oprettet en brugerkonto til dig med brugernavn\n<br/>\n<br/>\n{cics-brugernavn}";
+                break;
+            case CICS_CREATE_MANAGER:
+                title = "Brugerkonto oprettet";
+                message = "Kære {modtager}\n<br/>\n<br/>\nDer er blevet oprettet en brugerkonto til {medarbejder} med brugernavn\n<br/>\n<br/>\n{cics-brugernavn}";
+                break;
 			default:
 				break;
 		}
