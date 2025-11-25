@@ -1,0 +1,15 @@
+<th:block th:fragment="localExtensions" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<table class="table table-striped table-hover listTable">
+		<thead>
+			<th class="col-md-6" th:text="#{html.page.orgunit.view.localextensions.field}"></th>
+			<th class="col-md-6" th:text="#{html.page.orgunit.view.localextensions.value}"></th>
+		</thead>
+
+		<tbody>
+			<tr th:each="localExtension : ${localExtensionMap}">
+				<td th:text="${localExtension.key}"></td>
+				<td th:text="${localExtension.value}"></td>
+			</tr>
+		</tbody>
+	</table>
+</th:block>

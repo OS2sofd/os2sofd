@@ -3,7 +3,6 @@ package dk.digitalidentity.sofd.listener;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,15 +63,9 @@ public class NewAffiliationNotifyManagerListener implements ListenerAdapter {
 					.filter(a -> a.getMaster().equals(configuration.getModules().getLos().getPrimeAffiliationMaster()))
 					.collect(Collectors.toList());
 
-            List<Affiliation> wageAffiliations = affiliations.stream().filter(Affiliation::isFromWageSystem).toList();
-            List<Affiliation> sofdAffiliations = affiliations.stream().filter(Predicate.not(Affiliation::isFromWageSystem)).toList();
-
-            if (!wageAffiliations.isEmpty()) {
-                handleNewAffiliations(person, wageAffiliations, true);
-            }
-            if (!sofdAffiliations.isEmpty()) {
-                handleNewAffiliations(person, sofdAffiliations, false);
-            }
+			if (affiliations.size() > 0) {
+				handleNewAffiliations(person, affiliations);
+			}
 		}
 	}
 
@@ -99,27 +92,20 @@ public class NewAffiliationNotifyManagerListener implements ListenerAdapter {
 
 			// only relevant for ACTUAL employments
 			if (!affiliation.getMaster().equals(configuration.getModules().getLos().getPrimeAffiliationMaster())) {
-				log.info("Skipping affiliation with wrong master: " + affiliation.getUuid());
+				log.info("Skipping affilation with wrong master: " + affiliation.getUuid());
 				continue;
 			}
 
 			affiliations.add(affiliation);
 		}
-
-        List<Affiliation> wageAffiliations = affiliations.stream().filter(Affiliation::isFromWageSystem).toList();
-        List<Affiliation> sofdAffiliations = affiliations.stream().filter(Predicate.not(Affiliation::isFromWageSystem)).toList();
-
-		if (!wageAffiliations.isEmpty()) {
-			handleNewAffiliations(person, wageAffiliations, true);
+		
+		if (affiliations.size() > 0) {
+			handleNewAffiliations(person, affiliations);
 		}
-        if (!sofdAffiliations.isEmpty()) {
-			handleNewAffiliations(person, sofdAffiliations, false);
-		}
-
 	}
 
-	private void handleNewAffiliations(Person person, List<Affiliation> affiliations, boolean fromWageSystem) {
-		EmailTemplate template = emailTemplateService.findByTemplateType(fromWageSystem ? EmailTemplateType.NEW_AFFILIATION : EmailTemplateType.NEW_AFFILIATION_SOFD);
+	private void handleNewAffiliations(Person person, List<Affiliation> affiliations) {
+		EmailTemplate template = emailTemplateService.findByTemplateType(EmailTemplateType.NEW_AFFILIATION);
 
 		for (EmailTemplateChild child : template.getChildren()) {
 			if (!child.isEnabled()) {

@@ -47,7 +47,9 @@
                                 <li>
                                     <a data-toggle="tab" href="#tags_menu" th:text="#{html.page.orgunit.view.tags.title}" th:if="${#lists.size(tags) > 0}"></a>
                                 </li>
-
+								<li>
+									<a data-toggle="tab" href="#local_extensions_menu" th:text="#{html.page.orgunit.view.localextensions.title}"></a>
+								</li>
                                 <li sec:authorize="hasRole('ROLE_MODULE_ACCOUNT_CREATION')">
                                     <a data-toggle="tab" href="#order_accounts_menu" th:text="#{html.page.orgunit.view.orderaccounts.title}"></a>
                                 </li>
@@ -238,6 +240,10 @@
                                 <div id="tags_menu" class="tab-pane fade" th:if="${#lists.size(tags) > 0}">
                                     <th:block th:replace="orgunit/fragments/tags :: tags" />
                                 </div>
+
+								<div id="local_extensions_menu" class="tab-pane fade">
+									<th:block th:replace="orgunit/fragments/localExtensions :: localExtensions" />
+								</div>
 
                                 <div id="order_accounts_menu" class="tab-pane fade">
                                     <div th:replace="orgunit/fragments/viewAccountOrdersTab :: accountOrdersTab (orgUnitAccountOrder = ${orgUnitAccountOrder})"></div>

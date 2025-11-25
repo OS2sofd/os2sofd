@@ -231,6 +231,7 @@ public class OrgUnitController {
 		model.addAttribute("functionTypes", functionTypeService.findAllAsDTO());
 		model.addAttribute("futureChanges", orgUnitFutureChangesService.getAllByOrgUnitAndNotApplied(orgUnit));
 		model.addAttribute("substituteContexts", substituteContextService.getAll().stream().filter(SubstituteContext::isAssignableToOrgUnit).toList());
+		model.addAttribute("localExtensionMap", orgUnitService.getLocalExtensionMap(orgUnit));
 
 		List<SubstituteOrgUnitAssignmentDTO> substitutes = orgUnitService.getOrgUnitSubstitutes(orgUnit);
 		model.addAttribute("substitutes", substitutes);

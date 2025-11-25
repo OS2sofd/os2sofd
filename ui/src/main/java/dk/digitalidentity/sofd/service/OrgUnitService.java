@@ -12,12 +12,14 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpSession;
 import javax.transaction.Transactional;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.CacheEvict;
@@ -145,6 +147,9 @@ public class OrgUnitService {
 
 	@Autowired
 	private EanService eanService;
+
+	@Autowired
+	private ObjectMapper mapper;
 
 	public OrgUnit getByUuid(String uuid) {
 		Date date = getFutureDateFromSession();
@@ -1034,4 +1039,20 @@ public class OrgUnitService {
 
 		return orgUnitDao.findLimited(size);
 	}
+
+	@SuppressWarnings("unchecked")
+	public Map<String, String> getLocalExtensionMap(OrgUnit orgUnit) {
+		if (!StringUtils.hasLength(orgUnit.getLocalExtensions())) {
+			return new HashMap<>();
+		}
+		try {
+			Map<String, String> map = mapper.readValue(orgUnit.getLocalExtensions(), Map.class);
+			// return sorted
+			return new TreeMap<>(map);
+		}
+		catch (Exception ex) {
+			log.error("Failed to convert string to map", ex);
+			return new HashMap<>();
+		}
+    }
 }

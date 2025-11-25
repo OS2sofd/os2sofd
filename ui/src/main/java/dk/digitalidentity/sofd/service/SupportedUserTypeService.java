@@ -152,6 +152,4 @@ public class SupportedUserTypeService {
 	public static String getAzureAdUserType() {
 		return WellKnownUserType.AZURE_AD.toString();
 	}
-
-    public static String getKspCicsUserType() { return WellKnownUserType.KSPCICS.toString(); }
 }
