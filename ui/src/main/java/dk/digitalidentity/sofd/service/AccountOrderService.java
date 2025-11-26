@@ -1827,7 +1827,7 @@ public class AccountOrderService {
 						for( var manualRecipients : recipients ) {
 							var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), manualRecipients);
 							var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), manualRecipients);
-							emailQueueService.queueEmail(manualRecipients, recipientTitle, recipientMessage, 0, child, logContext.toString());
+							emailQueueService.queueEmailToSystemMailbox(manualRecipients, recipientTitle, recipientMessage, 0, child, logContext.toString());
 						}
 
 						if (!child.isOnlyManualRecipients()) {
