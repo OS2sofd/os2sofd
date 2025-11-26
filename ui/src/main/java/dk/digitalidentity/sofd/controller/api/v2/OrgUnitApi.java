@@ -240,6 +240,11 @@ public class OrgUnitApi {
 			changes = true;
 		}
 
+		if (record.getUrlAddress() != null && !Objects.equals(record.getUrlAddress(), orgUnit.getUrlAddress())) {
+			orgUnit.setUrlAddress(record.getUrlAddress());
+			changes = true;
+		}
+
 		// TODO: it is not possible to set a new root using PATCH... we need to do this manually when it
 		//       happens, or implement some PUT procedure for this
 		if (record.getParent() != null) {
