@@ -200,10 +200,15 @@ public class UsernameTemplateItem {
 
 
     private int scrambleIndex(int index, int maxPermutations) {
-        long prime = 2654435761L;
-        return (int) ((index * prime) % maxPermutations);
-    }
+        int x = index;
+        x ^= (x >>> 16);
+        x *= 0x85ebca6b;
+        x ^= (x >>> 13);
+        x *= 0xc2b2ae35;
+        x ^= (x >>> 16);
 
+        return (x & Integer.MAX_VALUE) % maxPermutations;
+    }
     private String getSerial(AtomicInteger remainingPermutations) {
         var result = remainingPermutations.get() == 0 ? "" : String.valueOf(remainingPermutations.get());
         remainingPermutations.set(0); // the serial exhausts all remaining permutations
