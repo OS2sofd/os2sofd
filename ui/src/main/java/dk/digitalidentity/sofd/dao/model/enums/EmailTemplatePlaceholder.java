@@ -27,7 +27,7 @@ public enum EmailTemplatePlaceholder {
 	TITLE("{overskrift}", "html.enum.placeholders.description.title", "html.enum.placeholders.description.title.example"),
 	PRIMARY_ACCOUNT_PLACEHOLDER("{primærekonto}", "html.enum.placeholders.description.primary_account","html.enum.placeholders.description.primary_account.example"),
 	ALL_ACCOUNTS_PLACEHOLDER("{konti}", "html.enum.placeholders.description.all_accounts","html.enum.placeholders.description.all_accounts.example"),
-    CICS_ACCOUNT_PLACEHOLDER("{cics-brugernavn}", "html.enum.placeholders.description.cics_account", "html.enum.placeholders.description.cics_account.example");
+	CICS_ACCOUNT_PLACEHOLDER("{cics-brugernavn}", "html.enum.placeholders.description.cics_account", "html.enum.placeholders.description.cics_account.example");
 
 	private String placeholder;
 	private String description;
