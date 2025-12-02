@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+    <header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+    <aside th:replace="fragments/navbar :: navbar-aside (page = 'notification.manuals', subpage = 'admin')"></aside>
+
+    <section>
+        <div class="content-wrapper">
+            <h3 th:if="${manual.id == 0}" th:text="#{html.setting.notification.manual.create}"></h3>
+            <h3 th:unless="${manual.id == 0}" th:text="#{html.setting.notification.manual.edit}"></h3>
+
+            <div class="panel panel-default">
+                <div class="panel-heading"></div>
+                <div class="panel-body">
+                    <div th:if="${#fields.hasErrors('manual')}" class="alert alert-danger">
+                        <strong>Der er fejl i formularen:</strong>
+                        <ul>
+                            <li th:each="err : ${#fields.errors('manual')}" th:text="${err}"></li>
+                        </ul>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <form class="form-horizontal" id="manual-form" th:action="@{/ui/admin/notifications/manual/save}" method="post" th:object="${manual}">
+                                <input type="hidden" th:field="*{id}" />
+
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label" th:text="#{html.setting.notification.manual.active}"></label>
+                                    <div class="col-sm-8">
+                                        <input type="checkbox" th:field="*{active}" style="margin-top: 10px; width: auto; height: auto;"/>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label" th:text="#{html.setting.notification.manual.title}"></label>
+                                    <div class="col-sm-8">
+                                        <input th:field="*{title}" class="form-control"/>
+                                        <ul th:if="${#fields.hasErrors('title')}" class="error">
+                                            <li th:each="err : ${#fields.errors('title')}" th:text="${err}"></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label" th:text="#{html.setting.notification.manual.details}"></label>
+                                    <div class="col-sm-8">
+                                        <textarea th:field="*{details}" rows="4" class="form-control"></textarea>
+                                        <ul th:if="${#fields.hasErrors('details')}" class="error">
+                                            <li th:each="err : ${#fields.errors('details')}" th:text="${err}"></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label" th:text="#{html.setting.notification.manual.nextDate}"></label>
+                                    <div class="col-sm-8">
+                                        <input type="date" th:field="*{nextDate}" class="form-control"/>
+                                        <ul th:if="${#fields.hasErrors('nextDate')}" class="error">
+                                            <li th:each="err : ${#fields.errors('nextDate')}" th:text="${err}"></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label">
+                                        <span th:text="#{html.setting.notification.manual.frequency}"></span>
+                                        <i class="fa fa-info-circle"
+                                           th:title="#{html.setting.notification.manual.frequency.info}"
+                                           data-toggle="tooltip"
+                                           data-placement="right"></i>
+                                    </label>
+                                    <div class="col-sm-4">
+                                        <select id="frequencySelect" th:field="*{frequency}" class="form-control">
+                                            <option th:each="freq : ${T(dk.digitalidentity.sofd.dao.model.enums.ManualNotificationFrequency).values()}"
+                                                    th:value="${freq}"
+                                                    th:text="#{${freq.message}}"></option>
+                                        </select>
+                                        <ul th:if="${#fields.hasErrors('frequency')}" class="error">
+                                            <li th:each="err : ${#fields.errors('frequency')}" th:text="${err}"></li>
+                                        </ul>
+                                    </div>
+
+                                    <label class="col-sm-2 control-label">
+                                        <span th:text="#{html.setting.notification.manual.frequencyQualifier}"></span>
+                                        <i class="fa fa-info-circle"
+                                           th:title="#{html.setting.notification.manual.frequencyQualifier.info}"
+                                           data-toggle="tooltip"
+                                           data-placement="right"></i>
+                                    </label>
+                                    <div class="col-sm-2">
+                                        <input type="number"
+                                               id="frequencyQualifier"
+                                               th:field="*{frequencyQualifier}"
+                                               class="form-control"
+                                               min="1"/>
+                                        <ul th:if="${#fields.hasErrors('frequencyQualifier')}" class="error">
+                                            <li th:each="err : ${#fields.errors('frequencyQualifier')}" th:text="${err}"></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <div class="col-sm-offset-2 col-sm-8">
+                                        <button type="submit" class="btn btn-primary">Gem</button>
+                                        <a th:href="@{/ui/admin/notifications/manual}" class="btn btn-default">Annuller</a>
+                                    </div>
+                                </div>
+
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+
+<script th:replace="fragments/datatables :: datatables "></script>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+
+    var stars = '********';
+
+    /*[+
+    +]*/
+
+    $(document).ready(function() {
+        // Initialiser tooltips
+        $('[data-toggle="tooltip"]').tooltip();
+
+        // Håndter frequencyQualifier enable/disable baseret på frequency
+        function updateFrequencyQualifier() {
+            var frequency = $('#frequencySelect').val();
+            var $qualifier = $('#frequencyQualifier');
+
+            if (frequency === 'ONCE') {
+                $qualifier.prop('disabled', true);
+                $qualifier.val('1');
+            } else {
+                $qualifier.prop('disabled', false);
+            }
+        }
+
+        // Kør ved page load
+        updateFrequencyQualifier();
+
+        // Kør ved ændring
+        $('#frequencySelect').on('change', function() {
+            updateFrequencyQualifier();
+        });
+    });
+
+    /*]]>*/
+</script>
+</body>
+</html>
