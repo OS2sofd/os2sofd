@@ -68,6 +68,10 @@ public class NotificationGenerationTask {
 		var deletedParentOrgUnitNotifications = notificationService.generateDeletedParentOrgUnitNotifications();
 		log.info("deletedParentOrgUnitNotifications count: " + deletedParentOrgUnitNotifications);
 		count += deletedParentOrgUnitNotifications;
+
+        long manualNotifications = notificationService.generateManualNotifications();
+        log.info("manualNotifications count: " + manualNotifications);
+        count += (int) manualNotifications;
 		
 		log.info("Completed notification generation with " + count + " new notifications");
 	}

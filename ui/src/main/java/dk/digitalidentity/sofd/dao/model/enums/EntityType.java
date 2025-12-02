@@ -16,7 +16,9 @@ public enum EntityType {
 	MANAGED_TITLE("html.enum.entityType.managedTitle"),
 	ACCOUNT_ORDER("html.enum.entityType.accountOrder"),
 	EMAIL_TEMPLATE("html.enum.entityType.mailTemplate"),
-	SETTING("html.enum.entityType.setting");
+	SETTING("html.enum.entityType.setting"),
+    Manual_Notification("html.enum.entityType.manualNotification")
+    ;
 
 	
 	private String message;

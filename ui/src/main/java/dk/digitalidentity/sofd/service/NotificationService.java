@@ -13,6 +13,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import dk.digitalidentity.sofd.dao.model.ManualNotification;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,6 +59,9 @@ public class NotificationService {
 	
 	@Autowired
 	private SofdConfiguration configuration;
+
+    @Autowired
+    private ManualNotificationService manualNotificationService;
 	
 	public long countActive() {
 		return notificationDao.countByActiveTrue();
@@ -505,6 +509,21 @@ public class NotificationService {
 		
 		return 0;
 	}
+
+    public long generateManualNotifications() {
+        List<Notification> notifications = new ArrayList<>();
+        List<ManualNotification> updatedManuals = new ArrayList<>();
+        for (ManualNotification manual : manualNotificationService.findAllActiveWithNextDateTodayOrBefore()) {
+            addNotification(notifications, manual.getDetails(), manual.getTitle(), "", EntityType.Manual_Notification, NotificationType.MANUAL_NOTIFICATION);
+            updatedManuals.add(manualNotificationService.updateNextDate(manual));
+        }
+        if (!notifications.isEmpty()) {
+            manualNotificationService.saveAll(updatedManuals);
+            return saveAll(notifications);
+        }
+
+        return 0;
+    }
 	
 	private void addNotification(List<Notification> notifications, String message, String name, String uuid, EntityType entityType, NotificationType notificationType) {
 		Notification notification = new Notification();

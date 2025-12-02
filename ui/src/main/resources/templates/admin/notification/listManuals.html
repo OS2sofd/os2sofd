@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+    <header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+    <aside th:replace="fragments/navbar :: navbar-aside (page = 'notification.manuals', subpage = 'admin')"></aside>
+
+    <section>
+        <div class="content-wrapper">
+            <h3 th:text="#{html.setting.notification.manual.header}"></h3>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <a class="btn btn-primary btn-lg" th:href="@{/ui/admin/notifications/manual/0}">
+                        <i class="fa fa-plus"></i>
+                        <span th:text="#{html.setting.notification.manual.create}"></span>
+                    </a>
+                </div>
+                <div class="panel-body">
+                    <div class="table-responsive">
+                        <table id="listTable" class="table table-striped table-hover listTable">
+                            <thead>
+                            <tr>
+                                <th class="col-md-2" th:text="#{html.setting.notification.manual.title}"></th>
+                                <th class="col-md-3" th:text="#{html.setting.notification.manual.details}"></th>
+                                <th class="col-md-2" th:text="#{html.setting.notification.manual.frequency}"></th>
+                                <th class="col-md-2" th:text="#{html.setting.notification.manual.nextDate}"></th>
+                                <th class="col-md-2" th:text="#{html.setting.notification.manual.firstDate}"></th>
+                                <th class="col-md-2" th:text="#{html.setting.notification.manual.lastDate}"></th>
+                                <th class="col-md-1" th:text="#{html.control.operations}"></th>
+                            </tr>
+                            </thead>
+
+                            <tbody>
+                            <tr th:each="manual : ${manuals}">
+                                <td th:text="${manual.title}"></td>
+                                <td th:text="${manual.details}"></td>
+                                <td th:text="${manual.frequency}"></td>
+                                <td th:text="${manual.active ? manual.nextDate : 'Ikke Aktiv'}"></td>
+                                <td th:text="${manual.firstDate}"></td>
+                                <td th:text="${manual.lastRun}"></td>
+                                <td>
+                                    <a th:unless="${manual.active}" href="#" th:onclick="toggleManual(this);" th:data-id="${manual.id}" th:title="#{html.setting.notification.manual.activate}"><em class="fa fa-fw fa-toggle-off"></em></a>
+                                    <a th:if="${manual.active}" href="#" th:onclick="toggleManual(this);" th:data-id="${manual.id}" th:title="#{html.setting.notification.manual.deactivate}"><em class="fa fa-fw fa-toggle-on"></em></a>
+                                    <a th:href="@{/ui/admin/notifications/manual/{manualId}(manualId=${manual.id})}" th:title="#{html.setting.notification.manual.edit}"><em class="fa fa-fw fa-pencil"></em></a>
+                                    <a href="#" th:onclick="deleteManual(this);" th:data-id="${manual.id}" th:title="#{html.setting.notification.manual.delete}"><em class="fa fa-fw fa-remove"></em></a>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+
+<script th:replace="fragments/datatables :: datatables "></script>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+
+    var stars = '********';
+
+    /*[+
+
+    var deleteURL = [[@{/ui/admin/notifications/manual/delete}]];
+    var toogleURL = [[@{/ui/admin/notifications/manual/toggleActivation}]];
+
+    var deleteTitle = [[#{html.setting.notification.manual.delete}]];
+    var deleteText = [[#{html.setting.notification.manual.delete.confirm}]];
+    var deleteButtonConfirm = [[#{html.button.delete}]];
+    var deleteButtonCancel = [[#{html.button.cancel}]];
+    +]*/
+
+    var token = $("meta[name='_csrf']").attr("content");
+
+    function toggleManual(element) {
+        $.ajax({
+            url: toogleURL + "/" + element.dataset.id,
+            headers: {
+                'X-CSRF-TOKEN': token
+            },
+            type: 'POST',
+            contentType: 'application/json',
+            success: function(data, textStatus, jQxhr) {
+                window.location.reload();
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                $.notify({
+                    message: "Fejl opstod under aktivering/deaktiver. Prøv igen."
+                }, {
+                    status: 'danger',
+                    autoHideDelay: 4000
+                });
+            }
+        });
+    }
+
+    function deleteManual(element) {
+        swal({
+            html : true,
+            title : deleteTitle,
+            text : deleteText,
+            type : "warning",
+            showCancelButton : true,
+            confirmButtonColor : "#DD6B55",
+            confirmButtonText : deleteButtonConfirm,
+            cancelButtonText : deleteButtonCancel,
+            closeOnConfirm : true,
+            closeOnCancel : true
+        },
+            function(isConfirm) {
+                if (isConfirm) {
+                    $.ajax({
+                        url: deleteURL + "/" + element.dataset.id,
+                        headers: {
+                            'X-CSRF-TOKEN': token
+                        },
+                        type: 'POST',
+                        contentType: 'application/json',
+                        success: function(data, textStatus, jQxhr) {
+                            window.location.reload();
+                        },
+                        error: function(jqXHR, textStatus, errorThrown) {
+                            $.notify({
+                                message: "Fejlopstod under sletning af manual notification. Prøv igen senere."
+                            }, {
+                                status: 'danger',
+                                autoHideDelay: 4000
+                            });
+                        }
+                    });
+                }
+            }
+        );
+    }
+
+    /*]]>*/
+</script>
+</body>
+</html>
