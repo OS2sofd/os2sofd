@@ -22,7 +22,7 @@ public class CprUpdateTask {
 	private SofdConfiguration configuration;
 
     @Autowired
-    private CprUpdateService synchronizePersonAddressService;
+    private CprUpdateService cprUpdateService;
 
     @EventListener
     public void onApplicationEvent(ContextStartedEvent event) {
@@ -43,7 +43,7 @@ public class CprUpdateTask {
         Calendar cal = Calendar.getInstance();
         int digit = (cal.get(Calendar.DATE) % 10);
         
-        synchronizePersonAddressService.updatePersonsWithLastCprDigit(Integer.toString(digit));
+        cprUpdateService.updatePersonsWithLastCprDigit(Integer.toString(digit));
         
         log.info("Scheduled update of persons from cpr completed");
     }
@@ -57,7 +57,7 @@ public class CprUpdateTask {
 
         log.info("Running scheduled update of bad state on persons from cpr");
 
-        synchronizePersonAddressService.updateBadState();
+        cprUpdateService.updateBadState();
         
         log.info("Scheduled update of bad state on persons from cpr completed");
     }
