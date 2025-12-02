@@ -170,7 +170,8 @@ public class CprUpdateService {
 							Child newChild = new Child();
 							newChild.setCpr(child.getCpr());
 							newChild.setName(
-									(childData != null) ? (childData.getFirstname() + " " + childData.getLastname())
+									(childData != null && childData.getFirstname() != null && childData.getLastname() != null)
+											? (childData.getFirstname() + " " + childData.getLastname())
 											: "Ukendt");
 							newChild.setParent(person);
 							person.getChildren().add(newChild);
