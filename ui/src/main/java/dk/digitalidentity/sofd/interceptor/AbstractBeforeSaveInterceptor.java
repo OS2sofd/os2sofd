@@ -124,7 +124,17 @@ public class AbstractBeforeSaveInterceptor {
 
 		if (person.getAffiliations() != null) {
 			for (Affiliation affiliation : person.getAffiliations()) {
+				// preload orgunit affiliations for later use
+				if (affiliation.getOrgUnit() != null &&
+						affiliation.getOrgUnit().getAffiliations() != null) {
+					affiliation.getOrgUnit().getAffiliations().size();
+				}
+				if (affiliation.getCalculatedOrgUnit() != null &&
+						affiliation.getCalculatedOrgUnit().getAffiliations() != null) {
+					affiliation.getCalculatedOrgUnit().getAffiliations().size();
+				}
 
+				// set default uuid
 				if (affiliation.getUuid() == null || affiliation.getUuid().isEmpty()) {
 					affiliation.setUuid(UUID.randomUUID().toString());
 				}
