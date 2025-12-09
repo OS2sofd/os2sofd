@@ -24,48 +24,48 @@
 					<div class="panel-heading"></div>
 					<div class="panel-body">
 						<div id="core" class="row"></div>
-						<th:block th:if="${session.SESSION_FUTURE_DATE} == null">
+						<th:block>
                             <ul id="main-tabs" class="nav nav-tabs">
-                                <li class="active">
+                                <li class="active" th:if="${session.SESSION_FUTURE_DATE} == null">
                                     <a data-toggle="tab" href="#employees_menu" th:text="#{html.page.orgunit.list.employees}"></a>
                                 </li>
-                                <li>
+                                <li th:if="${session.SESSION_FUTURE_DATE} == null">
                                     <a data-toggle="tab" href="#post_menu" th:text="#{html.page.orgunit.view.post.title}"></a>
                                 </li>
-                                <li>
+                                <li th:if="${session.SESSION_FUTURE_DATE} == null">
                                     <a data-toggle="tab" href="#phone_menu" th:text="#{html.page.orgunit.view.phone.title}"></a>
                                 </li>
-                                <li>
+                                <li th:if="${session.SESSION_FUTURE_DATE} == null">
                                     <a data-toggle="tab" href="#contactInfo_menu" th:text="#{html.page.orgunit.view.contactchannels.title}"></a>
                                 </li>
-                                <li>
+                                <li th:if="${session.SESSION_FUTURE_DATE} == null">
                                     <a data-toggle="tab" href="#kle_menu" th:text="#{html.page.orgunit.view.kle.title}"></a>
                                 </li>
-                                <li sec:authorize="hasRole('ROLE_USER_LOS_ADMIN')">
+                                <li sec:authorize="hasRole('ROLE_USER_LOS_ADMIN')" th:if="${session.SESSION_FUTURE_DATE} == null">
                                     <a data-toggle="tab" href="#ouFutureChanges" th:text="#{html.page.person.view.future.changes}"></a>
                                 </li>
                                 <li>
                                     <a data-toggle="tab" href="#tags_menu" th:text="#{html.page.orgunit.view.tags.title}" th:if="${#lists.size(tags) > 0}"></a>
                                 </li>
-								<li>
+								<li th:if="${session.SESSION_FUTURE_DATE} == null">
 									<a data-toggle="tab" href="#local_extensions_menu" th:text="#{html.page.orgunit.view.localextensions.title}"></a>
 								</li>
-                                <li sec:authorize="hasRole('ROLE_MODULE_ACCOUNT_CREATION')">
+                                <li sec:authorize="hasRole('ROLE_MODULE_ACCOUNT_CREATION')" th:if="${session.SESSION_FUTURE_DATE} == null">
                                     <a data-toggle="tab" href="#order_accounts_menu" th:text="#{html.page.orgunit.view.orderaccounts.title}"></a>
                                 </li>
-                                <li>
+                                <li th:if="${session.SESSION_FUTURE_DATE} == null">
                                     <a data-toggle="tab" href="#managed_titles_menu" th:text="#{html.page.orgunit.view.managedtitles.title}"></a>
                                 </li>
-								<li th:if="${@sofdConfiguration.getModules().getOrgUnitSubstitute().isEnabled()}">
+								<li th:if="${@sofdConfiguration.getModules().getOrgUnitSubstitute().isEnabled()} and ${session.SESSION_FUTURE_DATE} == null">
 									<a data-toggle="tab" href="#substitutes_menu" th:text="#{html.page.orgunit.view.substitute.title}"></a>
 								</li>
-                                <li>
+                                <li th:if="${session.SESSION_FUTURE_DATE} == null">
                                     <a data-toggle="tab" href="#ean_menu" th:text="#{html.page.orgunit.view.ean.title}"></a>
                                 </li>
                             </ul>
 
                             <div class="tab-content">
-                                <div id="employees_menu" class="tab-pane fade in active">
+                                <div th:if="${session.SESSION_FUTURE_DATE} == null" id="employees_menu" class="tab-pane fade in active">
                                     <div class="btn-group">
                                       <button type="button" style="width: auto !important;" class="btn btn-primary btn-lg dropdown-toggle" data-toggle="dropdown">
                                         <em class="fa fa-fw fa-cog"></em>
@@ -168,7 +168,7 @@
                                     </table>
                                 </div>
 
-                                <div id="kle_menu" class="tab-pane fade">
+                                <div th:if="${session.SESSION_FUTURE_DATE} == null" id="kle_menu" class="tab-pane fade">
 	                                <div sec:authorize="hasRole('ROLE_USER_EDIT')" style="padding-bottom: 80px;">
 										<th:block th:if="${(orgUnit != null && @securityUtil.canEditOrgUnit(orgUnit.uuid)) || orgUnit == null}">
 											<div class="col-sm-1" style="width: 40px !important;">
@@ -222,18 +222,18 @@
 	                                </div>
                                 </div>
 
-                                <div id="post_menu" class="tab-pane fade">
+                                <div th:if="${session.SESSION_FUTURE_DATE} == null" id="post_menu" class="tab-pane fade">
                                     <div th:replace="orgunit/fragments/viewPostsTab :: postsTab (postAddresses = ${postAddresses})"></div>
                                 </div>
 
-                                <div id="phone_menu" class="tab-pane fade">
+                                <div th:if="${session.SESSION_FUTURE_DATE} == null" id="phone_menu" class="tab-pane fade">
                                     <div th:replace="fragments/phoneTab :: phoneTab"></div>
                                 </div>
 
-                                <div id="contactInfo_menu" class="tab-pane fade">
+                                <div th:if="${session.SESSION_FUTURE_DATE} == null" id="contactInfo_menu" class="tab-pane fade">
 									<div th:replace="orgunit/fragments/viewContactInfoTab :: contactInfoTab (contactAddress = ${orgUnit.contactAddress},openingHours = ${orgUnit.openingHours}, keyWords = ${orgUnit.keyWords}, notes = ${orgUnit.notes}, openingHoursPhone = ${orgUnit.openingHoursPhone}, email = ${orgUnit.email}, emailNotes = ${orgUnit.emailNotes}, location = ${orgUnit.location}, urlAddress = ${orgUnit.urlAddress})"></div>
                                 </div>
-                                <div id="ouFutureChanges" class="tab-pane fade">
+                                <div th:if="${session.SESSION_FUTURE_DATE} == null" id="ouFutureChanges" class="tab-pane fade">
                                     <th:block th:replace="fragments/ouFutureChangesList :: ouFutureChangesList (changes = ${futureChanges})" />
                                 </div>
 
@@ -241,23 +241,23 @@
                                     <th:block th:replace="orgunit/fragments/tags :: tags" />
                                 </div>
 
-								<div id="local_extensions_menu" class="tab-pane fade">
+								<div th:if="${session.SESSION_FUTURE_DATE} == null" id="local_extensions_menu" class="tab-pane fade">
 									<th:block th:replace="orgunit/fragments/localExtensions :: localExtensions" />
 								</div>
 
-                                <div id="order_accounts_menu" class="tab-pane fade">
+                                <div th:if="${session.SESSION_FUTURE_DATE} == null" id="order_accounts_menu" class="tab-pane fade">
                                     <div th:replace="orgunit/fragments/viewAccountOrdersTab :: accountOrdersTab (orgUnitAccountOrder = ${orgUnitAccountOrder})"></div>
                                 </div>
 
-                                <div id="managed_titles_menu" class="tab-pane fade">
+                                <div th:if="${session.SESSION_FUTURE_DATE} == null" id="managed_titles_menu" class="tab-pane fade">
 	                                <div id="managedTitlesPlaceholder"></div>
                                 </div>
 
-								<div id="substitutes_menu" class="tab-pane fade">
+								<div th:if="${session.SESSION_FUTURE_DATE} == null" id="substitutes_menu" class="tab-pane fade">
 									<div th:replace="orgunit/fragments/substitutesTab :: substitutesTab (substitutes = ${substitutes})"></div>
 								</div>
 
-                                <div id="ean_menu" class="tab-pane fade">
+                                <div th:if="${session.SESSION_FUTURE_DATE} == null" id="ean_menu" class="tab-pane fade">
 	                                <div id="eanPlaceholder"></div>
                                 </div>
                             </div>

@@ -22,6 +22,9 @@ public class OrgUnitFutureChangeDTO {
     private OrgUnitChangeType changeType;
     private String attributeValue;
     private OrgUnitAttribute attributeField;
+	private String details;
+	private Long tagId;
+	private String tagValue;
 
 	public OrgUnitFutureChangeDTO(OrgUnitFutureChange source) {
 		this.id = source.getId();
@@ -32,5 +35,7 @@ public class OrgUnitFutureChangeDTO {
 		this.attributeField = source.getAttributeField();
 		this.attributeValue = source.getAttributeValue();
 		this.changeType = source.getChangeType();
+		this.tagId = source.getTagId();
+		this.tagValue = source.getTagValue();
 	}
 }

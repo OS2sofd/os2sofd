@@ -429,13 +429,19 @@ public class OrgUnitService {
 		List<String> codes = new ArrayList<>();
 		switch (type) {
 			case PRIMARY:
-				codes = orgUnit.getKlePrimary().stream().map(k -> k.getKleValue()).collect(Collectors.toList());
+				if (orgUnit.getKlePrimary() != null) {
+					codes = orgUnit.getKlePrimary().stream().map(k -> k.getKleValue()).collect(Collectors.toList());
+				}
 				break;
 			case SECONDARY:
-				codes = orgUnit.getKleSecondary().stream().map(k -> k.getKleValue()).collect(Collectors.toList());
+				if (orgUnit.getKleSecondary() != null) {
+					codes = orgUnit.getKleSecondary().stream().map(k -> k.getKleValue()).collect(Collectors.toList());
+				}
 				break;
 			case TERTIARY:
-				codes = orgUnit.getKleTertiary().stream().map(k -> k.getKleValue()).collect(Collectors.toList());
+				if (orgUnit.getKleTertiary() != null) {
+					codes = orgUnit.getKleTertiary().stream().map(k -> k.getKleValue()).collect(Collectors.toList());
+				}
 				break;
 		}
 
@@ -553,7 +559,7 @@ public class OrgUnitService {
 		if (date != null) {
 			// when operating in the future only these core fields can be edited
 			OrgUnitCoreInfo coreInfo = new OrgUnitCoreInfo();
-			coreInfo.setSourceName(orgUnit.getName());
+			coreInfo.setSourceName(orgUnit.getSourceName());
 			coreInfo.setShortname(orgUnit.getShortname());
 			coreInfo.setParent(orgUnit.getParent().getUuid());
 			coreInfo.setBelongsTo(orgUnit.getBelongsTo().getId());
@@ -563,6 +569,9 @@ public class OrgUnitService {
 			coreInfo.setSenr(orgUnit.getSenr());
 			coreInfo.setOrgUnitType(orgUnit.getOrgType());
 			coreInfo.setDisplayName(orgUnit.getDisplayName());
+			coreInfo.setManager(orgUnit.getSelectedManagerUuid());
+			coreInfo.setOrgUnitType(orgUnit.getOrgType());
+			coreInfo.setTags(orgUnit.getTags());
 
 			return orgUnitFutureChangesService.saveFutureChanges(orgUnit.getUuid(), coreInfo, date);
 		}

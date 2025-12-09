@@ -62,10 +62,16 @@ public class OrgUnitFutureChange {
 
     @Column
     @Enumerated(EnumType.STRING)
-    private AppliedStatus appliedStatus;
+    private AppliedStatus appliedStatus = AppliedStatus.NOT_APPLIED;
 
     @Column
     private Date appliedDate;
+
+    @Column
+    private Long tagId;
+
+    @Column
+    private String tagValue;
 
     public OrgUnitFutureChange() {
 

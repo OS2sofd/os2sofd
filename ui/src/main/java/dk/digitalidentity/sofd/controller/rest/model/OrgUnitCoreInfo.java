@@ -2,8 +2,11 @@ package dk.digitalidentity.sofd.controller.rest.model;
 
 import javax.validation.constraints.Size;
 
+import dk.digitalidentity.sofd.dao.model.OrgUnitTag;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
 
 @Getter
 @Setter
@@ -50,4 +53,6 @@ public class OrgUnitCoreInfo {
 	private boolean blockUpdate;
 
     private boolean inheritAddressFromParent;
+
+	private List<OrgUnitTag> tags;
 }

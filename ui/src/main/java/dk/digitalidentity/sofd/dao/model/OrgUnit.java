@@ -181,7 +181,7 @@ public class OrgUnit implements Loggable {
 	@BatchSize(size = 100)
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "orgUnit", orphanRemoval = true)
 	@JsonIgnore
-	private List<OrgUnitTag> tags;
+	private List<OrgUnitTag> tags = new  ArrayList<>();
 
 	@BatchSize(size = 50)
 	@OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "orgUnit", orphanRemoval = true)
