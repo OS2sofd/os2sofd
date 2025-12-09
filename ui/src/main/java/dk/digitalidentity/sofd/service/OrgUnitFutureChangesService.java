@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
+import dk.digitalidentity.sofd.dao.model.OrgUnitTag;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -61,6 +62,9 @@ public class OrgUnitFutureChangesService {
 
 	@Autowired
 	private OrgUnitFutureChangesService self;
+
+	@Autowired
+	private TagsService tagsService;
 
 	public List<OUTreeForm> getAllTreeFutureOrgUnits(List<OUTreeForm> ouTreeForms, Date date) {
 		List<OrgUnitFutureChange> oUsChangesTillDate = getAllChangesTillDateAndNotApplied(date);
@@ -256,13 +260,8 @@ public class OrgUnitFutureChangesService {
 					break;
 				case TYPE:
 					OrgUnitType type = orgUnitService.findTypeByKey(orgUnitCoreInfo.getOrgUnitType());
-					if (type != null) {
-						if (!java.util.Objects.equals(orgUnit.getType(), type)) {
-							newChange = new OrgUnitFutureChange(uuid, name, OrgUnitAttribute.TYPE, orgUnitCoreInfo.getOrgUnitType(), date);
-						}
-					}
-					else {
-						log.error("Could not find OrgUnitType by key: " + orgUnitCoreInfo.getOrgUnitType());
+					if (!java.util.Objects.equals(orgUnit.getOrgType(), type)) {
+						newChange = new OrgUnitFutureChange(uuid, name, OrgUnitAttribute.TYPE, orgUnitCoreInfo.getOrgUnitType(), date);
 					}
 					break;
 				case CVR:
@@ -320,6 +319,38 @@ public class OrgUnitFutureChangesService {
 			}
 
 			if (newChange != null) {
+				newChanges.add(newChange);
+			}
+		}
+
+		// handle tags
+		for (var dtoTag :  orgUnitCoreInfo.getTags()) {
+			var dbTag = orgUnit.getTags().stream().filter(t -> t.getTag().getId() == dtoTag.getTag().getId()).findFirst().orElse(null);
+			if (dbTag != null) {
+				// update - ignore. We can't change tags, only add or remove them. Tag custom values are only set on creation
+			}
+			else {
+				// create tag
+				var newChange = new OrgUnitFutureChange();
+				newChange.setChangeDate(date);
+				newChange.setChangeType(OrgUnitChangeType.ADD_TAG);
+				newChange.setOrgunitUuid(uuid);
+				newChange.setOrgunitName(name);
+				newChange.setTagId(dtoTag.getTag().getId());
+				newChange.setTagValue(dtoTag.getCustomValue());
+				newChanges.add(newChange);
+			}
+		}
+		for (var dbTag : orgUnit.getTags()) {
+			var dtoTag = orgUnitCoreInfo.getTags().stream().filter(t -> t.getTag().getId() == dbTag.getTag().getId()).findFirst().orElse(null);
+			if (dtoTag == null) {
+				// delete tag
+				var newChange = new OrgUnitFutureChange();
+				newChange.setChangeDate(date);
+				newChange.setChangeType(OrgUnitChangeType.REMOVE_TAG);
+				newChange.setOrgunitUuid(uuid);
+				newChange.setOrgunitName(name);
+				newChange.setTagId(dbTag.getTag().getId());
 				newChanges.add(newChange);
 			}
 		}
@@ -591,6 +622,23 @@ public class OrgUnitFutureChangesService {
 
 				orgUnit.setParent(newParent);
 				newParent.getChildren().add(orgUnit);
+				break;
+			case ADD_TAG:
+				var tag = tagsService.findById(change.getTagId());
+				if (tag != null) {
+					var tagAssignment = new OrgUnitTag();
+					tagAssignment.setOrgUnit(orgUnit);
+					tagAssignment.setTag(tag);
+					tagAssignment.setCustomValue(change.getTagValue());
+					orgUnit.getTags().removeIf(t -> t.getTag().getId() == tag.getId()); // remove previously added future tag changes
+					orgUnit.getTags().add(tagAssignment);
+				}
+				else {
+					log.warn("Unable to find tag with id" + change.getTagId() + " when applying changes to OrgUnit (UPDATE scenario)");
+				}
+				break;
+			case REMOVE_TAG:
+				orgUnit.getTags().removeIf(t -> t.getTag().getId() ==  change.getTagId());
 				break;
 			case DELETE:
 				// TODO: once we allow deleting OrgUnits in the future, we should implement this,
