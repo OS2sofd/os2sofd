@@ -93,6 +93,14 @@ public class CprUpdateService {
 						c.getName();
 					});
 				}
+
+				if (p.getAffiliations() != null && !p.getAffiliations().isEmpty()) {
+					p.getAffiliations().forEach(a -> {
+						if ( a.getCalculatedOrgUnit() != null && a.getCalculatedOrgUnit().getAffiliations() != null) {
+							a.getCalculatedOrgUnit().getAffiliations().size();
+						}
+					});
+				}
 			});
 
 			int count = 0;
