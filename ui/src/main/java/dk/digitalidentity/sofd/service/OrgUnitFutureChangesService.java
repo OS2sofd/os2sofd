@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
+import dk.digitalidentity.sofd.controller.mvc.dto.OrgUnitFutureChangeDTO;
 import dk.digitalidentity.sofd.dao.model.OrgUnitTag;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -97,6 +98,32 @@ public class OrgUnitFutureChangesService {
 		changes.sort(getSorter());
 
 		return changes;
+	}
+
+	public OrgUnitFutureChangeDTO convertToDTO(OrgUnitFutureChange change) {
+		var changeDto = new OrgUnitFutureChangeDTO(change);
+		if (changeDto.getChangeType() == OrgUnitChangeType.UPDATE_ATTRIBUTE) {
+			if (changeDto.getAttributeField() == OrgUnitAttribute.MANAGER) {
+				// replace manager uuid with manager name for UI
+				Person futureManager = personService.getByUuid(changeDto.getAttributeValue());
+				if (futureManager != null) {
+					changeDto.setAttributeValue(PersonService.getName(futureManager));
+				}
+			}
+		}
+		if (changeDto.getChangeType() == OrgUnitChangeType.ADD_TAG || changeDto.getChangeType() == OrgUnitChangeType.REMOVE_TAG) {
+			// add tag details
+			var tag = tagsService.findById(changeDto.getTagId());
+			if (tag != null) {
+				var operation = changeDto.getChangeType() == OrgUnitChangeType.ADD_TAG ? "tilføjes" : "fjernes";
+				var details = "Tag '" + tag.getValue() + "' " + operation;
+				if (changeDto.getTagValue() != null) {
+					details += " med værdien '" + changeDto.getTagValue() + "'";
+				}
+				changeDto.setDetails(details);
+			}
+		}
+		return changeDto;
 	}
 
 	public List<OrgUnitFutureChange> getAllByOrgUnitAndNotApplied(OrgUnit orgUnit) {
@@ -260,7 +287,7 @@ public class OrgUnitFutureChangesService {
 					break;
 				case TYPE:
 					OrgUnitType type = orgUnitService.findTypeByKey(orgUnitCoreInfo.getOrgUnitType());
-					if (!java.util.Objects.equals(orgUnit.getOrgType(), type)) {
+					if (!java.util.Objects.equals(orgUnit.getType(), type)) {
 						newChange = new OrgUnitFutureChange(uuid, name, OrgUnitAttribute.TYPE, orgUnitCoreInfo.getOrgUnitType(), date);
 					}
 					break;
@@ -324,34 +351,36 @@ public class OrgUnitFutureChangesService {
 		}
 
 		// handle tags
-		for (var dtoTag :  orgUnitCoreInfo.getTags()) {
-			var dbTag = orgUnit.getTags().stream().filter(t -> t.getTag().getId() == dtoTag.getTag().getId()).findFirst().orElse(null);
-			if (dbTag != null) {
-				// update - ignore. We can't change tags, only add or remove them. Tag custom values are only set on creation
+		if ( orgUnitCoreInfo.getTags() != null) {
+			for (var dtoTag :  orgUnitCoreInfo.getTags()) {
+				var dbTag = orgUnit.getTags().stream().filter(t -> t.getTag().getId() == dtoTag.getTag().getId()).findFirst().orElse(null);
+				if (dbTag != null) {
+					// update - ignore. We can't change tags, only add or remove them. Tag custom values are only set on creation
+				}
+				else {
+					// create tag
+					var newChange = new OrgUnitFutureChange();
+					newChange.setChangeDate(date);
+					newChange.setChangeType(OrgUnitChangeType.ADD_TAG);
+					newChange.setOrgunitUuid(uuid);
+					newChange.setOrgunitName(name);
+					newChange.setTagId(dtoTag.getTag().getId());
+					newChange.setTagValue(dtoTag.getCustomValue());
+					newChanges.add(newChange);
+				}
 			}
-			else {
-				// create tag
-				var newChange = new OrgUnitFutureChange();
-				newChange.setChangeDate(date);
-				newChange.setChangeType(OrgUnitChangeType.ADD_TAG);
-				newChange.setOrgunitUuid(uuid);
-				newChange.setOrgunitName(name);
-				newChange.setTagId(dtoTag.getTag().getId());
-				newChange.setTagValue(dtoTag.getCustomValue());
-				newChanges.add(newChange);
-			}
-		}
-		for (var dbTag : orgUnit.getTags()) {
-			var dtoTag = orgUnitCoreInfo.getTags().stream().filter(t -> t.getTag().getId() == dbTag.getTag().getId()).findFirst().orElse(null);
-			if (dtoTag == null) {
-				// delete tag
-				var newChange = new OrgUnitFutureChange();
-				newChange.setChangeDate(date);
-				newChange.setChangeType(OrgUnitChangeType.REMOVE_TAG);
-				newChange.setOrgunitUuid(uuid);
-				newChange.setOrgunitName(name);
-				newChange.setTagId(dbTag.getTag().getId());
-				newChanges.add(newChange);
+			for (var dbTag : orgUnit.getTags()) {
+				var dtoTag = orgUnitCoreInfo.getTags().stream().filter(t -> t.getTag().getId() == dbTag.getTag().getId()).findFirst().orElse(null);
+				if (dtoTag == null) {
+					// delete tag
+					var newChange = new OrgUnitFutureChange();
+					newChange.setChangeDate(date);
+					newChange.setChangeType(OrgUnitChangeType.REMOVE_TAG);
+					newChange.setOrgunitUuid(uuid);
+					newChange.setOrgunitName(name);
+					newChange.setTagId(dbTag.getTag().getId());
+					newChanges.add(newChange);
+				}
 			}
 		}
 

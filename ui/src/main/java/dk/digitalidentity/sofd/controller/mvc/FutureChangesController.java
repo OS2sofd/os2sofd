@@ -30,34 +30,7 @@ public class FutureChangesController {
 
 	@GetMapping("/ui/changes/orgunit")
 	public String list(Model model) throws Exception {
-		// convert to dto
-		List<OrgUnitFutureChangeDTO> changesDTO = orgUnitfutureChangesService.getAllNotApplied().stream().map(OrgUnitFutureChangeDTO::new).toList();
-
-
-		for (var change : changesDTO) {
-			if (change.getChangeType() == OrgUnitChangeType.UPDATE_ATTRIBUTE) {
-				if (change.getAttributeField() == OrgUnitAttribute.MANAGER) {
-					// replace manager uuid with manager name for UI
-					Person futureManager = personService.getByUuid(change.getAttributeValue());
-					if (futureManager != null) {
-						change.setAttributeValue(PersonService.getName(futureManager));
-					}
-				}
-			}
-			if (change.getChangeType() == OrgUnitChangeType.ADD_TAG || change.getChangeType() == OrgUnitChangeType.REMOVE_TAG) {
-				// add tag details
-				var tag = tagsService.findById(change.getTagId());
-				if (tag != null) {
-					var operation = change.getChangeType() == OrgUnitChangeType.ADD_TAG ? "tilføjes" : "fjernes";
-					var details = "Tag '" + tag.getValue() + "' " + operation;
-					if (change.getTagValue() != null) {
-						details += " med værdien '" + change.getTagValue() + "'";
-					}
-					change.setDetails(details);
-				}
-			}
-		}
-
+		List<OrgUnitFutureChangeDTO> changesDTO = orgUnitfutureChangesService.getAllNotApplied().stream().map(c -> orgUnitfutureChangesService.convertToDTO(c)).toList();
 		model.addAttribute("changes", changesDTO);
 		return "orgunit/changes/list";
 	}
