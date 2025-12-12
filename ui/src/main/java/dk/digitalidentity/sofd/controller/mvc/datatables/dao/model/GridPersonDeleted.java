@@ -82,4 +82,7 @@ public class GridPersonDeleted implements GridPerson {
 	@Column
 	@Enumerated(EnumType.STRING)
 	private PersonType personType;
+
+	@Column
+	private String vendors;
 }
