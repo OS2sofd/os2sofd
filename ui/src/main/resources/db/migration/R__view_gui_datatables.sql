@@ -76,7 +76,8 @@ CREATE OR REPLACE VIEW view_datatables_persons_deleted AS SELECT
     p.fictive_cpr,
     p.dead AS dead,
     p.disenfranchised AS disenfranchised,
-    p.person_type
+    p.person_type,
+    NULL AS vendors
   FROM persons p
   LEFT JOIN (
     SELECT pu.person_uuid, u.user_id, u.prime
