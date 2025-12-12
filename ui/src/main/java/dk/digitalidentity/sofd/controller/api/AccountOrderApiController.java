@@ -256,7 +256,7 @@ public class AccountOrderApiController {
 		for (SetOrderStatusDTO dto : request) {
 			AccountOrder accountOrder = accountOrderService.findById(dto.getId());
 			if (accountOrder == null) {
-				log.error("Unknown AccountOrder: " + dto.getId());
+				log.warn("Unknown AccountOrder: " + dto.getId());
 				continue;
 			}
 
