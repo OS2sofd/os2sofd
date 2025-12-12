@@ -18,6 +18,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
+import dk.digitalidentity.sofd.controller.mvc.dto.OrgUnitFutureChangeDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.data.util.Pair;
@@ -229,7 +230,7 @@ public class OrgUnitController {
 		model.addAttribute("phones", OrgUnitService.getPhones(orgUnit).stream().map(p -> new PhoneDTO(p)).collect(Collectors.toList()));
 		model.addAttribute("employees", getEmployees(orgUnit));
 		model.addAttribute("functionTypes", functionTypeService.findAllAsDTO());
-		model.addAttribute("futureChanges", orgUnitFutureChangesService.getAllByOrgUnitAndNotApplied(orgUnit));
+		model.addAttribute("futureChanges", orgUnitFutureChangesService.getAllByOrgUnitAndNotApplied(orgUnit).stream().map(c -> orgUnitFutureChangesService.convertToDTO(c)).toList());
 		model.addAttribute("substituteContexts", substituteContextService.getAll().stream().filter(SubstituteContext::isAssignableToOrgUnit).toList());
 		model.addAttribute("localExtensionMap", orgUnitService.getLocalExtensionMap(orgUnit));
 

@@ -236,7 +236,6 @@
                                 <div th:if="${session.SESSION_FUTURE_DATE} == null" id="ouFutureChanges" class="tab-pane fade">
                                     <th:block th:replace="fragments/ouFutureChangesList :: ouFutureChangesList (changes = ${futureChanges})" />
                                 </div>
-
                                 <div id="tags_menu" class="tab-pane fade" th:if="${#lists.size(tags) > 0}">
                                     <th:block th:replace="orgunit/fragments/tags :: tags" />
                                 </div>
@@ -388,6 +387,8 @@
 			var confirmEditKLEButtonText = [[#{html.page.orgunit.kle.confirmEditKLEButtonText}]];
 			var cancelEditKLEButtonText = [[#{html.page.orgunit.kle.cancelEditKLEButtonText}]];
 
+			var isFuture = [[${session.SESSION_FUTURE_DATE} != null]]
+
 		+]*/
 		var token = $("meta[name='_csrf']").attr("content");
 
@@ -432,6 +433,12 @@
 
 			// restore active tab on page load
 			var selectedTab = localStorage.getItem(uuid);
+
+			// if in future select tags tab by default
+			if (isFuture) {
+				selectedTab = "#tags_menu";
+			}
+
 			if (selectedTab != null) {
 			    //if selectedTab belongs to main tabs
 			    if ($("#main-tabs").find('a[data-toggle="tab"][href="' + selectedTab + '"]').length > 0) {

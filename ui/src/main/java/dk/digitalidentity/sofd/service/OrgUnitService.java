@@ -567,10 +567,9 @@ public class OrgUnitService {
 			coreInfo.setCvr(orgUnit.getCvr());
 			coreInfo.setPnr(orgUnit.getPnr());
 			coreInfo.setSenr(orgUnit.getSenr());
-			coreInfo.setOrgUnitType(orgUnit.getOrgType());
 			coreInfo.setDisplayName(orgUnit.getDisplayName());
 			coreInfo.setManager(orgUnit.getSelectedManagerUuid());
-			coreInfo.setOrgUnitType(orgUnit.getOrgType());
+			coreInfo.setOrgUnitType(orgUnit.getType().getKey());
 			coreInfo.setTags(orgUnit.getTags());
 
 			return orgUnitFutureChangesService.saveFutureChanges(orgUnit.getUuid(), coreInfo, date);
