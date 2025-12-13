@@ -737,10 +737,18 @@ public class OrgUnitFutureChangesService {
 			case DELETE:
 				ouTreeForm = null;
 				break;
+			case ADD_TAG:
+				// ignore
+				break;
+			case REMOVE_TAG:
+				// ignore
+				break;
 		}
 		
 		return ouTreeForm;
 	}
+
+
 	
 	private OUTreeFormWithTags applyChangeOUTreeWithTagsForm(OUTreeFormWithTags ouTreeForm, OrgUnitFutureChange change) {
 		switch (change.getChangeType()) {
@@ -778,6 +786,15 @@ public class OrgUnitFutureChangesService {
 			case DELETE:
 				ouTreeForm = null;
 				break;
+			case ADD_TAG:
+				if (!ouTreeForm.getTagIds().contains(change.getTagId())) {
+					ouTreeForm.getTagIds().add(change.getTagId());
+				}
+
+				break;
+			case REMOVE_TAG:
+				ouTreeForm.getTagIds().remove(change.getTagId());
+			break;
 		}
 		
 		return ouTreeForm;
