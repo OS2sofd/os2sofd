@@ -11,7 +11,6 @@ import lombok.Setter;
 public class OPUS {
 	private boolean enableLosIdMatch = false;
 	private boolean enableFiltering = false;
-	private boolean enableAutoAffiliationConfiguration = false;
 	private boolean enableActiveDirectoryEmployeeIdAssociation = false;
 	private boolean adEmployeeIdAssociationLimitedToPrimeAffiliation = true;
 	private List<String> positionIds = new ArrayList<>();

@@ -8,9 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.api.dto.OpusFilterRulesDTO;
-import dk.digitalidentity.sofd.dao.model.Setting;
 import dk.digitalidentity.sofd.security.RequireReadAccess;
-import dk.digitalidentity.sofd.service.SettingService;
 
 @RequireReadAccess
 @RestController
@@ -19,9 +17,6 @@ public class OpusConfigurationAPI {
 	@Autowired
 	private SofdConfiguration configuration;
 	
-	@Autowired
-	private SettingService settingService;
-
 	@GetMapping("/api/opusfilters")
 	public ResponseEntity<?> listFilters() {
 		OpusFilterRulesDTO opusFilterRulesDTO = new OpusFilterRulesDTO();
@@ -33,12 +28,5 @@ public class OpusConfigurationAPI {
 		opusFilterRulesDTO.setInvalidPositionNames(configuration.getIntegrations().getOpus().getInvalidPositionNames());
 		
 		return new ResponseEntity<>(opusFilterRulesDTO, HttpStatus.OK);
-	}
-	
-	@GetMapping("/api/opusautoaffiliations")
-	public ResponseEntity<?> listAutoAffiliations() {
-		Setting setting = settingService.getOpusAutoAffiliations();
-
-		return new ResponseEntity<>(setting, HttpStatus.OK);
 	}
 }
