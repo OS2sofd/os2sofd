@@ -454,6 +454,9 @@ public class OrgUnitRestController {
 		FunctionType functionType = functionTypeService.findById(phoneDTO.getFunctionType());
 
 		if (phoneDTO.getId() == 0) {
+			// Initialize collection before adding to avoid Hibernate orphan removal issue with transient entities
+			orgUnit.getPhones().size();
+
 			Phone phone = new Phone();
 			phone.setMaster("SOFD");
 			phone.setMasterId(UUID.randomUUID().toString());
