@@ -1063,4 +1063,8 @@ public class OrgUnitService {
 			return new HashMap<>();
 		}
     }
+
+	public void updateOrgUnitManagers() {
+		orgUnitDao.updateOrgUnitManagers();
+	}
 }

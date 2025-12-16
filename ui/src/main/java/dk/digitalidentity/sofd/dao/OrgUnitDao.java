@@ -6,6 +6,7 @@ import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -14,6 +15,7 @@ import dk.digitalidentity.sofd.dao.model.OrgUnitType;
 import dk.digitalidentity.sofd.dao.model.Organisation;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.security.RequireDaoWriteAccess;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface OrgUnitDao extends JpaRepository<OrgUnit, String> {
 
@@ -162,4 +164,10 @@ public interface OrgUnitDao extends JpaRepository<OrgUnit, String> {
 
 	@Query(nativeQuery = true, value = "SELECT * FROM orgunits ORDER BY uuid LIMIT :size")
 	List<OrgUnit> findLimited(int size);
+
+	@RequireDaoWriteAccess
+	@Modifying
+	@Transactional
+	@Query(nativeQuery = true, value = "CALL update_orgunit_manager_recursive(null, true)")
+	void updateOrgUnitManagers();
 }

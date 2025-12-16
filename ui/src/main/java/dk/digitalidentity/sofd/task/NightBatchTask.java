@@ -268,7 +268,6 @@ public class NightBatchTask {
 				.time(LocalTime.of(5, random.nextInt(30) + 15))
 				.function(() -> {
 					managerService.ensureValidManagers();
-
 					return true;
 				}).build());
 

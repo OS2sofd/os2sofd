@@ -5,7 +5,10 @@ import static dk.digitalidentity.sofd.util.NullChecker.getValue;
 import java.util.List;
 import java.util.Objects;
 
+import dk.digitalidentity.sofd.dao.OrgUnitDao;
+import dk.digitalidentity.sofd.security.SecurityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -41,45 +44,51 @@ public class ManagerService {
 
 	@Transactional
 	public void ensureValidManagers() {
-		var allOrgUnits = orgUnitService.getAll();
-		for( var orgUnit : allOrgUnits ) {
-			try {
-				// cleanup imported managers
-				if(orgUnit.getImportedManagerUuid() != null ) {
-					var validManager = getValidManager(orgUnit.getImportedManagerUuid());
-					if( validManager == null )
-					{
-						var previousManagerUuid = orgUnit.getImportedManagerUuid();
-						var previousManager = personService.getByUuid(previousManagerUuid);
-						// manager is no longer valid, remove it
-						log.info("Removing invalid imported manager " + previousManagerUuid + " from orgunit " + orgUnit.getName() + " (" + orgUnit.getUuid() + ")");
-						orgUnit.setImportedManagerUuid(null);
-						orgUnitService.save(orgUnit);
-						// if orgunit has no selected manager, this change should trigger email templates
-						if(orgUnit.getSelectedManagerUuid() != null ) {
+		Authentication authentication = SecurityUtil.getLoginSession();
+		try {
+			SecurityUtil.fakeLoginSession();
+
+			var allOrgUnits = orgUnitService.getAll();
+			for (var orgUnit : allOrgUnits) {
+				try {
+					// cleanup imported managers
+					if (orgUnit.getImportedManagerUuid() != null) {
+						var validManager = getValidManager(orgUnit.getImportedManagerUuid());
+						if (validManager == null) {
+							var previousManagerUuid = orgUnit.getImportedManagerUuid();
+							var previousManager = personService.getByUuid(previousManagerUuid);
+							// manager is no longer valid, remove it
+							log.info("Removing invalid imported manager " + previousManagerUuid + " from orgunit " + orgUnit.getName() + " (" + orgUnit.getUuid() + ")");
+							orgUnit.setImportedManagerUuid(null);
+							orgUnitService.save(orgUnit);
+							// if orgunit has no selected manager, this change should trigger email templates
+							if (orgUnit.getSelectedManagerUuid() != null) {
+								sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, previousManager);
+							}
+						}
+					}
+
+					// cleanup selected managers
+					if (orgUnit.getSelectedManagerUuid() != null) {
+						var validManager = getValidManager(orgUnit.getSelectedManagerUuid());
+						if (validManager == null) {
+							var previousManagerUuid = orgUnit.getSelectedManagerUuid();
+							var previousManager = personService.getByUuid(previousManagerUuid);
+							// manager is no longer valid, remove it
+							log.info("Removing invalid selected manager " + previousManagerUuid + " from orgunit " + orgUnit.getName() + " (" + orgUnit.getUuid() + ")");
+							orgUnit.setSelectedManagerUuid(null);
+							// since we prefer selected over imported managers this removal should always trigger email templates
 							sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, previousManager);
 						}
 					}
-				}
-
-				// cleanup selected managers
-				if(orgUnit.getSelectedManagerUuid() != null ) {
-					var validManager = getValidManager(orgUnit.getSelectedManagerUuid());
-					if( validManager == null )
-					{
-						var previousManagerUuid = orgUnit.getSelectedManagerUuid();
-						var previousManager = personService.getByUuid(previousManagerUuid);
-						// manager is no longer valid, remove it
-						log.info("Removing invalid selected manager " + previousManagerUuid + " from orgunit " + orgUnit.getName() + " (" + orgUnit.getUuid() + ")");
-						orgUnit.setSelectedManagerUuid(null);
-						// since we prefer selected over imported managers this removal should always trigger email templates
-						sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, previousManager);
-					}
+				} catch (Exception e) {
+					log.error("Failed to ensure valid manager for orgunit " + orgUnit.getName() + " (" + orgUnit.getUuid() + ")", e);
 				}
 			}
-			catch(Exception e) {
-				log.error("Failed to ensure valid manager for orgunit " + orgUnit.getName() + " (" + orgUnit.getUuid() + ")", e);
-			}
+			orgUnitService.updateOrgUnitManagers();
+		}
+		finally {
+			SecurityUtil.setLoginSession(authentication);
 		}
 	}
 
