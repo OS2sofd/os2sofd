@@ -2,6 +2,8 @@ package dk.digitalidentity.sofd.dao.model.enums;
 
 public enum NotificationType {
 	UNMATCHED_WAGES_ORGUNIT("html.enum.notificationtype.unmatched_wages_orgunit", 0, true),
+	IMPORT_ERROR_ORGUNIT("html.enum.notificationtype.import_error_orgunit", 0, true),
+	IMPORT_ERROR_PERSON("html.enum.notificationtype.import_error_person", 0, true),
 	DELETED_PARENT_ORGUNIT("html.enum.notificationtype.deleted_parent_orgunit", 0, true),
 	PERSON_WITH_DISALLOWED_ACCOUNT("html.enum.notificationtype.person_with_disallowed_account"),
 	PERSON_PERMANENTLY_DELETED("html.enum.notificationtype.person_permanently_deleted", 30),
