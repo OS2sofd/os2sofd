@@ -7,8 +7,10 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
@@ -45,7 +49,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class OpusService {
-
+	private static final ObjectMapper mapper = new ObjectMapper();
+	
 	/* sample payload for testing
 	 * 
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:oio:medarbejder:1.0.0" xmlns:urn1="urn:oio:sagdok:3.0.0">
@@ -118,6 +123,103 @@ public class OpusService {
 	public void handleOrders() {
 		handleCreate();
 		handleDelete();
+	}
+
+	private static final String OPUS_EMAIL_KEY = "OpusEmailAddress";
+	public void bulkUpdateEmail() {
+		// force load users, we need the localExtensions on all OPUS accounts
+		List<Person> persons = personService.getActive(p -> {
+			p.getUsers().stream().forEach(u -> u.getUser().getLocalExtensions());
+		});
+		
+		// remove any persons that does not have an OPUS account or does not have an Exchange account
+		persons = persons.stream()
+			.filter(p -> p.getUsers().stream()
+				.anyMatch(u -> {
+					return SupportedUserTypeService.isOpus(u.getUser().getUserType());
+				})
+			)
+			.filter(p -> p.getUsers().stream()
+				.anyMatch(u -> {
+					return u.getUser().isPrime() && SupportedUserTypeService.isExchange(u.getUser().getUserType());
+				})
+			)
+			.collect(Collectors.toList());
+
+		List<Person> toSave = new ArrayList<>();
+		for (Person person : persons) {
+			boolean added = false;
+			
+			String emailAddress = PersonService.getUsers(person)
+				.stream()
+				.filter(u -> u.isPrime() && SupportedUserTypeService.isExchange(u.getUserType()))
+				.map(u -> u.getUserId())
+				.findAny()
+				.orElse(null);
+			
+			// should not actually happen, but better safe than sorry
+			if (!StringUtils.hasText(emailAddress)) {
+				continue;
+			}
+			
+			emailAddress = emailAddress.toLowerCase();
+
+			for (User user : PersonService.getUsers(person)) {
+				if (SupportedUserTypeService.isOpus(user.getUserType())) {
+		            try {
+		            	boolean changes = false;
+		            	
+		                Map<String, String> localExtensions = mapper.readValue(person.getLocalExtensions(), new TypeReference<Map<String, String>>() { });
+		                if (localExtensions.containsKey(OPUS_EMAIL_KEY)) {
+		                	String currentOpusEmail = localExtensions.get(OPUS_EMAIL_KEY);
+		                	if (StringUtils.hasText(currentOpusEmail)) {
+		                		// current stored value does not match current email
+		                		if (!Objects.equals(currentOpusEmail.toLowerCase(), emailAddress)) {
+		                			changes = true;
+		                		}
+		                	}
+		                	else {
+		                		// current stored value is blank
+		                		changes = true;
+		                	}
+		                }
+		                else {
+		                	// no current email stored
+		                	changes = true;
+		                }
+		                
+		                if (changes) {
+		                	// call OPUS and update email
+		                	updateEmail(person);
+		                	
+		                	// store the actual value
+		                	localExtensions.put(OPUS_EMAIL_KEY, emailAddress);
+		                	
+		            		try {
+		            			String localExtensionsStr = mapper.writeValueAsString(new TreeMap<>(localExtensions));
+		            			user.setLocalExtensions(localExtensionsStr);
+		            		}
+		            		catch (Exception ex) {
+		            			log.error("Failed to convert map to string for OPUS account: " + user.getUserId(), ex);
+		            		}
+		                	
+		                	if (!added) {
+		                		added = true;
+		                		toSave.add(person);
+		                	}
+		                }
+		            }
+		            catch (Exception ex) {
+		            	log.error("Could not parse localExtensions for OPUS account: " + user.getUserId(), ex);
+		            }
+				}
+			}
+		}
+		
+		if (toSave.size() > 0) {
+			log.info("Updated Email on " + toSave.size() + " persons");
+			personService.saveBulkWithTransaction(persons);
+		}
 	}
 
 	public void updateEmailForAllPersons() {

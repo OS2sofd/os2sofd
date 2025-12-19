@@ -11,7 +11,7 @@ import dk.digitalidentity.sofd.service.OpusService;
 
 @Component
 @EnableScheduling
-public class OpusAccountOrderHandlerTask {
+public class OpusTask {
 
 	@Autowired
 	private SofdConfiguration configuration;
@@ -22,9 +22,17 @@ public class OpusAccountOrderHandlerTask {
 	// run once every 2 minutes
 	@Scheduled(cron = "0 0/2 * * * ?")
 	@Transactional(rollbackFor = Exception.class)
-	public void processChanges() {
+	public void handleOrders() {
 		if (configuration.getScheduled().isEnabled() && configuration.getModules().getAccountCreation().getOpusHandler().isEnabled()) {
 			opusService.handleOrders();
+		}
+	}
+	
+	// run every midday (11-12)
+	@Scheduled(cron = "0 #{new java.util.Random().nextInt(60)} 11 * * ?")
+	public void updateEmails() {
+		if (configuration.getScheduled().isEnabled() && configuration.getModules().getAccountCreation().getOpusHandler().isUpdateEmailWithoutIdM()) {
+			opusService.bulkUpdateEmail();
 		}
 	}
 }
