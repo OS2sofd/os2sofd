@@ -16,6 +16,11 @@ public class OpusAccountOrderHandler {
 	@FeatureDocumentation(name = "OPUS Email i versaler", description = "Email adressen der registreres i infotype 105 sendes med VERSALER")
 	private boolean emailInUpperCase = false;
 
+
+	// special feature - if a municipality does not have OPUS IdM processes enabled in OS2sofd, but still want the EMail address updated
+	// through infotype 105, then enable this (otherwise the feature does not make sense, as the IdM process will ensure the email address is set)
+	private boolean updateEmailWithoutIdM = false;
+
 	private String defaultEmail = null;
 	private String defaultEmailDomain = null;
 	private String municipalityNumber;
