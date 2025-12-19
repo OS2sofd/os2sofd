@@ -219,6 +219,12 @@
 			<version>5.2.2</version>
 		</dependency>
 
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-ui</artifactId>
+			<version>1.6.15</version>
+		</dependency>
+
 		<!-- TODO: should these just be scope test, as we do not appear to use 
 			them in production, but Eclipse and tests will fail without them -->
 		<dependency>

@@ -331,6 +331,14 @@
 										<span th:text="#{html.navbar.institutions}"></span>
 									</a>
 								</li>
+
+								<li th:class="${page == 'classification'} ? 'active' : ''">
+									<a th:href="@{/ui/classifications}">
+										<em class="fa fa-list-alt"></em>
+										<span th:text="#{html.navbar.classifications}"></span>
+									</a>
+								</li>
+
 							</th:block>
 
 							<th:block>

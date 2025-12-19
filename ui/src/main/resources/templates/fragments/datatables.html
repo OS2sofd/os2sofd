@@ -37,6 +37,9 @@
 		        'ordering': true,
 		        'info':     true,
 				'pageLength': pageLength,
+				'columnDefs': [
+					{ "orderable": false, "targets": "no-sort" }
+				],
 		        'language': {
 		            "search":       searchTxt,
 		            "lengthMenu":   dropdownTxt,
@@ -59,6 +62,9 @@
 		        'ordering': true,
 		        'info':     true,
 				'pageLength': 25,
+				'columnDefs': [
+					{ "orderable": false, "targets": "no-sort" }
+				],
 		        'language': {
 		            "search":       searchTxt,
 		            "lengthMenu":   dropdownTxt,
@@ -92,7 +98,8 @@
 				'pageLength': 25,
 				'columnDefs': [
 			        { "targets": hideColumns, visible: false },
-			        { "targets": "_all", visible: true }
+			        { "targets": "_all", visible: true },
+					{ "orderable": false, "targets": "no-sort" }
 			    ],
 			    'buttons': [
 			        "copy", "excel", "pdf"
