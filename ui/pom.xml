@@ -5,7 +5,7 @@
 	<artifactId>sofd-core</artifactId>
 	<packaging>jar</packaging>
 	<name>sofd-core</name>
-	<version>2026R1</version>
+	<version>2025R4</version>
 
 	<parent>
 		<groupId>dk.digitalidentity.sofd</groupId>
@@ -217,6 +217,12 @@
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml-full</artifactId>
 			<version>5.2.2</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-ui</artifactId>
+			<version>1.6.15</version>
 		</dependency>
 
 		<!-- TODO: should these just be scope test, as we do not appear to use 

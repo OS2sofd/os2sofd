@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: header"></head>
+<body>
+<div class="wrapper">
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'classifications', subpage = 'admin')"></aside>
+
+	<section>
+		<div class="content-wrapper">
+			<h3 th:text="#{html.navbar.classifications}"></h3>
+
+			<div class="panel panel-default">
+				<div class="panel-body">
+					<div class="table-responsive">
+						<table id="listTable" class="table table-striped table-hover listTable">
+							<thead>
+							<tr>
+								<th class="col-md-4" th:text="#{html.classification.identifier}"></th>
+								<th class="col-md-7" th:text="#{html.classification.name}"></th>
+								<th class="col-md-1 no-sort" th:text="#{html.control.operations}"></th>
+							</tr>
+							</thead>
+
+							<tbody>
+							<tr th:each="classification : ${classifications}">
+								<td th:text="${classification.identifier}"></td>
+								<td th:text="${classification.name}"></td>
+								<td>
+									<a th:href="@{/ui/classifications/{id}(id=${classification.identifier})}">
+										<em class="fa fa-fw fa-search"></em>
+									</a>
+								</td>
+							</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+
+<nav th:replace="fragments/footer :: footer"></nav>
+<script th:replace="fragments/datatables :: datatables"></script>
+</body>
+</html>

@@ -192,7 +192,8 @@
 
 							</th:block>
 
-							<th:block th:if="${@sofdConfiguration.getIntegrations().getOpus().isEnableFiltering() == true}">
+							<th:block th:if="${@sofdConfiguration.getIntegrations().getOpus().isEnableFiltering() == true or
+										   @sofdConfiguration.getIntegrations().getOpus().isEnableAutoAffiliationConfiguration() == true}">
 								<li class="nav-heading">
 									<span th:text="#{html.navbar.opusfilter.heading}"></span>
 								</li>
@@ -203,6 +204,14 @@
 										<span th:text="#{html.navbar.opusfilter}"></span>
 									</a>
 								</li>
+
+								<li th:class="${page == 'opusautoaffiliation'} ? 'active' : ''" th:if="${@sofdConfiguration.getIntegrations().getOpus().isEnableAutoAffiliationConfiguration() == true}">
+									<a th:href="@{/ui/admin/opusautoaff}">
+										<em class="fa fa-fw fa-cog"></em>
+										<span th:text="#{html.navbar.opusautoaffiliation}"></span>
+									</a>
+								</li>
+
 							</th:block>
 						</th:block>
 
@@ -331,6 +340,14 @@
 										<span th:text="#{html.navbar.institutions}"></span>
 									</a>
 								</li>
+
+								<li th:class="${page == 'classification'} ? 'active' : ''">
+									<a th:href="@{/ui/classifications}">
+										<em class="fa fa-list-alt"></em>
+										<span th:text="#{html.navbar.classifications}"></span>
+									</a>
+								</li>
+
 							</th:block>
 
 							<th:block>
