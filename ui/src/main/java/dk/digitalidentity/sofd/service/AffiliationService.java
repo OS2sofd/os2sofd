@@ -16,8 +16,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.NotImplementedException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -43,35 +41,38 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @EnableScheduling
 public class AffiliationService {
-
-	@Autowired
-	private AffiliationDao affiliationDao;
-	
-	@Autowired
-	private SofdConfiguration configuration;
 	private static SofdConfiguration _configuration;
-	
-	@Autowired
+
+	private AffiliationDao affiliationDao;
+	private SofdConfiguration configuration;
 	private EmailTemplateService emailTemplateService;
-	
-	@Autowired
 	private EmailQueueService emailQueueService;
-	
-	@Autowired
 	private SubstituteAssignmentService substituteAssignmentService;
-
-	@Autowired
 	private SubstituteOrgUnitAssignmentService substituteOrgUnitAssignmentService;
-
-	@Autowired
 	private PersonService personService;
-	
-	@Autowired
 	private EmailTemplateChildService emailTemplateChildService;
 
-	// need static access to this field
-	@EventListener(ApplicationReadyEvent.class)
-	public void runOnStartup() {
+	@Autowired
+	public AffiliationService(
+		AffiliationDao affiliationDao,
+		SofdConfiguration configuration,
+		EmailTemplateService emailTemplateService,
+		EmailQueueService emailQueueService,
+		SubstituteAssignmentService substituteAssignmentService,
+		SubstituteOrgUnitAssignmentService substituteOrgUnitAssignmentService,
+		PersonService personService,
+		EmailTemplateChildService emailTemplateChildService) {
+		
+		this.affiliationDao = affiliationDao;
+		this.configuration = configuration;
+		this.emailTemplateService = emailTemplateService;
+		this.emailQueueService = emailQueueService;
+		this.substituteAssignmentService = substituteAssignmentService;
+		this.substituteOrgUnitAssignmentService = substituteOrgUnitAssignmentService;
+		this.personService = personService;
+		this.emailTemplateChildService = emailTemplateChildService;
+		
+		// static access to configuration as well
 		AffiliationService._configuration = this.configuration;
 	}
 
