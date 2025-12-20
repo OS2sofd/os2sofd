@@ -5,6 +5,7 @@ import static dk.digitalidentity.sofd.util.NullChecker.getValue;
 import java.util.List;
 import java.util.Objects;
 
+import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.OrgUnitDao;
 import dk.digitalidentity.sofd.security.SecurityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +42,9 @@ public class ManagerService {
 
 	@Autowired
 	private EmailQueueService emailQueueService;
+
+	@Autowired
+	private SofdConfiguration sofdConfiguration;
 
 	@Transactional
 	public void ensureValidManagers() {
@@ -110,6 +114,12 @@ public class ManagerService {
 					var previousManagerUuid = orgUnit.getImportedManagerUuid();
 					var previousManager = previousManagerUuid != null ? personService.getByUuid(previousManagerUuid) : null;
 					orgUnit.setImportedManagerUuid(validManagerUuid);
+
+					// clear selected manager if sofd is configured to let source system overwrite selected managers on change
+					if (sofdConfiguration.getModules().getManager().isClearSelectedManagerOnSourceManagerChange()) {
+						orgUnit.setSelectedManagerUuid(null);
+					}
+
 					orgUnitService.save(orgUnit);
 					// if orgUnit does not have a selected manager, this change should trigger email templates
 					if( orgUnit.getSelectedManagerUuid() == null && !orgUnit.isDeleted() ) {
