@@ -26,4 +26,8 @@ public enum AccountOrderStatus {
 	public boolean isComletedStatus() {
 		return isCompletedStatus;
 	}
+
+	public boolean isPendingStatus() {
+		return this == PENDING || this == PENDING_APPROVAL || this == BLOCKED;
+	}
 }

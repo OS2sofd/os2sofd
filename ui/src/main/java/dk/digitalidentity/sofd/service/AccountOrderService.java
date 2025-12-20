@@ -1406,7 +1406,9 @@ public class AccountOrderService {
 						.noneMatch(existingOrder -> newOrder.getPersonUuid().equals(existingOrder.getPersonUuid()) &&
 								newOrder.getOrderType().equals(existingOrder.getOrderType()) &&
 								Objects.equals(newOrder.getEmployeeId(), existingOrder.getEmployeeId()) &&
-								newOrder.getUserType().equals(existingOrder.getUserType()));
+								newOrder.getUserType().equals(existingOrder.getUserType()) &&
+								Objects.equals(newOrder.getRequestedUserId(), existingOrder.getRequestedUserId()) &&
+								existingOrder.getStatus().isPendingStatus());
 
 				if (noMatch) {
 					addedDeleteOrders++;
