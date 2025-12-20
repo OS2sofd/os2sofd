@@ -23,7 +23,7 @@ CREATE TABLE classification_item
 (
     id                BIGINT        NOT NULL PRIMARY KEY AUTO_INCREMENT,
     classification_id BIGINT        NOT NULL,
-    identifier        VARCHAR(1024) NOT NULL,
+    identifier        VARCHAR(255) NOT NULL,
     name              VARCHAR(1024) NULL,
 
     CONSTRAINT fk_classification_item_classification FOREIGN KEY (classification_id) REFERENCES classification (id) ON DELETE CASCADE,
