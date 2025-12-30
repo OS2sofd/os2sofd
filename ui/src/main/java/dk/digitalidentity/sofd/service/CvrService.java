@@ -56,6 +56,7 @@ public class CvrService {
 
 		for (OrgUnit orgUnit : orgUnitService.getAll(o -> {
 			o.getPostAddresses().stream().forEach(pa -> pa.getPost().getMasterId());
+			o.getPhones().stream().forEach(p -> p.getPhone().getPhoneNumber());
 		})) {
 			boolean changes = false;
 			List<Post> postsWithMasterCvr = OrgUnitService.getPosts(orgUnit).stream().filter(p -> p.getMaster().equals("CVR")).collect(Collectors.toList());
