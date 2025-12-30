@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -169,7 +170,10 @@ public class OpusService {
 		            try {
 		            	boolean changes = false;
 		            	
-		                Map<String, String> localExtensions = mapper.readValue(person.getLocalExtensions(), new TypeReference<Map<String, String>>() { });
+		                Map<String, String> localExtensions = StringUtils.hasText(user.getLocalExtensions())
+		                		? mapper.readValue(user.getLocalExtensions(), new TypeReference<Map<String, String>>() { })
+                				: new HashMap<String, String>();
+
 		                if (localExtensions.containsKey(OPUS_EMAIL_KEY)) {
 		                	String currentOpusEmail = localExtensions.get(OPUS_EMAIL_KEY);
 		                	if (StringUtils.hasText(currentOpusEmail)) {
