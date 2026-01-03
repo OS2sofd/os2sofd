@@ -230,7 +230,7 @@ public class EmailTemplateService {
 	public List<Person> getManagerOrSubstitutes(EmailTemplateChild child, Person manager, String orgUnitUuid) {
 		List<Person> recipients = new ArrayList<>();
 
-		if (child.getSendTo().equals(SendTo.SEND_TO_MANAGER_OR_SUBSTITUTES) || child.getSendTo().equals(SendTo.SEND_TO_MANAGER_AND_SUBSTITUTES)) {
+		if (Objects.equals(child.getSendTo(),SendTo.SEND_TO_MANAGER_OR_SUBSTITUTES) || Objects.equals(child.getSendTo(), SendTo.SEND_TO_MANAGER_AND_SUBSTITUTES)) {
 			for (SubstituteAssignment assignment : manager.getSubstitutes()) {
 				Person recipient = assignment.getSubstitute();
 				if (!StringUtils.hasLength(PersonService.getEmail(recipient))) {
@@ -271,21 +271,20 @@ public class EmailTemplateService {
 				}
 			}
 
-			if ((recipients.isEmpty() && child.getSendTo().equals(SendTo.SEND_TO_MANAGER_OR_SUBSTITUTES)) || child.getSendTo().equals(SendTo.SEND_TO_MANAGER_AND_SUBSTITUTES)) {
+			if ((recipients.isEmpty() && Objects.equals(child.getSendTo(),SendTo.SEND_TO_MANAGER_OR_SUBSTITUTES)) || Objects.equals(child.getSendTo(),SendTo.SEND_TO_MANAGER_AND_SUBSTITUTES)) {
 				String email = PersonService.getEmail(manager);
 
 				if (StringUtils.hasLength(email)) {
 					recipients.add(manager);
 				}
 			}
-		} else if (child.getSendTo().equals(SendTo.SEND_TO_MANAGER)) {
+		} else if (Objects.equals(child.getSendTo(),SendTo.SEND_TO_MANAGER)) {
 			String email = PersonService.getEmail(manager);
 
 			if (StringUtils.hasLength(email)) {
 				recipients.add(manager);
 			}
 		}
-		
 
 		return recipients;
 	}
