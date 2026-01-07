@@ -80,12 +80,19 @@ public class MitIDErhvervApiController {
 			for (MitIDErhvervStatusEntry entry : entries) {
 				boolean exists = false;
 				
-				for (User user : mitIdErhvervUsers) {					
-					if (Objects.equals(user.getUserId(), entry.nemloginUserUuid())) {
+				for (User user : mitIdErhvervUsers) {
+					if (Objects.equals(user.getMasterId(), entry.samAccountName()) && Objects.equals(user.getMaster(), "MitIDErhverv")) {
 
 						// exists! modify state if needed
 						if (user.isDisabled() != !entry.active()) {
 							user.setDisabled(!entry.active());
+
+							changes = true;
+						}
+						
+						// exists! modify userId if needed
+						if (!Objects.equals(user.getUserId(), entry.nemloginUserUuid())) {
+							user.setUserId(entry.nemloginUserUuid());
 
 							changes = true;
 						}
@@ -123,9 +130,13 @@ public class MitIDErhvervApiController {
 				if (!SupportedUserTypeService.isMitIDErhverv(personUserMapping.getUser().getUserType())) {
 					continue;
 				}
-				
+
+				if (!Objects.equals(personUserMapping.getUser().getMaster(), "MitIDErhverv")) {
+					continue;
+				}
+
 				User user = personUserMapping.getUser();
-				if (!entries.stream().anyMatch(e -> Objects.equals(e.nemloginUserUuid(), user.getUserId()))) {
+				if (!entries.stream().anyMatch(e -> Objects.equals(user.getMasterId(), e.samAccountName()))) {
 					iterator.remove();
 
 					changes = true;

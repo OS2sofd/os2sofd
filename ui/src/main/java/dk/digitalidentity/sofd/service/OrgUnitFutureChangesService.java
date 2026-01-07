@@ -789,8 +789,14 @@ public class OrgUnitFutureChangesService {
 			case ADD_TAG:
 				if (!ouTreeForm.getTagIds().contains(change.getTagId())) {
 					ouTreeForm.getTagIds().add(change.getTagId());
-				}
 
+					if (ouTreeForm.getTagValueMap() == null) {
+						ouTreeForm.setTagValueMap(new HashMap<>());
+					}
+					if (change.getTagValue() != null) {
+						ouTreeForm.getTagValueMap().put(change.getTagId(), change.getTagValue());
+					}
+				}
 				break;
 			case REMOVE_TAG:
 				ouTreeForm.getTagIds().remove(change.getTagId());
