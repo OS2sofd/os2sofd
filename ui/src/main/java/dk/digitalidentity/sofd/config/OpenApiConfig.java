@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
 
     @Bean
-    public GroupedOpenApi classificationApi() {
+    public GroupedOpenApi classificationOpenApi() {
         return GroupedOpenApi.builder()
                 .group("classification")
                 .packagesToScan("dk.digitalidentity.sofd.controller.api.classification")
@@ -21,13 +21,21 @@ public class OpenApiConfig {
     }
 
     @Bean
-    public OpenAPI classificationOpenAPI() {
+    public GroupedOpenApi orgUnitOpenApi() {
+        return GroupedOpenApi.builder()
+                .group("orgUnit")
+                .pathsToMatch("/api/orgUnit/**")
+                .build();
+    }
+
+    @Bean
+    public OpenAPI OS2sofdOpenAPI() {
         final String securitySchemeName = "ApiKey";
 
         return new OpenAPI()
                 .info(new Info()
-                        .title("Classification API")
-                        .description("API for managing classifications and classification items")
+                        .title("OS2sofd API")
+                        .description("API for writing to OS2sofd")
                         .version("1.0"))
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
                 .components(new Components()
