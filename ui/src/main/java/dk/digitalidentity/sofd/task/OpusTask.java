@@ -8,7 +8,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.service.OpusService;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Component
 @EnableScheduling
 public class OpusTask {
@@ -29,9 +31,10 @@ public class OpusTask {
 	}
 	
 	// run every midday (11-12)
-	@Scheduled(cron = "0 #{new java.util.Random().nextInt(60)} 11 * * ?")
+	@Scheduled(cron = "${cron.opus.email:0 #{new java.util.Random().nextInt(60)} 11 * * ?}")
 	public void updateEmails() {
 		if (configuration.getScheduled().isEnabled() && configuration.getModules().getAccountCreation().getOpusHandler().isUpdateEmailWithoutIdM()) {
+			log.info("Running OPUS bulk email update task");
 			opusService.bulkUpdateEmail();
 		}
 	}

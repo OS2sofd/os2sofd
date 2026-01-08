@@ -133,6 +133,8 @@ public class OpusService {
 			p.getUsers().stream().forEach(u -> u.getUser().getLocalExtensions());
 		});
 		
+		log.info("Loaded " + persons.size() + " persons");
+		
 		// remove any persons that does not have an OPUS account or does not have an Exchange account
 		persons = persons.stream()
 			.filter(p -> p.getUsers().stream()
@@ -146,6 +148,8 @@ public class OpusService {
 				})
 			)
 			.collect(Collectors.toList());
+		
+		log.info("Filtered to " + persons.size() + " persons");
 
 		List<Person> toSave = new ArrayList<>();
 		for (Person person : persons) {
