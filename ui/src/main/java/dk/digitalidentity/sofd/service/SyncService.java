@@ -48,7 +48,8 @@ public class SyncService {
 			"       phone_number," +
 			"       position_name," +
 			"       profession_name," +
-			"       pay_grade_text," + 
+			"       raw_position_name," +
+			"       pay_grade_text," +
 			"       start_date," + 
 			"       orgunit_uuid," +
 			"       upn," +
@@ -289,6 +290,7 @@ public class SyncService {
 			boolean inheritPrivileges = rs.getBoolean("inherit_privileges");
 			String phoneNumber = rs.getString("phone_number");
 			String positionName = rs.getString("position_name");
+			String rawPositionName = rs.getString("raw_position_name");
 			String professionName = rs.getString("profession_name");
 			String payGradeText = rs.getString("pay_grade_text");
 			String orgUnitUuid = rs.getString("orgunit_uuid");
@@ -343,6 +345,7 @@ public class SyncService {
 				ADGridAffiliation affiliation = new ADGridAffiliation();
 				affiliation.setOrgUnitUuid(orgUnitUuid);
 				affiliation.setPositionName(payGradeText);
+				affiliation.setRawPositionName(rawPositionName);
 				affiliation.setProfessionName(professionName);
 				affiliation.setDoNotInherit(!inheritPrivileges);
 
@@ -352,6 +355,7 @@ public class SyncService {
 				ADGridAffiliation affiliation = new ADGridAffiliation();
 				affiliation.setOrgUnitUuid(orgUnitUuid);
 				affiliation.setPositionName(positionName);
+				affiliation.setRawPositionName(rawPositionName);
 				affiliation.setProfessionName(professionName);
 				affiliation.setDoNotInherit(!inheritPrivileges);
 

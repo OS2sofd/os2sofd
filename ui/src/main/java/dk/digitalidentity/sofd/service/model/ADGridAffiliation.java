@@ -8,6 +8,7 @@ import lombok.Setter;
 public class ADGridAffiliation {
 	private String positionName;
 	private String professionName;
+	private String rawPositionName;
 	private String orgUnitUuid;
 	private boolean doNotInherit;
 }
