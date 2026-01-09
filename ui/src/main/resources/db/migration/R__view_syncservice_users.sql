@@ -18,6 +18,7 @@ CREATE OR REPLACE VIEW view_syncservice_users AS
       WHEN TRIM(IFNULL(a.position_display_name, '')) <> '' THEN a.position_display_name
       WHEN prof.id IS NOT NULL AND disable_professions.enabled IS NULL THEN prof.name ELSE a.position_name
     END AS position_name,
+    a.position_name as raw_position_name,
     a.pay_grade_text,
     COALESCE(a.start_date, '1979-05-21 00:00:00') AS start_date,
     COALESCE(workplace.orgunit_uuid, a.`alt_orgunit_uuid`, a.`orgunit_uuid`) AS `orgunit_uuid`,
