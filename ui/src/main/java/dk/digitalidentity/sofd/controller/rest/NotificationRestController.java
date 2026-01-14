@@ -1,11 +1,5 @@
 package dk.digitalidentity.sofd.controller.rest;
 
-import javax.validation.Valid;
-
-import dk.digitalidentity.sofd.controller.rest.model.ManualNotificationRestDTO;
-import dk.digitalidentity.sofd.dao.model.ManualNotification;
-import dk.digitalidentity.sofd.security.RequireAdminAccess;
-import dk.digitalidentity.sofd.service.ManualNotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.datatables.mapping.Column;
 import org.springframework.data.jpa.datatables.mapping.DataTablesInput;
@@ -21,20 +15,25 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
 
 import dk.digitalidentity.sofd.controller.mvc.datatables.dao.NotificationDatatableDao;
+import dk.digitalidentity.sofd.controller.rest.model.ManualNotificationRestDTO;
+import dk.digitalidentity.sofd.dao.model.ManualNotification;
 import dk.digitalidentity.sofd.dao.model.Notification;
 import dk.digitalidentity.sofd.dao.model.NotificationView;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.User;
 import dk.digitalidentity.sofd.dao.model.enums.NotificationType;
+import dk.digitalidentity.sofd.security.RequireAdminAccess;
 import dk.digitalidentity.sofd.security.RequireReadAccess;
 import dk.digitalidentity.sofd.security.SecurityUtil;
+import dk.digitalidentity.sofd.service.ManualNotificationService;
 import dk.digitalidentity.sofd.service.NotificationService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
 import dk.digitalidentity.sofd.service.UserService;
-import org.springframework.web.servlet.ModelAndView;
+import jakarta.validation.Valid;
 
 @RequireReadAccess
 @RestController

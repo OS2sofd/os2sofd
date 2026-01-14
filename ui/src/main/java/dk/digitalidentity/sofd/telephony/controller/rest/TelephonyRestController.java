@@ -7,9 +7,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import javax.validation.Valid;
-
-import dk.digitalidentity.sofd.security.RequireReadAccess;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.datatables.mapping.DataTablesInput;
 import org.springframework.data.jpa.datatables.mapping.DataTablesOutput;
@@ -30,6 +27,7 @@ import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.FunctionType;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Person;
+import dk.digitalidentity.sofd.security.RequireReadAccess;
 import dk.digitalidentity.sofd.security.RequireTelephonyAccess;
 import dk.digitalidentity.sofd.service.FunctionTypeService;
 import dk.digitalidentity.sofd.service.OrgUnitService;
@@ -43,6 +41,7 @@ import dk.digitalidentity.sofd.telephony.controller.service.TelephonyPhoneServic
 import dk.digitalidentity.sofd.telephony.dao.TelephonyPhoneDao;
 import dk.digitalidentity.sofd.telephony.dao.model.TelephonyPhone;
 import dk.digitalidentity.sofd.telephony.dao.model.TelephonyPhoneOrgUnit;
+import jakarta.validation.Valid;
 
 @RequireTelephonyAccess
 @RestController

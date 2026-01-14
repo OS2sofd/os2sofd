@@ -31,10 +31,9 @@
 		<script th:src="@{/webjars/jQuery-Autocomplete/1.4.10/jquery.autocomplete.min.js}"></script>
 		<script th:src="@{/webjars/Eonasdan-bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.js}"></script>
 
-		<script th:inline="javascript"
-				sec:authorize="hasRole('ROLE_USER_LOS_ADMIN')"
-			    th:if="${#strings.contains(#httpServletRequest.requestURI, 'orgunit') and
-			    	     @sofdConfiguration.getModules().getLos().isFutureOrgsEnabled() == true}">
+		<script th:inline="javascript" sec:authorize="hasRole('ROLE_USER_LOS_ADMIN')"
+				th:if="${#strings.contains(currentUri, 'orgunit') and @sofdConfiguration.getModules().getLos().isFutureOrgsEnabled() == true}">
+
 		/*<![CDATA[*/
 
 			/*[+

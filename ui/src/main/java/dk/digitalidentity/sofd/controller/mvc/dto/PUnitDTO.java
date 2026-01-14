@@ -1,9 +1,10 @@
 package dk.digitalidentity.sofd.controller.mvc.dto;
 
+import org.apache.commons.lang3.StringUtils;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang.StringUtils;
 
 @Getter
 @Setter

@@ -28,13 +28,13 @@ public class AuditInterceptor {
 
 	/* TODO: skal på værksted, giver crazy farlige fejl i produktion
 
-	2021-02-08 11:27:38.782 ERROR 7 --- [o-8080-exec-478] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is org.springframework.transaction.TransactionSystemException: Could not commit JPA transaction; nested exception is javax.persistence.RollbackException: Error while committing the transaction] with root cause
+	2021-02-08 11:27:38.782 ERROR 7 --- [o-8080-exec-478] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is org.springframework.transaction.TransactionSystemException: Could not commit JPA transaction; nested exception is jakarta.persistence.RollbackException: Error while committing the transaction] with root cause
 
 	javax.validation.ConstraintViolationException: Validation failed for classes [dk.digitalidentity.sofd.dao.model.User] during persist time for groups [javax.validation.groups.Default, ]
 	List of constraint violations:[
-		ConstraintViolationImpl{interpolatedMessage='may not be null', propertyPath=uuid, rootBeanClass=class dk.digitalidentity.sofd.dao.model.User, messageTemplate='{javax.validation.constraints.NotNull.message}'}
-		ConstraintViolationImpl{interpolatedMessage='may not be null', propertyPath=master, rootBeanClass=class dk.digitalidentity.sofd.dao.model.User, messageTemplate='{javax.validation.constraints.NotNull.message}'}
-		ConstraintViolationImpl{interpolatedMessage='may not be null', propertyPath=masterId, rootBeanClass=class dk.digitalidentity.sofd.dao.model.User, messageTemplate='{javax.validation.constraints.NotNull.message}'}
+		ConstraintViolationImpl{interpolatedMessage='may not be null', propertyPath=uuid, rootBeanClass=class dk.digitalidentity.sofd.dao.model.User, messageTemplate='{jakarta.validation.constraints.NotNull.message}'}
+		ConstraintViolationImpl{interpolatedMessage='may not be null', propertyPath=master, rootBeanClass=class dk.digitalidentity.sofd.dao.model.User, messageTemplate='{jakarta.validation.constraints.NotNull.message}'}
+		ConstraintViolationImpl{interpolatedMessage='may not be null', propertyPath=masterId, rootBeanClass=class dk.digitalidentity.sofd.dao.model.User, messageTemplate='{jakarta.validation.constraints.NotNull.message}'}
 	]
 		at org.hibernate.cfg.beanvalidation.BeanValidationEventListener.validate(BeanValidationEventListener.java:138) ~[hibernate-core-5.0.12.Final.jar!/:5.0.12.Final]
 		at org.hibernate.cfg.beanvalidation.BeanValidationEventListener.onPreInsert(BeanValidationEventListener.java:78) ~[hibernate-core-5.0.12.Final.jar!/:5.0.12.Final]

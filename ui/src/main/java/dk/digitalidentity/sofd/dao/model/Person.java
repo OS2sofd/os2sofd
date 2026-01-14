@@ -8,24 +8,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.FetchType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
-import javax.persistence.PrePersist;
-import javax.persistence.PreUpdate;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-
 import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.envers.Audited;
@@ -46,6 +28,21 @@ import dk.digitalidentity.sofd.serializer.LocalExtensionsDeserializer;
 import dk.digitalidentity.sofd.serializer.LocalExtensionsSerializer;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -54,6 +51,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Audited
+@BatchSize(size = 50)
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" }) // need this because we sometimes detach the object from Hibernate
 public class Person implements Loggable {
 
@@ -65,12 +63,10 @@ public class Person implements Loggable {
 	private String master;
 
 	@CreationTimestamp
-	@Temporal(TemporalType.TIMESTAMP)
 	@Column(updatable = false)
 	private Date created;
 
 	@Audited
-	@Temporal(TemporalType.TIMESTAMP)
 	@Column
 	@Setter(AccessLevel.NONE)
 	private Date lastChanged;
@@ -122,11 +118,9 @@ public class Person implements Loggable {
 	@Column
 	private String notes;
 
-	@Temporal(TemporalType.DATE)
 	@Column
 	private Date firstEmploymentDate;
 
-	@Temporal(TemporalType.DATE)
 	@Column
 	private Date anniversaryDate;
 

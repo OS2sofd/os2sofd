@@ -2,8 +2,6 @@ package dk.digitalidentity.sofd.controller.rest;
 
 import java.util.List;
 
-import javax.validation.Valid;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.datatables.mapping.DataTablesInput;
 import org.springframework.data.jpa.datatables.mapping.DataTablesOutput;
@@ -15,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import dk.digitalidentity.sofd.controller.mvc.datatables.dao.GridStudentDatatableDao;
 import dk.digitalidentity.sofd.controller.mvc.datatables.dao.model.GridStudent;
 import dk.digitalidentity.sofd.security.RequireReadAccess;
+import jakarta.validation.Valid;
 
 @RequireReadAccess
 @RestController

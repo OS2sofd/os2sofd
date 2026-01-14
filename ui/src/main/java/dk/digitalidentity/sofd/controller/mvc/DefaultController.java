@@ -3,13 +3,11 @@ package dk.digitalidentity.sofd.controller.mvc;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.error.ErrorAttributeOptions;
-import org.springframework.boot.web.servlet.error.DefaultErrorAttributes;
-import org.springframework.boot.web.servlet.error.ErrorAttributes;
-import org.springframework.boot.web.servlet.error.ErrorController;
+import org.springframework.boot.webmvc.error.DefaultErrorAttributes;
+import org.springframework.boot.webmvc.error.ErrorAttributes;
+import org.springframework.boot.webmvc.error.ErrorController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -22,6 +20,7 @@ import org.springframework.web.context.request.WebRequest;
 import dk.digitalidentity.sofd.controller.mvc.dto.ClientActivityDTO;
 import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.ClientService;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Controller
 public class DefaultController implements ErrorController {
@@ -30,7 +29,7 @@ public class DefaultController implements ErrorController {
 	@Autowired
 	private ClientService clientService;
 	
-	@GetMapping(value = { "/" })
+	@GetMapping("/")
 	public String index(Model model) {
 		if (SecurityUtil.getUser() != null) {
 			model.addAttribute("clients", clientService.findAll().stream()
@@ -41,7 +40,13 @@ public class DefaultController implements ErrorController {
 
 		return "index";
 	}
-	
+
+	// used to force a login
+	@GetMapping("/ui")
+	public String indexLogin(Model model) {
+		return "redirect:/";
+	}
+
 	@Deprecated
 	@GetMapping("/info")
 	public String info(Model model) {

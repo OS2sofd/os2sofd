@@ -1,11 +1,11 @@
 package dk.digitalidentity.sofd.dao.model.view;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Getter;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import lombok.Getter;
 
 @Entity(name = "view_callcenter")
 @Getter

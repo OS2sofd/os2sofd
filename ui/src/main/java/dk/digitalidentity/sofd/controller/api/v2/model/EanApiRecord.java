@@ -1,6 +1,6 @@
 package dk.digitalidentity.sofd.controller.api.v2.model;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 import dk.digitalidentity.sofd.dao.model.Ean;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;

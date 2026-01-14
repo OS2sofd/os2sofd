@@ -2,8 +2,6 @@ package dk.digitalidentity.sofd.controller.mvc.admin;
 
 import java.util.stream.Collectors;
 
-import javax.validation.Valid;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
@@ -21,6 +19,7 @@ import dk.digitalidentity.sofd.dao.model.SOFDAccount;
 import dk.digitalidentity.sofd.security.RequireAdminAccess;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.SOFDAccountService;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

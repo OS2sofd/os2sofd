@@ -3,7 +3,7 @@ package dk.digitalidentity.sofd.controller.mvc.datatables.dao.model.dto;
 import java.util.Date;
 import java.util.Locale;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.MessageSource;
 
 import dk.digitalidentity.sofd.controller.mvc.datatables.dao.model.AuditLogView;

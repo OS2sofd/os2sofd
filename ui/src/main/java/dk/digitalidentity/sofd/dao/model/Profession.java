@@ -3,22 +3,20 @@ package dk.digitalidentity.sofd.dao.model;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.OneToMany;
-import javax.validation.constraints.NotNull;
-
 import org.hibernate.annotations.BatchSize;
 import org.hibernate.envers.NotAudited;
 
 import dk.digitalidentity.sofd.dao.model.mapping.ProfessionMapping;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -26,7 +24,7 @@ import lombok.Setter;
 @Entity(name = "professions")
 @Getter
 @Setter
-@Builder
+@BatchSize(size = 50)
 @NoArgsConstructor
 @AllArgsConstructor
 public class Profession {

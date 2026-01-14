@@ -5,9 +5,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
@@ -15,43 +12,62 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.web.servlet.View;
 
 import dk.digitalidentity.sofd.controller.mvc.dto.ADUserReportDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.enums.ADUserStatus;
 import dk.digitalidentity.sofd.dao.model.enums.ReportType;
-import org.springframework.web.servlet.view.document.AbstractXlsxView;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
-public class UsersReportXlsView extends AbstractXlsxView {
+public class UsersReportXlsView implements View {
+	private static final String CONTENT_TYPE = "application/ms-excel";
+	private String filename;
+
+	@Override
+	public String getContentType() {
+		return CONTENT_TYPE;
+	}
+	
+	public UsersReportXlsView(String filename) {
+		this.filename = filename;
+	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	protected void buildExcelDocument(Map<String, Object> model, Workbook workbook, HttpServletRequest request, HttpServletResponse response) throws Exception {
+	public void render(Map<String, ?> model, HttpServletRequest request, HttpServletResponse response) throws Exception {
 		ReportType reportType = (ReportType) model.get("report");
 		List<ADUserReportDTO> rows = (List<ADUserReportDTO>) model.get("rows");
 		Locale locale = (Locale) model.get("locale");
 		ResourceBundleMessageSource messageSource = (ResourceBundleMessageSource) model.get("messagesBundle");
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-		// create excel xls sheet
-		Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.usersreport.sheetname", null, locale));
+		response.setContentType(getContentType());
+		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 
-		// create header row
-		createHeader(workbook, sheet, reportType, messageSource, locale);
-
-		// Create data cells
-		int rowCount = 1;
-		for (ADUserReportDTO row : rows) {
-			Row courseRow = sheet.createRow(rowCount++);
-
-			courseRow.createCell(0).setCellValue(row.getPersonUuid());
-			courseRow.createCell(1).setCellValue(row.getName());
-			courseRow.createCell(2).setCellValue(row.getUserId());
-			courseRow.createCell(3).setCellValue(row.getStatus().equals(ADUserStatus.ACTIVE) ? messageSource.getMessage("xls.usersreport.user.status.active", null, locale) : messageSource.getMessage("xls.usersreport.user.status.closed", null, locale));
-			courseRow.createCell(4).setCellValue(row.getCreated() != null ? formatter.format(row.getCreated()) : "");
-			courseRow.createCell(5).setCellValue(row.getClosed() != null ? formatter.format(row.getClosed()) : "");
+		try (Workbook workbook = new DisposableSXSSFWorkbook()) {
+	
+			// create excel xls sheet
+			Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.usersreport.sheetname", null, locale));
+	
+			// create header row
+			createHeader(workbook, sheet, reportType, messageSource, locale);
+	
+			// Create data cells
+			int rowCount = 1;
+			for (ADUserReportDTO row : rows) {
+				Row courseRow = sheet.createRow(rowCount++);
+	
+				courseRow.createCell(0).setCellValue(row.getPersonUuid());
+				courseRow.createCell(1).setCellValue(row.getName());
+				courseRow.createCell(2).setCellValue(row.getUserId());
+				courseRow.createCell(3).setCellValue(row.getStatus().equals(ADUserStatus.ACTIVE) ? messageSource.getMessage("xls.usersreport.user.status.active", null, locale) : messageSource.getMessage("xls.usersreport.user.status.closed", null, locale));
+				courseRow.createCell(4).setCellValue(row.getCreated() != null ? formatter.format(row.getCreated()) : "");
+				courseRow.createCell(5).setCellValue(row.getClosed() != null ? formatter.format(row.getClosed()) : "");
+			}
+	
+			format(sheet);
 		}
-
-		format(sheet);
 	}
 
 	private void format(Sheet sheet) {

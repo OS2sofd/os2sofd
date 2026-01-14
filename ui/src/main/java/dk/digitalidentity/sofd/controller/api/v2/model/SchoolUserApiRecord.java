@@ -42,6 +42,7 @@ public class SchoolUserApiRecord extends BaseRecord {
 		this.institutionNumbers = getInstitutionNumbers(schoolUser.getLocalExtensions());
 	}
 
+	@SuppressWarnings("unchecked")
 	private List<String> getInstitutionNumbers(String localExtensions) {
 		var result = new ArrayList<String>();
 		try {

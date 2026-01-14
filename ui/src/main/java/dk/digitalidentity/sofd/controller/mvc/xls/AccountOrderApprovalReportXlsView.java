@@ -5,9 +5,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
@@ -15,15 +12,23 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.web.servlet.View;
 
 import dk.digitalidentity.sofd.dao.model.AccountOrderApproved;
 import dk.digitalidentity.sofd.service.AccountOrderApprovedService;
-import org.springframework.web.servlet.view.document.AbstractXlsxView;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
-public class AccountOrderApprovalReportXlsView extends AbstractXlsxView {
-	
+public class AccountOrderApprovalReportXlsView implements View {
+	private static final String CONTENT_TYPE = "application/ms-excel";
+
 	@Override
-	protected void buildExcelDocument(Map<String, Object> model, Workbook workbook, HttpServletRequest request, HttpServletResponse response) throws Exception {
+	public String getContentType() {
+		return CONTENT_TYPE;
+	}
+
+	@Override
+	public void render(Map<String, ?> model, HttpServletRequest request, HttpServletResponse response) throws Exception {
 		Locale locale = (Locale) model.get("locale");
 		ResourceBundleMessageSource messageSource = (ResourceBundleMessageSource) model.get("messagesBundle");
 		AccountOrderApprovedService accountOrderApprovedService = (AccountOrderApprovedService) model.get("accountOrderApprovedService");
@@ -31,21 +36,27 @@ public class AccountOrderApprovalReportXlsView extends AbstractXlsxView {
 
 		List<AccountOrderApproved> approvals = accountOrderApprovedService.findAll();
 
-		// create excel xls sheet
-		Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.genericreport.sheetname", null, locale));
+		response.setContentType(getContentType());
+		response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 
-		// create header row
-		createHeader(workbook, sheet, messageSource, locale);
-
-		// Create data cells
-		int rowCount = 1;
-		for (AccountOrderApproved approval : approvals) {
-			Row courseRow = sheet.createRow(rowCount++);
-
-			courseRow.createCell(0).setCellValue(approval.getApprovedTts().format(dtf));
-			courseRow.createCell(1).setCellValue(approval.getApproverName());
-			courseRow.createCell(2).setCellValue(approval.getPersonName());
-			courseRow.createCell(3).setCellValue(approval.getUserId());
+		try (Workbook workbook = new DisposableSXSSFWorkbook()) {
+	
+			// create excel xls sheet
+			Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.genericreport.sheetname", null, locale));
+	
+			// create header row
+			createHeader(workbook, sheet, messageSource, locale);
+	
+			// Create data cells
+			int rowCount = 1;
+			for (AccountOrderApproved approval : approvals) {
+				Row courseRow = sheet.createRow(rowCount++);
+	
+				courseRow.createCell(0).setCellValue(approval.getApprovedTts().format(dtf));
+				courseRow.createCell(1).setCellValue(approval.getApproverName());
+				courseRow.createCell(2).setCellValue(approval.getPersonName());
+				courseRow.createCell(3).setCellValue(approval.getUserId());
+			}
 		}
 	}
 

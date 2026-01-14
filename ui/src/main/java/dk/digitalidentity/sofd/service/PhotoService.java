@@ -7,10 +7,9 @@ import java.util.Set;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
-import javax.transaction.Transactional;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import dk.digitalidentity.sofd.dao.PhotoDao;
 import dk.digitalidentity.sofd.dao.model.Photo;

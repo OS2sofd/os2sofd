@@ -6,8 +6,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import javax.validation.Valid;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -34,6 +32,7 @@ import dk.digitalidentity.sofd.security.RequireReadAccess;
 import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.InstitutionService;
 import dk.digitalidentity.sofd.service.StudentService;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

@@ -4,8 +4,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-import javax.validation.Valid;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.data.jpa.datatables.mapping.DataTablesInput;
@@ -20,6 +18,7 @@ import dk.digitalidentity.sofd.controller.mvc.datatables.dao.AuditLogViewDatatab
 import dk.digitalidentity.sofd.controller.mvc.datatables.dao.model.AuditLogView;
 import dk.digitalidentity.sofd.controller.mvc.datatables.dao.model.dto.AuditLogDTO;
 import dk.digitalidentity.sofd.security.RequireReadAccess;
+import jakarta.validation.Valid;
 
 @RequireReadAccess
 @RestController
@@ -43,7 +42,7 @@ public class AuditLogRestController {
 		DataTablesOutput<AuditLogView> output;
 		if (!showSystem) {
 			//this filters out all system auditLogs
-			output = auditLogDatatableDao.findAll(input, (root, query, criteriaBuilder) -> criteriaBuilder.notEqual(root.get("userId"), "system"));
+			output = auditLogDatatableDao.findAll(input, (root, _, criteriaBuilder) -> criteriaBuilder.notEqual(root.get("userId"), "system"));
 		} else {
 			output = auditLogDatatableDao.findAll(input);
 		}

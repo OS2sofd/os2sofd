@@ -43,38 +43,38 @@ public class CallcenterService {
     }
 
     private static Specification<Callcenter> nameLike(String term) {
-        return (root, query, cb) -> term == null ? null : cb.like(root.get("name"), ("%" + term + "%"));
+        return (root, _, cb) -> term == null ? null : cb.like(root.get("name"), ("%" + term + "%"));
     }
 
     private static Specification<Callcenter> orgUnitLike(String term) {
-        return (root, query, cb) -> term == null ? null : cb.like(root.get("orgUnit"), ("%" + term + "%"));
+        return (root, _, cb) -> term == null ? null : cb.like(root.get("orgUnit"), ("%" + term + "%"));
     }
 
     private static Specification<Callcenter> userIdLike(String term) {
-        return (root, query, cb) -> term == null ? null : cb.like(root.get("userId"), ("%" + term + "%"));
+        return (root, _, cb) -> term == null ? null : cb.like(root.get("userId"), ("%" + term + "%"));
     }
 
     private static Specification<Callcenter> keywordsLike(String term) {
-        return (root, query, cb) -> term == null ? null : cb.like(root.get("keywords"), ("%" + term + "%"));
+        return (root, _, cb) -> term == null ? null : cb.like(root.get("keywords"), ("%" + term + "%"));
     }
 
     private static Specification<Callcenter> phoneLike(String term) {
-        return (root, query, cb) -> term == null ? null : cb.like(root.get("phone"), ("%" + term + "%"));
+        return (root, _, cb) -> term == null ? null : cb.like(root.get("phone"), ("%" + term + "%"));
     }
 
     private static Specification<Callcenter> phoneNumbersLike(String term) {
-        return (root, query, cb) -> term == null ? null : cb.like(root.get("phoneNumbers"), ("%" + term + "%"));
+        return (root, _, cb) -> term == null ? null : cb.like(root.get("phoneNumbers"), ("%" + term + "%"));
     }
 
     private static Specification<Callcenter> emailLike(String term) {
-        return (root, query, cb) -> term == null ? null : cb.like(root.get("email"), ("%" + term + "%"));
+        return (root, _, cb) -> term == null ? null : cb.like(root.get("email"), ("%" + term + "%"));
     }
 
     private static Specification<Callcenter> addressLike(String term) {
-        return (root, query, cb) -> term == null ? null : cb.like(root.get("address"), ("%" + term + "%"));
+        return (root, _, cb) -> term == null ? null : cb.like(root.get("address"), ("%" + term + "%"));
     }
 
     private static Specification<Callcenter> positionNameLike(String term) {
-        return (root, query, cb) -> term == null ? null : cb.like(root.get("positionName"), ("%" + term + "%"));
+        return (root, _, cb) -> term == null ? null : cb.like(root.get("positionName"), ("%" + term + "%"));
     }
 }

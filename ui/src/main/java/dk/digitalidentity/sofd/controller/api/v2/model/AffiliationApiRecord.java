@@ -7,9 +7,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
-
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import dk.digitalidentity.sofd.dao.model.Affiliation;
@@ -19,6 +16,8 @@ import dk.digitalidentity.sofd.dao.model.enums.AffiliationType;
 import dk.digitalidentity.sofd.dao.model.mapping.AffiliationFunctionMapping;
 import dk.digitalidentity.sofd.service.AffiliationService;
 import dk.digitalidentity.sofd.service.OrgUnitService;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
