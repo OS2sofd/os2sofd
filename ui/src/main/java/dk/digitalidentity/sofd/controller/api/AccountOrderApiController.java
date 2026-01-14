@@ -159,7 +159,8 @@ public class AccountOrderApiController {
 				triggerAffiliation);
 
 		AccountOrder result = accountOrderService.save(accountOrder);
-		return new ResponseEntity<AccountOrder>(result, HttpStatus.OK);
+		AccountOrderDTO dto = new AccountOrderDTO(result, null, person, configuration.getModules().getAccountCreation().isEncodeCpr());
+		return new ResponseEntity<AccountOrderDTO>(dto, HttpStatus.OK);
 	}
 
 	/**
