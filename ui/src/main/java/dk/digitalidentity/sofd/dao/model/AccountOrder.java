@@ -3,19 +3,6 @@ package dk.digitalidentity.sofd.dao.model;
 import java.util.Date;
 import java.util.Objects;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToOne;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.envers.Audited;
@@ -23,6 +10,16 @@ import org.hibernate.envers.NotAudited;
 
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderStatus;
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -52,7 +49,6 @@ public class AccountOrder {
 	@Column(nullable = true)
 	private String requesterApiUserId;
 
-	@Temporal(TemporalType.TIMESTAMP)
 	@CreationTimestamp
 	@Column(nullable = false)
 	private Date orderedTimestamp;
@@ -66,7 +62,6 @@ public class AccountOrder {
 	@Enumerated(EnumType.STRING)
 	private AccountOrderType orderType;
 
-	@Temporal(TemporalType.TIMESTAMP)
 	@Column(nullable = false)
 	private Date activationTimestamp;
 
@@ -91,7 +86,6 @@ public class AccountOrder {
 	@Column(nullable = true)
 	private String message;
 
-	@Temporal(TemporalType.TIMESTAMP)
 	@UpdateTimestamp
 	@Column(nullable = false)
 	private Date modifiedTimestamp;

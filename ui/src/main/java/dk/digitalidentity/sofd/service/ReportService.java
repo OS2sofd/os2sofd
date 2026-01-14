@@ -289,7 +289,7 @@ public class ReportService {
 		// find min rev id that we are using in the next queries (DON'T DO THIS AT HOME KIDS ... SQL INJECTION if you do thing wrong...)
 		String query = SELECT_MIN_REV.replace("?", date.format(formatter));
 		@SuppressWarnings("deprecation")
-		List<Long> minRevResult = jdbcTemplate.query(query, new Object[] { }, (RowMapper<Long>) (rs, rownum) -> {
+		List<Long> minRevResult = jdbcTemplate.query(query, new Object[] { }, (RowMapper<Long>) (rs, _) -> {
 			return rs.getLong("rev_id");
 		});
 	
@@ -300,7 +300,7 @@ public class ReportService {
 
 		// find the person user mappings
 		@SuppressWarnings("deprecation")
-		List<PersonUserMapping> personUserMappings = jdbcTemplate.query(SELECT_USER_PERSON_MAPPING, new Object[] { }, (RowMapper<PersonUserMapping>) (rs, rownum) -> {
+		List<PersonUserMapping> personUserMappings = jdbcTemplate.query(SELECT_USER_PERSON_MAPPING, new Object[] { }, (RowMapper<PersonUserMapping>) (rs, _) -> {
 			return new PersonUserMapping(rs.getString("person_uuid"), rs.getLong("user_id"));
 		});
 
@@ -317,7 +317,7 @@ public class ReportService {
 		
 		// create the rows for active
 		@SuppressWarnings("deprecation")
-		List<ADUserReportDTO> activeDtos = jdbcTemplate.query(SELECT_ACTIVE_USERS, new Object[] {}, (RowMapper<ADUserReportDTO>) (rs, rownum) -> {
+		List<ADUserReportDTO> activeDtos = jdbcTemplate.query(SELECT_ACTIVE_USERS, new Object[] {}, (RowMapper<ADUserReportDTO>) (rs, _) -> {
 			ADUserReportDTO dto = new ADUserReportDTO();
 
 			// find person if exists
@@ -351,7 +351,7 @@ public class ReportService {
 
 		// create the rows for disabled
 		@SuppressWarnings("deprecation")
-		List<ADUserReportDTO> disabledDtos = jdbcTemplate.query(SELECT_DISABLED_USERS, new Object[] {}, (RowMapper<ADUserReportDTO>) (rs, rownum) -> {
+		List<ADUserReportDTO> disabledDtos = jdbcTemplate.query(SELECT_DISABLED_USERS, new Object[] {}, (RowMapper<ADUserReportDTO>) (rs, _) -> {
 			ADUserReportDTO dto = new ADUserReportDTO();
 
 			// find person if exists
@@ -396,7 +396,7 @@ public class ReportService {
 
 		// create the rows for deleted
 		@SuppressWarnings("deprecation")
-		List<ADUserReportDTO> deletedDtos = jdbcTemplate.query(SELECT_DELETED_USERS, new Object[] {minRevId}, (RowMapper<ADUserReportDTO>) (rs, rownum) -> {
+		List<ADUserReportDTO> deletedDtos = jdbcTemplate.query(SELECT_DELETED_USERS, new Object[] {minRevId}, (RowMapper<ADUserReportDTO>) (rs, _) -> {
 			ADUserReportDTO dto = new ADUserReportDTO();
 
 			// find person if exists

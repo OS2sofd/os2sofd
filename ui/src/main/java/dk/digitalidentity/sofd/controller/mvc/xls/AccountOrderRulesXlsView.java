@@ -3,9 +3,6 @@ package dk.digitalidentity.sofd.controller.mvc.xls;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
@@ -13,59 +10,78 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.web.servlet.View;
 
 import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderRulesXlsDto.Pair;
 import dk.digitalidentity.sofd.dao.model.OrgUnitAccountOrderType;
 import dk.digitalidentity.sofd.dao.model.OrgUnitAccountOrderTypePosition;
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderRule;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
-import org.springframework.web.servlet.view.document.AbstractXlsxView;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
-public class AccountOrderRulesXlsView extends AbstractXlsxView {
+public class AccountOrderRulesXlsView implements View {
+	private static final String CONTENT_TYPE = "application/ms-excel";
+	private String filename;
 
 	@Override
-	protected void buildExcelDocument(Map<String, Object> model, Workbook workbook, HttpServletRequest request, HttpServletResponse response) throws Exception {
+	public String getContentType() {
+		return CONTENT_TYPE;
+	}
+	
+	public AccountOrderRulesXlsView(String filename) {
+		this.filename = filename;
+	}
+
+	@Override
+	public void render(Map<String, ?> model, HttpServletRequest request, HttpServletResponse response) throws Exception {
 		AccountOrderRulesXlsDto dto = (AccountOrderRulesXlsDto) model.get("employees");
 		ResourceBundleMessageSource messageSource = (ResourceBundleMessageSource) model.get("messagesBundle");
 		Locale locale = (Locale) model.get("locale");
 		SupportedUserTypeService supportedUserTypeService = (SupportedUserTypeService) model.get("supportedUserTypeService");
 
-		// create excel xls sheet
-		Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.rules.sheetname", null, locale));
+		response.setContentType(getContentType());
+		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 
-		// create header row
-		createHeader(workbook, sheet, messageSource, locale);
+		try (Workbook workbook = new DisposableSXSSFWorkbook()) {
 
-		// Create data cells
-		int rowCount = 1;
-		if (dto.getRulePairs() != null) {
-			for (Pair pair : dto.getRulePairs()) {
-				for (OrgUnitAccountOrderType type : pair.order.getTypes()) {
-					if (type.getRule().equals(AccountOrderRule.BY_POSITION_NAME)) {
-						for (OrgUnitAccountOrderTypePosition position : type.getPositions()) {
-							Row courseRow = sheet.createRow(rowCount++);
+			// create excel xls sheet
+			Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.rules.sheetname", null, locale));
 	
+			// create header row
+			createHeader(workbook, sheet, messageSource, locale);
+	
+			// Create data cells
+			int rowCount = 1;
+			if (dto.getRulePairs() != null) {
+				for (Pair pair : dto.getRulePairs()) {
+					for (OrgUnitAccountOrderType type : pair.order.getTypes()) {
+						if (type.getRule().equals(AccountOrderRule.BY_POSITION_NAME)) {
+							for (OrgUnitAccountOrderTypePosition position : type.getPositions()) {
+								Row courseRow = sheet.createRow(rowCount++);
+		
+								courseRow.createCell(0).setCellValue(pair.orgUnit.getUuid());
+								courseRow.createCell(1).setCellValue(pair.orgUnit.getName());
+								courseRow.createCell(2).setCellValue(supportedUserTypeService.getPrettyName(type.getUserType()));
+								courseRow.createCell(3).setCellValue(position.getPositionName());
+								courseRow.createCell(4).setCellValue(messageSource.getMessage(position.getRule().getMessage(), null, locale));
+							}
+						}
+						else {
+							Row courseRow = sheet.createRow(rowCount++);
+		
 							courseRow.createCell(0).setCellValue(pair.orgUnit.getUuid());
 							courseRow.createCell(1).setCellValue(pair.orgUnit.getName());
 							courseRow.createCell(2).setCellValue(supportedUserTypeService.getPrettyName(type.getUserType()));
-							courseRow.createCell(3).setCellValue(position.getPositionName());
-							courseRow.createCell(4).setCellValue(messageSource.getMessage(position.getRule().getMessage(), null, locale));
+							courseRow.createCell(3).setCellValue("-");
+							courseRow.createCell(4).setCellValue(messageSource.getMessage(type.getRule().getMessage(), null, locale));
 						}
-					}
-					else {
-						Row courseRow = sheet.createRow(rowCount++);
-	
-						courseRow.createCell(0).setCellValue(pair.orgUnit.getUuid());
-						courseRow.createCell(1).setCellValue(pair.orgUnit.getName());
-						courseRow.createCell(2).setCellValue(supportedUserTypeService.getPrettyName(type.getUserType()));
-						courseRow.createCell(3).setCellValue("-");
-						courseRow.createCell(4).setCellValue(messageSource.getMessage(type.getRule().getMessage(), null, locale));
 					}
 				}
 			}
+	
+			format(sheet);
 		}
-
-		format(sheet);
 	}
 
 	private void format(Sheet sheet) {

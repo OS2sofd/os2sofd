@@ -18,8 +18,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import javax.transaction.Transactional;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpEntity;
@@ -31,6 +29,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
@@ -187,8 +186,8 @@ public class OS2SyncService {
 		var request = new HttpEntity<>(kombitUuids, headers);
 		ResponseEntity<String> response = restTemplate.exchange(configuration.getIntegrations().getOs2sync().getUserCleanupUrl(), HttpMethod.POST, request, String.class);
 		
-		if (response.getStatusCodeValue() != 200) {
-			log.warn("Cleanup of FK organisation users failed: " + response.getStatusCodeValue());
+		if (response.getStatusCode().value() != 200) {
+			log.warn("Cleanup of FK organisation users failed: " + response.getStatusCode().value());
 		}
 		
 		log.info("Users cleanup completed");

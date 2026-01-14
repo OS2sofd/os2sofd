@@ -16,28 +16,36 @@
 	<build>
 		<finalName>${project.name}</finalName>
 		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-				<configuration>
-					<layout>ZIP</layout>
-					<folders>
-						<folder>${basedir}/config</folder>
-					</folders>
-					<addResources>
-						true
-					</addResources>
-				</configuration>
-			</plugin>
+                        <plugin>
+                                <groupId>org.springframework.boot</groupId>
+                                <artifactId>spring-boot-maven-plugin</artifactId>
+                                <configuration>
+                                        <layout>ZIP</layout>
+                                        <addResources>
+                                                true
+                                        </addResources>
+                                        <additionalClasspathElements>
+                                                <additionalClasspathElement>${basedir}/config</additionalClasspathElement>
+                                        </additionalClasspathElements>
+                                </configuration>
+                        </plugin>
 
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.7.0</version>
+				<version>3.14.1</version>
 				<configuration>
 					<compilerArgs>
 						<arg>-parameters</arg>
 					</compilerArgs>
+                                        <source>25</source>
+                                        <target>25</target>
+                                        <annotationProcessorPaths>
+                                                <path>
+                                                        <groupId>org.projectlombok</groupId>
+                                                        <artifactId>lombok</artifactId>
+                                                </path>
+                                        </annotationProcessorPaths>
 				</configuration>
 			</plugin>
 
@@ -82,7 +90,7 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
-
+<!-- TODO: what should we replace these with?
 		<dependency>
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-xml</artifactId>
@@ -92,37 +100,52 @@
 			<groupId>com.fasterxml.jackson.datatype</groupId>
 			<artifactId>jackson-datatype-jsr310</artifactId>
 		</dependency>
-
+-->
 		<dependency>
 			<groupId>org.springframework.session</groupId>
 			<artifactId>spring-session-jdbc</artifactId>
 		</dependency>
 
-		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-mysql</artifactId>
-		</dependency>
+                <dependency>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-flyway</artifactId>
+                </dependency>
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-thymeleaf</artifactId>
-		</dependency>
+                <dependency>
+                        <groupId>org.flywaydb</groupId>
+                        <artifactId>flyway-mysql</artifactId>
+                </dependency>
 
-		<dependency>
-			<groupId>org.thymeleaf.extras</groupId>
-			<artifactId>thymeleaf-extras-springsecurity5 </artifactId>
-		</dependency>
+                <dependency>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-thymeleaf</artifactId>
+                </dependency>
+
+                <dependency>
+                        <groupId>org.thymeleaf.extras</groupId>
+                        <artifactId>thymeleaf-extras-springsecurity6</artifactId>
+                </dependency>
+
+                <dependency>
+                        <groupId>org.apache.httpcomponents.client5</groupId>
+                        <artifactId>httpclient5</artifactId>
+                </dependency>
+
+                <dependency>
+                        <groupId>org.apache.httpcomponents.core5</groupId>
+                        <artifactId>httpcore5</artifactId>
+                </dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
-		<dependency>
-			<groupId>dk.digitalidentity</groupId>
-			<artifactId>saml-module</artifactId>
-			<version>2.5.0</version>
-		</dependency>
+                <dependency>
+                        <groupId>dk.digitalidentity</groupId>
+                        <artifactId>saml-module</artifactId>
+                        <version>4.5.3</version>
+                </dependency>
 
 		<dependency>
 			<groupId>com.mysql</groupId>
@@ -132,17 +155,12 @@
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
-            <version>1.18.32</version>
+                        <scope>provided</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.data</groupId>
 			<artifactId>spring-data-envers</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.hibernate</groupId>
-			<artifactId>hibernate-envers</artifactId>
 		</dependency>
 
 		<dependency>
@@ -192,7 +210,7 @@
 		<dependency>
 			<groupId>com.github.darrachequesne</groupId>
 			<artifactId>spring-data-jpa-datatables</artifactId>
-			<version>5.2.0</version>
+			<version>8.0.0</version>
 		</dependency>
 
 		<dependency>

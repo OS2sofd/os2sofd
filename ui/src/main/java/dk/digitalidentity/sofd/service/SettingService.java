@@ -2,10 +2,9 @@ package dk.digitalidentity.sofd.service;
 
 import java.util.Objects;
 
-import javax.transaction.Transactional;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import dk.digitalidentity.sofd.dao.SettingDao;
 import dk.digitalidentity.sofd.dao.model.Setting;
