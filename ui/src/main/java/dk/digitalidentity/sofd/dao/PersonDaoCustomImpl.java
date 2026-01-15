@@ -4,10 +4,10 @@ import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.mapping.PersonUserMapping;
 import org.springframework.stereotype.Component;
 
-import javax.persistence.EntityManager;
-import javax.persistence.FlushModeType;
-import javax.persistence.PersistenceContext;
-import javax.persistence.Query;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.FlushModeType;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.Query;
 import java.util.Collections;
 import java.util.List;
 
@@ -17,6 +17,7 @@ public class PersonDaoCustomImpl implements PersonDaoCustom {
 	@PersistenceContext
 	private EntityManager entityManager;
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public List<Person> findPersonsWithDuplicateUsers(Person person, String personUuid) {
 		if (person == null || person.getUsers() == null || person.getUsers().isEmpty()) {
@@ -54,6 +55,6 @@ public class PersonDaoCustomImpl implements PersonDaoCustom {
 			query.setParameter(paramIndex++, user.getUser().getMasterId());
 		}
 
-		return query.getResultList();
+		return (List<Person>) query.getResultList();
 	}
 }

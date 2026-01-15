@@ -4,9 +4,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
@@ -14,42 +11,61 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.web.servlet.View;
 
 import dk.digitalidentity.sofd.controller.mvc.dto.SofdAffiliationsReportDTO;
 import dk.digitalidentity.sofd.dao.model.enums.ReportType;
-import org.springframework.web.servlet.view.document.AbstractXlsxView;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
-public class SofdAffiliationsReportXlsView extends AbstractXlsxView {
+public class SofdAffiliationsReportXlsView implements View {
+	private static final String CONTENT_TYPE = "application/ms-excel";
+	private String filename;
+
+	@Override
+	public String getContentType() {
+		return CONTENT_TYPE;
+	}
+	
+	public SofdAffiliationsReportXlsView(String filename) {
+		this.filename = filename;
+	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	protected void buildExcelDocument(Map<String, Object> model, Workbook workbook, HttpServletRequest request, HttpServletResponse response) throws Exception {
+	public void render(Map<String, ?> model, HttpServletRequest request, HttpServletResponse response) throws Exception {
 		ReportType reportType = (ReportType) model.get("report");
 		List<SofdAffiliationsReportDTO> rows = (List<SofdAffiliationsReportDTO>) model.get("rows");
 		Locale locale = (Locale) model.get("locale");
 		ResourceBundleMessageSource messageSource = (ResourceBundleMessageSource) model.get("messagesBundle");
 
-		// create excel xls sheet
-		Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.genericreport.sheetname", null, locale));
+		response.setContentType(getContentType());
+		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 
-		// create header row
-		createHeader(workbook, sheet, reportType, messageSource, locale);
-
-		// Create data cells
-		int rowCount = 1;
-		for (SofdAffiliationsReportDTO row : rows) {
-			Row courseRow = sheet.createRow(rowCount++);
-
-			courseRow.createCell(0).setCellValue(row.getName());
-			courseRow.createCell(1).setCellValue(row.getCpr());
-			courseRow.createCell(2).setCellValue(row.getAffiliationName());
-			courseRow.createCell(3).setCellValue(row.getAffiliationOrgUnitName());
-			courseRow.createCell(4).setCellValue(row.getAffiliationVendor());
-			courseRow.createCell(5).setCellValue(row.getAffiliationStartDate());
-			courseRow.createCell(6).setCellValue(row.getAffiliationStopDate());
+		try (Workbook workbook = new DisposableSXSSFWorkbook()) {
+	
+			// create excel xls sheet
+			Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.genericreport.sheetname", null, locale));
+	
+			// create header row
+			createHeader(workbook, sheet, reportType, messageSource, locale);
+	
+			// Create data cells
+			int rowCount = 1;
+			for (SofdAffiliationsReportDTO row : rows) {
+				Row courseRow = sheet.createRow(rowCount++);
+	
+				courseRow.createCell(0).setCellValue(row.getName());
+				courseRow.createCell(1).setCellValue(row.getCpr());
+				courseRow.createCell(2).setCellValue(row.getAffiliationName());
+				courseRow.createCell(3).setCellValue(row.getAffiliationOrgUnitName());
+				courseRow.createCell(4).setCellValue(row.getAffiliationVendor());
+				courseRow.createCell(5).setCellValue(row.getAffiliationStartDate());
+				courseRow.createCell(6).setCellValue(row.getAffiliationStopDate());
+			}
+	
+			format(sheet);
 		}
-
-		format(sheet);
 	}
 
 	private void format(Sheet sheet) {

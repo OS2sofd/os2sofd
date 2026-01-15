@@ -1,25 +1,13 @@
 package dk.digitalidentity.sofd.service;
 
+import static org.springframework.util.StringUtils.hasLength;
+
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Properties;
 
-import javax.activation.DataHandler;
-import javax.activation.DataSource;
-import javax.mail.Message;
-import javax.mail.Multipart;
-import javax.mail.Part;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.internet.PreencodedMimeBodyPart;
-import javax.mail.util.ByteArrayDataSource;
-
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -45,10 +33,20 @@ import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.dao.model.enums.EventType;
 import dk.digitalidentity.sofd.log.AuditLogger;
+import jakarta.activation.DataHandler;
+import jakarta.mail.Message;
+import jakarta.mail.Multipart;
+import jakarta.mail.Part;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.internet.PreencodedMimeBodyPart;
+import jakarta.mail.util.ByteArrayDataSource;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
-
-import static org.springframework.util.StringUtils.hasLength;
 
 @Slf4j
 @Service
@@ -123,7 +121,7 @@ public class EmailService {
 				for (Attachment attachment : attachments) {
 					MimeBodyPart attachmentBodyPart = new MimeBodyPart();
 					attachmentBodyPart = new MimeBodyPart();
-					DataSource source = new ByteArrayDataSource(attachment.getFile().getContent(), "application/octet-stream");
+					ByteArrayDataSource source = new ByteArrayDataSource(attachment.getFile().getContent(), "application/octet-stream");
 					attachmentBodyPart.setDataHandler(new DataHandler(source));
 					attachmentBodyPart.setFileName(attachment.getFilename());
 					
