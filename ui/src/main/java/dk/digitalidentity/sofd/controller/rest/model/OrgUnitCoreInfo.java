@@ -1,11 +1,12 @@
 package dk.digitalidentity.sofd.controller.rest.model;
 
-import java.util.List;
+import javax.validation.constraints.Size;
 
 import dk.digitalidentity.sofd.dao.model.OrgUnitTag;
-import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
 
 @Getter
 @Setter

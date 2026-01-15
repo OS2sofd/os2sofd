@@ -18,8 +18,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderDeactivateAndDeleteRule;
 import dk.digitalidentity.sofd.dao.model.enums.EventType;
@@ -700,6 +700,9 @@ public class AccountOrderService {
 			if (configuration.getModules().getSubstitute().isEnabled()) {
                 users = users.stream().filter(u -> !UserService.isSubstituteUser(u)).collect(Collectors.toList());
 			}
+
+			// skip all OS2ILM AD accounts
+			users = users.stream().filter(u -> !UserService.isOS2ilmUser(u)).collect(Collectors.toList());
 
 			// ignore persons with no relevant user accounts
 			if (users.size() == 0) {
@@ -2094,7 +2097,7 @@ public class AccountOrderService {
 		}
 
 		@SuppressWarnings("deprecation")
-		List<UserAudRow> result = jdbcTemplate.query(SELECT_AUD_USERS, new Object[] { user.getId(), xDaysBefore.getTime() }, (RowMapper<UserAudRow>) (rs, _) -> {
+		List<UserAudRow> result = jdbcTemplate.query(SELECT_AUD_USERS, new Object[] { user.getId(), xDaysBefore.getTime() }, (RowMapper<UserAudRow>) (rs, rownum) -> {
 			UserAudRow userAudRow = new UserAudRow();
 
 			userAudRow.setDisabled(rs.getBoolean("disabled"));

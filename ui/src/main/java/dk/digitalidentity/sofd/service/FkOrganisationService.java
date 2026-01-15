@@ -40,8 +40,8 @@ public class FkOrganisationService {
 
 		ResponseEntity<String> keyResponse = restTemplate.exchange(configuration.getIntegrations().getOs2sync().getRestUrl(), HttpMethod.GET, request, String.class);
 
-		if (keyResponse.getStatusCode().value() != 200) {
-			throw new Exception("Synchronization (getKey) failed: " + keyResponse.getStatusCode().value());
+		if (keyResponse.getStatusCodeValue() != 200) {
+			throw new Exception("Synchronization (getKey) failed: " + keyResponse.getStatusCodeValue());
 		}
 
 		String key = keyResponse.getBody().replace("\"", "");
@@ -55,12 +55,12 @@ public class FkOrganisationService {
 			try {
 				response = restTemplate.exchange(configuration.getIntegrations().getOs2sync().getRestUrl() + "/" + key, HttpMethod.GET, request, FKHierarchyWrapper.class);
 
-				if (response.getStatusCode().value() != 404) {
+				if (response.getStatusCodeValue() != 404) {
 					break;
 				}
 			}
 			catch (HttpStatusCodeException e) {
-				log.warn("Failed to get hierarchy for key " + key + ". Attempt " + i + " of " + maxAttempts + ". status=" + e.getStatusCode().value());
+				log.warn("Failed to get hierarchy for key " + key + ". Attempt " + i + " of " + maxAttempts + ". status=" + e.getRawStatusCode());
 			}
 		}
 
@@ -69,9 +69,9 @@ public class FkOrganisationService {
 			throw new Exception("Synchronization (getResponse) failed: Timeout");
 		}
 
-		if (response.getStatusCode().value() != 200) {
-			log.error("Synchronization (getResponse) failed: " + response.getStatusCode().value());
-			throw new Exception("Synchronization (getResponse) failed: " + response.getStatusCode().value());
+		if (response.getStatusCodeValue() != 200) {
+			log.error("Synchronization (getResponse) failed: " + response.getStatusCodeValue());
+			throw new Exception("Synchronization (getResponse) failed: " + response.getStatusCodeValue());
 		}
 
 		FKHierarchyWrapper hierarchyWrapper = response.getBody();

@@ -11,6 +11,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import dk.digitalidentity.sofd.controller.mvc.xls.ActiveAffiliationOrActiveAdAccountReportXlsView;
+import dk.digitalidentity.sofd.dao.model.enums.OrgUnitManagerSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -30,11 +35,9 @@ import dk.digitalidentity.sofd.config.SessionConstants;
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.mvc.dto.AccountOrderDTO;
 import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderApprovalReportXlsView;
-import dk.digitalidentity.sofd.controller.mvc.xls.ActiveAffiliationOrActiveAdAccountReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.GenericReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.MultipleAffiliationsReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.PersonsWithActiveSOFDAffiliationsReportXlsView;
-import dk.digitalidentity.sofd.controller.mvc.xls.PersonsWithAffiliationsWorkplacesReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.SofdAffiliationsReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.UsersReportXlsView;
 import dk.digitalidentity.sofd.dao.model.AccountOrder;
@@ -46,7 +49,6 @@ import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Setting;
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderStatus;
 import dk.digitalidentity.sofd.dao.model.enums.CustomerSetting;
-import dk.digitalidentity.sofd.dao.model.enums.OrgUnitManagerSource;
 import dk.digitalidentity.sofd.dao.model.enums.ReportType;
 import dk.digitalidentity.sofd.security.RequireControllerWriteAccess;
 import dk.digitalidentity.sofd.security.RequireReadOrManagerAccess;
@@ -57,9 +59,8 @@ import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.ReportService;
 import dk.digitalidentity.sofd.service.S3Service;
 import dk.digitalidentity.sofd.service.SettingService;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import dk.digitalidentity.sofd.controller.mvc.xls.PersonsWithAffiliationsWorkplacesReportXlsView;
 
 @Slf4j
 @RequireReadOrManagerAccess
@@ -279,6 +280,9 @@ public class ReportController {
 		model.put("messagesBundle", messageSource);
 		model.put("accountOrderApprovedService", accountOrderApprovedService);
 
+		response.setContentType("application/ms-excel");
+		response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
+
 		return new ModelAndView(new AccountOrderApprovalReportXlsView(), model);
 	}
 
@@ -314,27 +318,40 @@ public class ReportController {
 				break;
 			case PERSONS_WITH_MULTIPLE_AFFILIATIONS:
 				model.put("rows", reportService.generateMultipleAffiliationsReport());
+				response.setContentType("application/ms-excel");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 
-				return new ModelAndView(new MultipleAffiliationsReportXlsView("rapport.xlsx"), model);
+				return new ModelAndView(new MultipleAffiliationsReportXlsView(), model);
 			case PERSONS_WITH_SOFD_AFFILIATIONS:
 				model.put("rows", reportService.generateSofdAffiliationsReport());
+				response.setContentType("application/ms-excel");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 
-				return new ModelAndView(new SofdAffiliationsReportXlsView("rapport.xlsx"), model);
+				return new ModelAndView(new SofdAffiliationsReportXlsView(), model);
 			case PERSONS_WITH_ACTIVE_SOFD_AFFILIATIONS:
 				model.put("rows", reportService.generatePersonsWithActiveSOFDAffiliationsReport());
+				response.setContentType("application/ms-excel");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 
-				return new ModelAndView(new PersonsWithActiveSOFDAffiliationsReportXlsView("rapport.xlsx"), model);
+				return new ModelAndView(new PersonsWithActiveSOFDAffiliationsReportXlsView(), model);
 			case ACTIVE_AFFILIATION_OR_ACTIVE_AD_ACCOUNT:
 				model.put("rows", reportService.generateActiveAffiliationOrActiveADAccountReport());
+				response.setContentType("application/ms-excel");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 
-				return new ModelAndView(new ActiveAffiliationOrActiveAdAccountReportXlsView("rapport.xlsx"), model);
+				return new ModelAndView(new ActiveAffiliationOrActiveAdAccountReportXlsView(), model);
 			case PERSONS_WITH_AFFILIATIONS_WORKPLACES:
 				model.put("rows", reportService.generatePersonWithAffiliationsWorkplacesReport());
+				response.setContentType("application/ms-excel");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 				
-				return new ModelAndView(new PersonsWithAffiliationsWorkplacesReportXlsView("rapport.xlsx"), model);
+				return new ModelAndView(new PersonsWithAffiliationsWorkplacesReportXlsView(), model);
 		}
 
-		return new ModelAndView(new GenericReportXlsView("rapport.xlsx"), model);
+		response.setContentType("application/ms-excel");
+		response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
+
+		return new ModelAndView(new GenericReportXlsView(), model);
 	}
 	
 	@GetMapping(path = "/ui/report/notifications")
@@ -343,7 +360,7 @@ public class ReportController {
 		
 		Map<String, String> map = new HashMap<>();
 		for (Notification adminTask : adminTasks) {
-			map.put(adminTask.getNotificationType().toString(), messageSource.getMessage(adminTask.getNotificationType().getMessage(), null, Locale.of("da-DK")));
+			map.put(adminTask.getNotificationType().toString(), messageSource.getMessage(adminTask.getNotificationType().getMessage(), null, new Locale("da-DK")));
 		}
 
 		Person person = personService.getLoggedInPerson();
@@ -407,6 +424,9 @@ public class ReportController {
 		model.put("personService", personService);
 		model.put("rows", reportService.generateADUsersReport(date));
 
-		return new ModelAndView(new UsersReportXlsView("rapport.xlsx"), model);
+		response.setContentType("application/ms-excel");
+		response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
+
+		return new ModelAndView(new UsersReportXlsView(), model);
 	}
 }

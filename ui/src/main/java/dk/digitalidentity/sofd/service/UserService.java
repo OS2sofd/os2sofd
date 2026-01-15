@@ -1,6 +1,7 @@
 package dk.digitalidentity.sofd.service;
 
 import java.util.List;
+import java.util.Objects;
 
 import dk.digitalidentity.sofd.dao.ActiveDirectoryDetailsDao;
 import dk.digitalidentity.sofd.dao.model.ActiveDirectoryDetails;
@@ -18,6 +19,7 @@ import dk.digitalidentity.sofd.dao.model.User;
 public class UserService {
 	// same as the default in OS2sync configuration class, just for easy reading in this class
 	private static String substituteRegex = "^vik\\d+$";
+	private static String os2ilmMaster = "OS2ILM";
 
 	@Autowired
 	private SofdConfiguration configuration;
@@ -27,7 +29,11 @@ public class UserService {
 
 	@Autowired
 	private ActiveDirectoryDetailsDao activeDirectoryDetailsDao;
-	
+
+	public static boolean isOS2ilmUser(User user) {
+		return Objects.equals(os2ilmMaster, user.getMasterId());
+	}
+
 	@EventListener(ApplicationReadyEvent.class)
 	public void runOnStartup() {
 		substituteRegex = configuration.getIntegrations().getOs2sync().getSubstituteRegex();
