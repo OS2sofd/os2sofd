@@ -701,6 +701,9 @@ public class AccountOrderService {
                 users = users.stream().filter(u -> !UserService.isSubstituteUser(u)).collect(Collectors.toList());
 			}
 
+			// skip all OS2ILM AD accounts
+			users = users.stream().filter(u -> !UserService.isOS2ilmUser(u)).collect(Collectors.toList());
+
 			// ignore persons with no relevant user accounts
 			if (users.size() == 0) {
 				continue;

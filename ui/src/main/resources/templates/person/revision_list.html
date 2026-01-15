@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
-<head th:replace="fragments/header :: header"></head>
+<head th:replace="~{fragments/header :: header}"></head>
 <link rel="stylesheet" th:href="@{/css/jquery-ui.min.css}" />
 <body>
 <div class="wrapper">
-	<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
-	<aside th:replace="fragments/navbar :: navbar-aside (page = 'persons', subpage='phonebook')"></aside>
+	<header th:replace="~{fragments/navbar :: navbar-header (subpage = 'phonebook')}"></header>
+	<aside th:replace="~{fragments/navbar :: navbar-aside (page = 'persons', subpage='phonebook')}"></aside>
 	<section>
 		<div class="content-wrapper">
 			<h3>
@@ -68,7 +68,7 @@
 	</section>
 </div>
 
-<nav th:replace="fragments/footer :: footer"></nav>
+<nav th:replace="~{fragments/footer :: footer}"></nav>
 <script th:src="@{/js/jquery-ui.min.js}"></script>
 <script th:src="@{/js/diff_match_patch.js}"></script>
 <script th:inline="javascript">

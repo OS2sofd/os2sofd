@@ -43,7 +43,7 @@ public class UpdateClientActivityTask {
 		LocalDateTime tts = LocalDateTime.now().minusMinutes(65);
 		
 		for (Client client : clientDao.findAll()) {
-			Date date = securityLogDao.getLastTimestampByClientId(client.getId(), tts);
+			LocalDateTime date = securityLogDao.getLastTimestampByClientId(client.getId(), tts);
 			if (date != null) {
 				clientDao.setLastActive(date, client.getId());
 			}

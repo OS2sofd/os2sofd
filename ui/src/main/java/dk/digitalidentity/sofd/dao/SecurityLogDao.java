@@ -14,7 +14,7 @@ public interface SecurityLogDao extends CrudRepository<SecurityLog, Long> {
 	@Modifying
 	@Query(nativeQuery = true, value = "DELETE FROM security_log WHERE timestamp < ?1 LIMIT 25000")
 	void deleteByTimestampBefore(Date before);
-	
+
 	@Query(nativeQuery = true, value = "SELECT timestamp FROM security_log sl WHERE timestamp > ?2 AND sl.client_id = ?1 ORDER BY timestamp DESC LIMIT 1")
-	Date getLastTimestampByClientId(long id, LocalDateTime dateTime);
+	LocalDateTime getLastTimestampByClientId(long id, LocalDateTime dateTime);
 }
