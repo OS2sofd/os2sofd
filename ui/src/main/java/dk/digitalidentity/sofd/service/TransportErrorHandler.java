@@ -1,7 +1,8 @@
 package dk.digitalidentity.sofd.service;
 
-import jakarta.mail.event.TransportEvent;
-import jakarta.mail.event.TransportListener;
+import javax.mail.event.TransportEvent;
+import javax.mail.event.TransportListener;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

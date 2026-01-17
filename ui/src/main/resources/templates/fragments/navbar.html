@@ -88,9 +88,10 @@
 					</li>
 				</ul>
 
-				<ul class="nav navbar-nav navbar-right" sec:authorize="hasRole('ROLE_USER_LOS_ADMIN')"
-					th:if="${#strings.contains(currentUri, 'orgunit') and @sofdConfiguration.getModules().getLos().isFutureOrgsEnabled() == true}">
-
+				<ul class="nav navbar-nav navbar-right"
+					sec:authorize="hasRole('ROLE_USER_LOS_ADMIN')"
+					th:if="${#strings.contains(#httpServletRequest.requestURI, 'orgunit') and
+							 @sofdConfiguration.getModules().getLos().isFutureOrgsEnabled() == true}">
 					<li>
 						<span class="badge" th:text="'&gt;&gt; ' + ${#dates.format(session.SESSION_FUTURE_DATE, 'dd-MM-yyyy')} + ' &lt;&lt;'"
 						th:unless="${session == null || session.SESSION_FUTURE_DATE == null}"
@@ -612,7 +613,7 @@
 					</li>
 					
 					<li sec:authorize="!isAuthenticated()">
-						<a th:href="@{/ui}">
+						<a th:href="@{/saml/SSO}">
 							<em class="fa fa-sign-in"></em>
 							<span th:text="#{html.navbar.login}"></span>
 						</a>
@@ -626,8 +627,7 @@
 					</li>
 					
 					<li sec:authorize="isAuthenticated()">
-						<form th:action="@{/logout}" id="logout_form" method="post"></form>
-						<a href="#" onclick="$('#logout_form').submit();">
+						<a th:href="@{/saml/SingleLogout}">
 							<em class="fa fa-sign-out"></em>
 							<span th:text="#{html.navbar.logout}"></span>
 						</a>

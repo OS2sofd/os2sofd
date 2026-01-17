@@ -5,6 +5,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
@@ -12,59 +15,39 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.context.support.ResourceBundleMessageSource;
-import org.springframework.web.servlet.View;
 
-import dk.digitalidentity.sofd.controller.mvc.xls.DisposableSXSSFWorkbook;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Phone;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.telephony.TelephonyConstants;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.servlet.view.document.AbstractXlsxView;
 
-public class TelephonyPersonsXlsView implements View {
-	private static final String CONTENT_TYPE = "application/ms-excel";
-	private String filename;
-
-	@Override
-	public String getContentType() {
-		return CONTENT_TYPE;
-	}
-	
-	public TelephonyPersonsXlsView(String filename) {
-		this.filename = filename;
-	}
+public class TelephonyPersonsXlsView extends AbstractXlsxView {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void render(Map<String, ?> model, HttpServletRequest request, HttpServletResponse response) throws Exception {
+	protected void buildExcelDocument(Map<String, Object> model, Workbook workbook, HttpServletRequest request, HttpServletResponse response) throws Exception {
 		ResourceBundleMessageSource messageSource = (ResourceBundleMessageSource) model.get("messagesBundle");
 		Locale locale = (Locale) model.get("locale");
 		List<Person> persons = (List<Person>) model.get("persons");
 
-		response.setContentType(getContentType());
-		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+		// create excel xls sheet
+		Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.telephony.sheetname", null, locale));
 
-		try (Workbook workbook = new DisposableSXSSFWorkbook()) {
-	
-			// create excel xls sheet
-			Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.telephony.sheetname", null, locale));
-	
-			// create header row
-			createHeader(workbook, sheet, messageSource, locale);
-	
-			// Create data cells
-			int rowCount = 1;
-			for (Person person : persons) {
-				Row courseRow = sheet.createRow(rowCount++);
-	
-				Optional<Phone> phone = PersonService.getPhones(person).stream().filter(p -> p.getMaster().equals(TelephonyConstants.TELEPHONY_MASTER)).findFirst();
-				
-				courseRow.createCell(0).setCellValue(person.getUuid());
-				courseRow.createCell(1).setCellValue(PersonService.getName(person));
-				courseRow.createCell(2).setCellValue(person.getCpr());
-				courseRow.createCell(3).setCellValue(phone.isPresent() ? phone.get().getPhoneNumber() : "<ukendt nummer>");
-			}
+		// create header row
+		createHeader(workbook, sheet, messageSource, locale);
+
+		// Create data cells
+		int rowCount = 1;
+		for (Person person : persons) {
+			Row courseRow = sheet.createRow(rowCount++);
+
+			Optional<Phone> phone = PersonService.getPhones(person).stream().filter(p -> p.getMaster().equals(TelephonyConstants.TELEPHONY_MASTER)).findFirst();
+			
+			courseRow.createCell(0).setCellValue(person.getUuid());
+			courseRow.createCell(1).setCellValue(PersonService.getName(person));
+			courseRow.createCell(2).setCellValue(person.getCpr());
+			courseRow.createCell(3).setCellValue(phone.isPresent() ? phone.get().getPhoneNumber() : "<ukendt nummer>");
 		}
 	}
 

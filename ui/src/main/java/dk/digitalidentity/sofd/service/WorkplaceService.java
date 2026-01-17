@@ -81,10 +81,8 @@ public class WorkplaceService {
 			newWorkplaces.add(newWorkplace);
 			previousStopDate = workplacePeriod.getStopDate();
 		}
-		
-		matchingAffiliation.getWorkplaces().removeIf(_ -> true);
+		matchingAffiliation.getWorkplaces().removeIf(w -> true);
 		matchingAffiliation.getWorkplaces().addAll(newWorkplaces);
-
 		return true;
 	}
 }

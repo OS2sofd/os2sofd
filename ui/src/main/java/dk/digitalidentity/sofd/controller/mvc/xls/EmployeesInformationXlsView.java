@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
@@ -11,50 +14,57 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.context.support.ResourceBundleMessageSource;
-import org.springframework.web.servlet.View;
+import org.springframework.web.servlet.view.document.AbstractXlsxStreamingView;
 
 import dk.digitalidentity.sofd.controller.mvc.dto.EmployeeWithUsersDTO;
 import dk.digitalidentity.sofd.dao.model.User;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
-public class EmployeesInformationXlsView implements View {
-	private static final String CONTENT_TYPE = "application/ms-excel";
-	private String filename;
+public class EmployeesInformationXlsView extends AbstractXlsxStreamingView {
 
-	@Override
-	public String getContentType() {
-		return CONTENT_TYPE;
-	}
-	
-	public EmployeesInformationXlsView(String filename) {
-		this.filename = filename;
-	}
-
-	@Override
 	@SuppressWarnings("unchecked")
-	public void render(Map<String, ?> model, HttpServletRequest request, HttpServletResponse response) throws Exception {
+	@Override
+	protected void buildExcelDocument(Map<String, Object> model, Workbook workbook, HttpServletRequest request, HttpServletResponse response) throws Exception {
 		List<EmployeeWithUsersDTO> employeeWithUsersDTOs = (List<EmployeeWithUsersDTO>) model.get("employees");
 		ResourceBundleMessageSource messageSource = (ResourceBundleMessageSource) model.get("messagesBundle");
 		Locale locale = (Locale) model.get("locale");
 		SupportedUserTypeService supportedUserTypeService = (SupportedUserTypeService) model.get("supportedUserTypeService");
 
-		response.setContentType(getContentType());
-		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+		// create excel xls sheet
+		Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.employees.sheetname", null, locale));
 
-		try (Workbook workbook = new DisposableSXSSFWorkbook()) {
+		// create header row
+		createHeader(workbook, sheet, messageSource, locale);
 
-			// create excel xls sheet
-			Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.employees.sheetname", null, locale));
-	
-			// create header row
-			createHeader(workbook, sheet, messageSource, locale);
-	
-			// Create data cells
-			int rowCount = 1;
-			for (EmployeeWithUsersDTO employeeWithUsersDTO : employeeWithUsersDTOs) {
-				if (employeeWithUsersDTO.getUsers().isEmpty()) {
+		// Create data cells
+		int rowCount = 1;
+		for (EmployeeWithUsersDTO employeeWithUsersDTO : employeeWithUsersDTOs) {
+			if (employeeWithUsersDTO.getUsers().isEmpty()) {
+				Row courseRow = sheet.createRow(rowCount++);
+				courseRow.createCell(0).setCellValue(employeeWithUsersDTO.getUuid());
+				courseRow.createCell(1).setCellValue(employeeWithUsersDTO.getName());
+				courseRow.createCell(2).setCellValue(employeeWithUsersDTO.getPositionName());
+				courseRow.createCell(3).setCellValue(employeeWithUsersDTO.isPrimeAffiliation() ? "Ja" : "Nej");
+				courseRow.createCell(4).setCellValue(employeeWithUsersDTO.getEmployeeNumber());
+				courseRow.createCell(5).setCellValue(employeeWithUsersDTO.getEmploymentTerms());
+				courseRow.createCell(6).setCellValue(employeeWithUsersDTO.getStartDate());
+				courseRow.createCell(7).setCellValue(employeeWithUsersDTO.getStopDate());
+				courseRow.createCell(8).setCellValue(employeeWithUsersDTO.isInheritPrivileges() ? "Ja" : "Nej");
+				courseRow.createCell(9).setCellValue("");
+				courseRow.createCell(10).setCellValue("");
+				courseRow.createCell(11).setCellValue("");
+				courseRow.createCell(12).setCellValue("");
+				courseRow.createCell(13).setCellValue(employeeWithUsersDTO.getOrgUnitUuid());
+				courseRow.createCell(14).setCellValue(employeeWithUsersDTO.getOrgUnitName());
+				courseRow.createCell(15).setCellValue(employeeWithUsersDTO.getManager());
+				courseRow.createCell(16).setCellValue(employeeWithUsersDTO.getManagerUsername());
+				courseRow.createCell(17).setCellValue(employeeWithUsersDTO.getManagerEmail());
+				courseRow.createCell(18).setCellValue(employeeWithUsersDTO.getManagerEmployeeNumber());
+				courseRow.createCell(19).setCellValue(employeeWithUsersDTO.getInternalReference());
+				courseRow.createCell(20).setCellValue(employeeWithUsersDTO.isOnLeave() ? "På pause" : "");
+			}
+			else {
+				for (User user : employeeWithUsersDTO.getUsers()) {
 					Row courseRow = sheet.createRow(rowCount++);
 					courseRow.createCell(0).setCellValue(employeeWithUsersDTO.getUuid());
 					courseRow.createCell(1).setCellValue(employeeWithUsersDTO.getName());
@@ -65,10 +75,10 @@ public class EmployeesInformationXlsView implements View {
 					courseRow.createCell(6).setCellValue(employeeWithUsersDTO.getStartDate());
 					courseRow.createCell(7).setCellValue(employeeWithUsersDTO.getStopDate());
 					courseRow.createCell(8).setCellValue(employeeWithUsersDTO.isInheritPrivileges() ? "Ja" : "Nej");
-					courseRow.createCell(9).setCellValue("");
-					courseRow.createCell(10).setCellValue("");
-					courseRow.createCell(11).setCellValue("");
-					courseRow.createCell(12).setCellValue("");
+					courseRow.createCell(9).setCellValue(user.getUserId());
+					courseRow.createCell(10).setCellValue(user.isDisabled() ? "Deaktiveret" : "Aktiv");
+					courseRow.createCell(11).setCellValue(user.getActiveDirectoryDetails() != null ? user.getActiveDirectoryDetails().getKombitUuid() : "");
+					courseRow.createCell(12).setCellValue(supportedUserTypeService.getPrettyName(user.getUserType()));
 					courseRow.createCell(13).setCellValue(employeeWithUsersDTO.getOrgUnitUuid());
 					courseRow.createCell(14).setCellValue(employeeWithUsersDTO.getOrgUnitName());
 					courseRow.createCell(15).setCellValue(employeeWithUsersDTO.getManager());
@@ -77,32 +87,6 @@ public class EmployeesInformationXlsView implements View {
 					courseRow.createCell(18).setCellValue(employeeWithUsersDTO.getManagerEmployeeNumber());
 					courseRow.createCell(19).setCellValue(employeeWithUsersDTO.getInternalReference());
 					courseRow.createCell(20).setCellValue(employeeWithUsersDTO.isOnLeave() ? "På pause" : "");
-				}
-				else {
-					for (User user : employeeWithUsersDTO.getUsers()) {
-						Row courseRow = sheet.createRow(rowCount++);
-						courseRow.createCell(0).setCellValue(employeeWithUsersDTO.getUuid());
-						courseRow.createCell(1).setCellValue(employeeWithUsersDTO.getName());
-						courseRow.createCell(2).setCellValue(employeeWithUsersDTO.getPositionName());
-						courseRow.createCell(3).setCellValue(employeeWithUsersDTO.isPrimeAffiliation() ? "Ja" : "Nej");
-						courseRow.createCell(4).setCellValue(employeeWithUsersDTO.getEmployeeNumber());
-						courseRow.createCell(5).setCellValue(employeeWithUsersDTO.getEmploymentTerms());
-						courseRow.createCell(6).setCellValue(employeeWithUsersDTO.getStartDate());
-						courseRow.createCell(7).setCellValue(employeeWithUsersDTO.getStopDate());
-						courseRow.createCell(8).setCellValue(employeeWithUsersDTO.isInheritPrivileges() ? "Ja" : "Nej");
-						courseRow.createCell(9).setCellValue(user.getUserId());
-						courseRow.createCell(10).setCellValue(user.isDisabled() ? "Deaktiveret" : "Aktiv");
-						courseRow.createCell(11).setCellValue(user.getActiveDirectoryDetails() != null ? user.getActiveDirectoryDetails().getKombitUuid() : "");
-						courseRow.createCell(12).setCellValue(supportedUserTypeService.getPrettyName(user.getUserType()));
-						courseRow.createCell(13).setCellValue(employeeWithUsersDTO.getOrgUnitUuid());
-						courseRow.createCell(14).setCellValue(employeeWithUsersDTO.getOrgUnitName());
-						courseRow.createCell(15).setCellValue(employeeWithUsersDTO.getManager());
-						courseRow.createCell(16).setCellValue(employeeWithUsersDTO.getManagerUsername());
-						courseRow.createCell(17).setCellValue(employeeWithUsersDTO.getManagerEmail());
-						courseRow.createCell(18).setCellValue(employeeWithUsersDTO.getManagerEmployeeNumber());
-						courseRow.createCell(19).setCellValue(employeeWithUsersDTO.getInternalReference());
-						courseRow.createCell(20).setCellValue(employeeWithUsersDTO.isOnLeave() ? "På pause" : "");
-					}
 				}
 			}
 		}

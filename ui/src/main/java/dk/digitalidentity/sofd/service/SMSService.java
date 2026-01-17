@@ -59,7 +59,7 @@ public class SMSService {
 			
 			ResponseEntity<String> response = restTemplate.postForEntity(smsGatewayUrl + "api/gateway", request, String.class);
 			if (response.getStatusCode() != HttpStatus.OK) {
-				log.error("Failed to send SMS through gateway: " + response.getStatusCode().value() + " / " + response.getBody());
+				log.error("Failed to send SMS through gateway: " + response.getStatusCodeValue() + " / " + response.getBody());
 				return;
 			}
 		}
