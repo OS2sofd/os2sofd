@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
-<head th:replace="fragments/header :: header"></head>
+<head th:replace="~{fragments/header :: header}"></head>
 <body>
 	<div class="wrapper">
-		<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
-		<aside th:replace="fragments/navbar :: navbar-aside (page = 'orgunits', subpage='phonebook')"></aside>
+		<header th:replace="~{fragments/navbar :: navbar-header (subpage = 'phonebook')}"></header>
+		<aside th:replace="~{fragments/navbar :: navbar-aside (page = 'orgunits', subpage='phonebook')}"></aside>
 
 		<section>
 			<div class="content-wrapper">
@@ -134,15 +134,15 @@
 	</div>
 
 	<!-- choose parent modal -->
-	<div th:replace="orgunit/fragments/chooseParentModal :: chooseParentModal"></div>
+	<div th:replace="~{orgunit/fragments/chooseParentModal :: chooseParentModal}"></div>
 	
 	<!-- Search pnr modal -->
-	<div th:replace="orgunit/fragments/searchPnrModal :: searchPnrModal"></div>
+	<div th:replace="~{orgunit/fragments/searchPnrModal :: searchPnrModal}"></div>
 
-	<nav th:replace="fragments/footer :: footer"></nav>
-	<script th:replace="orgunit/fragments/orgunit_tree :: orgUnitTreeScript(configObj='ouJSTreeConfig')"></script>
-	<script id="datatablesScript" th:replace="fragments/datatables :: datatables(paging=false, autoLoad=false)"></script>
-	<script th:replace="orgunit/fragments/searchPnrModal :: searchPnrModalScript(streetId=street, postalCodeId=postalCode, cityId=city, pnrId=pnr, nameId=name, shortNameId=shortname)"></script>
+	<nav th:replace="~{fragments/footer :: footer}"></nav>
+	<script th:replace="~{orgunit/fragments/orgunit_tree :: orgUnitTreeScript(configObj='ouJSTreeConfig')}"></script>
+	<script id="datatablesScript" th:replace="~{fragments/datatables :: datatables(paging=false, autoLoad=false)}"></script>
+	<script th:replace="~{orgunit/fragments/searchPnrModal :: searchPnrModalScript(streetId=street, postalCodeId=postalCode, cityId=city, pnrId=pnr, nameId=name, shortNameId=shortname)}"></script>
 
 	<style>
 	.row {

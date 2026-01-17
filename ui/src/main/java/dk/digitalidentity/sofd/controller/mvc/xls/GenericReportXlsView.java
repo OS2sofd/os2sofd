@@ -5,10 +5,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import dk.digitalidentity.sofd.service.AffiliationService;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
@@ -16,18 +12,32 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.web.servlet.View;
 
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.enums.ReportType;
+import dk.digitalidentity.sofd.service.AffiliationService;
 import dk.digitalidentity.sofd.service.PersonService;
-import org.springframework.web.servlet.view.document.AbstractXlsxView;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
-public class GenericReportXlsView extends AbstractXlsxView {
+public class GenericReportXlsView implements View {
+	private static final String CONTENT_TYPE = "application/ms-excel";
+	private String filename;
+
+	@Override
+	public String getContentType() {
+		return CONTENT_TYPE;
+	}
+	
+	public GenericReportXlsView(String filename) {
+		this.filename = filename;
+	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	protected void buildExcelDocument(Map<String, Object> model, Workbook workbook, HttpServletRequest request, HttpServletResponse response) throws Exception {
+	public void render(Map<String, ?> model, HttpServletRequest request, HttpServletResponse response) throws Exception {
 		ReportType reportType = (ReportType) model.get("report");
 		List<Person> persons = (List<Person>) model.get("persons");
 		Locale locale = (Locale) model.get("locale");
@@ -35,62 +45,68 @@ public class GenericReportXlsView extends AbstractXlsxView {
 		PersonService personService = (PersonService) model.get("personService");
 		SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
 
-		// create excel xls sheet
-		Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.genericreport.sheetname", null, locale));
+		response.setContentType(getContentType());
+		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 
-		// create header row
-		createHeader(workbook, sheet, reportType, messageSource, locale);
-
-		// Create data cells
-		int rowCount = 1;
-		for (Person person : persons) {
-			Row courseRow = sheet.createRow(rowCount++);
-
-			courseRow.createCell(0).setCellValue(person.getFirstname() + " " + person.getSurname());
-			courseRow.createCell(1).setCellValue(PersonService.maskCpr(person.getCpr()));
-
-			Affiliation affiliation = person.getPrimeAffiliation();
-			if (affiliation != null) {
-				courseRow.createCell(2).setCellValue(AffiliationService.getPositionName(affiliation) + " i " + affiliation.getCalculatedOrgUnit().getName());
+		try (Workbook workbook = new DisposableSXSSFWorkbook()) {
+	
+			// create excel xls sheet
+			Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.genericreport.sheetname", null, locale));
+	
+			// create header row
+			createHeader(workbook, sheet, reportType, messageSource, locale);
+	
+			// Create data cells
+			int rowCount = 1;
+			for (Person person : persons) {
+				Row courseRow = sheet.createRow(rowCount++);
+	
+				courseRow.createCell(0).setCellValue(person.getFirstname() + " " + person.getSurname());
+				courseRow.createCell(1).setCellValue(PersonService.maskCpr(person.getCpr()));
+	
+				Affiliation affiliation = person.getPrimeAffiliation();
+				if (affiliation != null) {
+					courseRow.createCell(2).setCellValue(AffiliationService.getPositionName(affiliation) + " i " + affiliation.getCalculatedOrgUnit().getName());
+				}
+				else {
+					courseRow.createCell(2).setCellValue("");
+				}
+	
+				switch (reportType) {
+					case PERSONS_WITH_MULTIPLE_AFFILIATIONS:
+					case PERSONS_WITH_SOFD_AFFILIATIONS:
+					case PERSONS_WITH_ACTIVE_SOFD_AFFILIATIONS:
+					case ACTIVE_AFFILIATION_OR_ACTIVE_AD_ACCOUNT:
+						throw new RuntimeException("Wrong Xls View used");
+					case PERSONS_STOPPED:
+						courseRow.createCell(3).setCellValue(person.getStopReason());
+						break;
+					case PERSONS_DISABLE_ACCOUNT_ORDERS:
+					case DUPLICATE_AFFILIATION:
+						break;
+					case AD_ACCOUNT_BUT_NO_AFFILIATION:
+					case AD_ACCOUNT_BUT_NO_WAGES_AFFILIATION:
+						courseRow.createCell(3).setCellValue(person.getActiveADAccounts());
+						courseRow.createCell(4).setCellValue(personService.hasAffiliationInWagesSystem(person) ? messageSource.getMessage("html.button.yes", null, locale) : messageSource.getMessage("html.button.no", null, locale));
+						break;
+					case OPUS_ACCOUNT_BUT_NO_AD_ACCOUNT:
+						courseRow.createCell(3).setCellValue(person.getPrimeOPUSAccount());
+						break;
+					case PERSONS_ON_LEAVE:
+						if (person.getLeave() != null) {
+							courseRow.createCell(3).setCellValue(messageSource.getMessage(person.getLeave().getReason().getMessage(), null, locale));
+							courseRow.createCell(4).setCellValue(person.getLeave().getReasonText());
+							courseRow.createCell(5).setCellValue((person.getLeave().getStartDate() != null) ? formatter.format(person.getLeave().getStartDate()) : "");
+							courseRow.createCell(6).setCellValue((person.getLeave().getStopDate() != null) ? formatter.format(person.getLeave().getStopDate()) : "");
+						}
+						break;
+					default:
+						throw new Exception("The case " + reportType.name() + " is missing in GenericReportXlsView.buildExcelDocument");
+				}
 			}
-			else {
-				courseRow.createCell(2).setCellValue("");
-			}
-
-			switch (reportType) {
-				case PERSONS_WITH_MULTIPLE_AFFILIATIONS:
-				case PERSONS_WITH_SOFD_AFFILIATIONS:
-				case PERSONS_WITH_ACTIVE_SOFD_AFFILIATIONS:
-				case ACTIVE_AFFILIATION_OR_ACTIVE_AD_ACCOUNT:
-					throw new RuntimeException("Wrong Xls View used");
-				case PERSONS_STOPPED:
-					courseRow.createCell(3).setCellValue(person.getStopReason());
-					break;
-				case PERSONS_DISABLE_ACCOUNT_ORDERS:
-				case DUPLICATE_AFFILIATION:
-					break;
-				case AD_ACCOUNT_BUT_NO_AFFILIATION:
-				case AD_ACCOUNT_BUT_NO_WAGES_AFFILIATION:
-					courseRow.createCell(3).setCellValue(person.getActiveADAccounts());
-					courseRow.createCell(4).setCellValue(personService.hasAffiliationInWagesSystem(person) ? messageSource.getMessage("html.button.yes", null, locale) : messageSource.getMessage("html.button.no", null, locale));
-					break;
-				case OPUS_ACCOUNT_BUT_NO_AD_ACCOUNT:
-					courseRow.createCell(3).setCellValue(person.getPrimeOPUSAccount());
-					break;
-				case PERSONS_ON_LEAVE:
-					if (person.getLeave() != null) {
-						courseRow.createCell(3).setCellValue(messageSource.getMessage(person.getLeave().getReason().getMessage(), null, locale));
-						courseRow.createCell(4).setCellValue(person.getLeave().getReasonText());
-						courseRow.createCell(5).setCellValue((person.getLeave().getStartDate() != null) ? formatter.format(person.getLeave().getStartDate()) : "");
-						courseRow.createCell(6).setCellValue((person.getLeave().getStopDate() != null) ? formatter.format(person.getLeave().getStopDate()) : "");
-					}
-					break;
-				default:
-					throw new Exception("The case " + reportType.name() + " is missing in GenericReportXlsView.buildExcelDocument");
-			}
+	
+			format(sheet);
 		}
-
-		format(sheet);
 	}
 
 	private void format(Sheet sheet) {

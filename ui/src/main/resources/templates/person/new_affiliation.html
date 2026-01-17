@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="fragments/header :: header"></head>
+<head th:replace="~{fragments/header :: header}"></head>
 <body>
 	<div class="wrapper">
-		<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
-		<aside th:replace="fragments/navbar :: navbar-aside (page = 'person.new', subpage = 'phonebook')"></aside>
+		<header th:replace="~{fragments/navbar :: navbar-header (subpage = 'phonebook')}"></header>
+		<aside th:replace="~{fragments/navbar :: navbar-aside (page = 'person.new', subpage = 'phonebook')}"></aside>
  
 		<section>
 			<div class="content-wrapper">
@@ -176,7 +176,7 @@
 				</div>
 
 				<div class="modal-body">
-					<th:block th:replace="orgunit/fragments/orgunit_tree :: orgUnitTree(namespace='affiliation')"></th:block>
+					<th:block th:replace="~{orgunit/fragments/orgunit_tree :: orgUnitTree(namespace='affiliation')}"></th:block>
 				</div>
 
 				<div class="modal-footer">
@@ -187,8 +187,8 @@
 		</div>
 	</div>
 
-	<div th:replace="fragments/footer :: footer"></div>
-	<script th:replace="orgunit/fragments/orgunit_tree :: orgUnitTreeScript(configObj='ouJSTreeConfig')"></script>
+	<div th:replace="~{fragments/footer :: footer}"></div>
+	<script th:replace="~{orgunit/fragments/orgunit_tree :: orgUnitTreeScript(configObj='ouJSTreeConfig')}"></script>
 	
 	<style>
 		.autocomplete-suggestions { border: 1px solid #999; background: #FFF; overflow: auto; width: 500px !important; }

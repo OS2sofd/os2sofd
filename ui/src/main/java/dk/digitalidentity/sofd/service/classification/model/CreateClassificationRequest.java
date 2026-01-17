@@ -1,9 +1,9 @@
 package dk.digitalidentity.sofd.service.classification.model;
 
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import javax.validation.constraints.NotBlank;
 
 @Data
 @NoArgsConstructor

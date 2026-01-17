@@ -96,7 +96,7 @@ public class ManagerUIApiController {
 	@Autowired
 	private ManagerService managerService;
 
-	private Locale locale = new Locale("da-DK");
+	private Locale locale = Locale.of("da-DK");
 
 	@GetMapping("/api/manager/{uuid}/logincontexts")
 	public ResponseEntity<?> getLoginContexts(@PathVariable String uuid) {
