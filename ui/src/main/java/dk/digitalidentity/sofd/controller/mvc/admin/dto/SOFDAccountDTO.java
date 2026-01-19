@@ -1,8 +1,9 @@
 package dk.digitalidentity.sofd.controller.mvc.admin.dto;
 
+import javax.validation.constraints.Size;
+
 import dk.digitalidentity.sofd.dao.model.SOFDAccount;
 import dk.digitalidentity.sofd.service.PersonService;
-import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

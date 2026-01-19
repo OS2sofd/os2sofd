@@ -6,6 +6,10 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
+
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import dk.digitalidentity.sofd.dao.model.Ean;
@@ -16,9 +20,6 @@ import dk.digitalidentity.sofd.dao.model.Post;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPhoneMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPostMapping;
 import dk.digitalidentity.sofd.service.OrgUnitService;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

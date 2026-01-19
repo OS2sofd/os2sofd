@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<head th:replace="~{fragments/header :: header}"></head>
+<head th:replace="fragments/header :: header"></head>
 <link rel="stylesheet" th:href="@{/css/jquery.orgchart.css}" />
 <link rel="stylesheet" th:href="@{/css/jquery.orgchart.min.css}" />
 
@@ -23,7 +23,7 @@
 </style>
 
 <style th:text="${style}"></style>
-<script th:replace="~{fragments/footer :: footer}"></script>
+<script th:replace="fragments/footer :: footer"></script>
 <script th:src="@{/js/jquery.orgchart.min.js}"></script>
 <script th:src="@{/js/jquery.orgchart.js}"></script>
 <script th:inline="javascript">

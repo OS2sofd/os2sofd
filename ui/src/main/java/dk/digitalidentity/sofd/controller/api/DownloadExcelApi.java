@@ -5,6 +5,11 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import dk.digitalidentity.sofd.controller.mvc.xls.ActiveAffiliationOrActiveAdAccountReportXlsView;
+import dk.digitalidentity.sofd.controller.mvc.xls.UsersReportXlsView;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -13,17 +18,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.ModelAndView;
 
 import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderRulesXlsDto;
 import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderRulesXlsView;
-import dk.digitalidentity.sofd.controller.mvc.xls.ActiveAffiliationOrActiveAdAccountReportXlsView;
-import dk.digitalidentity.sofd.controller.mvc.xls.GenericReportXlsView;
-import dk.digitalidentity.sofd.controller.mvc.xls.MultipleAffiliationsReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.PersonsWithActiveSOFDAffiliationsReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.PersonsWithAffiliationsWorkplacesReportXlsView;
+import dk.digitalidentity.sofd.controller.mvc.xls.GenericReportXlsView;
+import dk.digitalidentity.sofd.controller.mvc.xls.MultipleAffiliationsReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.SofdAffiliationsReportXlsView;
-import dk.digitalidentity.sofd.controller.mvc.xls.UsersReportXlsView;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.enums.ReportType;
 import dk.digitalidentity.sofd.security.RequireReadAccess;
@@ -32,8 +34,7 @@ import dk.digitalidentity.sofd.service.OrgUnitService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.ReportService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.servlet.ModelAndView;
 
 @RestController
 @RequireReadAccess
@@ -70,7 +71,10 @@ public class DownloadExcelApi {
 		model.put("messagesBundle", messageSource);
 		model.put("locale", loc);
 
-		new AccountOrderRulesXlsView("regler.xlsx").render(model, request, response);
+		response.setContentType("application/ms-excel");
+		response.setHeader("Content-Disposition", "attachment; filename=\"regler.xlsx\"");
+
+		new AccountOrderRulesXlsView().render(model, request, response);
 	}
 
 	@GetMapping("/api/excel/reports")
@@ -117,32 +121,45 @@ public class DownloadExcelApi {
 				break;
 			case PERSONS_WITH_MULTIPLE_AFFILIATIONS:
 				model.put("rows", reportService.generateMultipleAffiliationsReport());
+				response.setContentType("application/ms-excel");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 
-				new MultipleAffiliationsReportXlsView("rapport.xlsx").render(model, request, response);
+				new MultipleAffiliationsReportXlsView().render(model, request, response);
 				return;
 			case PERSONS_WITH_SOFD_AFFILIATIONS:
 				model.put("rows", reportService.generateSofdAffiliationsReport());
+				response.setContentType("application/ms-excel");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 
-				new SofdAffiliationsReportXlsView("rapport.xlsx").render(model, request, response);
+				new SofdAffiliationsReportXlsView().render(model, request, response);
 				return;
 			case PERSONS_WITH_ACTIVE_SOFD_AFFILIATIONS:
 				model.put("rows", reportService.generatePersonsWithActiveSOFDAffiliationsReport());
+				response.setContentType("application/ms-excel");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 
-				new PersonsWithActiveSOFDAffiliationsReportXlsView("rapport.xlsx").render(model, request, response);
+				new PersonsWithActiveSOFDAffiliationsReportXlsView().render(model, request, response);
 				return;
 			case ACTIVE_AFFILIATION_OR_ACTIVE_AD_ACCOUNT:
 				model.put("rows", reportService.generateActiveAffiliationOrActiveADAccountReport());
+				response.setContentType("application/ms-excel");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 
-				new ActiveAffiliationOrActiveAdAccountReportXlsView("rapport.xlsx").render(model, request, response);
+				new ActiveAffiliationOrActiveAdAccountReportXlsView().render(model, request, response);
 				return;
 			case PERSONS_WITH_AFFILIATIONS_WORKPLACES:
 				model.put("rows", reportService.generatePersonWithAffiliationsWorkplacesReport());
+				response.setContentType("application/ms-excel");
+				response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
 				
-				new PersonsWithAffiliationsWorkplacesReportXlsView("rapport.xlsx").render(model, request, response);
+				new PersonsWithAffiliationsWorkplacesReportXlsView().render(model, request, response);
 				return;
 		}
 
-		new GenericReportXlsView("rapport.xlsx").render(model, request, response);
+		response.setContentType("application/ms-excel");
+		response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
+
+		new GenericReportXlsView().render(model, request, response);
 	}
 
 	@GetMapping("/api/excel/adusers")
@@ -153,7 +170,10 @@ public class DownloadExcelApi {
 		model.put("personService", personService);
 		model.put("rows", reportService.generateADUsersReport(date));
 
-		return new ModelAndView(new UsersReportXlsView("rapport.xlsx"), model);
+		response.setContentType("application/ms-excel");
+		response.setHeader("Content-Disposition", "attachment; filename=\"rapport.xlsx\"");
+
+		return new ModelAndView(new UsersReportXlsView(), model);
 	}
 
 

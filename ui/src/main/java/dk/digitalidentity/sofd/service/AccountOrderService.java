@@ -18,8 +18,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderDeactivateAndDeleteRule;
 import dk.digitalidentity.sofd.dao.model.enums.EventType;
@@ -671,6 +671,7 @@ public class AccountOrderService {
 
 		// read settings
 		List<String> masters = configuration.getScheduled().getAccountOrderGeneration().getMasters();
+		List<String> organisations = configuration.getScheduled().getAccountOrderGeneration().getOrganisations();
 
 		// find orderable usertypes
 		List<SupportedUserType> orderableUserTypesAsObjects = supportedUserTypeService.findAll().stream()
@@ -733,7 +734,7 @@ public class AccountOrderService {
 				
 				// find active affiliations of types that can affect account orders
 				List<Affiliation> affiliations = person.getAffiliations().stream()
-						.filter(a -> masters.contains(a.getMaster()))
+						.filter(a -> masters.contains(a.getMaster()) && organisations.contains(a.getOrgUnit().getBelongsTo().getShortName()))
 						.collect(Collectors.toList());
 
 				affiliations = AffiliationService.notStoppedAffiliations(affiliations);
@@ -929,9 +930,11 @@ public class AccountOrderService {
 
 		// filter out affiliations that are not of the supported type
 		List<String> masters = configuration.getScheduled().getAccountOrderGeneration().getMasters();
+		List<String> organisations = configuration.getScheduled().getAccountOrderGeneration().getOrganisations();
 		affiliations = affiliations.stream()
 								   .filter(a ->
 										   masters.contains(a.getMaster())
+										   && organisations.contains(a.getOrgUnit().getBelongsTo().getShortName())
 										   && a.getPerson().isDisableAccountOrdersCreate() == false
 										   && a.getDeactivateAndDeleteRule() == AccountOrderDeactivateAndDeleteRule.KEEP_ALIVE
 								   )
@@ -1239,6 +1242,7 @@ public class AccountOrderService {
 
 			// get all affiliations that are relevant and not stopped
 			List<String> masters = configuration.getScheduled().getAccountOrderGeneration().getMasters();
+			List<String> organisations =  configuration.getScheduled().getAccountOrderGeneration().getOrganisations();
 			List<Affiliation> affiliations = affiliationService.findAll();
 			List<Person> persons = personService.getActive(); // smart-caching before the next bit of code
 
@@ -1257,6 +1261,7 @@ public class AccountOrderService {
 			affiliations = affiliations.stream()
 					.filter(a ->
 							masters.contains(a.getMaster())
+							&& organisations.contains(a.getOrgUnit().getBelongsTo().getShortName())
 							&& a.getPerson().isDisableAccountOrdersCreate() == false
 							&& a.getDeactivateAndDeleteRule() == AccountOrderDeactivateAndDeleteRule.KEEP_ALIVE
 					)
@@ -2097,7 +2102,7 @@ public class AccountOrderService {
 		}
 
 		@SuppressWarnings("deprecation")
-		List<UserAudRow> result = jdbcTemplate.query(SELECT_AUD_USERS, new Object[] { user.getId(), xDaysBefore.getTime() }, (RowMapper<UserAudRow>) (rs, _) -> {
+		List<UserAudRow> result = jdbcTemplate.query(SELECT_AUD_USERS, new Object[] { user.getId(), xDaysBefore.getTime() }, (RowMapper<UserAudRow>) (rs, rownum) -> {
 			UserAudRow userAudRow = new UserAudRow();
 
 			userAudRow.setDisabled(rs.getBoolean("disabled"));

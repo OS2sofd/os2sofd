@@ -2,8 +2,8 @@ package dk.digitalidentity.sofd.dao.model;
 
 import java.util.Date;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
+import javax.persistence.*;
+import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import dk.digitalidentity.sofd.dao.model.enums.OrgUnitChangeChangeType;

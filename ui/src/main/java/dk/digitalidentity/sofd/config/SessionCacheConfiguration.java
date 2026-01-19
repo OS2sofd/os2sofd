@@ -1,7 +1,5 @@
 package dk.digitalidentity.sofd.config;
 
-import java.util.Random;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,7 +10,8 @@ import org.springframework.session.jdbc.config.annotation.web.http.JdbcHttpSessi
 import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
 
-import jakarta.annotation.PostConstruct;
+import javax.annotation.PostConstruct;
+import java.util.Random;
 
 @Configuration
 @EnableJdbcHttpSession

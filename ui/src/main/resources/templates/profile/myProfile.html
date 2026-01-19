@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
-<head th:replace="~{fragments/header :: header}"></head>
+<head th:replace="fragments/header :: header"></head>
 <body>
 <div class="wrapper">
-	<header th:replace="~{fragments/navbar :: navbar-header (subpage = 'profile')}"></header>
-	<aside th:replace="~{fragments/navbar :: navbar-aside (page = 'profile', subpage = 'profile')}"></aside>
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'profile')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'profile', subpage = 'profile')"></aside>
 	<section>
 		<div class="content-wrapper">
 			<h3>
@@ -86,7 +86,7 @@
 </div>
 
 
-<nav th:replace="~{fragments/footer :: footer}"></nav>
+<nav th:replace="fragments/footer :: footer"></nav>
 <style>
 	.row {
 		margin-bottom: 5px;

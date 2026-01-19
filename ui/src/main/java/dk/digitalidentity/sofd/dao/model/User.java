@@ -4,9 +4,20 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.OneToMany;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+
+import org.apache.commons.lang.StringUtils;
 import org.hibernate.annotations.BatchSize;
 import org.hibernate.envers.Audited;
-import org.springframework.util.StringUtils;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -14,16 +25,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import dk.digitalidentity.sofd.serializer.LocalExtensionsDeserializer;
 import dk.digitalidentity.sofd.serializer.LocalExtensionsSerializer;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -93,7 +94,7 @@ public class User extends MasteredEntity {
 	private transient Boolean tDisabled;
 
 	public void setEmployeeId(String employeeId) {
-		this.employeeId = !StringUtils.hasText(employeeId) ? null : employeeId;
+		this.employeeId = StringUtils.isBlank(employeeId) ? null : employeeId;
 	}
 
 	public boolean isExpired() {

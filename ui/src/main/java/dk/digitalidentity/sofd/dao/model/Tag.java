@@ -2,7 +2,7 @@ package dk.digitalidentity.sofd.dao.model;
 
 import java.util.List;
 
-import jakarta.persistence.*;
+import javax.persistence.*;
 
 import dk.digitalidentity.sofd.dao.model.enums.TagType;
 import org.hibernate.envers.Audited;
