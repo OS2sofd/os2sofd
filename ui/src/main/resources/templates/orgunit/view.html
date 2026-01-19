@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.w3.org/1999/html">
-<head th:replace="fragments/header :: header"></head>
+<head th:replace="~{fragments/header :: header}"></head>
 <body>
 	<div class="wrapper">
-		<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
-		<aside th:replace="fragments/navbar :: navbar-aside (page = 'orgunits', subpage='phonebook')"></aside>
+		<header th:replace="~{fragments/navbar :: navbar-header (subpage = 'phonebook')}"></header>
+		<aside th:replace="~{fragments/navbar :: navbar-aside (page = 'orgunits', subpage='phonebook')}"></aside>
 
 		<section>
 			<div class="content-wrapper">
@@ -223,29 +223,29 @@
                                 </div>
 
                                 <div th:if="${session.SESSION_FUTURE_DATE} == null" id="post_menu" class="tab-pane fade">
-                                    <div th:replace="orgunit/fragments/viewPostsTab :: postsTab (postAddresses = ${postAddresses})"></div>
+                                    <div th:replace="~{orgunit/fragments/viewPostsTab :: postsTab (postAddresses = ${postAddresses})}"></div>
                                 </div>
 
                                 <div th:if="${session.SESSION_FUTURE_DATE} == null" id="phone_menu" class="tab-pane fade">
-                                    <div th:replace="fragments/phoneTab :: phoneTab"></div>
+                                    <div th:replace="~{fragments/phoneTab :: phoneTab}"></div>
                                 </div>
 
                                 <div th:if="${session.SESSION_FUTURE_DATE} == null" id="contactInfo_menu" class="tab-pane fade">
-									<div th:replace="orgunit/fragments/viewContactInfoTab :: contactInfoTab (contactAddress = ${orgUnit.contactAddress},openingHours = ${orgUnit.openingHours}, keyWords = ${orgUnit.keyWords}, notes = ${orgUnit.notes}, openingHoursPhone = ${orgUnit.openingHoursPhone}, email = ${orgUnit.email}, emailNotes = ${orgUnit.emailNotes}, location = ${orgUnit.location}, urlAddress = ${orgUnit.urlAddress})"></div>
+									<div th:replace="~{orgunit/fragments/viewContactInfoTab :: contactInfoTab (contactAddress = ${orgUnit.contactAddress},openingHours = ${orgUnit.openingHours}, keyWords = ${orgUnit.keyWords}, notes = ${orgUnit.notes}, openingHoursPhone = ${orgUnit.openingHoursPhone}, email = ${orgUnit.email}, emailNotes = ${orgUnit.emailNotes}, location = ${orgUnit.location}, urlAddress = ${orgUnit.urlAddress})}"></div>
                                 </div>
                                 <div th:if="${session.SESSION_FUTURE_DATE} == null" id="ouFutureChanges" class="tab-pane fade">
-                                    <th:block th:replace="fragments/ouFutureChangesList :: ouFutureChangesList (changes = ${futureChanges})" />
+                                    <th:block th:replace="~{fragments/ouFutureChangesList :: ouFutureChangesList (changes = ${futureChanges})}" />
                                 </div>
                                 <div id="tags_menu" class="tab-pane fade" th:if="${#lists.size(tags) > 0}">
-                                    <th:block th:replace="orgunit/fragments/tags :: tags" />
+                                    <th:block th:replace="~{orgunit/fragments/tags :: tags}" />
                                 </div>
 
 								<div th:if="${session.SESSION_FUTURE_DATE} == null" id="local_extensions_menu" class="tab-pane fade">
-									<th:block th:replace="orgunit/fragments/localExtensions :: localExtensions" />
+									<th:block th:replace="~{orgunit/fragments/localExtensions :: localExtensions}" />
 								</div>
 
                                 <div th:if="${session.SESSION_FUTURE_DATE} == null" id="order_accounts_menu" class="tab-pane fade">
-                                    <div th:replace="orgunit/fragments/viewAccountOrdersTab :: accountOrdersTab (orgUnitAccountOrder = ${orgUnitAccountOrder})"></div>
+                                    <div th:replace="~{orgunit/fragments/viewAccountOrdersTab :: accountOrdersTab (orgUnitAccountOrder = ${orgUnitAccountOrder})}"></div>
                                 </div>
 
                                 <div th:if="${session.SESSION_FUTURE_DATE} == null" id="managed_titles_menu" class="tab-pane fade">
@@ -253,7 +253,7 @@
                                 </div>
 
 								<div th:if="${session.SESSION_FUTURE_DATE} == null" id="substitutes_menu" class="tab-pane fade">
-									<div th:replace="orgunit/fragments/substitutesTab :: substitutesTab (substitutes = ${substitutes})"></div>
+									<div th:replace="~{orgunit/fragments/substitutesTab :: substitutesTab (substitutes = ${substitutes})}"></div>
 								</div>
 
                                 <div th:if="${session.SESSION_FUTURE_DATE} == null" id="ean_menu" class="tab-pane fade">
@@ -268,41 +268,41 @@
 	</div>
 
 	<!-- Edit phone modal -->
-	<div th:replace="fragments/phoneTab :: phoneModal"></div>
+	<div th:replace="~{fragments/phoneTab :: phoneModal}"></div>
 	<div id="phone_prime_modal">
-		<div th:replace="fragments/phoneTab :: phonePrimeModal"></div>
+		<div th:replace="~{fragments/phoneTab :: phonePrimeModal}"></div>
 	</div>
 
 	<!-- Copy rules modal -->
-	<div sec:authorize="hasRole('ROLE_USER_ADMIN') and hasRole('ROLE_MODULE_ACCOUNT_CREATION')" th:replace="orgunit/fragments/viewAccountOrdersTab :: copyModal"></div>
+	<div sec:authorize="hasRole('ROLE_USER_ADMIN') and hasRole('ROLE_MODULE_ACCOUNT_CREATION')" th:replace="~{orgunit/fragments/viewAccountOrdersTab :: copyModal}"></div>
 
 	<!-- Edit post modal -->
-	<div th:replace="orgunit/fragments/viewPostsTab :: postModal"></div>
+	<div th:replace="~{orgunit/fragments/viewPostsTab :: postModal}"></div>
 
 	<!-- Delete future changes modal -->
-	<th:block th:replace="fragments/ouFutureChangesList :: ouFutureChangesModal" />
+	<th:block th:replace="~{fragments/ouFutureChangesList :: ouFutureChangesModal}" />
 
 	<!-- create managed title modal -->
-	<div th:replace="orgunit/fragments/managedTitlesTab :: managedTitlesCreateModal"></div>
+	<div th:replace="~{orgunit/fragments/managedTitlesTab :: managedTitlesCreateModal}"></div>
 
 	<!-- create substitute modal -->
-	<div th:replace="orgunit/fragments/substitutesTab :: substitutesCreateModal"></div>
+	<div th:replace="~{orgunit/fragments/substitutesTab :: substitutesCreateModal}"></div>
 	
 	<!-- create ean modal -->
-	<div th:replace="orgunit/fragments/eanTab :: eanCreateModal"></div>
+	<div th:replace="~{orgunit/fragments/eanTab :: eanCreateModal}"></div>
 	<!-- prime ean modal -->
-	<div th:replace="orgunit/fragments/eanTab :: eanPrimeModal"></div>
+	<div th:replace="~{orgunit/fragments/eanTab :: eanPrimeModal}"></div>
 
-	<nav th:replace="fragments/footer :: footer"></nav>
+	<nav th:replace="~{fragments/footer :: footer}"></nav>
 
-	<script id="datatablesScript" th:replace="fragments/datatables :: datatables(paging=false, autoLoad=false)"></script>
-	<script th:replace="fragments/phoneTab :: phoneScript"></script>
-	<script th:replace="orgunit/fragments/tags :: tagsScript"></script>
-	<script sec:authorize="hasRole('ROLE_USER_ADMIN') and hasRole('ROLE_MODULE_ACCOUNT_CREATION')" th:replace="orgunit/fragments/viewAccountOrdersTab :: viewAccountOrdersScript"></script>
-	<script th:replace="orgunit/fragments/orgunit_tree :: orgUnitTreeScript(configObj='ouJSTreeAccountOrderCopyConfig')"></script>
-	<script th:replace="orgunit/fragments/viewPostsTab :: viewPostsTabScript"></script>
+	<script id="datatablesScript" th:replace="~{fragments/datatables :: datatables(paging=false, autoLoad=false)}"></script>
+	<script th:replace="~{fragments/phoneTab :: phoneScript}"></script>
+	<script th:replace="~{orgunit/fragments/tags :: tagsScript}"></script>
+	<script sec:authorize="hasRole('ROLE_USER_ADMIN') and hasRole('ROLE_MODULE_ACCOUNT_CREATION')" th:replace="~{orgunit/fragments/viewAccountOrdersTab :: viewAccountOrdersScript}"></script>
+	<script th:replace="~{orgunit/fragments/orgunit_tree :: orgUnitTreeScript(configObj='ouJSTreeAccountOrderCopyConfig')}"></script>
+	<script th:replace="~{orgunit/fragments/viewPostsTab :: viewPostsTabScript}"></script>
 
-	<th:block th:replace="fragments/ouFutureChangesList :: ouFutureChangesScript" />
+	<th:block th:replace="~{fragments/ouFutureChangesList :: ouFutureChangesScript}" />
 
 	<style>
 	.row {

@@ -6,7 +6,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
@@ -42,10 +42,7 @@ public class TelephonyReportController {
 		model.put("messagesBundle", messageSource);
 		model.put("locale", loc);
 
-		response.setContentType("application/ms-excel");
-		response.setHeader("Content-Disposition", "attachment; filename=\"stoppede.xlsx\"");
-
-		return new ModelAndView(new TelephonyPersonsXlsView(), model);
+		return new ModelAndView(new TelephonyPersonsXlsView("stoppede.xlsx"), model);
 	}
 
 	@GetMapping("/ui/telephony/report/taxedEmployees")
@@ -57,9 +54,6 @@ public class TelephonyReportController {
 		model.put("messagesBundle", messageSource);
 		model.put("locale", loc);
 
-		response.setContentType("application/ms-excel");
-		response.setHeader("Content-Disposition", "attachment; filename=\"beskattede.xlsx\"");
-
-		return new ModelAndView(new TelephonyPersonsXlsView(), model);
+		return new ModelAndView(new TelephonyPersonsXlsView("beskattede.xlsx"), model);
 	}
 }

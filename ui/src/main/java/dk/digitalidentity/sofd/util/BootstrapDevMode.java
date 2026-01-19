@@ -10,11 +10,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.persistence.EntityManager;
-import javax.persistence.FlushModeType;
-import javax.persistence.PersistenceContext;
-
-import org.apache.commons.lang.time.StopWatch;
+import org.apache.commons.lang3.time.StopWatch;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -38,7 +34,9 @@ import dk.digitalidentity.sofd.service.OrganisationService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
 import dk.digitalidentity.sofd.service.UserService;
-import io.netty.util.internal.ThreadLocalRandom;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.FlushModeType;
+import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
@@ -207,9 +205,9 @@ public class BootstrapDevMode {
 		ret.setSurname("Efter Navn");
 		ret.setCpr(cpr);
 
-		var startTime = LocalDate.of(1975, 1, 1).toEpochDay();
-		var endTime = LocalDate.now().toEpochDay();
-		var randomTime = ThreadLocalRandom.current().nextLong(startTime, endTime);
+		long startTime = LocalDate.of(1975, 1, 1).toEpochDay();
+		long endTime = LocalDate.now().toEpochDay();
+		long randomTime = rand.nextLong(startTime, endTime);
 
 		ret.setFirstEmploymentDate(new Date(randomTime));
 

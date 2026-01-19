@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 import dk.digitalidentity.samlmodule.model.SamlGrantedAuthority;
 import dk.digitalidentity.samlmodule.model.SamlGrantedAuthority.Constraint;
 import dk.digitalidentity.samlmodule.model.TokenUser;
+import dk.digitalidentity.samlmodule.security.CustomSaml2AuthenticatedPrincipal;
 import dk.digitalidentity.sofd.config.RoleConstants;
 import dk.digitalidentity.sofd.dao.model.Client;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
@@ -99,7 +100,7 @@ public class SecurityUtil {
 		}
 
 		if (isUserLoggedIn()) {
-			name = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+			name = ((CustomSaml2AuthenticatedPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getName();
 		}
 
 		return name;

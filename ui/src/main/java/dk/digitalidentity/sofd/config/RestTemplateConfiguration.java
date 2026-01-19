@@ -1,27 +1,35 @@
 package dk.digitalidentity.sofd.config;
 
 import java.io.IOException;
+import java.net.URI;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
 
-import dk.digitalidentity.sofd.interceptor.RequestResponseLoggingInterceptor;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactoryBuilder;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
+import org.apache.hc.core5.ssl.TrustStrategy;
 import org.apache.http.client.config.CookieSpecs;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.TrustStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.util.ResourceUtils;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
+
+import dk.digitalidentity.sofd.interceptor.RequestResponseLoggingInterceptor;
 
 @Configuration
 public class RestTemplateConfiguration {
@@ -37,56 +45,67 @@ public class RestTemplateConfiguration {
 		return new RestTemplate();
 	}
 	
+	// TODO: Use RestClient
+    @SuppressWarnings("deprecation")
 	@Bean(name = "trustEverythingRestTemplate")
 	public RestTemplate trustEverythingRestTemplate() throws Exception {
-		TrustStrategy acceptingTrustStrategy = (X509Certificate[] chain, String authType) -> true;
-
-		RequestConfig requestConfig = RequestConfig.custom()
-			.setConnectionRequestTimeout(30000)
-			.setConnectTimeout(30000)
-			.setSocketTimeout(60000)
-			.setCookieSpec(CookieSpecs.STANDARD)
-			.build();
+		TrustStrategy acceptingTrustStrategy = (X509Certificate[] _, String _) -> true;
 
 		SSLContext sslContext = SSLContextBuilder.create()
             .loadTrustMaterial(acceptingTrustStrategy)
             .build();
 
-		CloseableHttpClient client = HttpClients.custom()
-			.setSSLContext(sslContext)
-			.setDefaultRequestConfig(requestConfig)
-			.build();			
+		SSLConnectionSocketFactory sslSocketFactory = SSLConnectionSocketFactoryBuilder.create()
+                .setSslContext(sslContext)
+                .build();
+        
+        PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
+                .setSSLSocketFactory(sslSocketFactory)
+                .build();
+        
+        // Build the HTTP client
+        CloseableHttpClient client = HttpClients.custom()
+                .setConnectionManager(connectionManager)
+                .build();
 
 		BufferingClientHttpRequestFactory requestFactory = new BufferingClientHttpRequestFactory(new HttpComponentsClientHttpRequestFactory(client));
 
 		return new RestTemplate(requestFactory);
 	}
 	
+    @SuppressWarnings("deprecation")
 	@Bean(name = "opusRestTemplate")
 	public RestTemplate opusRestTemplate() throws Exception {
-		TrustStrategy acceptingTrustStrategy = (X509Certificate[] chain, String authType) -> true;
+		TrustStrategy acceptingTrustStrategy = (X509Certificate[] _, String _) -> true;
 
 		RequestConfig requestConfig = RequestConfig.custom()
-				.setConnectionRequestTimeout(30000)
-				.setConnectTimeout(30000)
-				.setSocketTimeout(60000)
+				.setConnectionRequestTimeout(30, TimeUnit.SECONDS)
+				.setResponseTimeout(120, TimeUnit.SECONDS)
 				.setCookieSpec(CookieSpecs.STANDARD)
 				.build();
 
 		CloseableHttpClient client = null;
 		if (configuration.getModules().getAccountCreation().isEnabled() && configuration.getModules().getAccountCreation().getOpusHandler().isEnabled()) {
 			SSLContext sslContext = SSLContextBuilder.create()
-			                .loadKeyMaterial(
-			                		ResourceUtils.getFile(configuration.getModules().getAccountCreation().getOpusHandler().getKeystore()),
-			                		configuration.getModules().getAccountCreation().getOpusHandler().getKeystorePwd().toCharArray(),
-			                		configuration.getModules().getAccountCreation().getOpusHandler().getKeystorePwd().toCharArray())
-			                .loadTrustMaterial(acceptingTrustStrategy)
-			                .build();
-			
-			client = HttpClients.custom()
-						.setSSLContext(sslContext)
-						.setDefaultRequestConfig(requestConfig)
-						.build();			
+	                .loadKeyMaterial(
+	                		ResourceUtils.getFile(configuration.getModules().getAccountCreation().getOpusHandler().getKeystore()),
+	                		configuration.getModules().getAccountCreation().getOpusHandler().getKeystorePwd().toCharArray(),
+	                		configuration.getModules().getAccountCreation().getOpusHandler().getKeystorePwd().toCharArray())
+	                .loadTrustMaterial(acceptingTrustStrategy)
+	                .build();
+
+	        SSLConnectionSocketFactory sslSocketFactory = SSLConnectionSocketFactoryBuilder.create()
+	                .setSslContext(sslContext)
+	                .build();
+	        
+	        PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
+	                .setSSLSocketFactory(sslSocketFactory)
+	                .build();
+	        
+	        // Build the HTTP client
+	        client = HttpClients.custom()
+	                .setConnectionManager(connectionManager)
+	                .build();
 		}
 		else {
 			client = HttpClients.custom()
@@ -106,7 +125,7 @@ public class RestTemplateConfiguration {
 			}
 			
 			@Override
-			public void handleError(ClientHttpResponse response) throws IOException {
+			public void handleError(URI url, HttpMethod method, ClientHttpResponse response) throws IOException {
 				;
 			}
 		});

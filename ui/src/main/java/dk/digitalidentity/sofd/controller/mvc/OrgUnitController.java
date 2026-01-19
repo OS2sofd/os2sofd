@@ -14,9 +14,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import javax.servlet.http.HttpServletResponse;
-import javax.validation.Valid;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.data.util.Pair;
@@ -76,6 +73,8 @@ import dk.digitalidentity.sofd.service.model.KleAssignmentType;
 import dk.digitalidentity.sofd.service.model.OUTreeForm;
 import dk.digitalidentity.sofd.service.model.OUTreeFormWithTags;
 import dk.digitalidentity.sofd.service.model.SubstituteOrgUnitAssignmentDTO;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -177,10 +176,7 @@ public class OrgUnitController {
 		model.put("messagesBundle", messageSource);
 		model.put("locale", loc);
 
-		response.setContentType("application/ms-excel");
-		response.setHeader("Content-Disposition", "attachment; filename=\"regler.xlsx\"");
-
-		return new ModelAndView(new AccountOrderRulesXlsView(), model);
+		return new ModelAndView(new AccountOrderRulesXlsView("regler.xlsx"), model);
 	}
 
 	@GetMapping(path = {"/ui/orgunit/downloadorgunits/{orgId}"})
@@ -194,10 +190,7 @@ public class OrgUnitController {
 		model.put("messagesBundle", messageSource);
 		model.put("locale", loc);
 
-		response.setContentType("application/ms-excel");
-		response.setHeader("Content-Disposition", "attachment; filename=\"enheder.xlsx\"");
-
-		return new ModelAndView(new OrgUnitsXlsxView(), model);
+		return new ModelAndView(new OrgUnitsXlsxView("enheder.xlsx"), model);
 	}
 
 	@GetMapping(path = {"/ui/orgunit/view/{uuid}"})
@@ -262,7 +255,7 @@ public class OrgUnitController {
 		response.setContentType("application/ms-excel");
 		response.setHeader("Content-Disposition", "attachment; filename=\"Medarbejderoplysninger - " + orgUnit.getName() + ".xlsx\"");
 
-		return new ModelAndView(new EmployeesInformationXlsView(), model);
+		return new ModelAndView(new EmployeesInformationXlsView("Medarbejderoplysninger - " + orgUnit.getName() + ".xlsx"), model);
 	}
 
 	@GetMapping(value = "/ui/orgunit/view/download/employees_nested/{uuid}")
@@ -279,10 +272,7 @@ public class OrgUnitController {
 		model.put("messagesBundle", messageSource);
 		model.put("locale", loc);
 
-		response.setContentType("application/ms-excel");
-		response.setHeader("Content-Disposition", "attachment; filename=\"Medarbejderoplysninger - " + orgUnit.getName() + ".xlsx\"");
-
-		return new ModelAndView(new EmployeesInformationXlsView(), model);
+		return new ModelAndView(new EmployeesInformationXlsView("Medarbejderoplysninger - " + orgUnit.getName() + ".xlsx"), model);
 	}
 
 	@RequireControllerWriteAccess

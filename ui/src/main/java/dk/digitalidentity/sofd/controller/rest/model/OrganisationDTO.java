@@ -1,9 +1,8 @@
 package dk.digitalidentity.sofd.controller.rest.model;
 
-import javax.validation.constraints.Size;
-
 import dk.digitalidentity.sofd.dao.model.Organisation;
 import dk.digitalidentity.sofd.security.SecurityUtil;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 

@@ -23,7 +23,7 @@ public interface AffiliationDao extends CrudRepository<Affiliation, Long> {
 
 	List<Affiliation> findByOrgUnit(OrgUnit orgUnit);
 
-	@Query(value = "SELECT * FROM affiliations a LEFT JOIN (SELECT orgunit_uuid, affiliation_id FROM affiliations_workplaces aw WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate()) workplace ON workplace.affiliation_id = a.id WHERE COALESCE(workplace.orgunit_uuid, a.`alt_orgunit_uuid`, a.`orgunit_uuid`)  = ?1", nativeQuery = true)
+	@Query(value = "SELECT a.* FROM affiliations a LEFT JOIN (SELECT orgunit_uuid, affiliation_id FROM affiliations_workplaces aw WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate()) workplace ON workplace.affiliation_id = a.id WHERE COALESCE(workplace.orgunit_uuid, a.`alt_orgunit_uuid`, a.`orgunit_uuid`)  = ?1", nativeQuery = true)
 	List<Affiliation> findByCalculatedOrgUnit(String orgUnitUuid);
 
 	@Query(value = "SELECT COUNT(*) FROM affiliations a LEFT JOIN (SELECT orgunit_uuid, affiliation_id FROM affiliations_workplaces aw WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate()) workplace ON workplace.affiliation_id = a.id WHERE COALESCE(workplace.orgunit_uuid, a.`alt_orgunit_uuid`, a.`orgunit_uuid`) = ?1 AND deleted = 0 AND (stop_date IS NULL OR CAST(stop_date AS DATE) >= CAST(CURRENT_TIMESTAMP AS DATE))", nativeQuery = true)
@@ -48,7 +48,7 @@ public interface AffiliationDao extends CrudRepository<Affiliation, Long> {
 			""", nativeQuery = true)
 	Long countByOrgUnitAndActiveRecursive(String orgUnitUuid);
 
-	@Query(value = "SELECT * FROM affiliations a LEFT JOIN (SELECT orgunit_uuid, affiliation_id FROM affiliations_workplaces aw WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate()) workplace ON workplace.affiliation_id = a.id WHERE COALESCE(workplace.orgunit_uuid, a.alt_orgunit_uuid, a.orgunit_uuid) = ?1 AND deleted = 0 AND (stop_date IS NULL OR CAST(stop_date AS DATE) >= CAST(CURRENT_TIMESTAMP AS DATE))", nativeQuery = true)
+	@Query(value = "SELECT a.* FROM affiliations a LEFT JOIN (SELECT orgunit_uuid, affiliation_id FROM affiliations_workplaces aw WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate()) workplace ON workplace.affiliation_id = a.id WHERE COALESCE(workplace.orgunit_uuid, a.alt_orgunit_uuid, a.orgunit_uuid) = ?1 AND deleted = 0 AND (stop_date IS NULL OR CAST(stop_date AS DATE) >= CAST(CURRENT_TIMESTAMP AS DATE))", nativeQuery = true)
 	List<Affiliation> findByCalculatedOrgUnitAndActive(String orgUnitUuid);
 
 	@Modifying

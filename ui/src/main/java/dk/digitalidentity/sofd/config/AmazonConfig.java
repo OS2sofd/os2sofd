@@ -17,7 +17,7 @@ public class AmazonConfig {
 	private SofdConfiguration sofdConfiguration;
 	
 	@Bean
-	public AmazonS3 s3() {
+	public AmazonS3 amazonS3Config() {
 		String region = sofdConfiguration.getS3().getRegion();
 		String accessKey = sofdConfiguration.getS3().getAWSAccessKeyId();
 		String secretKey = sofdConfiguration.getS3().getAWSSecretAccessKey();
