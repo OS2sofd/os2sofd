@@ -81,7 +81,7 @@ public class MitIDErhvervApiController {
 				boolean exists = false;
 				
 				for (User user : mitIdErhvervUsers) {
-					if (Objects.equals(user.getMasterId(), entry.samAccountName()) && Objects.equals(user.getMaster(), "MitIDErhverv")) {
+					if (Objects.equals(user.getMasterId().toLowerCase(), entry.samAccountName().toLowerCase()) && Objects.equals(user.getMaster(), "MitIDErhverv")) {
 
 						// exists! modify state if needed
 						if (user.isDisabled() != !entry.active()) {
@@ -136,7 +136,7 @@ public class MitIDErhvervApiController {
 				}
 
 				User user = personUserMapping.getUser();
-				if (!entries.stream().anyMatch(e -> Objects.equals(user.getMasterId(), e.samAccountName()))) {
+				if (!entries.stream().anyMatch(e -> Objects.equals(user.getMasterId().toLowerCase(), e.samAccountName().toLowerCase()))) {
 					iterator.remove();
 
 					changes = true;

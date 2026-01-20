@@ -1,5 +1,6 @@
 package dk.digitalidentity.sofd.config.properties;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import dk.digitalidentity.sofd.config.FeatureDocumentation;
@@ -11,6 +12,7 @@ import lombok.Setter;
 @Setter
 public class AccountOrderGeneration {
 	private List<String> masters;
+	private List<String> organisations = new ArrayList<>(List.of("ADMORG"));
 	private boolean ignoreDeleteOrdersIfNoAffiliations = true;
 	private AccountOrderDeactivateAndDeleteRule affiliationDeactivateAndDeleteRuleDefault = AccountOrderDeactivateAndDeleteRule.KEEP_ALIVE;
 	@FeatureDocumentation(name = "Udførelse af AD tasks", description = "Bruges til at definere den time kontobestillinger skal udføres, i 24 timers format")

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
 
@@ -44,32 +45,10 @@ public class RestTemplateConfiguration {
 		return new RestTemplate();
 	}
 	
+	// TODO: Use RestClient
     @SuppressWarnings("deprecation")
 	@Bean(name = "trustEverythingRestTemplate")
 	public RestTemplate trustEverythingRestTemplate() throws Exception {
-		/*
-		TrustStrategy acceptingTrustStrategy = (X509Certificate[] chain, String authType) -> true;
-
-		RequestConfig requestConfig = RequestConfig.custom()
-			.setConnectionRequestTimeout(30000)
-			.setConnectTimeout(30000)
-			.setSocketTimeout(60000)
-			.setCookieSpec(CookieSpecs.STANDARD)
-			.build();
-
-		SSLContext sslContext = SSLContextBuilder.create()
-            .loadTrustMaterial(acceptingTrustStrategy)
-            .build();
-
-		HttpClient client = HttpClients.custom()
-			.setSSLContext(sslContext)
-			.setDefaultRequestConfig(requestConfig)
-			.build();			
-
-		BufferingClientHttpRequestFactory requestFactory = new BufferingClientHttpRequestFactory(new HttpComponentsClientHttpRequestFactory(client));
-
-		return new RestTemplate(requestFactory);
-		*/
 		TrustStrategy acceptingTrustStrategy = (X509Certificate[] _, String _) -> true;
 
 		SSLContext sslContext = SSLContextBuilder.create()
@@ -100,29 +79,13 @@ public class RestTemplateConfiguration {
 		TrustStrategy acceptingTrustStrategy = (X509Certificate[] _, String _) -> true;
 
 		RequestConfig requestConfig = RequestConfig.custom()
-//				.setConnectionRequestTimeout(30000)
-//				.setConnectTimeout(30000)
-//				.setSocketTimeout(60000)
+				.setConnectionRequestTimeout(30, TimeUnit.SECONDS)
+				.setResponseTimeout(120, TimeUnit.SECONDS)
 				.setCookieSpec(CookieSpecs.STANDARD)
 				.build();
 
 		CloseableHttpClient client = null;
 		if (configuration.getModules().getAccountCreation().isEnabled() && configuration.getModules().getAccountCreation().getOpusHandler().isEnabled()) {
-			/*
-			SSLContext sslContext = SSLContextBuilder.create()
-			                .loadKeyMaterial(
-			                		ResourceUtils.getFile(configuration.getModules().getAccountCreation().getOpusHandler().getKeystore()),
-			                		configuration.getModules().getAccountCreation().getOpusHandler().getKeystorePwd().toCharArray(),
-			                		configuration.getModules().getAccountCreation().getOpusHandler().getKeystorePwd().toCharArray())
-			                .loadTrustMaterial(acceptingTrustStrategy)
-			                .build();
-			
-			client = HttpClients.custom()
-						.setSSLContext(sslContext)
-						.setDefaultRequestConfig(requestConfig)
-						.build();			
-			*/
-
 			SSLContext sslContext = SSLContextBuilder.create()
 	                .loadKeyMaterial(
 	                		ResourceUtils.getFile(configuration.getModules().getAccountCreation().getOpusHandler().getKeystore()),
@@ -141,13 +104,14 @@ public class RestTemplateConfiguration {
 	        
 	        // Build the HTTP client
 	        client = HttpClients.custom()
+					.setDefaultRequestConfig(requestConfig)
 	                .setConnectionManager(connectionManager)
 	                .build();
 		}
 		else {
 			client = HttpClients.custom()
-						.setDefaultRequestConfig(requestConfig)
-						.build();
+					.setDefaultRequestConfig(requestConfig)
+					.build();
 		}
 
 		BufferingClientHttpRequestFactory requestFactory = new BufferingClientHttpRequestFactory(new HttpComponentsClientHttpRequestFactory(client));
