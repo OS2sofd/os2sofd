@@ -268,6 +268,7 @@ public class ManagerUIApiController {
 	}
 
 	private record EditAffiliationDTO(long id, String position, String positionDisplayName, Date startDate, Date stopDate, String internalReference) {}
+
 	@PostMapping("/api/manager/{uuid}/affiliations/edit")
 	public ResponseEntity<?> editAffiliation(@PathVariable String uuid, @RequestBody EditAffiliationDTO editAffiliationDTO) {
 		Person manager = personService.getByUuid(uuid);

@@ -104,13 +104,14 @@ public class RestTemplateConfiguration {
 	        
 	        // Build the HTTP client
 	        client = HttpClients.custom()
+					.setDefaultRequestConfig(requestConfig)
 	                .setConnectionManager(connectionManager)
 	                .build();
 		}
 		else {
 			client = HttpClients.custom()
-						.setDefaultRequestConfig(requestConfig)
-						.build();
+					.setDefaultRequestConfig(requestConfig)
+					.build();
 		}
 
 		BufferingClientHttpRequestFactory requestFactory = new BufferingClientHttpRequestFactory(new HttpComponentsClientHttpRequestFactory(client));
