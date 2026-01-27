@@ -15,7 +15,7 @@ import org.springframework.session.web.http.DefaultCookieSerializer;
 import jakarta.annotation.PostConstruct;
 
 @Configuration
-@EnableJdbcHttpSession
+@EnableJdbcHttpSession(maxInactiveIntervalInSeconds = 14400) // 4 hours
 public class SessionCacheConfiguration {
 
 	@Autowired
