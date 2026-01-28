@@ -99,7 +99,7 @@ public class AccountOrderApiController {
 		// if an affiliationUuid is supplied, scan for it
 		String employeeId = null;
 		Affiliation triggerAffiliation = null;
-		for (Affiliation affiliation : AffiliationService.onlyActiveAffiliations(person.getAffiliations())) {
+		for (Affiliation affiliation : AffiliationService.notStoppedAffiliations(person.getAffiliations())) {
 			if (affiliation.getUuid().equals(order.getAffiliationUuid())) {
 				employeeId = affiliation.getEmployeeId();
 				triggerAffiliation = affiliation;
