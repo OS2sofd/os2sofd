@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 
+import dk.digitalidentity.sofd.controller.api.dto.SupportedUserTypeDTO;
 import dk.digitalidentity.sofd.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -341,4 +342,13 @@ public class AccountOrderApiController {
 
 		return new ResponseEntity<String>(HttpStatus.OK);
 	}
-}
+
+	/**
+	 * Returns all supported user types
+	 */
+	@GetMapping("/api/account/supportedUserTypes")
+	public ResponseEntity<List<SupportedUserTypeDTO>> getSupportedUserTypes() {
+		return ResponseEntity.ok(supportedUserTypeService.findAll().stream()
+				.map(SupportedUserTypeDTO::new)
+				.toList());
+	}}
