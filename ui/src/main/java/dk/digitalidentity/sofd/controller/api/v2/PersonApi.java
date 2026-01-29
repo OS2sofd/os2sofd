@@ -156,7 +156,7 @@ public class PersonApi {
 			HttpStatus.OK
 		);
 	}
-	
+
 	@RequireApiWriteAccess
 	@PostMapping("/api/v2/persons")
 	public ResponseEntity<?> createPerson(@Valid @RequestBody PersonApiRecord record, BindingResult bindingResult) {

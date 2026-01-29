@@ -6,7 +6,9 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 
+import dk.digitalidentity.sofd.controller.api.dto.ErrorDTO;
 import dk.digitalidentity.sofd.controller.api.dto.SupportedUserTypeDTO;
+import dk.digitalidentity.sofd.service.KnownUsernamesService;
 import dk.digitalidentity.sofd.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -69,6 +71,43 @@ public class AccountOrderApiController {
 
 	@Autowired
 	private UserService userService;
+
+	@GetMapping("/api/account/generateUsername")
+	public ResponseEntity<?> generateUsername(
+			@RequestParam("personUuid") String personUuid,
+			@RequestParam("userType") String userType,
+			@RequestParam(value = "employeeId", required = false) String employeeId,
+	        @RequestParam(value = "linkedUserId", required = false) String linkedUserId) {
+
+		Person person = personService.getByUuid(personUuid);
+		if (person == null) {
+			log.warn("Person not found for uuid: {}", personUuid);
+			String code = "PersonNotFound";
+			String message = "Could not find person in db for provided uuid.";
+			return new ResponseEntity<>(new ErrorDTO(code, message), HttpStatus.BAD_REQUEST);
+		}
+
+		SupportedUserType supportedUserType = supportedUserTypeService.findByKey(userType);
+		if (supportedUserType == null) {
+			log.warn("Not a supported userType:  {}", userType);
+			String code = "UserTypeNotFound";
+			String message = "Not a supported userType: " + userType;
+			return new ResponseEntity<>(new ErrorDTO(code, message), HttpStatus.BAD_REQUEST);
+		}
+
+		String userId = usernameGeneratorService.getUsername(person, employeeId, userType, linkedUserId,null);
+
+		if (userId == null) {
+			log.warn("Failed to generate username");
+			String code = "UsernameNotGenerated";
+			String message = "Failed to generate username";
+			return new ResponseEntity<>(new ErrorDTO(code, message), HttpStatus.UNPROCESSABLE_ENTITY);
+		}
+
+		log.debug("Generated username for person {}: {}", personUuid, userId);
+		return new ResponseEntity<>(userId, HttpStatus.OK);
+	}
+
 
 	@PostMapping("/api/account/fullSync")
 	public ResponseEntity<?> triggerFullSync() {		
