@@ -50,7 +50,7 @@ public class SessionCacheConfiguration {
 		serializer.setCookiePath("/");
 		serializer.setUseSecureCookie(true);
 		serializer.setSameSite("None");
-		serializer.setCookieMaxAge(8 * 60 * 60);
+		serializer.setCookieMaxAge(4 * 60 * 60);
 
 		return serializer;
 	}
