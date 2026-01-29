@@ -57,6 +57,8 @@ public class AccountOrderApprovalReportXlsView implements View {
 				courseRow.createCell(2).setCellValue(approval.getPersonName());
 				courseRow.createCell(3).setCellValue(approval.getUserId());
 			}
+			
+			workbook.write(response.getOutputStream());
 		}
 	}
 

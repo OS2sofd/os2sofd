@@ -47,7 +47,7 @@ public class EmployeesInformationXlsView implements View {
 
 			// create excel xls sheet
 			Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.employees.sheetname", null, locale));
-	
+
 			// create header row
 			createHeader(workbook, sheet, messageSource, locale);
 	
@@ -105,6 +105,8 @@ public class EmployeesInformationXlsView implements View {
 					}
 				}
 			}
+			
+			workbook.write(response.getOutputStream());
 		}
 	}
 

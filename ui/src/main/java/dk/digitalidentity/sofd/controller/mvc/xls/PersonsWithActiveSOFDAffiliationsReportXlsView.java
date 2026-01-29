@@ -10,6 +10,7 @@ import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.web.servlet.View;
 
@@ -47,6 +48,9 @@ public class PersonsWithActiveSOFDAffiliationsReportXlsView implements View {
 			// create excel xls sheet
 			Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.genericreport.sheetname", null, locale));
 	
+			// required to support auto-formatting
+		    ((SXSSFSheet) sheet).trackAllColumnsForAutoSizing();
+
 			// create header row
 			createHeader(workbook, sheet, reportType, messageSource, locale);
 	
@@ -62,6 +66,8 @@ public class PersonsWithActiveSOFDAffiliationsReportXlsView implements View {
 			}
 	
 			format(sheet);
+			
+			workbook.write(response.getOutputStream());
 		}
 	}
 

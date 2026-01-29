@@ -176,9 +176,9 @@
 
 		<!-- Amazon AWS -->
 		<dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-aws-context</artifactId>
-			<version>1.2.2.RELEASE</version>
+			<groupId>io.awspring.cloud</groupId>
+			<artifactId>spring-cloud-aws-starter-s3</artifactId>
+			<version>3.3.0</version>
 		</dependency>
 
 		<dependency>

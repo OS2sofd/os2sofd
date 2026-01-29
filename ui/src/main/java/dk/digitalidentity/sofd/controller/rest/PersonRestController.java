@@ -1,6 +1,8 @@
 package dk.digitalidentity.sofd.controller.rest;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -12,7 +14,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.joda.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.data.history.Revision;
@@ -174,9 +175,6 @@ public class PersonRestController {
 
 					List<AccountOrder> orders = personService.generateExpireOrders(person, startDate, startDate, stopDate,leaveDTO.getReason(),leaveDTO.getReasonText(),leaveDTO.isExpireAccounts(), leaveDTO.isDisableAccountOrders());
 					newOrders.addAll(orders);
-
-					// the UI enforces this, but lets make sure
-					leaveDTO.setDisableAccountOrders(true);
 				}
 
 				// the leaveForm can order the setting of this flag (it can be removed from the usual dialogue though
@@ -561,7 +559,7 @@ public class PersonRestController {
 
 		SupportedUserType supportedUserType = supportedUserTypeService.findByKey(user.getUserType());
 		if (supportedUserType.isDeleteEnabled()) {
-			Date date = LocalDate.now().plusDays((int) supportedUserType.getDaysToDelete()).toDate();
+			Date date = Date.from(LocalDate.now().plusDays((int) supportedUserType.getDaysToDelete()).atStartOfDay(ZoneId.systemDefault()).toInstant());
 
 			order = accountOrderService.deactivateOrDeleteAccountOrder(AccountOrderType.DELETE, person, user.getEmployeeId(), user.getUserType(), user.getUserId(), date);
 			accountOrderService.save(order);

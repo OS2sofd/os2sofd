@@ -17,7 +17,6 @@ import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
 import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactoryBuilder;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.TrustStrategy;
-import org.apache.http.client.config.CookieSpecs;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -81,7 +80,7 @@ public class RestTemplateConfiguration {
 		RequestConfig requestConfig = RequestConfig.custom()
 				.setConnectionRequestTimeout(30, TimeUnit.SECONDS)
 				.setResponseTimeout(120, TimeUnit.SECONDS)
-				.setCookieSpec(CookieSpecs.STANDARD)
+				.setCookieSpec("standard")
 				.build();
 
 		CloseableHttpClient client = null;

@@ -15,7 +15,7 @@ import org.springframework.session.web.http.DefaultCookieSerializer;
 import jakarta.annotation.PostConstruct;
 
 @Configuration
-@EnableJdbcHttpSession
+@EnableJdbcHttpSession(maxInactiveIntervalInSeconds = 14400) // 4 hours
 public class SessionCacheConfiguration {
 
 	@Autowired
@@ -50,7 +50,7 @@ public class SessionCacheConfiguration {
 		serializer.setCookiePath("/");
 		serializer.setUseSecureCookie(true);
 		serializer.setSameSite("None");
-		serializer.setCookieMaxAge(8 * 60 * 60);
+		serializer.setCookieMaxAge(4 * 60 * 60);
 
 		return serializer;
 	}
