@@ -112,7 +112,7 @@ public interface OrgUnitDao extends JpaRepository<OrgUnit, String> {
 	Set<String> getDoNotTransferToFKOrgUuids();
 
 	@Query(nativeQuery = true, value = """
-				select * from orgunits o
+				select o.* from orgunits o
 				left outer join ean on ean.orgunit_uuid = o.`uuid`
 				where
 					o.uuid like concat(:query,'%')

@@ -4,54 +4,76 @@ import java.text.SimpleDateFormat;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.web.servlet.View;
 
 import dk.digitalidentity.sofd.dao.model.AuditLog;
-import org.springframework.web.servlet.view.document.AbstractXlsxView;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
-public class AuditLogXlsView extends AbstractXlsxView {
+public class AuditLogXlsView implements View {
+	private static final String CONTENT_TYPE = "application/ms-excel";
+	private String filename;
+
+	@Override
+	public String getContentType() {
+		return CONTENT_TYPE;
+	}
+	
+	public AuditLogXlsView(String filename) {
+		this.filename = filename;
+	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	protected void buildExcelDocument(Map<String, Object> model, Workbook workbook, HttpServletRequest request, HttpServletResponse response) throws Exception {
+	public void render(Map<String, ?> model, HttpServletRequest request, HttpServletResponse response) throws Exception {
 		Locale locale = (Locale) model.get("locale");
 		Iterable<AuditLog> logs = (Iterable<AuditLog>) model.get("logs");
 		ResourceBundleMessageSource messageSource = (ResourceBundleMessageSource) model.get("messagesBundle");
 		SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-		// create excel xls sheet
-		Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.rules.sheetname", null, locale));
+		response.setContentType(getContentType());
+		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 
-		// create header row
-		createHeader(workbook, sheet, messageSource, locale);
+		try (Workbook workbook = new DisposableSXSSFWorkbook()) {
+	
+			// create excel xls sheet
+			Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.rules.sheetname", null, locale));
 
-		// Create data cells
-		int row = 1;
-		for (AuditLog log : logs) {
-			Row dataRow = sheet.createRow(row++);
+			// required to support auto-formatting
+		    ((SXSSFSheet) sheet).trackAllColumnsForAutoSizing();
 
-			String eventType = messageSource.getMessage(log.getEventType().getMessage(), null, locale);
-			String entityType = messageSource.getMessage(log.getEntityType().getMessage(), null, locale);
-
-			createCell(dataRow, 0, dateFormatter.format(log.getTimestamp()), null);
-			createCell(dataRow, 1, log.getUserId(), null);
-			createCell(dataRow, 2, eventType, null);
-			createCell(dataRow, 3, entityType, null);
-			createCell(dataRow, 4, log.getEntityId(), null);
-			createCell(dataRow, 5, log.getEntityName(), null);
-			createCell(dataRow, 6, log.getMessage(), null);
+			// create header row
+			createHeader(workbook, sheet, messageSource, locale);
+	
+			// Create data cells
+			int row = 1;
+			for (AuditLog log : logs) {
+				Row dataRow = sheet.createRow(row++);
+	
+				String eventType = messageSource.getMessage(log.getEventType().getMessage(), null, locale);
+				String entityType = messageSource.getMessage(log.getEntityType().getMessage(), null, locale);
+	
+				createCell(dataRow, 0, dateFormatter.format(log.getTimestamp()), null);
+				createCell(dataRow, 1, log.getUserId(), null);
+				createCell(dataRow, 2, eventType, null);
+				createCell(dataRow, 3, entityType, null);
+				createCell(dataRow, 4, log.getEntityId(), null);
+				createCell(dataRow, 5, log.getEntityName(), null);
+				createCell(dataRow, 6, log.getMessage(), null);
+			}
+	
+			format(sheet);
+			
+			workbook.write(response.getOutputStream());
 		}
-
-		format(sheet);
 	}
 
 	private void format(Sheet sheet) {

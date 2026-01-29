@@ -18,8 +18,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderDeactivateAndDeleteRule;
 import dk.digitalidentity.sofd.dao.model.enums.EventType;
@@ -2102,7 +2102,7 @@ public class AccountOrderService {
 		}
 
 		@SuppressWarnings("deprecation")
-		List<UserAudRow> result = jdbcTemplate.query(SELECT_AUD_USERS, new Object[] { user.getId(), xDaysBefore.getTime() }, (RowMapper<UserAudRow>) (rs, rownum) -> {
+		List<UserAudRow> result = jdbcTemplate.query(SELECT_AUD_USERS, new Object[] { user.getId(), xDaysBefore.getTime() }, (RowMapper<UserAudRow>) (rs, _) -> {
 			UserAudRow userAudRow = new UserAudRow();
 
 			userAudRow.setDisabled(rs.getBoolean("disabled"));
