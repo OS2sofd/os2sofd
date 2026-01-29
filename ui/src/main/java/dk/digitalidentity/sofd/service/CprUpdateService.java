@@ -149,8 +149,8 @@ public class CprUpdateService {
 			}
 
 			if ((cprPost != null && !comparePost(cprPost, person.getRegisteredPostAddress())) ||
-					!Objects.equals(firstname, person.getFirstname()) ||
-					!Objects.equals(surname, person.getSurname()) ||
+					!firstname.equals(person.getFirstname()) ||
+					!surname.equals(person.getSurname()) ||
 					!Objects.equals(person.isDead(), cprLookupDTO.isDead()) ||
 					!Objects.equals(person.isDisenfranchised(), cprLookupDTO.isDisenfranchised())) {
 

@@ -12,6 +12,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+import javax.validation.Valid;
+
+import dk.digitalidentity.sofd.controller.api.dto.ErrorDTO;
+import dk.digitalidentity.sofd.service.UsernameGeneratorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -53,7 +57,6 @@ import dk.digitalidentity.sofd.service.AccountOrderService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
 import dk.digitalidentity.sofd.service.UserService;
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -73,6 +76,8 @@ public class PersonApi {
 
 	@Autowired
 	private PersonApiRecordValidator personValidator;
+    @Autowired
+    private UsernameGeneratorService usernameGeneratorService;
 
 	@InitBinder
 	protected void initBinder(WebDataBinder binder) {
@@ -155,6 +160,21 @@ public class PersonApi {
 			),
 			HttpStatus.OK
 		);
+	}
+
+	@GetMapping("/api/v2/persons/generate/username/{uuid}")
+	public ResponseEntity<?> generateUsernameForAdUser(@PathVariable("uuid") String uuid) {
+		Person person = personService.getByUuid(uuid);
+		if (person == null) {
+            log.warn("Person not found for uuid: {}", uuid);
+			String code = "PersonNotFound";
+			String message = "Could not find person in db for provided uuid.";
+			return new ResponseEntity<>(new ErrorDTO(code, message), HttpStatus.BAD_REQUEST);
+		}
+
+		String userId = usernameGeneratorService.getUsername(person, null,"ACTIVE_DIRECTORY", null,null);
+		log.debug("Generated username for person {}: {}", uuid, userId);
+		return new ResponseEntity<>(userId, HttpStatus.OK);
 	}
 	
 	@RequireApiWriteAccess

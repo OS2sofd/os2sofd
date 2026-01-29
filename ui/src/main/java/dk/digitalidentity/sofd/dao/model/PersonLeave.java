@@ -2,16 +2,19 @@ package dk.digitalidentity.sofd.dao.model;
 
 import java.util.Date;
 
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+
 import org.hibernate.envers.Audited;
 
 import dk.digitalidentity.sofd.dao.model.enums.LeaveReason;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -26,9 +29,11 @@ public class PersonLeave {
 	private long id;
 
 	@Column
+	@Temporal(TemporalType.DATE)
 	private Date startDate;
 
 	@Column
+	@Temporal(TemporalType.DATE)
 	private Date stopDate;
 
 	@Column

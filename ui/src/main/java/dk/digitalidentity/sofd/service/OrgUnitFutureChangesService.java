@@ -11,8 +11,8 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 
 import dk.digitalidentity.sofd.controller.mvc.dto.OrgUnitFutureChangeDTO;
 import dk.digitalidentity.sofd.dao.model.OrgUnitTag;
