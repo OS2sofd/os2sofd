@@ -76,6 +76,7 @@ public class PersonApi {
 
 	@Autowired
 	private PersonApiRecordValidator personValidator;
+
     @Autowired
     private UsernameGeneratorService usernameGeneratorService;
 
