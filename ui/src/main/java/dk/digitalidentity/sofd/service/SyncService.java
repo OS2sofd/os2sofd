@@ -263,12 +263,12 @@ public class SyncService {
 		
 		LocalDate cutOff = LocalDate.now().plusDays(configuration.getIntegrations().getRoleCatalogue().getAffiliationCutoff());
 
-		var includedUserTypes = new ArrayList<String>();
+		List<String> includedUserTypes = new ArrayList<String>();
 		includedUserTypes.add("'ACTIVE_DIRECTORY'");
-		if( includeUniloginUsers) {
+		if (includeUniloginUsers) {
 			includedUserTypes.add("'UNILOGIN'");
 		}
-		if( includeSchoolADUsers ) {
+		if (includeSchoolADUsers ) {
 			includedUserTypes.add("'ACTIVE_DIRECTORY_SCHOOL'");
 			includedUserTypes.add("'AZURE_AD'");
 		}
