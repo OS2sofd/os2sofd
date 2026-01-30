@@ -37,11 +37,11 @@ CREATE OR REPLACE VIEW view_syncservice_users AS
         OR
         -- or the affiliation should not be mapped to another user
         (u.user_type IN ('ACTIVE_DIRECTORY','UNILOGIN') AND u.employee_id IS NULL AND (a.employee_id IS NULL OR a.employee_id NOT IN (
-				SELECT distinct mu.employee_id
-				FROM users mu
-				INNER JOIN persons_users mpu ON mpu.user_id = mu.id
-				WHERE mu.user_type = 'ACTIVE_DIRECTORY' AND mu.employee_id IS NOT NULL)
-			)
+                SELECT distinct mu.employee_id
+                FROM users mu
+                INNER JOIN persons_users mpu ON mpu.user_id = mu.id
+                WHERE mu.user_type = 'ACTIVE_DIRECTORY' AND mu.employee_id IS NOT NULL)
+            )
         )
         OR
         -- or the usertype should be UNILOGIN
@@ -49,26 +49,26 @@ CREATE OR REPLACE VIEW view_syncservice_users AS
         -- or school_users
         OR
         (
-        	u.user_type = 'ACTIVE_DIRECTORY_SCHOOL'
-        	AND
-        	(
-        	    (
-        	    	-- if no STIL-institution tags are set at all then skip the filter and include all affiliations
-        	    	0 = (SELECT COUNT(*) FROM view_orgunit_tags ot WHERE ot.tag_name = 'STIL-institution' AND ot.tag_selected = 1)
-        	    )
-        	    OR
-				(
-					-- otherwise only include affiliations to orgunits tagged with STIL-institution (inheritance included)
-		        	a.orgunit_uuid IN
-		        	(
-		        		SELECT orgunit_uuid
-		        		FROM view_orgunit_tags ot
-		        		WHERE
-		        			ot.tag_name = 'STIL-institution'
-		        			AND (ot.tag_selected = 1 OR ot.tag_inherited = 1)
-		        	)
-        	  	)
-        	)
+            u.user_type IN ('ACTIVE_DIRECTORY_SCHOOL', 'AZURE_AD')
+            AND
+            (
+                (
+                    -- if no STIL-institution tags are set at all then skip the filter and include all affiliations
+                    0 = (SELECT COUNT(*) FROM view_orgunit_tags ot WHERE ot.tag_name = 'STIL-institution' AND ot.tag_selected = 1)
+                )
+                OR
+                (
+                    -- otherwise only include affiliations to orgunits tagged with STIL-institution (inheritance included)
+                    a.orgunit_uuid IN
+                    (
+                        SELECT orgunit_uuid
+                        FROM view_orgunit_tags ot
+                        WHERE
+                            ot.tag_name = 'STIL-institution'
+                            AND (ot.tag_selected = 1 OR ot.tag_inherited = 1)
+                    )
+                  )
+            )
         )
     )
   LEFT JOIN professions prof on prof.id = a.profession_id
@@ -88,12 +88,12 @@ CREATE OR REPLACE VIEW view_syncservice_users AS
   LEFT JOIN phones ph ON ph.id = pp.phone_id
   -- join email
   LEFT JOIN (
-	SELECT p.uuid as person_uuid, u.master_id, u.user_id AS email
-	  FROM persons p
-	  JOIN persons_users pu ON pu.person_uuid = p.uuid
-	  JOIN users u ON u.id = pu.user_id
-	  WHERE u.user_type IN ('EXCHANGE','SCHOOL_EMAIL')
-	) e ON e.person_uuid = p.uuid AND ( (e.master_id = u.user_id AND u.user_type IN ('ACTIVE_DIRECTORY','ACTIVE_DIRECTORY_SCHOOL')) OR (e.master_id = u.uuid AND u.user_type = 'UNILOGIN'))
+    SELECT p.uuid as person_uuid, u.master_id, u.user_id AS email
+      FROM persons p
+      JOIN persons_users pu ON pu.person_uuid = p.uuid
+      JOIN users u ON u.id = pu.user_id
+      WHERE u.user_type IN ('EXCHANGE','SCHOOL_EMAIL')
+    ) e ON e.person_uuid = p.uuid AND ( (e.master_id = u.user_id AND u.user_type IN ('ACTIVE_DIRECTORY','ACTIVE_DIRECTORY_SCHOOL')) OR (e.master_id = u.uuid AND u.user_type = 'UNILOGIN'))
   -- join upn
   LEFT JOIN (
     SELECT user_id, upn, kombit_uuid
@@ -105,15 +105,15 @@ CREATE OR REPLACE VIEW view_syncservice_users AS
   ) mitid ON mitid.master_id = u.user_id AND mitid.user_type = 'MITID_ERHVERV'
   -- join primary kle
   LEFT JOIN (
-	  SELECT kp.affiliation_id, GROUP_CONCAT(kp.kle_value SEPARATOR ',') AS kle_values
-		FROM affiliations_kle_primary kp
-		GROUP BY kp.affiliation_id
+      SELECT kp.affiliation_id, GROUP_CONCAT(kp.kle_value SEPARATOR ',') AS kle_values
+        FROM affiliations_kle_primary kp
+        GROUP BY kp.affiliation_id
   ) kpa ON kpa.affiliation_id = a.id
   -- join secondary kle
   LEFT JOIN (
-	  SELECT ks.affiliation_id, GROUP_CONCAT(ks.kle_value SEPARATOR ',') AS kle_values
-		FROM affiliations_kle_secondary ks
-		GROUP BY ks.affiliation_id
+      SELECT ks.affiliation_id, GROUP_CONCAT(ks.kle_value SEPARATOR ',') AS kle_values
+        FROM affiliations_kle_secondary ks
+        GROUP BY ks.affiliation_id
   ) ksa ON ksa.affiliation_id = a.id
   INNER JOIN view_adm_organisation vao ON vao.id = o.belongs_to
   WHERE p.deleted = 0
