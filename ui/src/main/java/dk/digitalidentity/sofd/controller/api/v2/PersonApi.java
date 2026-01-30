@@ -819,11 +819,15 @@ public class PersonApi {
 	private boolean patchActiveDirectoryFields(Person person, User user, User userRecord) {
 		boolean changes = false;
 
-		if (!SupportedUserTypeService.isActiveDirectory(user.getUserType()) && !SupportedUserTypeService.isActiveDirectorySchool(user.getUserType())) {
+		if (!SupportedUserTypeService.isActiveDirectory(user.getUserType()) &&
+			!SupportedUserTypeService.isActiveDirectorySchool(user.getUserType()) &&
+			!SupportedUserTypeService.isAzureAd(user.getUserType())) {
 			return changes;
 		}
 		
-		if (!SupportedUserTypeService.isActiveDirectory(userRecord.getUserType()) && !SupportedUserTypeService.isActiveDirectorySchool(userRecord.getUserType())) {
+		if (!SupportedUserTypeService.isActiveDirectory(userRecord.getUserType()) &&
+			!SupportedUserTypeService.isActiveDirectorySchool(userRecord.getUserType()) &&
+			!SupportedUserTypeService.isAzureAd(userRecord.getUserType())) {
 			return changes;
 		}
 
