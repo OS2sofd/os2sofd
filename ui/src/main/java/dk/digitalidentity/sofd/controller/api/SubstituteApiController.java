@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,6 +73,12 @@ public class SubstituteApiController {
 		List<SubstituteAssignment> assignments = substituteAssignmentService.findAll().stream()
 				.filter(a -> a.getContext().getIdentifier().equals("os2rollekatalog") || a.getContext().getIdentifier().equals("GLOBAL"))
 				.collect(Collectors.toList());
+
+		// create a lookup set of all managers, so we can filter substitute assignments that point to persons that are no longer managers
+		Set<String> managers = personService.findAllManagersWithOrgUnits()
+				.stream()
+				.map(m -> m.getManager().getUuid())
+				.collect(Collectors.toSet());
 		
 		for (SubstituteAssignment assignment : assignments) {
 			Person manager = assignment.getPerson();
@@ -79,7 +86,11 @@ public class SubstituteApiController {
 				continue;
 			}
 			
-			// denne filtrerer ned til 46 fra 52 (så 6 minus)
+			// old manager that still has some substitute assignemts, but no longer manager so filter away
+			if (!managers.contains(manager.getUuid())) {
+				continue;
+			}
+			
 			User managerPrimeUser = personGetPrimeUser(manager);
 			if (managerPrimeUser == null) {
 				continue;
@@ -90,13 +101,10 @@ public class SubstituteApiController {
 				continue;
 			}
 
-			// denne filtrerer ned til 49 fra 52, så 3 minutes
 			User substitutPrimeUser = personGetPrimeUser(substitute);
 			if (substitutPrimeUser == null) {
 				continue;
 			}
-			
-			// afhængig af overlap, kan vi have op til 9 filtreret væk her, men det er stadig 43 i output (og vi får 23)
 			
 			SubstituteAssignmentDTO dto = new SubstituteAssignmentDTO();
 
