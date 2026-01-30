@@ -34,6 +34,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
+import dk.digitalidentity.sofd.dao.model.ActiveDirectoryDetails;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.ContactPlace;
 import dk.digitalidentity.sofd.dao.model.FkOrgUuid;
@@ -50,6 +51,7 @@ import dk.digitalidentity.sofd.dao.model.enums.PhoneType;
 import dk.digitalidentity.sofd.dao.model.enums.TagType;
 import dk.digitalidentity.sofd.dao.model.enums.Visibility;
 import dk.digitalidentity.sofd.dao.model.mapping.ContactPlaceOrgUnitMapping;
+import dk.digitalidentity.sofd.dao.model.mapping.PersonUserMapping;
 import dk.digitalidentity.sofd.service.model.SyncResult;
 import dk.digitalidentity.sofd.service.os2sync.dto.FKOU;
 import lombok.extern.slf4j.Slf4j;
@@ -352,15 +354,14 @@ public class OS2SyncService {
 		}
 
 		// also delete any user that is currently registered on the person
-		for( var user : person.getUsers() ) {
-			if( SupportedUserTypeService.isActiveDirectory(user.getUser().getUserType()) ) {
-				var adDetails = user.getUser().getActiveDirectoryDetails();
-				if( adDetails != null && fkOrgUuidEntries.stream().noneMatch(e -> e.getKombitUuid().equalsIgnoreCase(adDetails.getKombitUuid())) ) {
+		for (PersonUserMapping user : person.getUsers()) {
+			if (user.getUser().getActiveDirectoryDetails() != null && StringUtils.hasText(user.getUser().getActiveDirectoryDetails().getKombitUuid())) {
+				ActiveDirectoryDetails adDetails = user.getUser().getActiveDirectoryDetails();
+				if (adDetails != null && fkOrgUuidEntries.stream().noneMatch(e -> e.getKombitUuid().equalsIgnoreCase(adDetails.getKombitUuid()))) {
 					deleteUser(adDetails.getKombitUuid());
 				}
 			}
 		}
-
 	}
 
 	public void updatePerson(Person person, Set<String> doNotTransferToFKOrgUuids, long admOrgId) {
