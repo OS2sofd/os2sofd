@@ -100,7 +100,10 @@ public class UserApiRecord extends BaseRecord {
 		user.setUuid(uuid);
 		
 		// this code is only really used during creation of a new User - the update code looks at the stored field on the userRecord
-		if (SupportedUserTypeService.isActiveDirectory(userType) || SupportedUserTypeService.isActiveDirectorySchool(userType)) {
+		if (SupportedUserTypeService.isActiveDirectory(userType) || 
+			SupportedUserTypeService.isActiveDirectorySchool(userType) ||
+			SupportedUserTypeService.isAzureAd(userType)) {
+
 			// compute kombitUuid
 			if (StringUtils.hasLength(seedPrefix)) {
 				String seed = seedPrefix + user.getUserId() + user.getUserType();
