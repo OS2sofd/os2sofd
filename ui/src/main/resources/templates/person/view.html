@@ -534,7 +534,7 @@
 										<td th:text="${person.uuid}"></td>
 									</tr>
 
-									<tr th:each="user : ${person.users}" th:if="${user.userType} == 'ACTIVE_DIRECTORY' or ${user.userType} == 'ACTIVE_DIRECTORY_SCHOOL'">
+									<tr th:each="user : ${person.users}" th:if="${user.userType} == 'ACTIVE_DIRECTORY' or ${user.userType} == 'AZURE_AD' or ${user.userType} == 'ACTIVE_DIRECTORY_SCHOOL'">
 										<td>KOMBIT UUID</td>
 										<td th:text="${user.userId}"></td>
 										<td th:text="${user.kombitUuid}"></td>
