@@ -11,7 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-
+import dk.digitalidentity.sofd.dao.model.Client;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -235,10 +235,14 @@ public class PersonApi {
 			changes = true;
 		}
 
+		// only allow API updates if chosenName is NOT editable in GUI
 		if (!sofdConfiguration.getModules().getPerson().isChosenNameEditable()) {
-			if (record.getChosenName() != null && !Objects.equals(record.getChosenName(), person.getChosenName())) {
-				person.setChosenName(record.getChosenName());
-				changes = true;
+			// then check if this specific API client is allowed to update it
+			if (isChosenNameEditableForClient()) {
+				if (record.getChosenName() != null && !Objects.equals(record.getChosenName(), person.getChosenName())) {
+					person.setChosenName(record.getChosenName());
+					changes = true;
+				}
 			}
 		}
 		
@@ -327,7 +331,20 @@ public class PersonApi {
 
 		return changes;
 	}
-	
+
+	private boolean isChosenNameEditableForClient() {
+		Client client = SecurityUtil.getClient();
+		if (client == null) {
+			return false; // deny by default if no client context
+		}
+
+		List<Long> allowedClientIds = sofdConfiguration.getModules().getPerson().getChosenNameEditableForClientIds();
+
+		// If no client list is configured, allow all API clients (since GUI is already disabled)
+		// If client list exists, only those clients are allowed
+		return allowedClientIds == null || allowedClientIds.isEmpty() || allowedClientIds.contains(client.getId());
+	}
+
 	private boolean patchRegisteredPostAddress(Person person, Person record) {
 		boolean changes = false;
 
