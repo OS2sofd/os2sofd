@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
-<head th:replace="~{fragments/header :: header}"></head>
+<head th:replace="fragments/header :: header"></head>
 <body>
 <div class="wrapper">
-	<header th:replace="~{fragments/navbar :: navbar-header (subpage = 'phonebook')}"></header>
-	<aside th:replace="~{fragments/navbar :: navbar-aside (page = 'people', subpage='phonebook')}"></aside>
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'people', subpage='phonebook')"></aside>
 
 	<section>
 		<div class="content-wrapper">
@@ -268,7 +268,7 @@
 			</div>
 
 			<div class="modal-body">
-				<th:block th:replace="~{orgunit/fragments/orgunit_tree :: orgUnitTree(namespace='alternative')}"></th:block>
+				<th:block th:replace="orgunit/fragments/orgunit_tree :: orgUnitTree(namespace='alternative')"></th:block>
 			</div>
 
 			<div class="modal-footer">
@@ -281,11 +281,11 @@
 
 
 
-<nav th:replace="~{fragments/footer :: footer}"></nav>
-<div th:replace="~{affiliation/fragments/workplaces :: workplaceCreateModal}"></div>
-<script th:replace="~{orgunit/fragments/orgunit_tree :: orgUnitTreeScript(configObj='ouJSTreeConfig')}"></script>
-<script th:replace="~{affiliation/fragments/workplaces :: workplaceListScript(affiliationUuid = ${affiliation.uuid}, workplaceOus = ${ous}, tablePlaceholderId = 'workplaces_menu .content')}"></script>
-<script th:replace="~{fragments/datatables :: datatables(autoLoad=false) }"></script>
+<nav th:replace="fragments/footer :: footer"></nav>
+<div th:replace="affiliation/fragments/workplaces :: workplaceCreateModal"></div>
+<script th:replace="orgunit/fragments/orgunit_tree :: orgUnitTreeScript(configObj='ouJSTreeConfig')"></script>
+<script th:replace="affiliation/fragments/workplaces :: workplaceListScript(affiliationUuid = ${affiliation.uuid}, workplaceOus = ${ous}, tablePlaceholderId = 'workplaces_menu .content')"></script>
+<script th:replace="fragments/datatables :: datatables(autoLoad=false) "></script>
 
 
 

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
-<head th:replace="~{fragments/header :: header}"></head>
+<head th:replace="fragments/header :: header"></head>
 <body>
 	<div class="wrapper">
-		<header th:replace="~{fragments/navbar :: navbar-header (subpage = 'telephony')}"></header>
-		<aside th:replace="~{fragments/navbar :: navbar-aside (page = 'telephony.list', subpage = 'telephony')}"></aside>
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'telephony')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'telephony.list', subpage = 'telephony')"></aside>
 
 		<section>
 			<div class="content-wrapper">
@@ -179,7 +179,7 @@
 		</div>
 	</div>
 
-	<nav th:replace="~{fragments/footer :: footer}"></nav>
+	<nav th:replace="fragments/footer :: footer"></nav>
 
 	<style>
 		.autocomplete-suggestions { border: 1px solid #999; background: #FFF; overflow: auto; width: 500px !important; }

@@ -5,13 +5,15 @@ import static dk.digitalidentity.sofd.util.NullChecker.getValue;
 import java.util.List;
 import java.util.Objects;
 
+import dk.digitalidentity.sofd.config.SofdConfiguration;
+import dk.digitalidentity.sofd.dao.OrgUnitDao;
+import dk.digitalidentity.sofd.security.SecurityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.EmailTemplate;
 import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
@@ -20,7 +22,6 @@ import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplatePlaceholder;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplateType;
 import dk.digitalidentity.sofd.dao.model.enums.OrgUnitManagerSource;
-import dk.digitalidentity.sofd.security.SecurityUtil;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

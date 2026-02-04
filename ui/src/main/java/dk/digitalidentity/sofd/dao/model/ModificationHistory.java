@@ -2,17 +2,20 @@ package dk.digitalidentity.sofd.dao.model;
 
 import java.util.Date;
 
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+
 import org.hibernate.annotations.CreationTimestamp;
 
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.service.model.ChangeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -26,6 +29,7 @@ public class ModificationHistory {
 	private long id;
 
 	@CreationTimestamp
+	@Temporal(TemporalType.TIMESTAMP)
 	@Column(updatable = false)
 	private Date changed;
 

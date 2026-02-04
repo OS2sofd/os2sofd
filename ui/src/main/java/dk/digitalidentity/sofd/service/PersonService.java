@@ -19,6 +19,9 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import dk.digitalidentity.sofd.dao.PersonDaoCustom;
+import dk.digitalidentity.sofd.dao.model.enums.LeaveReason;
+import dk.digitalidentity.sofd.dao.model.mapping.PersonUserMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -43,7 +46,6 @@ import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.mvc.dto.history.HistoryPerson;
 import dk.digitalidentity.sofd.dao.OrgUnitManagerDao;
 import dk.digitalidentity.sofd.dao.PersonDao;
-import dk.digitalidentity.sofd.dao.PersonDaoCustom;
 import dk.digitalidentity.sofd.dao.ReservedUsernameDao;
 import dk.digitalidentity.sofd.dao.model.AccountOrder;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
@@ -67,9 +69,7 @@ import dk.digitalidentity.sofd.dao.model.enums.AccountOrderType;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplatePlaceholder;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplateType;
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
-import dk.digitalidentity.sofd.dao.model.enums.LeaveReason;
 import dk.digitalidentity.sofd.dao.model.enums.NotificationType;
-import dk.digitalidentity.sofd.dao.model.mapping.PersonUserMapping;
 import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.model.ChangeType;
 import dk.digitalidentity.sofd.service.model.PersonDeletePeriod;
@@ -82,9 +82,6 @@ import lombok.extern.slf4j.Slf4j;
 @EnableScheduling
 @Service
 public class PersonService {
-
-	@Autowired
-    private ObjectMapper mapper;
 
 	@Autowired
 	private PersonDao personDao;
@@ -148,6 +145,10 @@ public class PersonService {
 
 	@Autowired
 	private SubstituteOrgUnitAssignmentService substituteOrgUnitAssignmentService;
+
+	@Autowired
+	private ObjectMapper mapper;
+
 
 	public boolean isManager(Person person) {
 		return orgUnitManagerDao.existsByManagerUuid(person.getUuid());
@@ -595,13 +596,8 @@ public class PersonService {
 		}
 
 		if (!Objects.equals(person.getFirstname(), firstname) || !Objects.equals(person.getSurname(), surname)) {
-			if (StringUtils.hasText(firstname)) {
-				person.setFirstname(firstname);
-			}
-			
-			if (StringUtils.hasText(surname)) {
-				person.setSurname(surname);
-			}
+			person.setFirstname(firstname);
+			person.setSurname(surname);
 
 			// name was changed in CPR - reset chosen name according to config
 			if (configuration.getModules().getPerson().isResetChosenNameOnNameChange()) {

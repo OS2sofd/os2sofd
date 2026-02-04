@@ -4,13 +4,14 @@ import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
+
 import org.springframework.util.StringUtils;
 
 import dk.digitalidentity.sofd.dao.model.ActiveDirectoryDetails;
 import dk.digitalidentity.sofd.dao.model.User;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

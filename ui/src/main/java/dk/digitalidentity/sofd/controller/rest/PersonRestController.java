@@ -1,8 +1,6 @@
 package dk.digitalidentity.sofd.controller.rest;
 
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -14,6 +12,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import javax.persistence.criteria.Predicate;
+import javax.validation.Valid;
+
+import org.joda.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.data.history.Revision;
@@ -85,8 +87,6 @@ import dk.digitalidentity.sofd.service.SupportedUserTypeService;
 import dk.digitalidentity.sofd.service.UserChangeEmployeeIdQueueService;
 import dk.digitalidentity.sofd.service.UserService;
 import dk.digitalidentity.sofd.service.model.ChangeType;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -559,7 +559,7 @@ public class PersonRestController {
 
 		SupportedUserType supportedUserType = supportedUserTypeService.findByKey(user.getUserType());
 		if (supportedUserType.isDeleteEnabled()) {
-			Date date = Date.from(LocalDate.now().plusDays((int) supportedUserType.getDaysToDelete()).atStartOfDay(ZoneId.systemDefault()).toInstant());
+			Date date = LocalDate.now().plusDays((int) supportedUserType.getDaysToDelete()).toDate();
 
 			order = accountOrderService.deactivateOrDeleteAccountOrder(AccountOrderType.DELETE, person, user.getEmployeeId(), user.getUserType(), user.getUserId(), date);
 			accountOrderService.save(order);
@@ -782,7 +782,7 @@ public class PersonRestController {
 	private Specification<GridPersonActive> getObsByInput(String searchValue, Locale locale) {
 		// Lowercase the input, just to be consistent
 		String input = searchValue.toLowerCase();
-		Specification<GridPersonActive> specification = (root, _, criteriaBuilder) -> {
+		Specification<GridPersonActive> specification = (root, query, criteriaBuilder) -> {
 			if( !StringUtils.hasText(input)) {
 				return criteriaBuilder.and();
 			}

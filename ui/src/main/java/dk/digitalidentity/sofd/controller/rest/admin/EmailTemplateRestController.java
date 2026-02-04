@@ -177,7 +177,7 @@ public class EmailTemplateRestController {
 			var message = emailTemplateChildDTO.getMessage();
 			// perform placeholder replacement so you can verify that the template replacement worked.
 			message = message.replace(EmailTemplatePlaceholder.TITLE.getPlaceholder(), emailTemplateChildDTO.getTitle());
-			Locale locale = Locale.of("da", "DK");
+			Locale locale = new Locale("da", "DK");
 			for (var placeholder : templateChild.getEmailTemplate().getTemplateType().getEmailTemplatePlaceholders()) {
 
 				try {
@@ -242,7 +242,7 @@ public class EmailTemplateRestController {
 				List<InlineImageDTO> inlineImages = templateChild.getEmailTemplate().getTemplateType().isEboks() ? null : transformImages(emailTemplateChildDTO);
 
 				var message = emailTemplateChildDTO.getMessage();
-				Locale locale = Locale.of("da", "DK");
+				Locale locale = new Locale("da", "DK");
 				
 				// perform placeholder replacement so you can verify that the template replacement worked.
 				for (var placeholder : templateChild.getEmailTemplate().getTemplateType().getEmailTemplatePlaceholders()) {
