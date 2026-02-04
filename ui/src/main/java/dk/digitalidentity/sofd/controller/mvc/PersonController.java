@@ -923,10 +923,10 @@ public class PersonController {
 
                     userDTO.setUserChangeEmployeeIdQueueDTO(userChangeEmployeeIdQueueDTO);
                 }
-
-                if (user.getActiveDirectoryDetails() != null) {
-                    userDTO.setKombitUuid(user.getActiveDirectoryDetails().getKombitUuid());
-                }
+            }
+            
+            if (user.getActiveDirectoryDetails() != null) {
+                userDTO.setKombitUuid(user.getActiveDirectoryDetails().getKombitUuid());
             }
 
             userDTOs.add(userDTO);
