@@ -241,7 +241,7 @@
 				for (var i = 0; i < phones.length; i++) {
 					if (phones[i].id == id) {
 						$('#phoneNumber').val(phones[i].phoneNumber);
-						$('#phoneType option[value="' + phones[i].phoneType.$name + '"]').prop('selected', true);
+						$('#phoneType option[value="' + phones[i].phoneType + '"]').prop('selected', true);
 						$('#phoneNotes').val(phones[i].notes);
 						handlePhoneTypeChange();
 
@@ -252,12 +252,11 @@
 							$('#IsFunctionPhone').prop('checked', false);
 							handleOnChangeEventForCollapse('IsFunctionPhone', false);
 						}
-
 					}
 				}
 			} else {
 				$('#phoneNumber').val("");
-				$('#phoneType option[value="MOBIL"]').prop('selected', true);
+				$('#phoneType option[value="MOBILE"]').prop('selected', true);
 				handlePhoneTypeChange();
 				$('#functionType option[value="NONE"]').prop('selected', true);
 				$('#IsFunctionPhone').prop('checked', false);
