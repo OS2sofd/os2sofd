@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.w3.org/1999/html">
-<head th:replace="fragments/header :: header (title=#{html.page.ous.list.title})"></head>
+<head th:replace="~{fragments/header :: header (title=#{html.page.ous.list.title})}"></head>
 <body>
 <div class="wrapper">
-	<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
-	<aside th:replace="fragments/navbar :: navbar-aside (page = 'orgunits', subpage='phonebook')"></aside>
+	<header th:replace="~{fragments/navbar :: navbar-header (subpage = 'phonebook')}"></header>
+	<aside th:replace="~{fragments/navbar :: navbar-aside (page = 'orgunits', subpage='phonebook')}"></aside>
 
 	<section>
 		<div class="content-wrapper">
@@ -124,7 +124,7 @@ div .affix {
 }
 </style>
 
-<nav th:replace="fragments/footer :: footer"></nav>
+<nav th:replace="~{fragments/footer :: footer}"></nav>
 
 <script th:inline="javascript">
 		/*<![CDATA[*/

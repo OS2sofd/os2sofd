@@ -2,10 +2,9 @@ package dk.digitalidentity.sofd.service;
 
 import java.util.Objects;
 
-import javax.transaction.Transactional;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import dk.digitalidentity.sofd.dao.SettingDao;
 import dk.digitalidentity.sofd.dao.model.Setting;
@@ -163,17 +162,6 @@ public class SettingService {
 
 	public void save(Setting setting) {
 		settingDao.save(setting);
-	}
-
-	public Setting getOpusAutoAffiliations() {
-		Setting setting = settingDao.findByKey(CustomerSetting.OPUS_AUTO_AFF.toString());
-		if (setting == null) {
-			setting = new Setting();
-			setting.setKey(CustomerSetting.OPUS_AUTO_AFF.toString());
-			setting.setValue(CustomerSetting.OPUS_AUTO_AFF.getDefaultValue());
-		}
-		
-		return setting;
 	}
 	
 	public void setValueForKey(String key, boolean enabled) {

@@ -5,46 +5,66 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.web.servlet.View;
 
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
-import org.springframework.web.servlet.view.document.AbstractXlsxView;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
-public class OrgUnitsXlsxView extends AbstractXlsxView {
-
+public class OrgUnitsXlsxView implements View {
+	private static final String CONTENT_TYPE = "application/ms-excel";
+	private String filename;
 	private int rowCount = 1;
 
 	@Override
-	protected void buildExcelDocument(Map<String, Object> model, Workbook workbook, HttpServletRequest request, HttpServletResponse response) throws Exception {
-		@SuppressWarnings("unchecked")
+	public String getContentType() {
+		return CONTENT_TYPE;
+	}
+	
+	public OrgUnitsXlsxView(String filename) {
+		this.filename = filename;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public void render(Map<String, ?> model, HttpServletRequest request, HttpServletResponse response) throws Exception {
 		List<OrgUnit> orgUnits = (List<OrgUnit>) model.get("orgUnits");
 		ResourceBundleMessageSource messageSource = (ResourceBundleMessageSource) model.get("messagesBundle");
 		Locale locale = (Locale) model.get("locale");
 
-		// create excel xls sheet
-		Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.orgunits.sheetname", null, locale));
+		response.setContentType(getContentType());
+		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 
-		// create header row
-		createHeader(workbook, sheet, messageSource, locale);
+		try (Workbook workbook = new DisposableSXSSFWorkbook()) {
+			// create excel xls sheet
+			Sheet sheet = workbook.createSheet(messageSource.getMessage("xls.orgunits.sheetname", null, locale));
+	
+			// required to support auto-formatting
+		    ((SXSSFSheet) sheet).trackAllColumnsForAutoSizing();
 
-		OrgUnit rootOU = orgUnits.stream().filter(ou -> ou.getParent() == null).findAny().orElse(null);
-		if (rootOU == null) {
+			// create header row
+			createHeader(workbook, sheet, messageSource, locale);
+	
+			OrgUnit rootOU = orgUnits.stream().filter(ou -> ou.getParent() == null).findAny().orElse(null);
+			if (rootOU == null) {
+				format(sheet);
+				return;
+			}
+	
+			makeTree(rootOU, sheet, 0);
+	
 			format(sheet);
-			return;
+			
+			workbook.write(response.getOutputStream());
 		}
-
-		makeTree(rootOU, sheet, 0);
-
-		format(sheet);
 	}
 
 	private void makeTree(OrgUnit orgUnit, Sheet sheet, int indent) {

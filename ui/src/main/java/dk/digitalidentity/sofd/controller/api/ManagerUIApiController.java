@@ -96,7 +96,7 @@ public class ManagerUIApiController {
 	@Autowired
 	private ManagerService managerService;
 
-	private Locale locale = new Locale("da-DK");
+	private Locale locale = Locale.of("da-DK");
 
 	@GetMapping("/api/manager/{uuid}/logincontexts")
 	public ResponseEntity<?> getLoginContexts(@PathVariable String uuid) {
@@ -268,6 +268,7 @@ public class ManagerUIApiController {
 	}
 
 	private record EditAffiliationDTO(long id, String position, String positionDisplayName, Date startDate, Date stopDate, String internalReference) {}
+
 	@PostMapping("/api/manager/{uuid}/affiliations/edit")
 	public ResponseEntity<?> editAffiliation(@PathVariable String uuid, @RequestBody EditAffiliationDTO editAffiliationDTO) {
 		Person manager = personService.getByUuid(uuid);
