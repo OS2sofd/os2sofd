@@ -30,6 +30,14 @@ public class OpenApiConfig {
     }
 
     @Bean
+    public GroupedOpenApi personOpenApi() {
+        return GroupedOpenApi.builder()
+                .group("person")
+                .packagesToScan("dk.digitalidentity.sofd.controller.api.person")
+                .build();
+    }
+
+    @Bean
     public OpenAPI OS2sofdOpenAPI() {
         final String securitySchemeName = "ApiKey";
 
