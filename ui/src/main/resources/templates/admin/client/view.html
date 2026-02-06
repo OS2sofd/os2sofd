@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/header :: header}"></head>
+<head th:replace="fragments/header :: header"></head>
 <body>
 	<div class="wrapper">
-		<header th:replace="~{fragments/navbar :: navbar-header (subpage = 'admin')}"></header>
-		<aside th:replace="~{fragments/navbar :: navbar-aside (page = 'clients.list', subpage = 'admin')}"></aside>
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'clients.list', subpage = 'admin')"></aside>
  
 		<section>
 			<div class="content-wrapper">
@@ -118,7 +118,7 @@
 
 	</div>
 
-	<div th:replace="~{fragments/footer :: footer}"></div>
+	<div th:replace="fragments/footer :: footer"></div>
 	<script th:inline="javascript">
 
 		/*<![CDATA[*/

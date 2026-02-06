@@ -5,6 +5,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.validation.Valid;
+
+import dk.digitalidentity.sofd.dao.model.ClientIpAddress;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -20,15 +23,13 @@ import dk.digitalidentity.sofd.controller.mvc.dto.ClientDTO;
 import dk.digitalidentity.sofd.controller.validation.ClientDTOValidator;
 import dk.digitalidentity.sofd.dao.model.AccessField;
 import dk.digitalidentity.sofd.dao.model.Client;
-import dk.digitalidentity.sofd.dao.model.ClientIpAddress;
 import dk.digitalidentity.sofd.dao.model.enums.AccessEntity;
 import dk.digitalidentity.sofd.dao.model.enums.AccessEntityField;
 import dk.digitalidentity.sofd.dao.model.enums.AccessRole;
 import dk.digitalidentity.sofd.dao.model.enums.VersionStatus;
 import dk.digitalidentity.sofd.security.RequireAdminAccess;
-import dk.digitalidentity.sofd.service.ClientIpAddressService;
 import dk.digitalidentity.sofd.service.ClientService;
-import jakarta.validation.Valid;
+import dk.digitalidentity.sofd.service.ClientIpAddressService;
 
 @RequireAdminAccess
 @Controller

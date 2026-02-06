@@ -3,13 +3,14 @@ package dk.digitalidentity.sofd.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.annotation.PostConstruct;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import dk.digitalidentity.sofd.controller.mvc.dto.FunctionTypeDTO;
 import dk.digitalidentity.sofd.dao.FunctionTypeDao;
 import dk.digitalidentity.sofd.dao.model.FunctionType;
-import jakarta.annotation.PostConstruct;
 
 @Service
 public class FunctionTypeService {

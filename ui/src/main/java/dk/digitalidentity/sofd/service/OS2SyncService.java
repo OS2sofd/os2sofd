@@ -18,6 +18,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.transaction.Transactional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpEntity;
@@ -29,7 +31,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
@@ -188,8 +189,8 @@ public class OS2SyncService {
 		var request = new HttpEntity<>(kombitUuids, headers);
 		ResponseEntity<String> response = restTemplate.exchange(configuration.getIntegrations().getOs2sync().getUserCleanupUrl(), HttpMethod.POST, request, String.class);
 		
-		if (response.getStatusCode().value() != 200) {
-			log.warn("Cleanup of FK organisation users failed: " + response.getStatusCode().value());
+		if (response.getStatusCodeValue() != 200) {
+			log.warn("Cleanup of FK organisation users failed: " + response.getStatusCodeValue());
 		}
 		
 		log.info("Users cleanup completed");
@@ -414,31 +415,8 @@ public class OS2SyncService {
 		Optional<User> kspCicsUser = PersonService.getUsers(person).stream().filter(u -> SupportedUserTypeService.isKspCics(u.getUserType()) && u.isPrime()).findFirst();
 		final String kspCicsValue = (kspCicsUser.isPresent()) ? kspCicsUser.get().getUserId() : null;
 
-		// find name (FK Organisation requires that it starts with a normal character (a-z or æøå)
-		String nameValue = (person.getChosenName() != null) ? person.getChosenName() : (person.getFirstname() + " " + person.getSurname());
-		if (nameValue != null && nameValue.length() > 0) {
-			boolean done = false;
-
-			do {
-				char c = nameValue.toLowerCase().charAt(0);
-				if ((c >= 'a' && c <= 'z') ||
-				    (c == 'æ') || (c == 'ø') || (c == 'å')) {
-			    	done = true;
-			    }
-				
-				if (nameValue.length() > 1) {
-					nameValue = nameValue.substring(1);
-				}
-				else {
-					nameValue = null;
-					done = true;
-				}
-			} while (!done);
-		}
-		
-		if (!StringUtils.hasText(nameValue)) {
-			nameValue = "Tomt navn";
-		}
+		// find name
+		final String nameValue = (person.getChosenName() != null) ? person.getChosenName() : (person.getFirstname() + " " + person.getSurname());
 
 		List<User> adUsers = PersonService.getUsers(person)
 				.stream()
@@ -543,8 +521,7 @@ public class OS2SyncService {
 			}
 			else {
 				log.debug("Transfering " + adUser.getUserId() + " to OS2sync");
-
-				String fNameValue = nameValue;
+				
 				GeneratedKeyHolder holder = new GeneratedKeyHolder();
 				jdbcTemplate.update(new PreparedStatementCreator() {
 
@@ -556,7 +533,7 @@ public class OS2SyncService {
 						statement.setString(3, StringUtils.hasText(phoneValue) ? phoneValue : null);
 						statement.setString(4, finalEmailValue);
 						statement.setString(5, kspCicsValue);
-						statement.setString(6, fNameValue);
+						statement.setString(6, nameValue);
 						statement.setString(7, cprValue);
 						statement.setString(8, StringUtils.hasText(landlineValue) ? landlineValue : null);
 						statement.setString(9, configuration.getCustomer().getCvr());
@@ -568,20 +545,13 @@ public class OS2SyncService {
 
 				final Long primaryKey = holder.getKey().longValue();
 
-				filteredAffiliations.forEach(a -> {
-					String positionName = AffiliationService.getPositionName(a);
-					if (!StringUtils.hasLength(positionName)) {
-						positionName = "Ukendt";
-					}
-
-					jdbcTemplate.update(updatePositionSQL, new Object[] {
-						primaryKey,
-						positionName,
-						a.getCalculatedOrgUnit().getUuid(),
-						formatDate(a.getStartDate(), false),
-						formatDate(a.getStopDate(), true)
-					});
-				});
+				filteredAffiliations.forEach(a -> jdbcTemplate.update(updatePositionSQL, new Object[] {
+					primaryKey,
+					AffiliationService.getPositionName(a),
+					a.getCalculatedOrgUnit().getUuid(),
+					formatDate(a.getStartDate(), false),
+					formatDate(a.getStopDate(), true)
+				}));
 
 				FkOrgUuid entry = entries.stream().filter(e -> Objects.equals(finalUuid, e.getKombitUuid())).findFirst().orElse(null);
 				if (entry == null) {

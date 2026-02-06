@@ -25,6 +25,7 @@ public class JdbcTemplateConfiguration {
 	public JdbcTemplate os2syncTemplate() {
 		if (configuration.getScheduled().isEnabled() && configuration.getIntegrations().getOs2sync().isEnabled()) {
 			HikariConfig config = new HikariConfig();
+			config.setConnectionTestQuery("SELECT 1");
 			config.setDriverClassName("com.mysql.cj.jdbc.Driver");
 			config.setMinimumIdle(0);
 			config.setMaximumPoolSize(2);

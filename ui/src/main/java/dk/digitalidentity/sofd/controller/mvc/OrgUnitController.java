@@ -14,6 +14,11 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
+
+import dk.digitalidentity.sofd.config.SofdConfiguration;
+import dk.digitalidentity.sofd.controller.mvc.dto.OrgUnitFutureChangeDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.data.util.Pair;
@@ -28,7 +33,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.ModelAndView;
 
 import dk.digitalidentity.sofd.config.RoleConstants;
-import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.mvc.admin.dto.TagDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.AffiliationDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.EmployeeDTO;
@@ -73,8 +77,6 @@ import dk.digitalidentity.sofd.service.model.KleAssignmentType;
 import dk.digitalidentity.sofd.service.model.OUTreeForm;
 import dk.digitalidentity.sofd.service.model.OUTreeFormWithTags;
 import dk.digitalidentity.sofd.service.model.SubstituteOrgUnitAssignmentDTO;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -176,7 +178,10 @@ public class OrgUnitController {
 		model.put("messagesBundle", messageSource);
 		model.put("locale", loc);
 
-		return new ModelAndView(new AccountOrderRulesXlsView("regler.xlsx"), model);
+		response.setContentType("application/ms-excel");
+		response.setHeader("Content-Disposition", "attachment; filename=\"regler.xlsx\"");
+
+		return new ModelAndView(new AccountOrderRulesXlsView(), model);
 	}
 
 	@GetMapping(path = {"/ui/orgunit/downloadorgunits/{orgId}"})
@@ -190,7 +195,10 @@ public class OrgUnitController {
 		model.put("messagesBundle", messageSource);
 		model.put("locale", loc);
 
-		return new ModelAndView(new OrgUnitsXlsxView("enheder.xlsx"), model);
+		response.setContentType("application/ms-excel");
+		response.setHeader("Content-Disposition", "attachment; filename=\"enheder.xlsx\"");
+
+		return new ModelAndView(new OrgUnitsXlsxView(), model);
 	}
 
 	@GetMapping(path = {"/ui/orgunit/view/{uuid}"})
@@ -255,7 +263,7 @@ public class OrgUnitController {
 		response.setContentType("application/ms-excel");
 		response.setHeader("Content-Disposition", "attachment; filename=\"Medarbejderoplysninger - " + orgUnit.getName() + ".xlsx\"");
 
-		return new ModelAndView(new EmployeesInformationXlsView("Medarbejderoplysninger - " + orgUnit.getName() + ".xlsx"), model);
+		return new ModelAndView(new EmployeesInformationXlsView(), model);
 	}
 
 	@GetMapping(value = "/ui/orgunit/view/download/employees_nested/{uuid}")
@@ -272,7 +280,10 @@ public class OrgUnitController {
 		model.put("messagesBundle", messageSource);
 		model.put("locale", loc);
 
-		return new ModelAndView(new EmployeesInformationXlsView("Medarbejderoplysninger - " + orgUnit.getName() + ".xlsx"), model);
+		response.setContentType("application/ms-excel");
+		response.setHeader("Content-Disposition", "attachment; filename=\"Medarbejderoplysninger - " + orgUnit.getName() + ".xlsx\"");
+
+		return new ModelAndView(new EmployeesInformationXlsView(), model);
 	}
 
 	@RequireControllerWriteAccess

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
-<head th:replace="~{fragments/header :: header}"></head>
+<head th:replace="fragments/header :: header"></head>
 <body>
 	<div class="wrapper">
-		<header th:replace="~{fragments/navbar :: navbar-header (subpage = 'admin')}"></header>
-		<aside th:replace="~{fragments/navbar :: navbar-aside (page = 'features', subpage='admin')}"></aside>
+		<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
+		<aside th:replace="fragments/navbar :: navbar-aside (page = 'features', subpage='admin')"></aside>
 
 		<section>
 			<div class="content-wrapper">
@@ -38,8 +38,8 @@
 		</section>
 	</div>
 
-	<script th:replace="~{fragments/datatables :: datatables(paging=false) }"></script>
-	<nav th:replace="~{fragments/footer :: footer}"></nav>
+	<script th:replace="fragments/datatables :: datatables(paging=false) "></script>
+	<nav th:replace="fragments/footer :: footer"></nav>
 	<script th:inline="javascript">
 		/*<![CDATA[*/
 

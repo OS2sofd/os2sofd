@@ -2,6 +2,8 @@ package dk.digitalidentity.sofd.controller.rest;
 
 import java.util.Objects;
 
+import javax.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
@@ -17,7 +19,6 @@ import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.security.RequireProfileAccess;
 import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.PersonService;
-import jakarta.validation.Valid;
 
 @RequireProfileAccess
 @RestController

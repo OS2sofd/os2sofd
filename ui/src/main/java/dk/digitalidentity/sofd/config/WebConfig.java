@@ -15,12 +15,5 @@ public class WebConfig implements WebMvcConfigurer {
 		registry.addResourceHandler("/webjars/**")
 				.addResourceLocations("classpath:/META-INF/resources/webjars/")
 			    .setCacheControl(CacheControl.maxAge(1, TimeUnit.DAYS));
-		
-		// allow loading from filesystem (custom forms) - and also add cache for static files
-        registry.addResourceHandler("/**")
-		        .addResourceLocations(
-		            "classpath:/static/"
-		        )
-		        .setCacheControl(CacheControl.maxAge(1, TimeUnit.HOURS));
 	}
 }

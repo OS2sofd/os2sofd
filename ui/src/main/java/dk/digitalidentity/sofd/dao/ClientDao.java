@@ -1,6 +1,6 @@
 package dk.digitalidentity.sofd.dao;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.Modifying;
@@ -19,6 +19,6 @@ public interface ClientDao extends CrudRepository<Client, Long> {
 
 
 	@Modifying
-	@Query(value = "UPDATE client c SET last_active =:date WHERE c.id = :clientId", nativeQuery = true)
-	void setLastActive(@Param("date") LocalDateTime date, @Param("clientId") long clientId);
+	@Query(value = "UPDATE client c set last_active =:date where c.id = :clientId", nativeQuery = true)
+	void setLastActive(@Param("date") Date date, @Param("clientId") long clientId);
 }
