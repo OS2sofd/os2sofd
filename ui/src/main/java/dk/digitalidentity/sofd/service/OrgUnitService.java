@@ -11,15 +11,10 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import javax.annotation.PostConstruct;
-import javax.servlet.http.HttpSession;
-import javax.transaction.Transactional;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.CacheEvict;
@@ -30,9 +25,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import dk.digitalidentity.sofd.config.RoleConstants;
 import dk.digitalidentity.sofd.config.SessionConstants;
@@ -62,6 +60,8 @@ import dk.digitalidentity.sofd.service.model.OUTagRow;
 import dk.digitalidentity.sofd.service.model.OUTreeForm;
 import dk.digitalidentity.sofd.service.model.OUTreeFormWithTags;
 import dk.digitalidentity.sofd.service.model.SubstituteOrgUnitAssignmentDTO;
+import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -112,6 +112,9 @@ public class OrgUnitService {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private ObjectMapper mapper;
+
 	@Autowired
 	private OrgUnitDao orgUnitDao;
 
@@ -143,13 +146,10 @@ public class OrgUnitService {
 	private ManagerService managerService;
 
 	@Autowired
-	AffiliationService affiliationService;
+	private AffiliationService affiliationService;
 
 	@Autowired
 	private EanService eanService;
-
-	@Autowired
-	private ObjectMapper mapper;
 
 	public OrgUnit getByUuid(String uuid) {
 		Date date = getFutureDateFromSession();
@@ -285,7 +285,7 @@ public class OrgUnitService {
 	public List<OUTreeForm> getAllExceptAdmOrg() {
 		List<OUTreeForm> result = new ArrayList<>();
 		for (Organisation organisation : organisationService.getAllExceptAdmOrg()) {
-			result.addAll(jdbcTemplate.query(SELECT_THIN_ORGUNITS_SQL, new Object[] { organisation.getId()},(RowMapper<OUTreeForm>) (rs, rownum) -> {
+			result.addAll(jdbcTemplate.query(SELECT_THIN_ORGUNITS_SQL, new Object[] { organisation.getId()},(RowMapper<OUTreeForm>) (rs, _) -> {
 				OUTreeForm ou = new OUTreeForm();
 
 				ou.setId(rs.getString("uuid"));
@@ -312,7 +312,7 @@ public class OrgUnitService {
 
 	public List<OUTreeForm> getAllTree(Organisation organisation) {
 		@SuppressWarnings("deprecation")
-		List<OUTreeForm> result = jdbcTemplate.query(SELECT_THIN_ORGUNITS_SQL, new Object[] { organisation.getId()},(RowMapper<OUTreeForm>) (rs, rownum) -> {
+		List<OUTreeForm> result = jdbcTemplate.query(SELECT_THIN_ORGUNITS_SQL, new Object[] { organisation.getId()},(RowMapper<OUTreeForm>) (rs, _) -> {
 			OUTreeForm ou = new OUTreeForm();
 
 			ou.setId(rs.getString("uuid"));
@@ -341,7 +341,7 @@ public class OrgUnitService {
 
 	public List<OUTreeFormWithTags> getAllTreeWithTags(Organisation organisation) {
 		@SuppressWarnings("deprecation")
-		List<OUTagRow> result = jdbcTemplate.query(SELECT_THIN_ORGUNITS_SQL_WITH_TAGS_AND_MANAGER, new Object[] { organisation.getId()}, (RowMapper<OUTagRow>) (rs, rownum) -> {
+		List<OUTagRow> result = jdbcTemplate.query(SELECT_THIN_ORGUNITS_SQL_WITH_TAGS_AND_MANAGER, new Object[] { organisation.getId()}, (RowMapper<OUTagRow>) (rs, _) -> {
 			OUTagRow ou = new OUTagRow();
 
 			ou.setId(rs.getString("uuid"));
@@ -511,7 +511,7 @@ public class OrgUnitService {
 
 	private List<OUAddressTreeNode> getAllTreeByAddress(Organisation organisation) {
 		@SuppressWarnings("deprecation")
-		List<OUAddressRow> result = jdbcTemplate.query(SELECT_THIN_ORGUNITS_WITH_ADDRESS_SQL, new Object[] { organisation.getId()}, (RowMapper<OUAddressRow>) (rs, rownum) -> {
+		List<OUAddressRow> result = jdbcTemplate.query(SELECT_THIN_ORGUNITS_WITH_ADDRESS_SQL, new Object[] { organisation.getId()}, (RowMapper<OUAddressRow>) (rs, _) -> {
 			OUAddressRow ou = new OUAddressRow();
 
 			ou.setId(rs.getString("uuid"));

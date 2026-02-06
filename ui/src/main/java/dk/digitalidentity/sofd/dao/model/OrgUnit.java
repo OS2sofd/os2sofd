@@ -5,27 +5,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-import javax.persistence.Transient;
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-
 import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Generated;
 import org.hibernate.envers.Audited;
 import org.hibernate.envers.NotAudited;
+import org.hibernate.generator.EventType;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -41,6 +26,19 @@ import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitTertiaryKleMapping;
 import dk.digitalidentity.sofd.log.Loggable;
 import dk.digitalidentity.sofd.serializer.LocalExtensionsDeserializer;
 import dk.digitalidentity.sofd.serializer.LocalExtensionsSerializer;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Transient;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -48,13 +46,15 @@ import lombok.Setter;
 @Getter
 @Setter
 @Audited
+@BatchSize(size = 50)
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" }) // need this because we sometimes detach the object from Hibernate
 public class OrgUnit implements Loggable {
 
 	@Id
 	private String uuid;
 
-	@GeneratedValue
+    @Generated(event = EventType.INSERT)
+    @Column(insertable = false, updatable = false)
 	private long id;
 
 	@Column
@@ -69,11 +69,9 @@ public class OrgUnit implements Loggable {
 	private boolean deleted;
 
 	@CreationTimestamp
-	@Temporal(TemporalType.TIMESTAMP)
 	@Column(updatable = false)
 	private Date created;
 
-	@Temporal(TemporalType.TIMESTAMP)
 	@Column
 	private Date lastChanged;
 
@@ -183,7 +181,6 @@ public class OrgUnit implements Loggable {
 	@JsonIgnore
 	private List<OrgUnitTag> tags = new  ArrayList<>();
 
-	@BatchSize(size = 50)
 	@OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "orgUnit", orphanRemoval = true)
 	@Valid
 	@NotAudited

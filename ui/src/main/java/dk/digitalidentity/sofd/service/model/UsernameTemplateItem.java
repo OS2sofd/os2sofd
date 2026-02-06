@@ -1,5 +1,16 @@
 package dk.digitalidentity.sofd.service.model;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
+
+import org.apache.commons.lang3.math.NumberUtils;
+
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.service.PersonService;
@@ -7,17 +18,6 @@ import dk.digitalidentity.sofd.service.model.enums.UsernameTemplateVariableType;
 import dk.digitalidentity.sofd.service.transliteration.Transliteration;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang.math.NumberUtils;
-
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.stream.Stream;
 
 @Getter
 @Setter

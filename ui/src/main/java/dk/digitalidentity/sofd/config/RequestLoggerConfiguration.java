@@ -4,14 +4,13 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
-import javax.servlet.DispatcherType;
-
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import dk.digitalidentity.sofd.log.RequestLogger;
 import dk.digitalidentity.sofd.log.SecurityLogger;
+import jakarta.servlet.DispatcherType;
 
 @Configuration
 public class RequestLoggerConfiguration {
