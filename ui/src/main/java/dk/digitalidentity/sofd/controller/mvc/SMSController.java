@@ -221,7 +221,7 @@ public class SMSController {
 					Set<String> userIdsFromItSystem = roleCatalogService.getUsersByItSystem(itSystemIdentifier);
 					userIds.addAll(userIdsFromItSystem);
 				}
-				itSystemPersons = personService.getAll().stream().filter(p -> PersonService.getUsers(p).stream()
+				itSystemPersons = personService.getActive().stream().filter(p -> PersonService.getUsers(p).stream()
 						.filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType())).anyMatch(u -> userIds.contains(u.getUserId()))).toList();
 			}
 			for (var itSystemPerson : itSystemPersons) {
