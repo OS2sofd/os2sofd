@@ -70,6 +70,8 @@ import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.dao.model.enums.LeaveReason;
 import dk.digitalidentity.sofd.dao.model.enums.NotificationType;
 import dk.digitalidentity.sofd.dao.model.mapping.PersonUserMapping;
+import dk.digitalidentity.sofd.dao.paginator.PersonPage;
+import dk.digitalidentity.sofd.dao.paginator.PersonPaginator;
 import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.model.ChangeType;
 import dk.digitalidentity.sofd.service.model.PersonDeletePeriod;
@@ -148,6 +150,9 @@ public class PersonService {
 
 	@Autowired
 	private SubstituteOrgUnitAssignmentService substituteOrgUnitAssignmentService;
+	
+	@Autowired
+	private PersonPaginator personPaginator;
 
 	public boolean isManager(Person person) {
 		return orgUnitManagerDao.existsByManagerUuid(person.getUuid());
@@ -360,7 +365,6 @@ public class PersonService {
 					}
 				}
 			}
-
 		}
 		
 		personDao.saveAll(persons);
@@ -420,56 +424,72 @@ public class PersonService {
 	// all other prime flags are automatically set when calling save(), but
 	// both users and affiliations have an expire-date, so we need to check
 	// that daily, and update the prime flag in case the prime field is expired
-	@Transactional(rollbackFor = Exception.class)
 	public void setPrimeAffiliationPrimeUserAndDeleted() {
 		log.info("Executing setPrimeAffiliationPrimeUserAndDeleted task");
 
 		SecurityUtil.fakeLoginSession();
 
-		List<Person> persons = getAll();
 		List<String> allUserTypes = supportedUserTypeService.getAllUserTypes();
-		List<Person> toSave = new ArrayList<>();
-		
-		int counter = 0, saveCounter = 0;
-		for (Person person : persons) {
-			counter ++;
-			if (counter % 500 == 0) {
-				log.info("Handling person " + counter + " of " + persons.size());
-			}
 
-			boolean changes = primeService.setPrimeAffilation(person);
-			
-			if (person.getUsers() != null) {
-				for (String userType : allUserTypes) {
-					List<User> users = PersonService.getUsers(person).stream().filter(u -> u.getUserType().equals(userType)).collect(Collectors.toList());
-					
-					if (users != null && users.size() > 0) {
-						changes = changes || primeService.setPrimeUser(users);
+		// preload all the data from the DB that we need
+		PersonPage page = personPaginator.initPaginator(p -> {
+			p.getAffiliations().forEach(a -> {
+				a.getPositionName();
+			});
+
+			p.getUsers().forEach(um -> {
+				um.getUser().getUserId();
+			});
+		});
+
+		int counter = 0, saveCounter = 0;
+		personPaginator.page(page);
+		while (!page.isDone()) {
+			List<Person> persons = page.getResult();
+			List<Person> toSave = new ArrayList<>();
+
+			for (Person person : persons) {
+				counter ++;
+				if (counter % 500 == 0) {
+					log.info("Handling person " + counter + " of " + persons.size());
+				}
+	
+				boolean changes = primeService.setPrimeAffilation(person);
+				
+				if (person.getUsers() != null) {
+					for (String userType : allUserTypes) {
+						List<User> users = PersonService.getUsers(person).stream().filter(u -> u.getUserType().equals(userType)).collect(Collectors.toList());
+						
+						if (users != null && users.size() > 0) {
+							changes = changes || primeService.setPrimeUser(users);
+						}
 					}
 				}
+
+				// if the person does not have any users, and does not have any prime affiliations (i.e. no active affiliations), then flip the delete flag
+				boolean shouldBeDeleted = (person.getUsers().size() == 0 && !person.getAffiliations().stream().anyMatch(a -> a.isPrime()));
+				if (shouldBeDeleted && !person.isDeleted()) {
+					person.setDeleted(true);
+					changes = true;
+				}
+				else if (!shouldBeDeleted && person.isDeleted()) {
+					person.setDeleted(false);
+					changes = true;
+				}
+	
+				if (changes) {
+					saveCounter++;
+					person.setLastChanged();
+					toSave.add(person);
+				}
+			}
+	
+			// bypass interceptors - which is okay as we handle consistency here, and also set the lastChanged field
+			if (toSave.size() > 0) {
+				personDao.saveAll(toSave);
 			}
 			
-			// if the person does not have any users, and does not have any prime affiliations (i.e. no active affiliations), then flip the delete flag
-			boolean shouldBeDeleted = (person.getUsers().size() == 0 && !person.getAffiliations().stream().anyMatch(a -> a.isPrime()));
-			if (shouldBeDeleted && !person.isDeleted()) {
-				person.setDeleted(true);
-				changes = true;
-			}
-			else if (!shouldBeDeleted && person.isDeleted()) {
-				person.setDeleted(false);
-				changes = true;
-			}
-
-			if (changes) {
-				saveCounter++;
-				person.setLastChanged();
-				toSave.add(person);
-			}
-		}
-
-		// bypass interceptors - which is okay as we handle consistency here, and also set the lastChanged field
-		if (toSave.size() > 0) {
-			personDao.saveAll(toSave);
+			personPaginator.page(page);
 		}
 
 		log.info("Finished executing setPrimeAffiliationPrimeUserAndDeleted task - with " + saveCounter + " saves");

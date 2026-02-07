@@ -52,6 +52,8 @@ import dk.digitalidentity.sofd.dao.model.enums.TagType;
 import dk.digitalidentity.sofd.dao.model.enums.Visibility;
 import dk.digitalidentity.sofd.dao.model.mapping.ContactPlaceOrgUnitMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.PersonUserMapping;
+import dk.digitalidentity.sofd.dao.paginator.PersonPage;
+import dk.digitalidentity.sofd.dao.paginator.PersonPaginator;
 import dk.digitalidentity.sofd.service.model.SyncResult;
 import dk.digitalidentity.sofd.service.os2sync.dto.FKOU;
 import lombok.extern.slf4j.Slf4j;
@@ -112,6 +114,9 @@ public class OS2SyncService {
 	@Qualifier("defaultRestTemplate")
 	@Autowired
 	private RestTemplate restTemplate;
+	
+	@Autowired
+	private PersonPaginator personPaginator;
 
 	@Transactional
 	public void synchronizeHierarchy() {
@@ -195,7 +200,6 @@ public class OS2SyncService {
 		log.info("Users cleanup completed");
 	}
 
-	@Transactional
 	public void fullUpdate() {
 		Long head = syncService.getMaxOffset();
 		if (head == null) {
@@ -218,14 +222,39 @@ public class OS2SyncService {
 			}
 		}
 
-		List<Person> persons = personService.getAll();
-		for (Person person : persons) {
-			if (person.isDeleted()) {
-				deletePerson(person);
+		// preload all the data from the DB that we need
+		PersonPage page = personPaginator.initPaginator(p -> {
+			p.getAffiliations().forEach(a -> {
+				a.getCalculatedOrgUnit().getBelongsTo().getName();
+			});
+
+			p.getUsers().forEach(um -> {
+				um.getUser().getUserId();
+
+				if (um.getUser().getActiveDirectoryDetails() != null) {
+					um.getUser().getActiveDirectoryDetails().getTitle();
+				}
+			});
+			
+			p.getPhones().forEach(pm -> {
+				pm.getPhone().getPhoneNumber();
+			});
+		});
+
+		personPaginator.page(page);
+		while (!page.isDone()) {
+			List<Person> persons = page.getResult();
+			
+			for (Person person : persons) {
+				if (person.isDeleted()) {
+					deletePerson(person);
+				}
+				else {
+					updatePerson(person, doNotTransferToFKOrgUuids, admOrg.getId());
+				}
 			}
-			else {
-				updatePerson(person, doNotTransferToFKOrgUuids, admOrg.getId());
-			}
+			
+			personPaginator.page(page);
 		}
 
 		updateLatestSTSSyncRun(head);

@@ -1233,10 +1233,11 @@ public class AccountOrderService {
 
 	@Transactional(rollbackFor = Exception.class)
 	public void nightlyJob() {
+		log.info("Starting nightly job");
+
 		Authentication authentication = SecurityUtil.getLoginSession();
 		try {
 			SecurityUtil.fakeLoginSession();
-			log.info("Starting nightly job");
 
 			long startTts = System.currentTimeMillis();
 
@@ -1254,6 +1255,12 @@ public class AccountOrderService {
 				s.getContext().getIdentifier();
 				s.getConstraintMappings().forEach(m -> m.getOrgUnit().getUuid());
 			}));
+			
+			// create a lookup map for AD accounts (needed later for computing delete orders)
+			Map<String, User> activeDirectoryUserMap = persons.stream()
+				.flatMap(p -> p.getUsers().stream()).map(um -> um.getUser())
+				.filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType()))
+				.collect(Collectors.toMap(User::getUserIdLowerCase, Function.identity()));
 
 			// convert to easy lookup map
 			Map<String, Person> allPersons = persons.stream().collect(Collectors.toMap(Person::getUuid, Function.identity()));
@@ -1351,7 +1358,7 @@ public class AccountOrderService {
 			List<AccountOrder> newDeleteOrders = getAccountsToDeleteOrDeactivate(persons, true);
 			List<AccountOrder> existingDeleteOrders = findAllDeleteAndDeactivateOrders();
 
-			log.info("Got " + newDeleteOrders.size() + " delete orders");
+			log.info("Got " + newDeleteOrders.size() + " delete/deactivate orders");
 
 			// remove existing delete/deactivate (pending) orders that are no longer relevant
 			int removedDeleteOrders = 0;
@@ -1371,11 +1378,11 @@ public class AccountOrderService {
 				// as the account might have been deactivated by a previous task-run, and then
 				// this job would not know about the account, and thus not generate a delete job for it.
 				if (existingOrder.getUserType().equals(SupportedUserTypeService.getActiveDirectoryUserType()) &&
-						existingOrder.getOrderType().equals(AccountOrderType.DELETE)) {
+					existingOrder.getOrderType().equals(AccountOrderType.DELETE)) {
 
 					// we double-check against actual users, because the person might have been re-hired, and the old account re-activated,
 					// and in that case, we do NOT want to delete the account
-					User user = userService.findByUserIdAndUserType(existingOrder.getRequestedUserId(), SupportedUserTypeService.getActiveDirectoryUserType());
+					User user = activeDirectoryUserMap.get(existingOrder.getRequestedUserId().toLowerCase());
 					if (user != null && user.isDisabled()) {
 						continue;
 					}
@@ -1383,11 +1390,11 @@ public class AccountOrderService {
 
 				var shouldDeleteOrder = false;
 				var personOfOrder = personService.getByUuid(existingOrder.getPersonUuid());
-				if( existingOrder.getOrderType() == AccountOrderType.DEACTIVATE && personOfOrder.isDisableAccountOrdersDisable() ) {
+				if (existingOrder.getOrderType() == AccountOrderType.DEACTIVATE && personOfOrder.isDisableAccountOrdersDisable()) {
 					// delete the deactivate-order if person is exempt from deactivate-orders
 					shouldDeleteOrder = true;
 				}
-				else if( existingOrder.getOrderType() == AccountOrderType.DELETE && personOfOrder.isDisableAccountOrdersDelete() ) {
+				else if (existingOrder.getOrderType() == AccountOrderType.DELETE && personOfOrder.isDisableAccountOrdersDelete()) {
 					// delete the delete-order if person is exempt from delete-orders
 					shouldDeleteOrder = true;
 				}
@@ -1406,6 +1413,8 @@ public class AccountOrderService {
 					delete(existingOrder);
 				}
 			}
+
+			log.info("Looking to see which of " + newDeleteOrders.size() + " delete orders should be saved");
 
 			// new deactivate/delete orders to be added to table
 			int addedDeleteOrders = 0;
@@ -1434,6 +1443,8 @@ public class AccountOrderService {
 		finally {
 			SecurityUtil.setLoginSession(authentication);
 		}
+		
+		log.info("Completed nightly job");
 	}
 
 	@Transactional(rollbackFor = Exception.class)

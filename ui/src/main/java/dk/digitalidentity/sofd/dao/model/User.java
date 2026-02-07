@@ -22,6 +22,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.Transient;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.EqualsAndHashCode;
@@ -119,5 +120,14 @@ public class User extends MasteredEntity {
 		
 		activeDirectoryDetails.clear();
 		activeDirectoryDetails.add(details);
+	}
+	
+	@Transient
+	public String getUserIdLowerCase() {
+		if (userId == null) {
+			return null;
+		}
+
+		return userId.toLowerCase();
 	}
 }
