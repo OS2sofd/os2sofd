@@ -142,7 +142,7 @@ public class BootstrapDevMode {
 
 	private void generatePersons() {
 		for (int i = 0; i < orgUnits.size() * 1.5; i++) {
-			var person = createPerson("300200" + i);
+			var person = createPerson("300200" + (1000 + i));
 			var affiliationCount = rand.nextInt(1, 3);
 			var uniqueOrgUnits = getRandomUniqueOrgUnits(affiliationCount);
 			
@@ -240,6 +240,7 @@ public class BootstrapDevMode {
 		affiliation.setLocalExtensions("{\"key\":\"value\"}");
 		affiliation.setPositionName("Sej ansat");
 		affiliation.setPositionId("" + rand.nextInt(1, 9000));
+		affiliation.setPositionShort("short");
 
 		affiliation.setFunctions(new ArrayList<>());
 		AffiliationFunctionMapping function = new AffiliationFunctionMapping();

@@ -10,7 +10,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import dk.digitalidentity.sofd.security.SecurityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -23,6 +22,9 @@ import dk.digitalidentity.sofd.controller.mvc.dto.CprLookupDTO;
 import dk.digitalidentity.sofd.dao.model.Child;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Post;
+import dk.digitalidentity.sofd.dao.paginator.PersonPage;
+import dk.digitalidentity.sofd.dao.paginator.PersonPaginator;
+import dk.digitalidentity.sofd.security.SecurityUtil;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -37,12 +39,15 @@ public class CprUpdateService {
 
 	@Autowired
 	private SofdConfiguration configuration;
+	
+	@Autowired
+	private PersonPaginator personPaginator;
 
 	@Transactional
 	public void updateBadState() {
 		List<BadStateDTO> badStates = cprService.getBadStates();
 		Map<String, BadStateDTO> badStateMap = badStates.stream().collect(Collectors.toMap(BadStateDTO::getCpr, Function.identity()));
-
+		
 		List<Person> activePersons = personService.getActive();
 		
 		for (Person person : activePersons) {
@@ -86,29 +91,46 @@ public class CprUpdateService {
 		try {
 			SecurityUtil.fakeLoginSession();
 
-			// preload data, so we do not need a transaction
-			List<Person> activePersons = personService.getActive(p -> {
-				if (p.getChildren() != null && p.getChildren().size() > 0) {
-					p.getChildren().forEach(c -> {
-						c.getName();
-					});
-				}
+			PersonPage pager = personPaginator.initPaginator(
+			    (root, query, cb) -> {
+			    	return cb.equal(root.get("deleted"), false);
+			    },
+		        (p) -> {
+					if (p.getChildren() != null && p.getChildren().size() > 0) {
+						p.getChildren().forEach(c -> {
+							c.getName();
+						});
+					}
 
-				if (p.getAffiliations() != null && !p.getAffiliations().isEmpty()) {
-					p.getAffiliations().forEach(a -> {
-						if ( a.getCalculatedOrgUnit() != null && a.getCalculatedOrgUnit().getAffiliations() != null) {
-							a.getCalculatedOrgUnit().getAffiliations().size();
-						}
-					});
-				}
-			});
+					if (p.getAffiliations() != null && !p.getAffiliations().isEmpty()) {
+						p.getAffiliations().forEach(a -> {
+							if (a.getCalculatedOrgUnit() != null && a.getCalculatedOrgUnit().getAffiliations() != null) {
+								a.getCalculatedOrgUnit().getAffiliations().size();
+							}
+						});
+					}
+		        }
+		    );
 
 			int count = 0;
-			for (Person person : activePersons) {
-				if (person.getCpr().endsWith(digit) || !person.isUpdatedFromCpr()) {
-					syncPerson(person);
-					count++;
+			personPaginator.page(pager);
+			while (!pager.isDone()) {
+				List<Person> activePersons = pager.getResult();
+
+				log.info("Found " + activePersons.size() + " persons");
+	
+				activePersons = activePersons.stream().filter(p -> p.getAffiliations().size() > 1).collect(Collectors.toList());
+	
+				log.info("Filtered to " + activePersons.size() + " persons");
+	
+				for (Person person : activePersons) {
+					if (person.getCpr().endsWith(digit) || !person.isUpdatedFromCpr()) {
+						syncPerson(person);
+						count++;
+					}
 				}
+				
+				personPaginator.page(pager);
 			}
 
 			log.info("Verified " + count + " persons against cpr");
