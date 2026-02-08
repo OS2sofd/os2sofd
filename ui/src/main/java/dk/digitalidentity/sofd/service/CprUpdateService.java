@@ -109,6 +109,10 @@ public class CprUpdateService {
 							}
 						});
 					}
+					
+					if (p.getRegisteredPostAddress() != null) {
+						p.getRegisteredPostAddress().getCountry();
+					}
 		        }
 		    );
 

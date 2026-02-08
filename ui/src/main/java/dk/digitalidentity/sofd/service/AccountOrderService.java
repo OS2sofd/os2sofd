@@ -1261,6 +1261,8 @@ public class AccountOrderService {
 						}
 
 						a.getCalculatedOrgUnit().getBelongsTo().getName();
+						
+						a.getCalculatedOrgUnit().getAffiliations().forEach(oa -> oa.getPositionName());
 					});
 					
 					p.getUsers().forEach(u -> {
