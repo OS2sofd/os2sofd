@@ -34,7 +34,7 @@ public class BatchJob {
 	private long maxExecutionAttempts = 3;
 	
 	public boolean shouldRun() {
-		if(errorCount >= maxExecutionAttempts && lastErrorTime != null && DateUtils.isSameDay(lastErrorTime, new Date())) {
+		if (errorCount >= maxExecutionAttempts && lastErrorTime != null && DateUtils.isSameDay(lastErrorTime, new Date())) {
 			return false;
 		}
 

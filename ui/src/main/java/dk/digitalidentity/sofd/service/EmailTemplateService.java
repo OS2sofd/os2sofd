@@ -6,6 +6,7 @@ import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -205,6 +206,7 @@ public class EmailTemplateService {
 		return child;
 	}
 
+	@Transactional(readOnly = true)
 	public EmailTemplate findByTemplateType(EmailTemplateType type) {
 		EmailTemplate template = emailTemplateDao.findByTemplateType(type);
 		if (template == null) {
@@ -214,6 +216,16 @@ public class EmailTemplateService {
 			template.getChildren().add(generateDefaultChild(template));
 			template = emailTemplateDao.save(template);
 		}
+		
+		template.getChildren().forEach(c -> {
+			c.forceLoadAttachments();
+			
+			if (c.getOrgUnitFilterMappings() != null) {
+				c.getOrgUnitFilterMappings().forEach(fm -> {
+					fm.getOrgUnit().getName();
+				});
+			}
+		});
 		
 		return template;
 	}
