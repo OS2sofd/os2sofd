@@ -390,12 +390,14 @@ public class NightBatchTask {
 		for (BatchJob batchJob : batchJobs) {
 			if (batchJob.shouldRun()) {
 				log.info("Executing batchjob: " + batchJob.getName());
-				var errorCount = batchJobExecutionService.getErrorCount(batchJob.getName());				
+				long errorCount = batchJobExecutionService.getErrorCount(batchJob.getName());
+
 				try {
 					boolean result = batchJob.getFunction().get();
 					if (result != true) {
 						throw new Exception("Batchjob failed: " + batchJob.getName());
 					}
+
 					batchJob.setLastExecutionTime(new Date());
 					batchJobExecutionService.updateExecutionTime(batchJob.getName(), batchJob.getLastExecutionTime());
 					
