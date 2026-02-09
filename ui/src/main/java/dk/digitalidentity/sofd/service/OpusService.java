@@ -226,7 +226,8 @@ public class OpusService {
 		
 		if (toSave.size() > 0) {
 			log.info("Updated Email on " + toSave.size() + " persons");
-			personService.saveBulkWithTransaction(persons);
+			personService.saveBulkWithTransaction(toSave);
+			log.info("Done");
 		}
 	}
 
