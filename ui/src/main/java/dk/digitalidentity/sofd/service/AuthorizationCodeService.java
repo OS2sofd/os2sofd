@@ -49,7 +49,10 @@ public class AuthorizationCodeService {
     	// flex load all persons and corresponding authorization codes (consumer runs inside transaction)
     	List<Person> persons = personService.getActive(p -> {
     		// needed for the actual logic below
-    		p.getAuthorizationCodes().forEach(a -> a.getAuthorizationCode().getCode());    		
+    		p.getAuthorizationCodes().forEach(a -> a.getAuthorizationCode().getCode());
+    		
+    		// probably needed for save interceptor
+    		p.getUsers().forEach(u -> u.getUser().getUserId());
     	});
 
     	// we sync every 10 days (or 10% of users every day so to speak ;))
@@ -57,6 +60,11 @@ public class AuthorizationCodeService {
 
 		List<Person> changedPersons = new ArrayList<>();
 		for (Person person : persons) {
+			// skip persons that are not activ
+			if (AffiliationService.onlyActiveAffiliations(person.getAffiliations()).size() < 1) {
+				continue;
+			}
+
 	    	if (!person.isHasUpdatedAuthorizationCode() || forceAll || Long.parseLong(person.getCpr().substring(9, 10)) == dayOfMonthDigit) {
 	    		if (syncAuthorizationCodes(person)) {
 	    			changedPersons.add(person);
