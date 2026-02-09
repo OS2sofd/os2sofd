@@ -113,6 +113,13 @@ public class CprUpdateService {
 					if (p.getRegisteredPostAddress() != null) {
 						p.getRegisteredPostAddress().getCountry();
 					}
+					
+					// when saving, the prime-interceptor needs access to these fields
+					if (p.getUsers() != null) {
+						p.getUsers().forEach(u -> {
+							u.getUser().getUserId();
+						});
+					}
 		        }
 		    );
 
