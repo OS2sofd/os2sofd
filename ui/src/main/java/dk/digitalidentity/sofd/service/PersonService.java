@@ -332,6 +332,7 @@ public class PersonService {
 		}
 	}
 
+	// TODO: this is very slow when saving many persons, as it does individual saves (which are intercepted)
 	@Transactional
 	public void saveBulkWithTransaction(List<Person> persons) {
 		for (Person person : persons) {
