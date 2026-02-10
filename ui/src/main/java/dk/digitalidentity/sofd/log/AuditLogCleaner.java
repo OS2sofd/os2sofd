@@ -32,6 +32,7 @@ public class AuditLogCleaner {
 			log.info("Scheduled jobs are disabled on this instance");
 			return;
 		}
+
 		log.info("Running scheduled job");
 
 		Calendar cal = Calendar.getInstance();

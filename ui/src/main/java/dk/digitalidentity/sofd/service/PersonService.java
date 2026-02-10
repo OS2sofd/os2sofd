@@ -271,6 +271,7 @@ public class PersonService {
 
     @Scheduled(fixedRate = 60 * 60 * 1000)
     public void resetActivePersonCacheTask() {
+    	log.debug("resetActivePersonCacheTask");
     	self.resetActivePersonCache();
     }
 

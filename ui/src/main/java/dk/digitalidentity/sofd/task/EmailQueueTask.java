@@ -35,6 +35,8 @@ public class EmailQueueTask {
 			return;
 		}
 
+		log.debug("processEmails");
+		
 		emailQueueService.sendPending();
 	}
 }

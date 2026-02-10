@@ -27,6 +27,8 @@ public class FetchClientVersionsTask {
 		if (!configuration.getScheduled().isEnabled()) {
 			return;
 		}
+		
+		log.debug("fetchClientVersions");
 
 		service.executeTask();
 	}

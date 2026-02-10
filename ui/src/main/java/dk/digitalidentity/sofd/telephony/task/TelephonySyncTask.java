@@ -26,6 +26,8 @@ public class TelephonySyncTask {
 		if (!configuration.getScheduled().isEnabled() || !configuration.getModules().getTelephony().isEnabled()) {
 			return;
 		}
+		
+		log.debug("deltaSync");
 
 		long count = telephonyPhoneService.deltaSync();
 		if (count > 0) {

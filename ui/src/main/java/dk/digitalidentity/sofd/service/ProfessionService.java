@@ -54,6 +54,7 @@ public class ProfessionService {
 
 	@Scheduled(fixedRate = 1 * 60 * 60 * 1000)
 	public void resetProfessionCacheTask() {
+		log.debug("resetProfessionCacheTask");
 		self.resetProfessionCache();
 	}
 

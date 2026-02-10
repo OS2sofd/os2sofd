@@ -11,8 +11,9 @@ import org.springframework.stereotype.Component;
 import dk.digitalidentity.sofd.service.AppManagerService;
 import dk.digitalidentity.sofd.service.VersionService;
 import dk.digitalidentity.sofd.service.model.ApplicationApiDTO;
+import lombok.extern.slf4j.Slf4j;
 
-
+@Slf4j
 @Component
 @EnableScheduling
 public class UpdateLatestVersionTask {
@@ -26,11 +27,13 @@ public class UpdateLatestVersionTask {
 	// check for a new version once per hour
 	@Scheduled(initialDelay = 1000, fixedDelay = 60 * 60 * 1000)
 	public void updateLatestVersion() {
+		log.debug("updateLatestVersion");
+
 		List<ApplicationApiDTO> applications = appManagerService.getApplications();
 		if (applications == null) {
 			return;
 		}
-
+		
 		for (ApplicationApiDTO app : applications) {
 			if (Objects.equals(app.getIdentifier(), "sofdcore")) {
 				versionService.setLatestVersion(app.getNewestVersion());
@@ -40,6 +43,8 @@ public class UpdateLatestVersionTask {
 
 	@Scheduled(cron = "0 0 6 ? * *")
 	public void verifyAutoUpdateStatus() {
+		log.debug("verifyAutoUpdateStatus");
+
 		versionService.verifyAutoUpdateStatus();
 	}
 

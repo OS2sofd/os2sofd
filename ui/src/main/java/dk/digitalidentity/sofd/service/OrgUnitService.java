@@ -255,6 +255,7 @@ public class OrgUnitService {
 
 	@Scheduled(fixedRate = 60 * 60 * 1000)
 	public void resetActiveOrgUnitCacheTask() {
+		log.debug("resetActiveOrgUnitCacheTask");
 		self.resetActiveOrgUnitCache();
 	}
 

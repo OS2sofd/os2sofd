@@ -31,6 +31,8 @@ public class DeleteOldAffiliationsTask {
 			log.debug("DeleteOldAffiliationsTask is disabled.");
 			return;
 		}
+		
+		log.info("Running deleteOldAffiliations");
 
 		affiliationService.deleteOldAffiliations();
 	}

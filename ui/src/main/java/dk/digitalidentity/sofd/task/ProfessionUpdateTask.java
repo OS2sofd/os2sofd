@@ -26,6 +26,8 @@ public class ProfessionUpdateTask {
 			log.debug("Scheduled jobs are disabled on this instance");
 			return;
 		}
+		
+		log.debug("processProfessions");
 
 		professionService.updateAllAffiliations();
 	}

@@ -21,8 +21,10 @@ public class ClearPendingApprovalCountTask {
     public void clearPendingApprovalCount() {
         if (configuration.getIntegrations().getOs2ilm().isEnabled()) {
             log.debug("Clearing pending approval count");
+
             os2IlmService.clearPendingApprovalCountCache();
-        } else {
+        }
+        else {
             log.debug("OS2ilm integration disabled, skipping clearing pending approval count cache");
         }
     }

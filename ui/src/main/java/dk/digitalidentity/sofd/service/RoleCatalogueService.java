@@ -76,6 +76,7 @@ public class RoleCatalogueService {
 	// every 2 hours, we wipe the cache
 	@Scheduled(fixedDelay = 2 * 60 * 60 * 1000)
 	public void cleanupCache() {
+		log.debug("cleanupCache");
 		self.wipeCache();
 	}
 	

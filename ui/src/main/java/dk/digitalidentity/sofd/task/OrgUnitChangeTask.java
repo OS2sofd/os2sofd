@@ -6,7 +6,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import dk.digitalidentity.sofd.service.OrgUnitChangeService;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Component
 @EnableScheduling
 public class OrgUnitChangeTask {
@@ -16,6 +18,8 @@ public class OrgUnitChangeTask {
 
     @Scheduled(cron = "0 0 18 ? * *")
     public void processOrgUnitChanges() {
+    	log.info("processOrgUnitChanges");
+    	
         orgUnitChangeService.processOrgUnitChanges();
     }
 }

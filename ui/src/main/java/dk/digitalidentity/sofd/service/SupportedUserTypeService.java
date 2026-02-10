@@ -14,7 +14,9 @@ import org.springframework.stereotype.Service;
 
 import dk.digitalidentity.sofd.dao.SupportedUserTypeDao;
 import dk.digitalidentity.sofd.dao.model.SupportedUserType;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @EnableCaching
 @EnableScheduling
@@ -57,6 +59,7 @@ public class SupportedUserTypeService {
 	// run every 30 seconds
 	@Scheduled(fixedRate = 1000 * 30)
 	public void cacheClearTask() {
+		log.debug("cacheClearTask");
 		self.cacheClear();
 	}
 

@@ -466,6 +466,7 @@ public class AffiliationService {
 	// runs one minute past midnight
 	@Scheduled(cron = "1 0 0 * * ?")
 	public void generateTodayAndYesterday() {
+		log.debug("generateTodayAndYesterday");
 		_today = null;
 		_yesterday = null;
 	}
