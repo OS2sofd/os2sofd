@@ -9,7 +9,9 @@ import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.model.enums.CustomerSetting;
 import dk.digitalidentity.sofd.service.OS2SyncService;
 import dk.digitalidentity.sofd.service.SettingService;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Component
 @EnableScheduling
 public class OS2syncTask {
@@ -29,6 +31,8 @@ public class OS2syncTask {
 		if (configuration.getScheduled().isEnabled() && configuration.getIntegrations().getOs2sync().isEnabled()) {
 			Long lastRun = settingService.getLongValueByKey(CustomerSetting.LAST_STSSYNC_RUN);
 
+			log.debug("processChanges");
+			
 			if (lastRun > 0L) {
 				os2SyncService.deltaUpdate(lastRun);
 			}

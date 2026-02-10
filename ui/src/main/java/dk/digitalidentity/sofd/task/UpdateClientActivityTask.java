@@ -39,6 +39,8 @@ public class UpdateClientActivityTask {
 			log.debug("Scheduled jobs are disabled on this instance");
 			return;
 		}
+		
+		log.debug("updateTimestamps");
 
 		LocalDateTime tts = LocalDateTime.now().minusMinutes(65);
 		
@@ -58,6 +60,8 @@ public class UpdateClientActivityTask {
 			log.debug("Scheduled jobs are disabled on this instance");
 			return;
 		}
+
+		log.debug("checkForActivity");
 
 		Calendar cal = Calendar.getInstance();
 

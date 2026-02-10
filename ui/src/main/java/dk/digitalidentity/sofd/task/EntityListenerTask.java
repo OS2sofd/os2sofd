@@ -7,7 +7,9 @@ import org.springframework.stereotype.Component;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.listener.EntityListenerService;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @EnableScheduling
 @Component
 public class EntityListenerTask {
@@ -25,6 +27,8 @@ public class EntityListenerTask {
 			return;
 		}
 		
+		log.debug("run");
+
 		entityListenerService.emit();
 	}
 }

@@ -12,7 +12,9 @@ import org.springframework.stereotype.Service;
 
 import dk.digitalidentity.sofd.dao.ClientDao;
 import dk.digitalidentity.sofd.dao.model.Client;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @EnableScheduling
 @EnableCaching
@@ -61,6 +63,7 @@ public class ClientService {
 	// run every 10 minutes
 	@Scheduled(fixedRate = 1000 * 60 * 10)
 	public void cacheClearTask() {
+		log.debug("cacheClearTask");
 		self.cacheClear();
 	}
 

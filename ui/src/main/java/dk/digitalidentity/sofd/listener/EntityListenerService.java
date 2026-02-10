@@ -158,6 +158,11 @@ public class EntityListenerService {
 		if (changes == null || changes.size() == 0) {
 			return;
 		}
+		
+		// should have a limit on the above as the real fix
+		if (changes.size() > 1000) {
+			log.error("More than 1000 changes where emitted - this could cause OOM's, so monitor this");
+		}
 
 		Authentication authentication = SecurityUtil.getLoginSession();
 		try {

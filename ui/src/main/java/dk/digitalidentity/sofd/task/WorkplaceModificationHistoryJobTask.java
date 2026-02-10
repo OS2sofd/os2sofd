@@ -32,6 +32,8 @@ public class WorkplaceModificationHistoryJobTask {
 			return;
 		}
 
+		log.debug("processWorkplaceModifications");
+		
 		workplaceService.findWorkplaceModifications();
 	}
 }

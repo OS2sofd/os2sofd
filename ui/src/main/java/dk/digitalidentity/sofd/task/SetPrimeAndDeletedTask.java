@@ -29,6 +29,10 @@ public class SetPrimeAndDeletedTask {
 			return;
 		}
 		
+		log.info("setPrimeAndDeletedTask started");
+
 		personService.setPrimeAffiliationPrimeUserAndDeleted();
+		
+		log.info("setPrimeAndDeletedTask completed");
 	}
 }

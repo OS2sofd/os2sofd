@@ -365,6 +365,7 @@ public class CvrService {
 	
 	@Scheduled(fixedRate = 60 * 60 * 1000)
     public void resetCvrSearchResultCacheTask() {
+		log.debug("resetCvrSearchResultCacheTask");
     	self.resetCvrSearchResultCache();
     }
 

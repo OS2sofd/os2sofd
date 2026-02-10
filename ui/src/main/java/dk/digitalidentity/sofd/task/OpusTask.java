@@ -26,6 +26,8 @@ public class OpusTask {
 	@Transactional(rollbackFor = Exception.class)
 	public void handleOrders() {
 		if (configuration.getScheduled().isEnabled() && configuration.getModules().getAccountCreation().getOpusHandler().isEnabled()) {
+			log.debug("handleOrders");
+			
 			opusService.handleOrders();
 		}
 	}

@@ -28,6 +28,8 @@ public class ChosenNameCleanupTask {
 		if (!configuration.getScheduled().isEnabled() || !configuration.getModules().getPerson().isResetChosenNameWhenInactive()) {
 			return;
 		}
+		
+		log.info("cleanupChosenNames");
 
 		personService.removeChosenNameOnInactivePersons();
 	}

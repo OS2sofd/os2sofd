@@ -626,6 +626,7 @@ public class AccountOrderService {
 	// run every 30 minutes
 	@Scheduled(fixedRate = 1000 * 60 * 30)
 	public void cacheClearTask() {
+		log.debug("cacheClearTask");
 		self.cacheClear();
 	}
 

@@ -51,6 +51,7 @@ public class KleService {
 	// 4 hour cache should be enough to ensure solid performance
 	@Scheduled(fixedRate = 4 * 60 * 60 * 1000)
 	public void resetKleCacheTask() {
+		log.info("Resetting KLE");
 		self.resetKleCache();
 	}
 

@@ -21,11 +21,13 @@ public class NewlyActiveAffiliationPrimeTask {
 	private SofdConfiguration configuration;
 
 	@Scheduled(cron = "0 #{new java.util.Random().nextInt(55)} 3 * * ?")
-	public void processOrgUnitChanges() {
+	public void processChanges() {
 		if (!configuration.getScheduled().isEnabled()) {
 			log.debug("Scheduled jobs are disabled on this instance");
 			return;
 		}
+
+		log.debug("processChanges");
 
 		SecurityUtil.fakeLoginSession();
 		affiliationService.setNewlyActiveAffiliationsPrime();

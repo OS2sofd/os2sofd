@@ -58,6 +58,8 @@ public class PwdReminderTask {
 			return;
 		}
 		
+		log.debug("sendPwdReminders");
+		
 		PwdReminderStrategy strategy = pwdReminderService.getPwdReminderStrategy();
 		if (strategy.equals(PwdReminderStrategy.DISABLED)) {
 			return;
