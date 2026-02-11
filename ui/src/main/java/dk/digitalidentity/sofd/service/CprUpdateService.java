@@ -118,6 +118,10 @@ public class CprUpdateService {
 					if (p.getUsers() != null) {
 						p.getUsers().forEach(u -> {
 							u.getUser().getUserId();
+
+							if (u.getUser().getActiveDirectoryDetails() != null) {
+								u.getUser().getActiveDirectoryDetails().getUpn();
+							}
 						});
 					}
 		        }
