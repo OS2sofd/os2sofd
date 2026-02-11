@@ -819,7 +819,7 @@ public class OpusService {
 			return;
 		}
 		
-		log.info("Updating " + employeeId + " email to " + email);
+		log.info("Updating " + employeeId + " email to " + email + " with stopDate: " + stopDateStr);
 		OpusStatusCodeWrapper status = updateValue(employeeId, email, "0010", LocalDate.now().toString(), stopDateStr);
 		if (!status.status.equals(OpusStatusCode.OK)) {
 			log.warn("Failed to update " + employeeId + " email to " + email + ". Message: " + status.message);
