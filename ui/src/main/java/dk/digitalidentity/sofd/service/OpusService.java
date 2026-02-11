@@ -43,6 +43,7 @@ import dk.digitalidentity.sofd.dao.model.enums.AccountOrderType;
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.dao.model.enums.NotificationType;
 import dk.digitalidentity.sofd.dao.model.enums.PhoneType;
+import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.opus.dto.Envelope;
 import dk.digitalidentity.sofd.service.opus.dto.Kommunikation;
 import lombok.extern.slf4j.Slf4j;
@@ -225,6 +226,7 @@ public class OpusService {
 		}
 		
 		if (toSave.size() > 0) {
+			SecurityUtil.fakeLoginSession();
 			log.info("Updated Email on " + toSave.size() + " persons");
 			personService.saveBulkWithTransaction(toSave);
 			log.info("Done");
@@ -1089,6 +1091,10 @@ public class OpusService {
 		builder.append(OPUS_SOAP_RET_END);
 		builder.append(OPUS_SOAP_END);
 		String payload = builder.toString();
+		
+		if (log.isDebugEnabled()) {
+			log.debug("opus payload: " + payload);
+		}
 
 		return callOpusRet(payload);
 	}
