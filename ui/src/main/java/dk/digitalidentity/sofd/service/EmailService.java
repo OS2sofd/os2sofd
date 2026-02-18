@@ -7,6 +7,8 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Properties;
 
+import com.microsoft.graph.models.Importance;
+import dk.digitalidentity.sofd.dao.model.enums.MailPriority;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -111,6 +113,18 @@ public class EmailService {
 
 			msg.setSubject(subject, "UTF-8");
 
+			if (templateChild != null && templateChild.getPriority() != null) {
+				switch (templateChild.getPriority()) {
+					case HIGH -> {
+						msg.setHeader("Importance", "High");
+						msg.setHeader("X-Priority", "1");
+					}
+					case NORMAL -> {
+						// default, no headers needed
+					}
+				}
+			}
+
 			MimeBodyPart htmlBodyPart = new MimeBodyPart();
 			htmlBodyPart.setContent(message, "text/html; charset=UTF-8");
 
@@ -197,6 +211,13 @@ public class EmailService {
 				if (templateChild.getRecipientsBCC() != null) {
 					List<String> recipients = emailTemplateChildService.getRecipientsList(templateChild.getRecipientsBCC());
 					request.message.bccRecipients = recipients.stream().map(this::toRecipient).toList();
+				}
+
+				if (templateChild.getPriority() != null) {
+					request.message.importance = switch (templateChild.getPriority()) {
+						case NORMAL -> Importance.NORMAL;
+						case HIGH -> Importance.HIGH;
+					};
 				}
 			}
 

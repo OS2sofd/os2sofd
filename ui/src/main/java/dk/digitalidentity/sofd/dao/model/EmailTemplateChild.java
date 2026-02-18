@@ -2,6 +2,7 @@ package dk.digitalidentity.sofd.dao.model;
 
 import java.util.List;
 
+import dk.digitalidentity.sofd.dao.model.enums.MailPriority;
 import org.hibernate.annotations.BatchSize;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -97,6 +98,11 @@ public class EmailTemplateChild {
 
 	@Column
 	private boolean rawTemplate;
+
+	@Enumerated(EnumType.STRING)
+	@Column
+	private MailPriority priority;
+
 
 	// when sending emails, it is done Async, so on another thread, with no session open
 	public void forceLoadAttachments() {
