@@ -279,6 +279,7 @@ public class EmailTemplateRestController {
 			templateChild.setMessage(emailTemplateChildDTO.getMessage());
 			templateChild.setTitle(emailTemplateChildDTO.getTitle());
 			templateChild.setEnabled(emailTemplateChildDTO.isEnabled());
+			templateChild.setPriority(emailTemplateChildDTO.getPriority());
 
 			if (templateChild.getEmailTemplate().getTemplateType().isSendToManager()) {
 				templateChild.setSendTo(emailTemplateChildDTO.getSendTo());

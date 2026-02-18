@@ -70,6 +70,17 @@
 										</div>
 									</div>
 
+									<div th:unless="${template.emailTemplateType.eboks}">
+										<div class="form-group" th:id="'priority' + ${child.id}">
+											<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.priority}"></label>
+											<div class="col-sm-8">
+												<select name="priority" class="form-control">
+													<option th:each="option : ${T(dk.digitalidentity.sofd.dao.model.enums.MailPriority).values()}" th:text="#{${option.message}}" th:value="${option}" th:selected="${option == child.priority}">
+												</select>
+											</div>
+										</div>
+									</div>
+
 									<div class="form-group" th:id="'delay' + ${child.id}">
 										<label class="col-sm-2 control-label" th:unless="${template.emailTemplateType.eboks}" th:utext="#{html.entity.email_template.minutes_delay}"></label>
 										<label class="col-sm-2 control-label" th:if="${template.emailTemplateType.eboks}" th:utext="#{html.entity.email_template.days_delay}"></label>

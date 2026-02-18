@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
 import dk.digitalidentity.sofd.dao.model.enums.EmailOrgUnitFilterType;
 import dk.digitalidentity.sofd.dao.model.enums.EmployeeFilter;
+import dk.digitalidentity.sofd.dao.model.enums.MailPriority;
 import dk.digitalidentity.sofd.dao.model.enums.SendTo;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -39,6 +40,7 @@ public class EmailTemplateChildDTO {
 	// read-only
 	private List<String> orgUnitNames = new ArrayList<>();
 	private EmailOrgUnitFilterType orgUnitFilterType;
+	private MailPriority priority;
 	
 	public EmailTemplateChildDTO(EmailTemplateChild child) {
 		this.id = child.getId();
@@ -60,5 +62,6 @@ public class EmailTemplateChildDTO {
 		this.employeeFilter = child.getEmployeeFilter();
 		this.onlyManualRecipients = child.isOnlyManualRecipients();
 		this.orgUnitFilterType = child.getOrgUnitFilterType();
+		this.priority = child.getPriority();
 	}
 }
