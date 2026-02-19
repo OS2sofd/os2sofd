@@ -185,22 +185,30 @@ public class OrgUnitService {
 	}
 
 	public List<OrgUnit> getAllWithChildren(List<String> list) {
+		return getAllWithChildren(list,false);
+	}
+
+	public List<OrgUnit> getAllWithChildren(List<String> list, boolean excludeIfDirectManager) {
 		List<OrgUnit> ous = orgUnitDao.findByUuidIn(list);
 		Set<OrgUnit> result = new HashSet<>();
 		for (OrgUnit ou : ous) {
 			result.add(ou);
 			for (OrgUnit child : ou.getChildren()) {
-				getAllWithChildrenRecursive(result, child);
+				getAllWithChildrenRecursive(result, child, excludeIfDirectManager);
 			}
 		}
 
 		return new ArrayList<>(result);
 	}
 
-	private void getAllWithChildrenRecursive(Set<OrgUnit> result, OrgUnit ou) {
+	private void getAllWithChildrenRecursive(Set<OrgUnit> result, OrgUnit ou, boolean excludeIfDirectManager) {
+		if (excludeIfDirectManager && ou.getManager() != null && !ou.getManager().isInherited()) {
+			return;
+		}
+
 		result.add(ou);
 		for (OrgUnit child : ou.getChildren()) {
-			getAllWithChildrenRecursive(result, child);
+			getAllWithChildrenRecursive(result, child, excludeIfDirectManager);
 		}
 	}
 
