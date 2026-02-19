@@ -157,7 +157,6 @@ public class Affiliation extends MasteredEntity implements Serializable {
 	private String positionName;
 
 	@Column
-	@NotNull
 	@Size(max = 255)
 	private String positionShort;
 

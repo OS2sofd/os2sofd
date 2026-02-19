@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -66,6 +68,7 @@ public class SubstituteApiController {
 	@Autowired
 	private AuditLogger auditLogger;
 
+	@Transactional(readOnly = true)
 	@GetMapping("/api/substitutes/assignments")
 	public ResponseEntity<?> getAllSubstituteAssignments() {
 		List<SubstituteAssignmentDTO> result = new ArrayList<>();
@@ -167,8 +170,26 @@ public class SubstituteApiController {
 	private List<SubstituteAssignmentDTO> getOrgunitSubstituteAssignments() {
 		var result = new ArrayList<SubstituteAssignmentDTO>();
 		var orgUnitAssigments = substituteOrgUnitAssignmentService.getAll().stream()
-				.filter(a -> a.getContext().getIdentifier().equals("os2rollekatalog") || a.getContext().getIdentifier().equals("GLOBAL"))
-				.toList();
+				.filter(a -> a.getContext().getIdentifier().equals("os2rollekatalog") || a.getContext().getIdentifier().equals("GLOBAL")).collect(Collectors.toList());
+
+		// if orgunitAssignment inherits we need to split it up into multiple assignments if manager differs in the hierarcy
+		var extraOrgUnitAssignments = new ArrayList<SubstituteOrgUnitAssignment>();
+		for( var orgUnitAssigment : orgUnitAssigments ) {
+			if (orgUnitAssigment.getContext().isInheritOrgUnitAssignments()) {
+				var children = orgUnitService.getAllWithChildren(List.of(orgUnitAssigment.getOrgUnit().getUuid()), false).stream().filter(
+						o -> !o.getUuid().equalsIgnoreCase(orgUnitAssigment.getOrgUnit().getUuid()) && !o.isDeleted()).toList();
+				var childrenWithDirectManager = children.stream().filter(c -> c.getManager() != null && !c.getManager().isInherited()).toList();
+				for (var childWithDirectManager : childrenWithDirectManager) {
+					var extraOrgUnitAssignment = new SubstituteOrgUnitAssignment();
+					extraOrgUnitAssignment.setContext(orgUnitAssigment.getContext());
+					extraOrgUnitAssignment.setSubstitute(orgUnitAssigment.getSubstitute());
+					extraOrgUnitAssignment.setOrgUnit(childWithDirectManager);
+					extraOrgUnitAssignments.add(extraOrgUnitAssignment);
+				}
+			}
+		}
+		orgUnitAssigments.addAll(extraOrgUnitAssignments);
+
 
 		for( var orgUnitAssigment : orgUnitAssigments ) {
 			var manager = orgUnitAssigment.getOrgUnit().getManager();
@@ -208,9 +229,9 @@ public class SubstituteApiController {
 				constraintOrgUnits.add( OUConstraintDTO.builder().name(orgUnitAssigment.getOrgUnit().getName()).uuid(orgUnitAssigment.getOrgUnit().getUuid()).build());
 			}
 			else {
-				var subOrgUnits = orgUnitService.getAllWithChildren(List.of(orgUnitAssigment.getOrgUnit().getUuid())).stream().filter(o -> !o.isDeleted()).toList();
-				for( var orgUnit : subOrgUnits ) {
-					constraintOrgUnits.add( OUConstraintDTO.builder().name(orgUnit.getName()).uuid(orgUnit.getUuid()).build());
+				var childOrgUnits = orgUnitService.getAllWithChildren(List.of(orgUnitAssigment.getOrgUnit().getUuid()), true).stream().filter(o -> !o.isDeleted()).toList();
+				for( var childOrgUnit : childOrgUnits ) {
+					constraintOrgUnits.add( OUConstraintDTO.builder().name(childOrgUnit.getName()).uuid(childOrgUnit.getUuid()).build());
 				}
 			}
 			substituteAssignmentDTO.setConstraintOrgUnits(constraintOrgUnits);
