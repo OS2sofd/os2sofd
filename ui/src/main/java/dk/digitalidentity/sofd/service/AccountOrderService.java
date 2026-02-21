@@ -1316,7 +1316,7 @@ public class AccountOrderService {
 				affiliations = affiliations.stream()
 					.filter(a ->
 						masters.contains(a.getMaster()) &&
-						organisations.contains(a.getOrgUnit().getBelongsTo().getShortName()) &&
+						organisations.contains(a.getCalculatedOrgUnit().getBelongsTo().getShortName()) &&
 						a.getPerson().isDisableAccountOrdersCreate() == false &&
 						a.getDeactivateAndDeleteRule() == AccountOrderDeactivateAndDeleteRule.KEEP_ALIVE
 					)
