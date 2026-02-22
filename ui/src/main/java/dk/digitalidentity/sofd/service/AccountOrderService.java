@@ -738,7 +738,7 @@ public class AccountOrderService {
 				
 				// find active affiliations of types that can affect account orders
 				List<Affiliation> affiliations = person.getAffiliations().stream()
-						.filter(a -> masters.contains(a.getMaster()) && organisations.contains(a.getOrgUnit().getBelongsTo().getShortName()))
+						.filter(a -> masters.contains(a.getMaster()) && organisations.contains(a.getCalculatedOrgUnit().getBelongsTo().getShortName()))
 						.collect(Collectors.toList());
 
 				affiliations = AffiliationService.notStoppedAffiliations(affiliations);
@@ -936,13 +936,13 @@ public class AccountOrderService {
 		List<String> masters = configuration.getScheduled().getAccountOrderGeneration().getMasters();
 		List<String> organisations = configuration.getScheduled().getAccountOrderGeneration().getOrganisations();
 		affiliations = affiliations.stream()
-								   .filter(a ->
-										   masters.contains(a.getMaster())
-										   && organisations.contains(a.getOrgUnit().getBelongsTo().getShortName())
-										   && a.getPerson().isDisableAccountOrdersCreate() == false
-										   && a.getDeactivateAndDeleteRule() == AccountOrderDeactivateAndDeleteRule.KEEP_ALIVE
-								   )
-								   .collect(Collectors.toList());
+		   .filter(a ->
+				   masters.contains(a.getMaster()) &&
+				   organisations.contains(a.getCalculatedOrgUnit().getBelongsTo().getShortName()) &&
+				   a.getPerson().isDisableAccountOrdersCreate() == false &&
+				   a.getDeactivateAndDeleteRule() == AccountOrderDeactivateAndDeleteRule.KEEP_ALIVE
+		   )
+		   .collect(Collectors.toList());
 
 		if (affiliations.size() == 0) {
 			return accountOrdersResult;
