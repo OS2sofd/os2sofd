@@ -188,14 +188,8 @@
 
 		<dependency>
 			<groupId>org.xhtmlrenderer</groupId>
-			<artifactId>flying-saucer-core</artifactId>
-			<version>9.1.18</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.xhtmlrenderer</groupId>
-			<artifactId>flying-saucer-pdf-itext5</artifactId>
-			<version>9.1.18</version>
+			<artifactId>flying-saucer-pdf</artifactId>
+			<version>10.0.6</version>
 		</dependency>
 
 		<!-- cleanup bad HTML for email/pdf templates -->
