@@ -62,8 +62,9 @@ public class UsernameTemplateItem {
                 return "";
             }
 
-            var nameParts = Arrays.stream(Transliteration.transliterate(fullName, null).toLowerCase().split("\\s"))
+            var nameParts = Arrays.stream(Transliteration.transliterate(fullName, null).toLowerCase().split("\\s+"))
                     .map(part -> part.replaceAll("\\W", ""))
+                    .filter(part -> !part.isEmpty())
                     .toArray(String[]::new);
 
             var permutations = new LinkedHashSet<String>();
