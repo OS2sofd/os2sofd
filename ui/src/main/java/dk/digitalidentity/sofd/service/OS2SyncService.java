@@ -455,12 +455,14 @@ public class OS2SyncService {
 			    	done = true;
 			    }
 				
-				if (nameValue.length() > 1) {
-					nameValue = nameValue.substring(1);
-				}
-				else {
-					nameValue = null;
-					done = true;
+				if (!done) {
+					if (nameValue.length() > 1) {
+						nameValue = nameValue.substring(1);
+					}
+					else {
+						nameValue = null;
+						done = true;
+					}
 				}
 			} while (!done);
 		}

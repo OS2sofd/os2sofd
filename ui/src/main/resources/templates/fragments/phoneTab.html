@@ -243,6 +243,7 @@
 						$('#phoneNumber').val(phones[i].phoneNumber);
 						$('#phoneType option[value="' + phones[i].phoneType + '"]').prop('selected', true);
 						$('#phoneNotes').val(phones[i].notes);
+						$('#visibility option[value="' + phones[i].visibility + '"]').prop('selected', true);
 						handlePhoneTypeChange();
 
 						if(phones[i].functionType != null) {
@@ -263,6 +264,7 @@
 				handleOnChangeEventForCollapse("IsFunctionPhone", false);
 				$('#functionType option[value="0"]').prop('selected', true);
 				$('#phoneNotes').val("");
+				$('#visibility option[value="VISIBLE"]').prop('selected', true);
 			}
 			togglePhoneModal();
 		}
