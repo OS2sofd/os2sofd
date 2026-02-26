@@ -96,7 +96,7 @@ public class PwdReminderService {
 		}
 
 		StringBuilder builder = new StringBuilder();
-		for (long day : days.stream().sorted().collect(Collectors.toSet())) {
+		for (long day : days.stream().sorted().toList()) {
 			if (builder.length() > 0) {
 				builder.append(",");
 			}
