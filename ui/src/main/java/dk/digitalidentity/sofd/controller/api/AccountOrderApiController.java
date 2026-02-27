@@ -5,6 +5,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -351,6 +352,14 @@ public class AccountOrderApiController {
 					if (orderDependingOn != null) {
 						orderDependingOn.setStatus(AccountOrderStatus.PENDING);
 						orderDependingOn.setLinkedUserId(accountOrder.getActualUserId());
+
+						// if an existing account was reactivated and there is a depending order with the same requested username
+						// we need to rename that orders requested username, because the intent was to have the same username for the 2 accounts
+						if (!Objects.equals(accountOrder.getRequestedUserId(), accountOrder.getActualUserId())) {
+							if (Objects.equals(accountOrder.getRequestedUserId(), orderDependingOn.getRequestedUserId())) {
+								orderDependingOn.setRequestedUserId(accountOrder.getActualUserId());
+							}
+						}
 
 						// if there is a delay configured (there very like is for Exchange), then we need to add that to ensure it
 						// does not create the account immediately
