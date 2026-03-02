@@ -45,7 +45,7 @@ public class HistoricalReportsOnOrgUnitsService {
     @Autowired
     private SofdConfiguration configuration;
 
-    private Locale locale = new Locale("da-DK");
+    private Locale locale = Locale.of("da-DK");
 
     private Workbook buildExcelDocument(List<OrgUnitExcelDTO> orgUnits) {
         Workbook workbook = new XSSFWorkbook();

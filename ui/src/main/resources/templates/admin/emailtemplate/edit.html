@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="fragments/header :: header"></head>
+<head th:replace="~{fragments/header :: header}"></head>
 <body>
 	<div class="wrapper">
-		<header th:replace="fragments/navbar :: navbar-header (subpage = 'admin')"></header>
-		<aside th:replace="fragments/navbar :: navbar-aside (page = 'mailtemplates', subpage = 'admin')"></aside>
+		<header th:replace="~{fragments/navbar :: navbar-header (subpage = 'admin')}"></header>
+		<aside th:replace="~{fragments/navbar :: navbar-aside (page = 'mailtemplates', subpage = 'admin')}"></aside>
  
 		<section>
 			<div class="content-wrapper">
@@ -66,6 +66,17 @@
 													<input class="checkboxEnabled" th:checked="${child.enabled}" type="checkbox" />
 													<span class="fa fa-check"></span>
 												</label>
+											</div>
+										</div>
+									</div>
+
+									<div th:unless="${template.emailTemplateType.eboks}">
+										<div class="form-group" th:id="'priority' + ${child.id}">
+											<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.priority}"></label>
+											<div class="col-sm-8">
+												<select name="priority" class="form-control">
+													<option th:each="option : ${T(dk.digitalidentity.sofd.dao.model.enums.MailPriority).values()}" th:text="#{${option.message}}" th:value="${option}" th:selected="${option == child.priority}">
+												</select>
 											</div>
 										</div>
 									</div>
@@ -305,7 +316,7 @@
 		</div>
 	</div>
 	
-	<div th:replace="fragments/footer :: footer"></div>
+	<div th:replace="~{fragments/footer :: footer}"></div>
 
 	<script th:inline="javascript">
 	/*<![CDATA[*/

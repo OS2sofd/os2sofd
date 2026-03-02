@@ -123,7 +123,7 @@ public class SyncService {
 
 	public SyncResult getModificationHistory(Long offset, String entityType) {
 		@SuppressWarnings("deprecation")
-		List<ModificationHistory> modificationsList = jdbcTemplate.query(selectQuery, new Object[] { offset, entityType }, (RowMapper<ModificationHistory>) (rs, rowNum) -> {
+		List<ModificationHistory> modificationsList = jdbcTemplate.query(selectQuery, new Object[] { offset, entityType }, (RowMapper<ModificationHistory>) (rs, _) -> {
 			ModificationHistory mhObject = new ModificationHistory();
 			mhObject.setId(rs.getLong("id"));
 			mhObject.setChangeType(ChangeType.valueOf(rs.getString("change_type")));
@@ -153,7 +153,7 @@ public class SyncService {
 	public Collection<ADGridAD> getADGridAllAzure() {
 		String query = adGridAllAzureQuery;
 		
-		return jdbcTemplate.query(query, new Object[0], (RowMapper<ADGridAD>) (rs, rowNum) -> {
+		return jdbcTemplate.query(query, new Object[0], (RowMapper<ADGridAD>) (rs, _) -> {
 			ADGridAD person = new ADGridAD();
 
 			String personUuid = rs.getString("person_uuid");
@@ -191,7 +191,7 @@ public class SyncService {
 			query += " AND disabled = 0 ";
 		}
 
-		return jdbcTemplate.query(query, new Object[0], (RowMapper<ADGridAD>) (rs, rowNum) -> {
+		return jdbcTemplate.query(query, new Object[0], (RowMapper<ADGridAD>) (rs, _) -> {
 			ADGridAD person = new ADGridAD();
 
 			String personUuid = rs.getString("person_uuid");
@@ -232,7 +232,7 @@ public class SyncService {
 	public Collection<ADGridAD> getADGridOpusButNoADAccount() {
 		String query = adGridOpusNoAdQuery;
 
-		return jdbcTemplate.query(query, new Object[0], (RowMapper<ADGridAD>) (rs, rowNum) -> {
+		return jdbcTemplate.query(query, new Object[0], (RowMapper<ADGridAD>) (rs, _) -> {
 			ADGridAD person = new ADGridAD();
 
 			String personUuid = rs.getString("person_uuid");
@@ -275,7 +275,7 @@ public class SyncService {
 		query += " AND user_type in (" + String.join(",", includedUserTypes) + ") ";
 
 		@SuppressWarnings("deprecation")
-		List<ADGridPerson> persons = jdbcTemplate.query(query, new Object[0], (RowMapper<ADGridPerson>) (rs, rowNum) -> {
+		List<ADGridPerson> persons = jdbcTemplate.query(query, new Object[0], (RowMapper<ADGridPerson>) (rs, _) -> {
 			ADGridPerson person = new ADGridPerson();
 
 			String personUuid = rs.getString("person_uuid");
@@ -415,7 +415,7 @@ public class SyncService {
 	}
 	
 	public Collection<ADGridOrgUnit> getADGridOrgUnits() {
-		List<ADGridOrgUnitTitle> titles = jdbcTemplate.query(managedTitlesQuery, (RowMapper<ADGridOrgUnitTitle>) (rs, rowNum) -> {
+		List<ADGridOrgUnitTitle> titles = jdbcTemplate.query(managedTitlesQuery, (RowMapper<ADGridOrgUnitTitle>) (rs, _) -> {
 			ADGridOrgUnitTitle title = new ADGridOrgUnitTitle();
 			
 			String orgUnitUuid = rs.getString("orgunit_uuid");
@@ -428,7 +428,7 @@ public class SyncService {
 		});
 
 		@SuppressWarnings("deprecation")
-		List<ADGridOrgUnit> orgUnits = jdbcTemplate.query(adGridOrgUnitQuery, new Object[0], (RowMapper<ADGridOrgUnit>) (rs, rowNum) -> {
+		List<ADGridOrgUnit> orgUnits = jdbcTemplate.query(adGridOrgUnitQuery, new Object[0], (RowMapper<ADGridOrgUnit>) (rs, _) -> {
 			ADGridOrgUnit orgUnit = new ADGridOrgUnit();
 			
 			String uuid = rs.getString("uuid");

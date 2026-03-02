@@ -186,7 +186,7 @@ public class EmailTemplateRestController {
 			var message = emailTemplateChildDTO.getMessage();
 			// perform placeholder replacement so you can verify that the template replacement worked.
 			message = message.replace(EmailTemplatePlaceholder.TITLE.getPlaceholder(), emailTemplateChildDTO.getTitle());
-			Locale locale = new Locale("da", "DK");
+			Locale locale = Locale.of("da", "DK");
 			for (var placeholder : templateChild.getEmailTemplate().getTemplateType().getEmailTemplatePlaceholders()) {
 
 				try {
@@ -251,7 +251,7 @@ public class EmailTemplateRestController {
 				List<InlineImageDTO> inlineImages = templateChild.getEmailTemplate().getTemplateType().isEboks() ? null : transformImages(emailTemplateChildDTO);
 
 				var message = emailTemplateChildDTO.getMessage();
-				Locale locale = new Locale("da", "DK");
+				Locale locale = Locale.of("da", "DK");
 				
 				// perform placeholder replacement so you can verify that the template replacement worked.
 				for (var placeholder : templateChild.getEmailTemplate().getTemplateType().getEmailTemplatePlaceholders()) {
@@ -288,6 +288,7 @@ public class EmailTemplateRestController {
 			templateChild.setMessage(emailTemplateChildDTO.getMessage());
 			templateChild.setTitle(emailTemplateChildDTO.getTitle());
 			templateChild.setEnabled(emailTemplateChildDTO.isEnabled());
+			templateChild.setPriority(emailTemplateChildDTO.getPriority());
 
 			if (templateChild.getEmailTemplate().getTemplateType().isSendToManager()) {
 				templateChild.setSendTo(emailTemplateChildDTO.getSendTo());

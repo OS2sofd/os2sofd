@@ -7,10 +7,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 
-import dk.digitalidentity.sofd.controller.api.dto.ErrorDTO;
-import dk.digitalidentity.sofd.controller.api.dto.SupportedUserTypeDTO;
-import dk.digitalidentity.sofd.service.KnownUsernamesService;
-import dk.digitalidentity.sofd.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +22,9 @@ import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.api.dto.AccountOrderDTO;
 import dk.digitalidentity.sofd.controller.api.dto.AccountOrderResponseDTO;
 import dk.digitalidentity.sofd.controller.api.dto.CreateAccountOrderDTO;
+import dk.digitalidentity.sofd.controller.api.dto.ErrorDTO;
 import dk.digitalidentity.sofd.controller.api.dto.SetOrderStatusDTO;
+import dk.digitalidentity.sofd.controller.api.dto.SupportedUserTypeDTO;
 import dk.digitalidentity.sofd.dao.model.AccountOrder;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.Notification;
@@ -44,6 +42,7 @@ import dk.digitalidentity.sofd.service.AffiliationService;
 import dk.digitalidentity.sofd.service.NotificationService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
+import dk.digitalidentity.sofd.service.UserService;
 import dk.digitalidentity.sofd.service.UsernameGeneratorService;
 import lombok.extern.slf4j.Slf4j;
 

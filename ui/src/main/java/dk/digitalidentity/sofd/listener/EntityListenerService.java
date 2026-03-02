@@ -539,7 +539,7 @@ public class EntityListenerService {
 			oldUsers.stream()
 					.filter(u -> Objects.equals(u.getMaster(), newUser.getMaster()) && Objects.equals(u.getMasterId(), newUser.getMasterId()))
 					.findFirst()
-					.ifPresent(oldUser -> iterator.remove());
+					.ifPresent(_ -> iterator.remove());
 
 		}
 
@@ -565,7 +565,7 @@ public class EntityListenerService {
 			newUsers.stream()
 					.filter(u -> Objects.equals(u.getMaster(), oldUser.getMaster()) && Objects.equals(u.getMasterId(), oldUser.getMasterId()))
 					.findFirst()
-					.ifPresent(newUser -> iterator.remove());
+					.ifPresent(_ -> iterator.remove());
 		}
 
 		for (User user : oldUsers) {

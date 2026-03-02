@@ -86,6 +86,9 @@ import lombok.extern.slf4j.Slf4j;
 public class PersonService {
 
 	@Autowired
+    private ObjectMapper mapper;
+
+	@Autowired
 	private PersonDao personDao;
 
 	@Autowired
@@ -147,9 +150,6 @@ public class PersonService {
 
 	@Autowired
 	private SubstituteOrgUnitAssignmentService substituteOrgUnitAssignmentService;
-
-	@Autowired
-	private ObjectMapper mapper;
 	
 	@Autowired
 	private PersonPaginator personPaginator;
@@ -618,8 +618,13 @@ public class PersonService {
 		}
 
 		if (!Objects.equals(person.getFirstname(), firstname) || !Objects.equals(person.getSurname(), surname)) {
-			person.setFirstname(firstname);
-			person.setSurname(surname);
+			if (StringUtils.hasText(firstname)) {
+				person.setFirstname(firstname);
+			}
+			
+			if (StringUtils.hasText(surname)) {
+				person.setSurname(surname);
+			}
 
 			// name was changed in CPR - reset chosen name according to config
 			if (configuration.getModules().getPerson().isResetChosenNameOnNameChange()) {

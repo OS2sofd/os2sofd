@@ -607,9 +607,9 @@ public class OpusService {
     	int tries = 3;
     	do {
     		response = restTemplate.postForEntity(configuration.getModules().getAccountCreation().getOpusHandler().getConvertedUrl(), request, String.class);
-			if (response.getStatusCodeValue() != 200) {
+			if (response.getStatusCode().value() != 200) {
 				if (--tries >= 0) {
-					log.warn("Laes Request - Got responseCode " + response.getStatusCodeValue() + " from service: " + response.getBody());
+					log.warn("Laes Request - Got responseCode " + response.getStatusCode().value() + " from service: " + response.getBody());
 					
 					try {
 						Thread.sleep(5000);
@@ -619,7 +619,7 @@ public class OpusService {
 					}
 				}
 				else {
-					log.error("Laes Request - Got responseCode " + response.getStatusCodeValue() + " from service: " + response.getBody());
+					log.error("Laes Request - Got responseCode " + response.getStatusCode().value() + " from service: " + response.getBody());
 					
 					return opusResponse;
 				}
@@ -953,9 +953,9 @@ public class OpusService {
     	int tries = 3;
     	do {
     		response = restTemplate.postForEntity(configuration.getModules().getAccountCreation().getOpusHandler().getConvertedUrl(), request, String.class);
-			if (response.getStatusCodeValue() != 200) {
+			if (response.getStatusCode().value() != 200) {
 				if (--tries >= 0) {
-					log.warn("Ret Request - Got responseCode " + response.getStatusCodeValue() + " from service: " + response.getBody());
+					log.warn("Ret Request - Got responseCode " + response.getStatusCode().value() + " from service: " + response.getBody());
 					
 					try {
 						Thread.sleep(5000);
@@ -965,7 +965,7 @@ public class OpusService {
 					}
 				}
 				else {
-					log.error("Ret Request - Got responseCode " + response.getStatusCodeValue() + " from service: " + response.getBody());
+					log.error("Ret Request - Got responseCode " + response.getStatusCode().value() + " from service: " + response.getBody());
 					
 					return createWrapper(OpusStatusCode.NETWORK_ERROR, null);
 				}
