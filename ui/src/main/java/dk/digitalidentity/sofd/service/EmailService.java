@@ -7,8 +7,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Properties;
 
-import com.microsoft.graph.models.Importance;
-import dk.digitalidentity.sofd.dao.model.enums.MailPriority;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,6 +19,7 @@ import com.microsoft.graph.logger.DefaultLogger;
 import com.microsoft.graph.models.BodyType;
 import com.microsoft.graph.models.EmailAddress;
 import com.microsoft.graph.models.FileAttachment;
+import com.microsoft.graph.models.Importance;
 import com.microsoft.graph.models.ItemBody;
 import com.microsoft.graph.models.Recipient;
 import com.microsoft.graph.models.UserSendMailParameterSet;

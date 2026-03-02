@@ -410,7 +410,7 @@ public class AffiliationService {
 
 	@Transactional
 	public void sendResignationEmails() {
-		
+
 		// sanity check
 		EmailTemplate resignationReminder = emailTemplateService.findByTemplateType(EmailTemplateType.RESIGNATION);
 		EmailTemplate substituteReminder = emailTemplateService.findByTemplateType(EmailTemplateType.SUBSTITUTE_STOPS);
