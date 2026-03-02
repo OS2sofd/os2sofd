@@ -28,6 +28,8 @@
 										<th class="col-md-2" th:text="#{html.entity.user.userId}"></th>
 										<th class="col-md-3" th:text="#{html.report.persons_multiple_affiliation.affiliation.name}"></th>
 										<th class="col-md-3" th:text="#{html.report.persons_multiple_affiliation.affiliation.unit}"></th>
+										<th class="col-md-1" th:text="#{html.entity.affiliation.workplace.startDate}"></th>
+										<th class="col-md-1" th:text="#{html.entity.affiliation.workplace.stopDate}"></th>
 										<th class="col-md-1" th:text="#{html.control.operations}"></th>
 									</tr>
 								</thead>
@@ -38,6 +40,8 @@
 										<td th:text="${row.userId}"></td>
 										<td th:text="${row.affiliationName}"></td>
 										<td th:text="${row.affiliationOrgUnitName}"></td>
+										<td th:text="${row.startDate != null ? #dates.format(row.startDate, 'dd-MM-yyyy') : ''}"></td>
+										<td th:text="${row.stopDate != null ? #dates.format(row.stopDate, 'dd-MM-yyyy') : ''}"></td>
 										<td>
 											<a th:href="@{/ui/person/view/} + ${row.uuid} + '?backRef=report'"><em class="fa fa-fw fa-search"></em></a>
 										</td>

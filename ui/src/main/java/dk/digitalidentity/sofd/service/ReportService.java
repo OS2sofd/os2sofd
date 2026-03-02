@@ -466,6 +466,8 @@ public class ReportService {
 					dto.setUserId(primeUser != null ? primeUser.getUserId() : null);
 					dto.setAffiliationName(AffiliationService.getPositionName(affiliation));
 					dto.setAffiliationOrgUnitName(affiliation.getCalculatedOrgUnit().getName());
+					dto.setStartDate(affiliation.getStartDate());
+					dto.setStopDate(affiliation.getStopDate());
 
 					activeAffiliationsReportDTO.add(dto);
 				}

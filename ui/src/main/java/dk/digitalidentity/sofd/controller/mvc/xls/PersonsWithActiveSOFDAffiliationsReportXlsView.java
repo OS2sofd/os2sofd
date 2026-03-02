@@ -1,5 +1,6 @@
 package dk.digitalidentity.sofd.controller.mvc.xls;
 
+import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -58,11 +59,13 @@ public class PersonsWithActiveSOFDAffiliationsReportXlsView implements View {
 			int rowCount = 1;
 			for (PersonWithActiveSOFDAffiliationsReportDTO row : rows) {
 				Row courseRow = sheet.createRow(rowCount++);
-	
+				SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
 				courseRow.createCell(0).setCellValue(row.getName());
 				courseRow.createCell(1).setCellValue(row.getUserId());
 				courseRow.createCell(2).setCellValue(row.getAffiliationName());
 				courseRow.createCell(3).setCellValue(row.getAffiliationOrgUnitName());
+				courseRow.createCell(4).setCellValue(row.getStartDate() != null ? sdf.format(row.getStartDate()) : "");
+				courseRow.createCell(5).setCellValue(row.getStopDate() != null ? sdf.format(row.getStopDate()) : "");
 			}
 	
 			format(sheet);
@@ -76,6 +79,8 @@ public class PersonsWithActiveSOFDAffiliationsReportXlsView implements View {
 		sheet.autoSizeColumn(1);
 		sheet.autoSizeColumn(2);
 		sheet.autoSizeColumn(3);
+		sheet.autoSizeColumn(4);
+		sheet.autoSizeColumn(5);
 	}
 
 	private void createHeader(Workbook workbook, Sheet sheet, ReportType reportType, ResourceBundleMessageSource messageSource, Locale locale) {
@@ -83,6 +88,8 @@ public class PersonsWithActiveSOFDAffiliationsReportXlsView implements View {
 		String header2 = messageSource.getMessage("xls.genericreport.person.ad", null, locale);
 		String header3 = messageSource.getMessage("xls.genericreport.person.affiliation", null, locale);
 		String header4 = messageSource.getMessage("xls.genericreport.affiliation.unit", null, locale);
+		String header5 = messageSource.getMessage("xls.genericreport.affiliation.startDate", null, locale);
+		String header6 = messageSource.getMessage("xls.genericreport.affiliation.stopDate", null, locale);
 
 		Font headerFont = workbook.createFont();
 		headerFont.setBold(true);
@@ -95,6 +102,8 @@ public class PersonsWithActiveSOFDAffiliationsReportXlsView implements View {
 		createCell(header, 1, header2, headerStyle);
 		createCell(header, 2, header3, headerStyle);
 		createCell(header, 3, header4, headerStyle);
+		createCell(header, 4, header5, headerStyle);
+		createCell(header, 5, header6, headerStyle);
 	}
 
 	private static void createCell(Row header, int column, String value, CellStyle style) {
