@@ -209,11 +209,11 @@
 	</div>
 
 	<div class="hidden">
-		<div th:replace="~{orgunit/fragments/chooseParentModal :: chooseParentModal}"></div>
-		<div th:replace="~{orgunit/fragments/searchPnrModal :: searchPnrModal}"></div>
+		<div th:replace="orgunit/fragments/chooseParentModal :: chooseParentModal"></div>
+		<div th:replace="orgunit/fragments/searchPnrModal :: searchPnrModal"></div>
 	</div>
-	<script th:replace="~{orgunit/fragments/orgunit_tree :: orgUnitTreeScript(configObj='ouJSTreeSelectParentConfig')}"></script>
-	<script th:replace="~{orgunit/fragments/searchPnrModal :: searchPnrModalScript(streetId=street, postalCodeId=postalCode, cityId=city, pnrId=pnr, nameId=name, shortNameId=shortname)}"></script>
+	<script th:replace="orgunit/fragments/orgunit_tree :: orgUnitTreeScript(configObj='ouJSTreeSelectParentConfig')"></script>
+	<script th:replace="orgunit/fragments/searchPnrModal :: searchPnrModalScript(streetId=street, postalCodeId=postalCode, cityId=city, pnrId=pnr, nameId=name, shortNameId=shortname)"></script>
 	<script th:inline="javascript" type="text/javascript">
 		/*<![CDATA[*/
 	

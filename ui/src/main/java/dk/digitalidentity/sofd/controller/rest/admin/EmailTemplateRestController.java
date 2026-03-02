@@ -57,6 +57,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Slf4j
 @RequireAdminAccess
@@ -122,9 +123,17 @@ public class EmailTemplateRestController {
 	public ResponseEntity<Long> uploadAttachment(@ModelAttribute AttachmentDTO attachment) {
 		long id = 0;
 
+		String name = attachment.getFile().getOriginalFilename();
+		if (containsIllegalCharacters(name)) {
+			log.warn("Illegal characters in filename: " + name);
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+		}
+
 		try {
+			// TODO: Id not supplied when creating emailtemplate
 			EmailTemplateChild templateChild = emailTemplateChildService.findById(attachment.getTemplateId());
 			if (templateChild == null) {
+				log.warn("No template supplied!");
 				return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 			}
 			
@@ -177,7 +186,7 @@ public class EmailTemplateRestController {
 			var message = emailTemplateChildDTO.getMessage();
 			// perform placeholder replacement so you can verify that the template replacement worked.
 			message = message.replace(EmailTemplatePlaceholder.TITLE.getPlaceholder(), emailTemplateChildDTO.getTitle());
-			Locale locale = Locale.of("da", "DK");
+			Locale locale = new Locale("da", "DK");
 			for (var placeholder : templateChild.getEmailTemplate().getTemplateType().getEmailTemplatePlaceholders()) {
 
 				try {
@@ -242,7 +251,7 @@ public class EmailTemplateRestController {
 				List<InlineImageDTO> inlineImages = templateChild.getEmailTemplate().getTemplateType().isEboks() ? null : transformImages(emailTemplateChildDTO);
 
 				var message = emailTemplateChildDTO.getMessage();
-				Locale locale = Locale.of("da", "DK");
+				Locale locale = new Locale("da", "DK");
 				
 				// perform placeholder replacement so you can verify that the template replacement worked.
 				for (var placeholder : templateChild.getEmailTemplate().getTemplateType().getEmailTemplatePlaceholders()) {
@@ -279,7 +288,6 @@ public class EmailTemplateRestController {
 			templateChild.setMessage(emailTemplateChildDTO.getMessage());
 			templateChild.setTitle(emailTemplateChildDTO.getTitle());
 			templateChild.setEnabled(emailTemplateChildDTO.isEnabled());
-			templateChild.setPriority(emailTemplateChildDTO.getPriority());
 
 			if (templateChild.getEmailTemplate().getTemplateType().isSendToManager()) {
 				templateChild.setSendTo(emailTemplateChildDTO.getSendTo());
@@ -411,5 +419,9 @@ public class EmailTemplateRestController {
 		emailTemplateChildService.deactive(templateChild);
 		redirectAttributes.addFlashAttribute("success", "Template successfully deactivated");
 		return new RedirectView("/ui/admin/mailtemplates");
+	}
+
+	private boolean containsIllegalCharacters(String s) {
+		return Pattern.compile("[^a-zA-ZæøåÆØÅ0-9_\\-.]").matcher(s).find();
 	}
 }

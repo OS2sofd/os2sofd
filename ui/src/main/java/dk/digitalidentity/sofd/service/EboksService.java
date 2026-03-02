@@ -120,7 +120,7 @@ public class EboksService {
 			auditLogger.log(null, EntityType.CPR, EventType.MESSAGE_SEND, cpr.substring(0, 6) + "-XXXX", logMessage);
 		}
 		catch (HttpStatusCodeException ex) {
-			if (ex.getStatusCode().value() == 409) {
+			if (ex.getRawStatusCode() == 409) {
 				createNotSubscribedNotification(cpr);
 			}
 			else {

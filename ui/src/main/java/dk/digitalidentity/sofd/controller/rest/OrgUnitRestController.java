@@ -1,35 +1,5 @@
 package dk.digitalidentity.sofd.controller.rest;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.util.StringUtils;
-import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
-
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.mvc.admin.dto.TagDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.PostDTO;
@@ -77,8 +47,37 @@ import dk.digitalidentity.sofd.service.TagsService;
 import dk.digitalidentity.sofd.service.model.OUTreeFormWithTags;
 import dk.digitalidentity.sofd.telephony.controller.rest.dto.AutoCompleteResult;
 import dk.digitalidentity.sofd.telephony.controller.rest.dto.ValueData;
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.validation.Valid;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -855,12 +854,12 @@ public class OrgUnitRestController {
 	public ResponseEntity<List<OUTreeFormWithTags>> getOUsByOrg(@PathVariable("id") Long id) {
 		Organisation organisation = organisationService.getById(id);
 		if (organisation == null) {
-			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
 		}
 
 		List<OUTreeFormWithTags> orgUnits = orgUnitService.getAllTreeWithTags(organisation);
 
-		return new ResponseEntity<List<OUTreeFormWithTags>>(orgUnits, HttpStatus.OK);
+		return new ResponseEntity<>(orgUnits, HttpStatus.OK);
 	}
 
 	@RequireLosAdminAccess
@@ -868,7 +867,7 @@ public class OrgUnitRestController {
 	@ResponseBody
 	public ResponseEntity<Boolean> checkName(@RequestParam String sourceName) {
 		if (sourceName == null || sourceName.equals("")) {
-			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
 		}
 
 		boolean found = !orgUnitService.getBySourceName(sourceName).isEmpty();

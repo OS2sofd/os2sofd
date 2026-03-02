@@ -10,7 +10,11 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.commons.lang3.time.StopWatch;
+import javax.persistence.EntityManager;
+import javax.persistence.FlushModeType;
+import javax.persistence.PersistenceContext;
+
+import org.apache.commons.lang.time.StopWatch;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -34,9 +38,7 @@ import dk.digitalidentity.sofd.service.OrganisationService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
 import dk.digitalidentity.sofd.service.UserService;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.FlushModeType;
-import jakarta.persistence.PersistenceContext;
+import io.netty.util.internal.ThreadLocalRandom;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
@@ -142,7 +144,7 @@ public class BootstrapDevMode {
 
 	private void generatePersons() {
 		for (int i = 0; i < orgUnits.size() * 1.5; i++) {
-			var person = createPerson("300200" + (1000 + i));
+			var person = createPerson("300200" + i);
 			var affiliationCount = rand.nextInt(1, 3);
 			var uniqueOrgUnits = getRandomUniqueOrgUnits(affiliationCount);
 			
@@ -205,9 +207,9 @@ public class BootstrapDevMode {
 		ret.setSurname("Efter Navn");
 		ret.setCpr(cpr);
 
-		long startTime = LocalDate.of(1975, 1, 1).toEpochDay();
-		long endTime = LocalDate.now().toEpochDay();
-		long randomTime = rand.nextLong(startTime, endTime);
+		var startTime = LocalDate.of(1975, 1, 1).toEpochDay();
+		var endTime = LocalDate.now().toEpochDay();
+		var randomTime = ThreadLocalRandom.current().nextLong(startTime, endTime);
 
 		ret.setFirstEmploymentDate(new Date(randomTime));
 
@@ -240,7 +242,6 @@ public class BootstrapDevMode {
 		affiliation.setLocalExtensions("{\"key\":\"value\"}");
 		affiliation.setPositionName("Sej ansat");
 		affiliation.setPositionId("" + rand.nextInt(1, 9000));
-		affiliation.setPositionShort("short");
 
 		affiliation.setFunctions(new ArrayList<>());
 		AffiliationFunctionMapping function = new AffiliationFunctionMapping();

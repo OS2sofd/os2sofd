@@ -1,1 +1,0 @@
-ALTER TABLE email_template_children ADD COLUMN priority VARCHAR(64) NOT NULL DEFAULT 'NORMAL';

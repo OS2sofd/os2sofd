@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
-<head th:replace="~{fragments/header :: header}"></head>
+<head th:replace="fragments/header :: header"></head>
 <body>
 <div class="wrapper">
-	<header th:replace="~{fragments/navbar :: navbar-header (subpage = 'phonebook')}"></header>
-	<aside th:replace="~{fragments/navbar :: navbar-aside (page = 'persons', subpage='phonebook')}"></aside>
+	<header th:replace="fragments/navbar :: navbar-header (subpage = 'phonebook')"></header>
+	<aside th:replace="fragments/navbar :: navbar-aside (page = 'persons', subpage='phonebook')"></aside>
 
 	<section>
 		<div class="content-wrapper">
@@ -419,15 +419,15 @@
 						</div>
 
 						<div id="phone_menu" class="tab-pane">
-							<th:block th:replace="~{fragments/phoneTab :: phoneTab}" />
+							<th:block th:replace="fragments/phoneTab :: phoneTab" />
 						</div>
 
 						<div id="keywords_menu" class="tab-pane fade">
-							<div th:replace="~{person/fragments/viewKeywordsTab :: keywordsTab(keyWords = ${person.keyWords}, notes = ${person.notes})}"></div>
+							<div th:replace="person/fragments/viewKeywordsTab :: keywordsTab(keyWords = ${person.keyWords}, notes = ${person.notes})"></div>
 						</div>
 
 						<div id="comment_menu" class="tab-pane fade" sec:authorize="hasRole('ROLE_MODULE_PERSON_COMMENT')">
-							<div th:replace="~{person/fragments/viewCommentTab :: commentTab}"></div>
+							<div th:replace="person/fragments/viewCommentTab :: commentTab"></div>
 						</div>
 
 						<div id="substitutes_menu" class="tab-pane fade" th:if="${isManager}">
@@ -830,7 +830,6 @@
 		<div class="modal-content">
 			<div class="modal-header">
 				<h4 th:text="#{html.page.person.view.edit.user.modal}"></h4>
-				<p th:text="#{html.page.person.view.edit.user.modal.body}"></p>
 			</div>
 
 			<div class="modal-body">
@@ -1024,14 +1023,14 @@
 </div>
 
 <!-- Edit phone modal -->
-<div th:replace="~{fragments/phoneTab :: phoneModal}"></div>
+<div th:replace="fragments/phoneTab :: phoneModal"></div>
 <div id="phone_prime_modal">
-	<div th:replace="~{fragments/phoneTab :: phonePrimeModal}"></div>
+	<div th:replace="fragments/phoneTab :: phonePrimeModal"></div>
 </div>
 
-<nav th:replace="~{fragments/footer :: footer}"></nav>
-<script th:replace="~{fragments/datatables :: datatables(paging=false, autoLoad=false) }"></script>
-<script th:replace="~{fragments/phoneTab :: phoneScript }"></script>
+<nav th:replace="fragments/footer :: footer"></nav>
+<script th:replace="fragments/datatables :: datatables(paging=false, autoLoad=false) "></script>
+<script th:replace="fragments/phoneTab :: phoneScript "></script>
 
 <style>
 	.row {

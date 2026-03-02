@@ -219,6 +219,13 @@ public class SearchService {
 				results.add(result);
 			}
 
+			if ("opus".startsWith(query) || "ekstra tilhørsforhold".startsWith(query) || "indstillinger".startsWith(query) || "tilhørsforhold".startsWith(query)) {
+				Map<String, String> result = new HashMap<>();
+				result.put("name", "Ekstra tilhørsforhold (Cog)");
+				result.put("url", "/ui/admin/opusautoaff");
+				results.add(result);
+			}
+
 			if ("organisationsdiagrammer".startsWith(query) || "diagrammer".startsWith(query)) {
 				Map<String, String> result = new HashMap<>();
 				result.put("name", "Organisationsdiagrammer (Sitemap)");

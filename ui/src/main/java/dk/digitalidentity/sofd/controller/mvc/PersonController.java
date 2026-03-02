@@ -17,6 +17,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import javax.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.history.Revision;
 import org.springframework.http.HttpHeaders;
@@ -91,7 +93,6 @@ import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.SubstituteContextService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
 import dk.digitalidentity.sofd.service.UserChangeEmployeeIdQueueService;
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 @RequireReadAccess

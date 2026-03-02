@@ -5,11 +5,10 @@ import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.PathBuilder;
 import com.querydsl.core.types.dsl.StringOperation;
 
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.Expression;
-import jakarta.persistence.criteria.From;
-import jakarta.persistence.criteria.Predicate;
-import org.hibernate.query.criteria.JpaExpression;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.Expression;
+import javax.persistence.criteria.From;
+import javax.persistence.criteria.Predicate;
 
 /**
  * Filter which creates a basic "WHERE ... LIKE ..." clause
@@ -29,23 +28,15 @@ class GlobalFilter implements Filter {
         return "%" + nullOrTrimmedValue(filterValue).toLowerCase()
                 .replaceAll("~", "~~")
                 .replaceAll("%", "~%")
+                .replaceAll("_", "~_")
                 .replaceAll(" ", "%") // added this, to allow for better name searches
-                .replaceAll("_", "~_") + "%";
+                + "%";
     }
 
     @Override
     public Predicate createPredicate(From<?, ?> from, CriteriaBuilder criteriaBuilder, String attributeName) {
         Expression<?> expression = from.get(attributeName);
-        return criteriaBuilder.like(criteriaBuilder.lower(castAsStringIfNeeded(expression)), escapedRawValue, '~');
-    }
-
-    @SuppressWarnings("unchecked")
-    private Expression<String> castAsStringIfNeeded(Expression<?> expression) {
-        if (expression.getJavaType() == String.class) {
-            return (Expression<String>) expression;
-        } else {
-            return ((JpaExpression<?>) expression).cast(String.class);
-        }
+        return criteriaBuilder.like(criteriaBuilder.lower(expression.as(String.class)), escapedRawValue, '~');
     }
 
     @Override

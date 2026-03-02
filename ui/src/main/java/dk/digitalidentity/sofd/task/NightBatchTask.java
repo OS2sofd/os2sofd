@@ -386,6 +386,7 @@ public class NightBatchTask {
 	// all jobs should be scheduled to run between 00:00 and 11:59
 	@Scheduled(cron = "0 * 0-11 * * ?")
 	public void exectuteBatchJobs() {
+
 		for (BatchJob batchJob : batchJobs) {
 			if (batchJob.shouldRun()) {
 				log.info("Executing batchjob: " + batchJob.getName());
@@ -397,26 +398,25 @@ public class NightBatchTask {
 						throw new Exception("Batchjob failed: " + batchJob.getName());
 					}
 
-					log.info("Finished executing batchjob: " + batchJob.getName());
-
 					batchJob.setLastExecutionTime(new Date());
 					batchJobExecutionService.updateExecutionTime(batchJob.getName(), batchJob.getLastExecutionTime());
+					
+					log.info("Finished executing batchjob: " + batchJob.getName());
 				}
 				catch (Exception ex) {
-					String message = "Failed to execute: " + batchJob.getName() + " ("+ errorCount + " of " + batchJob.getMaxExecutionAttempts() + " attempts)";
-					if (batchJob.getErrorCount() < batchJob.getMaxExecutionAttempts()) {
+					errorCount++;
+					batchJob.setErrorCount(errorCount);
+					batchJob.setLastErrorTime(new Date());
+					batchJobExecutionService.setErrorCount(batchJob.getName(),batchJob.getErrorCount(),batchJob.getLastErrorTime());
+					var message = "Failed to execute: " + batchJob.getName() + " ("+ errorCount + " of " + batchJob.getMaxExecutionAttempts() + " attempts)";
+					if( batchJob.getErrorCount() < batchJob.getMaxExecutionAttempts()) {
 						log.warn(message,ex);
 					}
 					else {
 						log.error(message, ex);
-					}
-
-					errorCount++;
-					batchJob.setErrorCount(errorCount);
-					batchJob.setLastErrorTime(new Date());
-					batchJobExecutionService.setErrorCount(batchJob.getName(), batchJob.getErrorCount(), batchJob.getLastErrorTime());
+					}					
 				}
-			};
+			}
 		}
 	}
 }

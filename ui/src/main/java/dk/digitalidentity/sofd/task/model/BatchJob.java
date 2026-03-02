@@ -6,7 +6,7 @@ import java.time.LocalTime;
 import java.util.Date;
 import java.util.function.Supplier;
 
-import org.apache.commons.lang3.time.DateUtils;
+import org.apache.commons.lang.time.DateUtils;
 
 import lombok.Builder;
 import lombok.Getter;

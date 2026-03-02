@@ -8,6 +8,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
+import javax.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -39,7 +41,6 @@ import dk.digitalidentity.sofd.security.RequireApiWriteAccess;
 import dk.digitalidentity.sofd.security.RequireReadAccess;
 import dk.digitalidentity.sofd.service.ManagerService;
 import dk.digitalidentity.sofd.service.OrgUnitService;
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

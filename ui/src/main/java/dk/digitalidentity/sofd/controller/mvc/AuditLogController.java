@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import jakarta.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
@@ -56,6 +56,9 @@ public class AuditLogController {
 		model.put("locale", loc);
 		model.put("messagesBundle", messageSource);
 
-		return new ModelAndView(new AuditLogXlsView("Auditlog.xlsx"), model);
+		response.setContentType("application/ms-excel");
+		response.setHeader("Content-Disposition", "attachment; filename=\"Auditlog.xlsx\"");
+
+		return new ModelAndView(new AuditLogXlsView(), model);
 	}
 }

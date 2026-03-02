@@ -5,7 +5,22 @@ import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.commons.lang3.StringUtils;
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+
+import org.apache.commons.lang.StringUtils;
 import org.hibernate.annotations.BatchSize;
 import org.hibernate.envers.Audited;
 import org.hibernate.envers.NotAudited;
@@ -24,20 +39,6 @@ import dk.digitalidentity.sofd.dao.model.mapping.AffiliationPrimaryKleMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.AffiliationSecondaryKleMapping;
 import dk.digitalidentity.sofd.serializer.LocalExtensionsDeserializer;
 import dk.digitalidentity.sofd.serializer.LocalExtensionsSerializer;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -93,20 +94,23 @@ public class Affiliation extends MasteredEntity implements Serializable {
 	@ReadOnlyProperty
 	private boolean selectedPrime;
 
+	@BatchSize(size = 50)
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "orgunit_uuid")
 	@NotNull
 	private OrgUnit orgUnit;
 
+	@BatchSize(size = 50)
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "alt_orgunit_uuid")
 	private OrgUnit alternativeOrgUnit;
 
+	@BatchSize(size = 50)
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JsonBackReference
 	private Person person;
 
-	// TODO: why eager?
+	@BatchSize(size = 50)
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "profession_id")
 	@NotAudited
@@ -157,6 +161,7 @@ public class Affiliation extends MasteredEntity implements Serializable {
 	private String positionName;
 
 	@Column
+	@NotNull
 	@Size(max = 255)
 	private String positionShort;
 
