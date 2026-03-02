@@ -1,20 +1,20 @@
 package dk.digitalidentity.sofd.service;
 
+import static dk.digitalidentity.sofd.service.model.PwdReminderStrategy.DISABLED;
+import static dk.digitalidentity.sofd.service.model.PwdReminderStrategy.EMAIL_ONLY;
+
 import java.time.LocalTime;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import dk.digitalidentity.sofd.config.SofdConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.SettingDao;
 import dk.digitalidentity.sofd.dao.model.Setting;
 import dk.digitalidentity.sofd.service.model.PwdReminderStrategy;
-
-import static dk.digitalidentity.sofd.service.model.PwdReminderStrategy.*;
 
 @Service
 public class PwdReminderService {
