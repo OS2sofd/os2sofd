@@ -69,6 +69,7 @@ public class AccountOrderRulesXlsView implements View {
 								courseRow.createCell(2).setCellValue(supportedUserTypeService.getPrettyName(type.getUserType()));
 								courseRow.createCell(3).setCellValue(position.getPositionName());
 								courseRow.createCell(4).setCellValue(messageSource.getMessage(position.getRule().getMessage(), null, locale));
+								courseRow.createCell(5).setCellValue(messageSource.getMessage(type.getDeactivateAndDeleteRule().getMessage(), null, locale));
 							}
 						}
 						else {
@@ -79,6 +80,7 @@ public class AccountOrderRulesXlsView implements View {
 							courseRow.createCell(2).setCellValue(supportedUserTypeService.getPrettyName(type.getUserType()));
 							courseRow.createCell(3).setCellValue("-");
 							courseRow.createCell(4).setCellValue(messageSource.getMessage(type.getRule().getMessage(), null, locale));
+							courseRow.createCell(5).setCellValue(messageSource.getMessage(type.getDeactivateAndDeleteRule().getMessage(), null, locale));
 						}
 					}
 				}
@@ -96,6 +98,7 @@ public class AccountOrderRulesXlsView implements View {
 		sheet.autoSizeColumn(2);
 		sheet.autoSizeColumn(3);
 		sheet.autoSizeColumn(4);
+		sheet.autoSizeColumn(5);
 	}
 
 	private void createHeader(Workbook workbook, Sheet sheet, ResourceBundleMessageSource messageSource, Locale locale) {
@@ -104,6 +107,7 @@ public class AccountOrderRulesXlsView implements View {
 		String hUserType = messageSource.getMessage("xls.rules.usertype", null, locale);
 		String hPosition = messageSource.getMessage("xls.rules.position", null, locale);
 		String hRule = messageSource.getMessage("xls.rules.rule", null, locale);
+		String adRule = messageSource.getMessage("xls.rules.adrule", null, locale);
 
 		Font headerFont = workbook.createFont();
 		headerFont.setBold(true);
@@ -117,6 +121,7 @@ public class AccountOrderRulesXlsView implements View {
 		createCell(header, 2, hUserType, headerStyle);
 		createCell(header, 3, hPosition, headerStyle);
 		createCell(header, 4, hRule, headerStyle);
+		createCell(header, 5, adRule, headerStyle);
 	}
 
 	private static void createCell(Row header, int column, String value, CellStyle style) {
