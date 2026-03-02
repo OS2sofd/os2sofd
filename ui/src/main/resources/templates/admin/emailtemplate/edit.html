@@ -195,9 +195,9 @@
 										</div>
 									</div>
 									
-									<div class="form-group" th:unless="${isNew}">
+									<div class="form-group">
 										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.attachment}"></label>
-										<div class="col-sm-8">
+										<div class="col-sm-8" th:unless="${isNew}">
 											<button class="btn btn-primary" onclick="addAttachment(this.getAttribute('data-child-id')); return false;" th:data-child-id="${child.id}" th:text="#{html.entity.email_template.attachment.button}" style="margin-bottom: 10px;"></button>
 
 											<ul style="list-style: none; padding-left: 0px;" th:id="'listOfFiles-' + ${child.id}">
@@ -208,6 +208,9 @@
 													<span th:text="${attachment.filename}"></span>
 												</li>
 											</ul>
+										</div>
+										<div class="col-sm-8" th:if="${isNew}">
+											<p th:text="#{html.entity.email_template.attachment.explanation}"></p>
 										</div>
 									</div>
 
