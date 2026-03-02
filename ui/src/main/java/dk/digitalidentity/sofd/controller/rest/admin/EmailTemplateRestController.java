@@ -57,6 +57,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Slf4j
 @RequireAdminAccess
@@ -122,9 +123,17 @@ public class EmailTemplateRestController {
 	public ResponseEntity<Long> uploadAttachment(@ModelAttribute AttachmentDTO attachment) {
 		long id = 0;
 
+		String name = attachment.getFile().getOriginalFilename();
+		if (containsIllegalCharacters(name)) {
+			log.warn("Illegal characters in filename: " + name);
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+		}
+
 		try {
+			// TODO: Id not supplied when creating emailtemplate
 			EmailTemplateChild templateChild = emailTemplateChildService.findById(attachment.getTemplateId());
 			if (templateChild == null) {
+				log.warn("No template supplied!");
 				return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 			}
 			
@@ -411,5 +420,9 @@ public class EmailTemplateRestController {
 		emailTemplateChildService.deactive(templateChild);
 		redirectAttributes.addFlashAttribute("success", "Template successfully deactivated");
 		return new RedirectView("/ui/admin/mailtemplates");
+	}
+
+	private boolean containsIllegalCharacters(String s) {
+		return Pattern.compile("[^a-zA-ZæøåÆØÅ0-9_\\-.]").matcher(s).find();
 	}
 }

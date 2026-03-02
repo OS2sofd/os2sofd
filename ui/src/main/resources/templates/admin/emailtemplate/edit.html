@@ -208,7 +208,7 @@
 									
 									<div class="form-group">
 										<label class="col-sm-2 control-label" th:text="#{html.entity.email_template.attachment}"></label>
-										<div class="col-sm-8">
+										<div class="col-sm-8" th:unless="${isNew}">
 											<button class="btn btn-primary" onclick="addAttachment(this.getAttribute('data-child-id')); return false;" th:data-child-id="${child.id}" th:text="#{html.entity.email_template.attachment.button}" style="margin-bottom: 10px;"></button>
 
 											<ul style="list-style: none; padding-left: 0px;" th:id="'listOfFiles-' + ${child.id}">
@@ -219,6 +219,9 @@
 													<span th:text="${attachment.filename}"></span>
 												</li>
 											</ul>
+										</div>
+										<div class="col-sm-8" th:if="${isNew}">
+											<p style="margin-top: 7px;" th:text="#{html.entity.email_template.attachment.explanation}"></p>
 										</div>
 									</div>
 
@@ -554,6 +557,20 @@
 		function uploadAttachment() {
 		    var formData = new FormData($('#uploadFileForm')[0]);
 
+			// Get the file input and validate filename
+			let fileInput = $('#uploadFileForm input[type="file"]')[0];
+			let filename = fileInput.files[0].name;
+
+			if (/[^a-zA-ZæøåÆØÅ0-9_\-.]/.test(filename)) {
+				$.notify({
+					message: 'Filnavnet indeholder ugyldige tegn. Brug kun bogstaver, tal, underscore, bindestreg og punktum.'
+				}, {
+					status: 'danger',
+					autoHideDelay: 4000
+				});
+				return;
+			}
+
 			$.ajax({
 				url: restUrl + "/attachment",
 				type: 'POST',
@@ -629,8 +646,50 @@
 		}
 
 
-		
+		function validateInput() {
+			let result = {
+				"valid": true,
+				"message": "Ingen fejl fundet"
+			}
+
+			let templateMessage = $('textarea[name="message"]').val()
+
+			let isContainingHttp = containsHttp(templateMessage);
+
+			if (isContainingHttp) {
+				result.valid = false;
+				result.message = "Der er ikke tilladt http i email-teksten, kun https er tilladt";
+			}
+
+			// File names are verified before uploading them.
+			// With the current logic its impossible to verify here since its technically already too late and will have cause an error already
+
+			return result;
+		}
+
+		function containsHttp(input) {
+			const value = input.trim();
+
+			if (value === '') {
+				return false;
+			}
+
+			return value.toLowerCase().includes("http://");
+		}
+
 		function save(payload, tryEmail) {
+
+			let result = validateInput();
+
+			if (!result.valid) {
+				$.notify({
+					message: result.message
+				}, {
+					status: 'danger',
+					autoHideDelay: 2000
+				});
+				return;
+			}
 			$.ajax({
 				method : "POST",
 				url: restUrl + "?tryEmail=" + tryEmail,
