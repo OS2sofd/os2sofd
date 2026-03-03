@@ -37,6 +37,7 @@ import dk.digitalidentity.sofd.dao.model.enums.EndDate;
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.dao.model.enums.NotificationType;
 import dk.digitalidentity.sofd.security.RequireApiWriteAccess;
+import dk.digitalidentity.sofd.service.AccountOrderNightJob;
 import dk.digitalidentity.sofd.service.AccountOrderService;
 import dk.digitalidentity.sofd.service.AffiliationService;
 import dk.digitalidentity.sofd.service.NotificationService;
@@ -71,6 +72,9 @@ public class AccountOrderApiController {
 
 	@Autowired
 	private UserService userService;
+	
+	@Autowired
+	private AccountOrderNightJob accountOrderNightJob;
 
 	@GetMapping("/api/account/generateUsername")
 	public ResponseEntity<?> generateUsername(
@@ -113,7 +117,7 @@ public class AccountOrderApiController {
 	public ResponseEntity<?> triggerFullSync() {		
 		log.info("Full nightly update triggered through API");
 
-		accountOrderService.nightlyJob();
+		accountOrderNightJob.nightlyJob();
 
 		return ResponseEntity.ok().build();
 	}

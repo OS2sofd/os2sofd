@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.model.BatchJobExecution;
+import dk.digitalidentity.sofd.service.AccountOrderNightJob;
 import dk.digitalidentity.sofd.service.AccountOrderService;
 import dk.digitalidentity.sofd.service.AffiliationService;
 import dk.digitalidentity.sofd.service.AuthorizationCodeService;
@@ -99,6 +100,9 @@ public class NightBatchTask {
 
 	@Autowired
 	private ManagerService managerService;
+	
+	@Autowired
+	private AccountOrderNightJob accountOrderNightJob;
 
 	@EventListener(ApplicationReadyEvent.class)
 	public void init() {
@@ -109,7 +113,7 @@ public class NightBatchTask {
 
 		if (configuration.getScheduled().isGenerateAccountOrdersOnStartupEnabled()) {
 			log.info("Executing nightlyjob on startup");
-			accountOrderService.nightlyJob();
+			accountOrderNightJob.nightlyJob();
 		}
 
 		log.info("Generating nightbatch task schedule");
@@ -214,7 +218,7 @@ public class NightBatchTask {
 					.name("Generate Account Orders Task")
 					.time(LocalTime.of(5, random.nextInt(30) + 15))
 					.function(() -> {
-						accountOrderService.nightlyJob();
+						accountOrderNightJob.nightlyJob();
 
 						return true;
 					}).build());
