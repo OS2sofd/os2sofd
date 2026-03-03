@@ -626,7 +626,13 @@ public class UsernameGeneratorService {
 			return null;
 		}
 
-		return prefix + infix + suffix;
+		String result = prefix + infix + suffix;
+		if (isSwearWord(result)) {
+			log.warn("Rejecting assembled username '{}' because it is a bad word (prefix='{}', infix='{}', suffix='{}')", result, prefix, infix, suffix);
+			return null;
+		}
+
+		return result;
 	}
 
 	public String generateUsernameFromStringTemplate(SupportedUserType userType, Affiliation affiliation, Person person) {
@@ -912,9 +918,13 @@ public class UsernameGeneratorService {
 			log.info("Rejecting username '" + word + "' because it is a bad word");
 			return true;
 		}
-
+		
 		// checking against existing/old usernames requires prefix/suffix values to be added
 		String fullWord = prefix + word + suffix;
+		if (isSwearWord(fullWord)) {
+			log.info("Rejecting username '{}' because it is a bad word", fullWord);
+			return true;
+		}
 
 		if (isExistingUsername(fullWord, userType)) {
 			log.info("Rejecting username '" + fullWord + "' because it is already used by someone else");
