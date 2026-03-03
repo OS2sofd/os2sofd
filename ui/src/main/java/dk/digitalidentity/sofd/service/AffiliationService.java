@@ -567,4 +567,9 @@ public class AffiliationService {
 	public Set<String> getPersonUuidsWithAffiliationHistory(List<String> masters) {
 		return affiliationDao.getPersonUuidsWithAffiliationHistory(masters);
 	}
+	
+	public boolean isHourlyPaid(Affiliation affiliation) {
+		return StringUtils.hasLength(configuration.getModules().getAccountCreation().getHourlyWageCode()) &&
+				configuration.getModules().getAccountCreation().getHourlyWageCode().equalsIgnoreCase(affiliation.getEmploymentTerms());
+	}
 }
