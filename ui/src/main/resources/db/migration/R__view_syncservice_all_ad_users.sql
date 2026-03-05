@@ -7,7 +7,7 @@ SELECT
     u.user_id,
     u.disabled,
     CASE 
-        WHEN ad.account_expire_date IS NOT NULL AND ad.account_expire_date <= CURDATE() THEN 1 
+        WHEN ad.account_expire_date IS NOT NULL AND ad.account_expire_date < CURDATE() THEN 1 
         ELSE 0 
     END AS expired,
     CASE 
