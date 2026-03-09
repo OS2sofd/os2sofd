@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -235,15 +236,17 @@ public class ManagerUIApiController {
 
 	private record PausablePersonDTO(String uuid, String personName, LeaveDTO leaveDTO, List<String> positions) {}
 	private record LeaveDTO(@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd") LocalDate startDate, @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd") LocalDate stopDate, String leaveReasonValue, String leaveReasonMessage, String reasonText, boolean disableAccountOrders, boolean expireAccounts) {}
+	@Transactional(readOnly = true)
 	@GetMapping("/api/manager/{uuid}/pausablepeople")
-	public ResponseEntity<?> getPausablePeople(@PathVariable String uuid) {
+	public ResponseEntity<?> getPausablePeople(@PathVariable String uuid, @RequestParam(required = false, defaultValue = "false") boolean everyone) {
 		Person person = personService.getByUuid(uuid);
 		if (person == null) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 
 		List<PausablePersonDTO> result = new ArrayList<>();
-		List<Person> pausablePeople = getPeopleForManager(person);
+		List<Person> pausablePeople = everyone ? personService.getActive() : getPeopleForManager(person);
+
 		if (pausablePeople != null) {
 			for (Person pausablePerson : pausablePeople) {
 				LeaveDTO leaveDTO = null;
