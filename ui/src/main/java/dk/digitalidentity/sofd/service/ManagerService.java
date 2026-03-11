@@ -95,23 +95,27 @@ public class ManagerService {
 		}
 	}
 
-	public record OrgUnitManagerDto(String orgunitUuid, String managerUuid ) { }
+	public record OrgUnitManagerDto(String orgunitUuid, String managerUuid) { }
 	public void importManagers(List<OrgUnitManagerDto> importManagers, boolean fullsync) {
-		var allOrgUnits = orgUnitService.getAll();
+		List<OrgUnit> allOrgUnits = orgUnitService.getAll();
+		
 		// do not allow updating manager from external source if orgunit is blocked from updates
 		allOrgUnits.removeIf(OrgUnit::isBlockUpdate);
-		for( var orgUnit : allOrgUnits ) {
+		for (OrgUnit orgUnit : allOrgUnits) {
 			try {
-				if (!fullsync && !importManagers.stream().anyMatch(o -> Objects.equals(o.orgunitUuid,orgUnit.getUuid()))) {
+				if (!fullsync && !importManagers.stream().anyMatch(o -> Objects.equals(o.orgunitUuid, orgUnit.getUuid()))) {
 					// skip orgUnit if doing delta sync and orgunit uuid is not in payload
 					continue;
 				}
-				var importedManagerUuid = importManagers.stream().filter(o -> Objects.equals(o.orgunitUuid,orgUnit.getUuid())).map(o -> o.managerUuid).findFirst().orElse(null);
-				var validManager = importedManagerUuid != null ? getValidManager(importedManagerUuid) : null;
-				var validManagerUuid = validManager != null ? validManager.getUuid() : null;
-				if( !Objects.equals(orgUnit.getImportedManagerUuid(),validManagerUuid) ) {
-					var previousManagerUuid = orgUnit.getImportedManagerUuid();
-					var previousManager = previousManagerUuid != null ? personService.getByUuid(previousManagerUuid) : null;
+
+				String importedManagerUuid = importManagers.stream().filter(o -> Objects.equals(o.orgunitUuid,orgUnit.getUuid())).map(o -> o.managerUuid).findFirst().orElse(null);
+				Person validManager = importedManagerUuid != null ? getValidManager(importedManagerUuid) : null;
+				String validManagerUuid = validManager != null ? validManager.getUuid() : null;
+
+				if (!Objects.equals(orgUnit.getImportedManagerUuid(), validManagerUuid)) {
+					String previousManagerUuid = orgUnit.getImportedManagerUuid();
+					Person previousManager = previousManagerUuid != null ? personService.getByUuid(previousManagerUuid) : null;
+
 					orgUnit.setImportedManagerUuid(validManagerUuid);
 
 					// clear selected manager if sofd is configured to let source system overwrite selected managers on change
@@ -120,22 +124,22 @@ public class ManagerService {
 					}
 
 					orgUnitService.save(orgUnit);
+
 					// if orgUnit does not have a selected manager, this change should trigger email templates
-					if( orgUnit.getSelectedManagerUuid() == null && !orgUnit.isDeleted() ) {
-						if( orgUnit.getImportedManagerUuid() == null ) {
+					if (orgUnit.getSelectedManagerUuid() == null && !orgUnit.isDeleted()) {
+						if (orgUnit.getImportedManagerUuid() == null) {
 							// the manager was removed
 							sendMail(orgUnit, EmailTemplateType.MANAGER_REMOVED, previousManager);
 						}
-						else
-						{
+						else {
 							// the manager was changed or added
 							sendMail(orgUnit, EmailTemplateType.NEW_MANAGER, validManager);
 						}
 					}
 				}
 			}
-			catch (Exception e) {
-				log.error("Failed to set manager on orgunit: " + orgUnit.getUuid(), e);
+			catch (Exception ex) {
+				log.error("Failed to set manager on orgunit: " + orgUnit.getUuid(), ex);
 			}
 		}
 	}
