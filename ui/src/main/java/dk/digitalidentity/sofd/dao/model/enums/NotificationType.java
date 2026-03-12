@@ -23,6 +23,7 @@ public enum NotificationType {
 	PERSON_DISENFRANCHISED_ACTIVE_AD_ONLY("html.enum.notificationtype.person_disenfranchised_active_ad_only", false),
 	NEW_AFFILIATION_SOFD("html.enum.notificationtype.new_affiliation_sofd"),
 	NEW_AFFILIATION_IN_EMPTY_ORGUNIT("html.enum.notificationtype.new_affiliation_empty_orgunit", false),
+	NEW_MANAGER_FROM_SOURCE_SYSTEM("html.enum.notificationtype.new_manager_from_source_system"),
     MANUAL_NOTIFICATION("html.setting.notification.manual", true, 0, false)
 	;
 

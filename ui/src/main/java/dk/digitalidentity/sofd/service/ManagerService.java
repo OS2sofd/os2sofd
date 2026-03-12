@@ -2,6 +2,7 @@ package dk.digitalidentity.sofd.service;
 
 import static dk.digitalidentity.sofd.util.NullChecker.getValue;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -15,10 +16,13 @@ import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.EmailTemplate;
 import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
+import dk.digitalidentity.sofd.dao.model.Notification;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplatePlaceholder;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplateType;
+import dk.digitalidentity.sofd.dao.model.enums.EntityType;
+import dk.digitalidentity.sofd.dao.model.enums.NotificationType;
 import dk.digitalidentity.sofd.dao.model.enums.OrgUnitManagerSource;
 import dk.digitalidentity.sofd.security.SecurityUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +48,9 @@ public class ManagerService {
 
 	@Autowired
 	private SofdConfiguration sofdConfiguration;
+
+	@Autowired
+	private NotificationService notificationService;
 
 	@Transactional
 	public void ensureValidManagers() {
@@ -121,6 +128,23 @@ public class ManagerService {
 					// clear selected manager if sofd is configured to let source system overwrite selected managers on change
 					if (sofdConfiguration.getModules().getManager().isClearSelectedManagerOnSourceManagerChange()) {
 						orgUnit.setSelectedManagerUuid(null);
+					} else if (orgUnit.getSelectedManagerUuid() != null && validManager != null) {
+						// notify that a new manager arrived from the source system while a manually chosen manager is set
+						var selectedManager = personService.getByUuid(orgUnit.getSelectedManagerUuid());
+						String selectedManagerName = selectedManager != null ? PersonService.getName(selectedManager) : orgUnit.getSelectedManagerUuid();
+						String newManagerName = PersonService.getName(validManager);
+						String message = "Enheden '" + orgUnit.getName() + "' har en manuelt valgt leder (" + selectedManagerName + ") i OS2sofd, "
+								+ "men har fået en ny leder fra kildesystemet (" + newManagerName + "). "
+								+ "Du bør tage stilling til om den manuelt valgte lederopmærkning fortsat skal være gældende.";
+						Notification notification = new Notification();
+						notification.setActive(true);
+						notification.setAffectedEntityName(orgUnit.getName());
+						notification.setAffectedEntityType(EntityType.ORGUNIT);
+						notification.setAffectedEntityUuid(orgUnit.getUuid());
+						notification.setMessage(message);
+						notification.setCreated(new Date());
+						notification.setNotificationType(NotificationType.NEW_MANAGER_FROM_SOURCE_SYSTEM);
+						notificationService.save(notification);
 					}
 
 					orgUnitService.save(orgUnit);
