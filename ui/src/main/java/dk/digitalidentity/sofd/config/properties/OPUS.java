@@ -17,5 +17,4 @@ public class OPUS {
 	private List<String> positionNames = List.of("efterindtægt");
 	private List<String> losIds = new ArrayList<>();
 	private String orgUnitInfix = "";
-	private List<String> invalidPositionNames = new ArrayList<>();
 }

@@ -13,5 +13,4 @@ public class OpusFilterRulesDTO {
 	private List<String> positionNames;
 	private List<String> losIds;
 	private String orgUnitInfix;
-	private List<String> invalidPositionNames;
 }
