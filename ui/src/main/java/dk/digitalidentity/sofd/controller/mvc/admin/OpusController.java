@@ -20,7 +20,6 @@ public class OpusController {
 		model.addAttribute("losIds", configuration.getIntegrations().getOpus().getLosIds());
 		model.addAttribute("positionIds", configuration.getIntegrations().getOpus().getPositionIds());
 		model.addAttribute("positionNames", configuration.getIntegrations().getOpus().getPositionNames());
-		model.addAttribute("invalidPositionNames", configuration.getIntegrations().getOpus().getInvalidPositionNames());
 		model.addAttribute("orgUnitInfix", configuration.getIntegrations().getOpus().getOrgUnitInfix());
 
 		return "admin/opus/filter";

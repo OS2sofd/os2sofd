@@ -25,7 +25,6 @@ public class OpusConfigurationAPI {
 		opusFilterRulesDTO.setPositionIds(configuration.getIntegrations().getOpus().getPositionIds());
 		opusFilterRulesDTO.setPositionNames(configuration.getIntegrations().getOpus().getPositionNames());
 		opusFilterRulesDTO.setOrgUnitInfix(configuration.getIntegrations().getOpus().getOrgUnitInfix());
-		opusFilterRulesDTO.setInvalidPositionNames(configuration.getIntegrations().getOpus().getInvalidPositionNames());
 		
 		return new ResponseEntity<>(opusFilterRulesDTO, HttpStatus.OK);
 	}
