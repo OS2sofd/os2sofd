@@ -304,6 +304,7 @@
 			var allOus = [[${ous}]];
 			var hasConstraints = [[${hasConstraints}]];
 			var constraintOus = [[${constraintOus}]];
+			var externalDefaultInheritPrivileges = [[${@sofdConfiguration.getModules().getAffiliation().isExternalDefaultInheritPrivileges()}]];
 		+]*/
 		var token = $("meta[name='_csrf']").attr("content");
 		var selectedOU;
@@ -366,6 +367,8 @@
 		function setAffiliationType(s) {
 			if (s) {
 				$(".show-if-external").show();
+				$('#realInheritPrivilegesFromOU').val(externalDefaultInheritPrivileges);
+				$('#inheritDiv input[type=checkbox]').prop('checked', externalDefaultInheritPrivileges);
 			}
 			else {
 				$(".show-if-external").hide();
