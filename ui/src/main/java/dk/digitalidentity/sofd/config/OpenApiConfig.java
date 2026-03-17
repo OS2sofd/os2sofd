@@ -38,6 +38,14 @@ public class OpenApiConfig {
     }
 
     @Bean
+    public GroupedOpenApi excelOpenApi() {
+        return GroupedOpenApi.builder()
+                .group("excel")
+                .pathsToMatch("/api/excel/**")
+                .build();
+    }
+
+    @Bean
     public OpenAPI OS2sofdOpenAPI() {
         final String securitySchemeName = "ApiKey";
 
