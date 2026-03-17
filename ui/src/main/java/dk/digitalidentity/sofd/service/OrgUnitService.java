@@ -32,10 +32,15 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.text.SimpleDateFormat;
+
 import dk.digitalidentity.sofd.config.RoleConstants;
 import dk.digitalidentity.sofd.config.SessionConstants;
 import dk.digitalidentity.sofd.config.SofdConfiguration;
+import dk.digitalidentity.sofd.controller.mvc.dto.EmployeeWithUsersDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.PUnitDTO;
+import dk.digitalidentity.sofd.dao.model.SupportedUserType;
+import dk.digitalidentity.sofd.dao.model.User;
 import dk.digitalidentity.sofd.controller.rest.model.OrgUnitCoreInfo;
 import dk.digitalidentity.sofd.dao.OrgUnitDao;
 import dk.digitalidentity.sofd.dao.OrgUnitTypeDao;
@@ -147,6 +152,9 @@ public class OrgUnitService {
 
 	@Autowired
 	private AffiliationService affiliationService;
+
+	@Autowired
+	private SupportedUserTypeService supportedUserTypeService;
 
 	@Autowired
 	private EanService eanService;
@@ -1075,5 +1083,76 @@ public class OrgUnitService {
 
 	public void updateOrgUnitManagers() {
 		orgUnitDao.updateOrgUnitManagers();
+	}
+
+	@Transactional(readOnly = true)
+	public List<EmployeeWithUsersDTO> getEmployeesWithUsers(OrgUnit orgUnit) {
+		SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+		List<EmployeeWithUsersDTO> employees = new ArrayList<>();
+
+		for (Affiliation affiliation : affiliationService.findByCalculatedOrgUnitAndActive(orgUnit)) {
+			EmployeeWithUsersDTO employeeDTO = new EmployeeWithUsersDTO();
+			Person person = affiliation.getPerson();
+
+			employeeDTO.setName(PersonService.getName(person));
+			employeeDTO.setUuid(person.getUuid());
+			employeeDTO.setPositionName(AffiliationService.getPositionName(affiliation));
+			employeeDTO.setUsers(new ArrayList<>());
+			employeeDTO.setStartDate(affiliation.getStartDate() != null ? formatter.format(affiliation.getStartDate()) : null);
+			employeeDTO.setStopDate(affiliation.getStopDate() != null ? formatter.format(affiliation.getStopDate()) : null);
+			employeeDTO.setOrgUnitName(orgUnit.getName());
+			var manager = PersonService.getManagerDifferentFromPerson(person, affiliation);
+			if (manager != null) {
+				employeeDTO.setManager(PersonService.getName(manager.getManager()));
+				employeeDTO.setManagerUsername(manager.getManager().getPrimeADAccount());
+				employeeDTO.setManagerEmail(manager.getManager().getPrimeEmail());
+				var managerPrimeAffiliation = manager.getManager().getPrimeAffiliation();
+				if (managerPrimeAffiliation != null) {
+					employeeDTO.setManagerEmployeeNumber(managerPrimeAffiliation.isFromWageSystem() ? managerPrimeAffiliation.getEmployeeId() : null);
+				}
+			}
+			employeeDTO.setOrgUnitUuid(orgUnit.getUuid());
+			employeeDTO.setEmploymentTerms(affiliation.getEmploymentTermsText());
+			employeeDTO.setInternalReference(affiliation.getInternalReference());
+			employeeDTO.setPrimeAffiliation(affiliation.isPrime());
+			employeeDTO.setEmployeeNumber(affiliation.isFromWageSystem() ? affiliation.getEmployeeId() : null);
+			employeeDTO.setOnLeave(person.isOnActiveLeave());
+			employeeDTO.setInheritPrivileges(affiliation.isInheritPrivileges());
+
+			for (User user : PersonService.getUsers(person)) {
+				SupportedUserType userType = supportedUserTypeService.findByKey(user.getUserType());
+				if (userType == null) {
+					log.error("person " + person.getUuid() + " has user account with unknown type " + user.getUserType());
+					continue;
+				}
+				if (SupportedUserTypeService.isActiveDirectory(user.getUserType())) {
+					if (user.getEmployeeId() == null || user.getEmployeeId().equalsIgnoreCase(affiliation.getEmployeeId())) {
+						employeeDTO.getUsers().add(user);
+						var exchangeUser = PersonService.getUsers(person).stream().filter(u -> SupportedUserTypeService.isExchange(u.getUserType()) && u.getMasterId().equalsIgnoreCase(user.getUserId())).findFirst().orElse(null);
+						if (exchangeUser != null) {
+							employeeDTO.getUsers().add(exchangeUser);
+						}
+					}
+				} else if (SupportedUserTypeService.isExchange(user.getUserType())) {
+					// ignore — handled in the active directory logic above
+				} else {
+					employeeDTO.getUsers().add(user);
+				}
+			}
+
+			employees.add(employeeDTO);
+		}
+
+		return employees;
+	}
+
+	@Transactional(readOnly = true)
+	public List<EmployeeWithUsersDTO> getEmployeesWithUsersRecursive(OrgUnit ou) {
+		List<EmployeeWithUsersDTO> allEmployees = new ArrayList<>();
+		allEmployees.addAll(getEmployeesWithUsers(ou));
+		for (OrgUnit childOU : ou.getChildren()) {
+			allEmployees.addAll(getEmployeesWithUsersRecursive(childOU));
+		}
+		return allEmployees;
 	}
 }

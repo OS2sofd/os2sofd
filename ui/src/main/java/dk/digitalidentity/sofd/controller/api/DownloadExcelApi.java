@@ -17,6 +17,7 @@ import org.springframework.web.servlet.ModelAndView;
 
 import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderRulesXlsDto;
 import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderRulesXlsView;
+import dk.digitalidentity.sofd.controller.mvc.xls.EmployeesInformationXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.ActiveAffiliationOrActiveAdAccountReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.GenericReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.MultipleAffiliationsReportXlsView;
@@ -32,31 +33,44 @@ import dk.digitalidentity.sofd.service.OrgUnitService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.ReportService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 @RequireReadAccess
+@Tag(name = "Excel", description = "API til hentning af Excel-rapporter")
 public class DownloadExcelApi {
+
+	private static final String ORG_UNIT_EMPLOYEES = "ORG_UNIT_EMPLOYEES";
+	private static final String ORG_UNIT_EMPLOYEES_NESTED = "ORG_UNIT_EMPLOYEES_NESTED";
 
 	@Autowired
 	private OrgUnitService orgUnitService;
 
 	@Autowired
 	private AccountOrderService accountOrderService;
-	
+
 	@Autowired
 	private SupportedUserTypeService supportedUserTypeService;
-	
+
 	@Autowired
 	private MessageSource messageSource;
-	
+
 	@Autowired
 	private PersonService personService;
-	
+
 	@Autowired
 	private ReportService reportService;
 
+	@Operation(summary = "Hent kontoordre-regler", description = "Returnerer en Excel-fil med kontoordre-regler for alle aktive enheder")
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "200", description = "Excel-fil med kontoordre-regler")
+	})
 	@GetMapping("/api/excel/accountOrderRules")
 	public void downloadAccountOrderRules(Locale loc, HttpServletRequest request, HttpServletResponse response) throws Exception {
 		AccountOrderRulesXlsDto dto = new AccountOrderRulesXlsDto();
@@ -73,20 +87,66 @@ public class DownloadExcelApi {
 		new AccountOrderRulesXlsView("regler.xlsx").render(model, request, response);
 	}
 
+	@Operation(summary = "List tilgængelige rapporttyper", description = "Returnerer en liste af tilgængelige rapporttyper med deres navne")
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "200", description = "Liste af rapporttyper")
+	})
 	@GetMapping("/api/excel/reports")
 	public ResponseEntity<Map<String, String>> listReports(Locale loc) {
-		ReportType[] reports = ReportType.values();
 		Map<String, String> response = new HashMap<>();
 
-		for (ReportType reportType : reports) {
+		for (ReportType reportType : ReportType.values()) {
 			response.put(reportType.name(), messageSource.getMessage(reportType.getTitle(), null, loc));
 		}
+
+		response.put(ORG_UNIT_EMPLOYEES, messageSource.getMessage("html.report.orgunit_employees", null, loc));
+		response.put(ORG_UNIT_EMPLOYEES_NESTED, messageSource.getMessage("html.report.orgunit_employees_nested", null, loc));
 
 		return ResponseEntity.ok(response);
 	}
 
+	@Operation(summary = "Hent rapport", description = "Returnerer en Excel-rapport af den angivne type. For ORG_UNIT_EMPLOYEES og ORG_UNIT_EMPLOYEES_NESTED skal orgUnitUuid angives")
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "200", description = "Excel-rapport"),
+		@ApiResponse(responseCode = "400", description = "Ukendt rapporttype eller manglende orgUnitUuid"),
+		@ApiResponse(responseCode = "404", description = "Enhed ikke fundet")
+	})
 	@GetMapping("/api/excel/report/{reportType}")
-	public void downloadReport(@PathVariable("reportType") ReportType report, Locale loc, HttpServletRequest request, HttpServletResponse response) throws Exception {
+	public void downloadReport(
+			@Parameter(description = "Rapporttype - se /api/excel/reports for mulige værdier") @PathVariable("reportType") String reportType,
+			@Parameter(description = "UUID på enheden - påkrævet for ORG_UNIT_EMPLOYEES og ORG_UNIT_EMPLOYEES_NESTED") @RequestParam(required = false) String orgUnitUuid,
+			Locale loc, HttpServletRequest request, HttpServletResponse response) throws Exception {
+
+		// org unit reports
+		if (ORG_UNIT_EMPLOYEES.equals(reportType) || ORG_UNIT_EMPLOYEES_NESTED.equals(reportType)) {
+			if (orgUnitUuid == null) {
+				throw new IllegalArgumentException("orgUnitUuid parameter required for this report type");
+			}
+			OrgUnit orgUnit = orgUnitService.getByUuid(orgUnitUuid);
+			if (orgUnit == null) {
+				throw new IllegalArgumentException("OrgUnit not found: " + orgUnitUuid);
+			}
+
+			Map<String, Object> model = new HashMap<>();
+			model.put("employees", ORG_UNIT_EMPLOYEES.equals(reportType)
+					? orgUnitService.getEmployeesWithUsers(orgUnit)
+					: orgUnitService.getEmployeesWithUsersRecursive(orgUnit));
+			model.put("supportedUserTypeService", supportedUserTypeService);
+			model.put("messagesBundle", messageSource);
+			model.put("locale", loc);
+
+			new EmployeesInformationXlsView("Medarbejderoplysninger - " + orgUnit.getName() + ".xlsx").render(model, request, response);
+			return;
+		}
+
+		// standard reports
+		ReportType report;
+		try {
+			report = ReportType.valueOf(reportType);
+		} catch (IllegalArgumentException e) {
+			throw new IllegalArgumentException("Unknown report type: " + reportType);
+		}
+
 		Map<String, Object> model = new HashMap<>();
 		model.put("report", report);
 		model.put("locale", loc);
@@ -117,27 +177,22 @@ public class DownloadExcelApi {
 				break;
 			case PERSONS_WITH_MULTIPLE_AFFILIATIONS:
 				model.put("rows", reportService.generateMultipleAffiliationsReport());
-
 				new MultipleAffiliationsReportXlsView("rapport.xlsx").render(model, request, response);
 				return;
 			case PERSONS_WITH_SOFD_AFFILIATIONS:
 				model.put("rows", reportService.generateSofdAffiliationsReport());
-
 				new SofdAffiliationsReportXlsView("rapport.xlsx").render(model, request, response);
 				return;
 			case PERSONS_WITH_ACTIVE_SOFD_AFFILIATIONS:
 				model.put("rows", reportService.generatePersonsWithActiveSOFDAffiliationsReport());
-
 				new PersonsWithActiveSOFDAffiliationsReportXlsView("rapport.xlsx").render(model, request, response);
 				return;
 			case ACTIVE_AFFILIATION_OR_ACTIVE_AD_ACCOUNT:
 				model.put("rows", reportService.generateActiveAffiliationOrActiveADAccountReport());
-
 				new ActiveAffiliationOrActiveAdAccountReportXlsView("rapport.xlsx").render(model, request, response);
 				return;
 			case PERSONS_WITH_AFFILIATIONS_WORKPLACES:
 				model.put("rows", reportService.generatePersonWithAffiliationsWorkplacesReport());
-				
 				new PersonsWithAffiliationsWorkplacesReportXlsView("rapport.xlsx").render(model, request, response);
 				return;
 		}
@@ -145,8 +200,14 @@ public class DownloadExcelApi {
 		new GenericReportXlsView("rapport.xlsx").render(model, request, response);
 	}
 
+	@Operation(summary = "Hent AD-brugerrapport", description = "Returnerer en Excel-rapport over AD-brugere fra en given dato og frem til i dag")
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "200", description = "Excel-rapport over AD-brugere")
+	})
 	@GetMapping("/api/excel/adusers")
-	public ModelAndView downloadUsersReport(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date, HttpServletResponse response, Locale loc) throws Exception {
+	public ModelAndView downloadUsersReport(
+			@Parameter(description = "Startdato (ISO format: yyyy-MM-dd)") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+			HttpServletResponse response, Locale loc) throws Exception {
 		Map<String, Object> model = new HashMap<>();
 		model.put("locale", loc);
 		model.put("messagesBundle", messageSource);
@@ -155,6 +216,4 @@ public class DownloadExcelApi {
 
 		return new ModelAndView(new UsersReportXlsView("rapport.xlsx"), model);
 	}
-
-
 }
