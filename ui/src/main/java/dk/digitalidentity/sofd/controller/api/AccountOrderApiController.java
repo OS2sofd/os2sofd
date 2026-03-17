@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
+import dk.digitalidentity.sofd.config.properties.AccountOrderGeneration;
 import dk.digitalidentity.sofd.controller.api.dto.AccountOrderDTO;
 import dk.digitalidentity.sofd.controller.api.dto.AccountOrderResponseDTO;
 import dk.digitalidentity.sofd.controller.api.dto.CreateAccountOrderDTO;
@@ -287,6 +288,19 @@ public class AccountOrderApiController {
 
 				responseDTO.getPendingOrders().add(dto);
 			}
+		}
+
+		// Failsafe: refuse to return if any order type exceeds its configured threshold
+		AccountOrderGeneration orderGenerationConfig = configuration.getScheduled().getAccountOrderGeneration();
+		int threshold = switch (type) {
+			case CREATE     -> orderGenerationConfig.getPendingOrderCreateThreshold();
+			case DEACTIVATE -> orderGenerationConfig.getPendingOrderDeactivateThreshold();
+			case DELETE     -> orderGenerationConfig.getPendingOrderDeleteThreshold();
+			case EXPIRE     -> orderGenerationConfig.getPendingOrderExpireThreshold();
+		};
+		int count = responseDTO.getPendingOrders().size();
+		if (count > threshold) {
+			throw new IllegalStateException("Pending " + type + " orders (" + count + ") exceeds threshold (" + threshold + ") for userType " + userType);
 		}
 
 		return new ResponseEntity<AccountOrderResponseDTO>(responseDTO, HttpStatus.OK);

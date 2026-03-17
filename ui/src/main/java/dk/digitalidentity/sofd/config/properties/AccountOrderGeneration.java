@@ -17,4 +17,10 @@ public class AccountOrderGeneration {
 	private AccountOrderDeactivateAndDeleteRule affiliationDeactivateAndDeleteRuleDefault = AccountOrderDeactivateAndDeleteRule.KEEP_ALIVE;
 	@FeatureDocumentation(name = "Udførelse af AD tasks", description = "Bruges til at definere den time kontobestillinger skal udføres, i 24 timers format")
 	private int timeOfExecution = 9;
+
+	// failsafe thresholds: if pending orders of a given type exceed the threshold, the API will refuse to return them
+	private int pendingOrderCreateThreshold = Integer.MAX_VALUE;
+	private int pendingOrderDeactivateThreshold = Integer.MAX_VALUE;
+	private int pendingOrderDeleteThreshold = Integer.MAX_VALUE;
+	private int pendingOrderExpireThreshold = Integer.MAX_VALUE;
 }
