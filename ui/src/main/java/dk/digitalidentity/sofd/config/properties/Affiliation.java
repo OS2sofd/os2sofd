@@ -7,4 +7,5 @@ import lombok.Setter;
 @Setter
 public class Affiliation {
 	private boolean alternativeOUAssignable = false;
+	private boolean externalDefaultInheritPrivileges = false;
 }

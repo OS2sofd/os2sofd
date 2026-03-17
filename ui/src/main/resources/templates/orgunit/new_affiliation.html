@@ -120,6 +120,7 @@
 			var ouRestUrl = [[@{/rest/orgunit}]];
 			var ouUuid = [[${orgUnit.uuid}]]
 			var ouName = [[${orgUnit.name}]]
+			var externalDefaultInheritPrivileges = [[${@sofdConfiguration.getModules().getAffiliation().isExternalDefaultInheritPrivileges()}]];
 		+]*/
 		var token = $("meta[name='_csrf']").attr("content");
 		var autoCompleteService;
@@ -154,6 +155,8 @@
 
 		function setAffiliationType(s) {
 			if (s) {
+				$('#realInheritPrivilegesFromOU').val(externalDefaultInheritPrivileges);
+				$('#inheritDiv input[type=checkbox]').prop('checked', externalDefaultInheritPrivileges);
 				$("#inheritDiv").show();
 			}
 			else {

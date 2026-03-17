@@ -219,6 +219,7 @@
 			var constraintOus = [[${constraintOus}]];
 			var showError = [[${showError}]];
 			var msgCreateFail = [[#{html.page.person.new.msg.failure}]];
+			var externalDefaultInheritPrivileges = [[${@sofdConfiguration.getModules().getAffiliation().isExternalDefaultInheritPrivileges()}]];
 
 		+]*/
 		var token = $("meta[name='_csrf']").attr("content");
@@ -261,6 +262,8 @@
 		function setAffiliationType(s) {
 			if (s) {
 				$(".show-if-external").show();
+				$('#realInheritPrivilegesFromOU').val(externalDefaultInheritPrivileges);
+				$('#inheritDiv input[type=checkbox]').prop('checked', externalDefaultInheritPrivileges);
 			}
 			else {
 				$(".show-if-external").hide();
