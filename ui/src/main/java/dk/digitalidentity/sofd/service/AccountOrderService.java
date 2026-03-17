@@ -190,6 +190,7 @@ public class AccountOrderService {
 		}
 	}
 
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void delete(AccountOrder order) {
 		accountOrderDao.delete(order);
 	}
