@@ -1142,16 +1142,19 @@ public class AccountOrderService {
 										log.debug("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + (affiliation != null ? affiliation.getUuid() : "<null>") + ". The affiliation OU was filtered out.");
 										continue;
 									}
-									
+									String positionName = affiliation != null ? affiliationService.getPositionName(affiliation) : "";
+
 									String message = child.getMessage();
 									message = message.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
 									message = message.replace(EmailTemplatePlaceholder.ACCOUNT_PLACEHOLDER.getPlaceholder(), order.getActualUserId());
 									message = message.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), managerResponse.getOrgUnit().getName());
+									message = message.replace(EmailTemplatePlaceholder.POSITION_NAME_PLACEHOLDER.getPlaceholder(), positionName);
 
 									String title = child.getTitle();
 									title = title.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
 									title = title.replace(EmailTemplatePlaceholder.ACCOUNT_PLACEHOLDER.getPlaceholder(), order.getActualUserId());
 									title = title.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), managerResponse.getOrgUnit().getName());
+									title = title.replace(EmailTemplatePlaceholder.POSITION_NAME_PLACEHOLDER.getPlaceholder(), positionName);
 
 									var logContext = new StringBuilder();
 									logContext.append("Skabelon: ").append(child.getTitle());
