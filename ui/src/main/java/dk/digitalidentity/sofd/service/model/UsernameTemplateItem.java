@@ -32,7 +32,11 @@ public class UsernameTemplateItem {
         String result = switch(usernameTemplateVariableType) {
             case STATIC -> getStaticValue();
             case FIRSTNAME -> getLengthLimitedValue(person.getFirstname());
+            case FIRSTFIRSTNAME -> getLengthLimitedValue(person.getFirstname().trim().split("\\s+")[0]);
+            case ALLFIRSTNAMES -> getLengthLimitedValue(String.join(".", person.getFirstname().trim().split("\\s+")));
             case SURNAME -> getLengthLimitedValue(person.getSurname());
+            case LASTSURNAME -> { var parts = person.getSurname().trim().split("\\s+"); yield getLengthLimitedValue(parts[parts.length - 1]); }
+            case ALLSURNAMES -> getLengthLimitedValue(String.join(".", person.getSurname().trim().split("\\s+")));
             case FULLNAME -> getLengthLimitedValue(person.getFirstname() + " " + person.getSurname());
             case CHOSENNAME -> getLengthLimitedValue(PersonService.getName(person));
             case NAMESEQUENCE -> getNameSequence(PersonService.getName(person), remainingPermutations);

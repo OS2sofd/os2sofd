@@ -11,7 +11,11 @@ import java.util.stream.Collectors;
 public enum UsernameTemplateVariableType {
 	STATIC("statisk"),
 	FIRSTNAME("fornavn"),
+	FIRSTFIRSTNAME("første-fornavn"),
+	ALLFIRSTNAMES("alle-fornavne"),
 	SURNAME("efternavn"),
+	LASTSURNAME("sidste-efternavn"),
+	ALLSURNAMES("alle-efternavne"),
 	FULLNAME("fuldenavn"),
 	CHOSENNAME("kaldenavn"),
 	NAMESEQUENCE("navnesekvens"),
