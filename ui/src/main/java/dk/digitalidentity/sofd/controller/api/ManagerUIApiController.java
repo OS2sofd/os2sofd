@@ -14,6 +14,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import dk.digitalidentity.sofd.dao.model.User;
+import dk.digitalidentity.sofd.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
@@ -96,6 +98,9 @@ public class ManagerUIApiController {
 
 	@Autowired
 	private ManagerService managerService;
+
+	@Autowired
+	private UserService userService;
 
 	private Locale locale = Locale.of("da-DK");
 
@@ -234,7 +239,7 @@ public class ManagerUIApiController {
 		return new ResponseEntity<>(result, HttpStatus.OK);
 	}
 
-	private record PausablePersonDTO(String uuid, String personName, LeaveDTO leaveDTO, List<String> positions) {}
+	private record PausablePersonDTO(String uuid, String personName, LeaveDTO leaveDTO, List<String> positions, List<String> adUsers) {}
 	private record LeaveDTO(@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd") LocalDate startDate, @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd") LocalDate stopDate, String leaveReasonValue, String leaveReasonMessage, String reasonText, boolean disableAccountOrders, boolean expireAccounts) {}
 	@Transactional(readOnly = true)
 	@GetMapping("/api/manager/{uuid}/pausablepeople")
@@ -262,7 +267,9 @@ public class ManagerUIApiController {
 					positions.add(activeAffiliation.getPositionName() + " i " + activeAffiliation.getCalculatedOrgUnit().getName());
 				}
 
-				PausablePersonDTO pausablePersonDTO = new PausablePersonDTO(pausablePerson.getUuid(), PersonService.getName(pausablePerson), leaveDTO, positions);
+				List<String> adUsers = PersonService.getUsers(pausablePerson).stream().filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType())).map(User::getUserId).toList();
+
+				PausablePersonDTO pausablePersonDTO = new PausablePersonDTO(pausablePerson.getUuid(), PersonService.getName(pausablePerson), leaveDTO, positions, adUsers);
 				result.add(pausablePersonDTO);
 			}
 		}
@@ -271,7 +278,6 @@ public class ManagerUIApiController {
 	}
 
 	private record EditAffiliationDTO(long id, String position, String positionDisplayName, Date startDate, Date stopDate, String internalReference) {}
-
 	@PostMapping("/api/manager/{uuid}/affiliations/edit")
 	public ResponseEntity<?> editAffiliation(@PathVariable String uuid, @RequestBody EditAffiliationDTO editAffiliationDTO) {
 		Person manager = personService.getByUuid(uuid);
