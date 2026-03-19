@@ -564,6 +564,11 @@ public class AccountOrderService {
 										changes = true;
 									}
 
+									if (originalPositionRule.isRequiresApproval() != positionRule.isRequiresApproval()) {
+										originalPositionRule.setRequiresApproval(positionRule.isRequiresApproval());
+										changes = true;
+									}
+
 									break;
 								}
 							}
@@ -617,6 +622,7 @@ public class AccountOrderService {
 								for (OrgUnitAccountOrderTypePosition position : type.getPositions()) {
 									if (templatePosition.getPositionName().equals(position.getPositionName())) {
 										templatePosition.setRule(position.getRule());
+										templatePosition.setRequiresApproval(position.isRequiresApproval());
 										break;
 									}
 								}
@@ -843,7 +849,7 @@ public class AccountOrderService {
 							null,
 							doNotLogRequester,
 							configuration.getModules().getAccountCreation().isForceSetEmployeeId(),
-							shouldBypassApproval(userType, affiliation),
+							shouldBypassApproval(userType, affiliation, rules),
 							false,
 							affiliation);
 
@@ -933,11 +939,22 @@ public class AccountOrderService {
 		return shouldOrderAccountOfType(userType, Collections.singletonList(affiliation), offsetDays, ignoreExistingAccounts, rules);
 	}
 
-	private boolean shouldBypassApproval(SupportedUserType userType, Affiliation affiliation ) {
-		var rules = self.getAccountOrderSettings(affiliation.getCalculatedOrgUnit(),false);
-		var ruleType = rules.getTypes().stream().filter(t ->  t.getUserType().equalsIgnoreCase(userType.getKey())).findFirst().orElse(null);
-        return ruleType != null && !ruleType.isRequiresApproval();
-    }
+	private boolean shouldBypassApproval(SupportedUserType userType, Affiliation affiliation, OrgUnitAccountOrder alternativeRules) {
+		var rules = alternativeRules != null ? alternativeRules : self.getAccountOrderSettings(affiliation.getCalculatedOrgUnit(), false);
+		var ruleType = rules.getTypes().stream().filter(t -> t.getUserType().equalsIgnoreCase(userType.getKey())).findFirst().orElse(null);
+		if (ruleType == null) {
+			return false;
+		}
+		if (ruleType.getRule() == AccountOrderRule.BY_POSITION_NAME) {
+			var positionRule = ruleType.getPositions().stream()
+					.filter(p -> p.getPositionName().equals(affiliation.getPositionName()))
+					.findFirst().orElse(null);
+			if (positionRule != null) {
+				return !positionRule.isRequiresApproval();
+			}
+		}
+		return !ruleType.isRequiresApproval();
+	}
 
 	// alternativeRules should ONLY ever be filled out when calling with affiliations from the same OrgUnit!
 	private boolean shouldOrderAccountOfType(String userType, List<Affiliation> affiliations, int offsetDays, boolean ignoreExistingAccounts, OrgUnitAccountOrder alternativeRules) {

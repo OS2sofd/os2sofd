@@ -44,12 +44,21 @@
 							<thead>
 								<tr>
 									<th class="col-md-4" th:text="#{html.entity.affiliation.positionName}"></th>
+									<th th:if="${@sofdConfiguration.getModules().getAccountCreation().isAccountOrderApprove() == true and type.getUserType()=='ACTIVE_DIRECTORY'}" th:text="#{html.page.orgunit.view.accountorders.usertype.requires_approval}"></th>
 									<th class="col-md-8" th:text="#{html.page.orgunit.view.accountorders.usertype.rule}"></th>
 								</tr>
 							</thead>
 							<tbody>
 								<tr th:each="position : ${type.positions}">
 									<td th:text="${position.positionName}"></td>
+									<td th:if="${@sofdConfiguration.getModules().getAccountCreation().isAccountOrderApprove() == true and type.getUserType()=='ACTIVE_DIRECTORY'}">
+										<div class="pull-left checkbox c-checkbox">
+											<label>
+												<input th:value="${position.requiresApproval}" type="checkbox" th:checked="${position.requiresApproval}" disabled/>
+												<span class="fa fa-check"></span>
+											</label>
+										</div>
+									</td>
 									<td>
 										<select class="form-control" disabled="disabled">
 											<option th:each="rule : ${T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderRule).values()}"

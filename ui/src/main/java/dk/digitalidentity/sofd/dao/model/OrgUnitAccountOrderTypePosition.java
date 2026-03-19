@@ -40,4 +40,7 @@ public class OrgUnitAccountOrderTypePosition {
 	@NotNull
 	@Enumerated(EnumType.STRING)
 	private AccountOrderRule rule;
+
+	@Column
+	private boolean requiresApproval = true;
 }
