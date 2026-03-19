@@ -678,11 +678,14 @@
 				});
 
 				$('#positionRules-' + usertype).find("> table > tbody > tr").each(function() {
-					$(this).find("> td > select").each(function() {
+					var positionRow = $(this);
+					positionRow.find("> td > select").each(function() {
 						var positionname = $(this).data('positionname');
 						var rule = $(this).val();
+						var positionRequiresApprovalElem = positionRow.find('input.position-requires-approval');
+						var positionRequiresApproval = positionRequiresApprovalElem.length > 0 ? positionRequiresApprovalElem.is(':checked') : true;
 
-						var positionRuleElem = { "positionName": positionname, "rule": rule };
+						var positionRuleElem = { "positionName": positionname, "rule": rule, "requiresApproval": positionRequiresApproval };
 
 						payloadElem.positions.push(positionRuleElem);
 					});
