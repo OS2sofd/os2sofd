@@ -140,68 +140,79 @@ public class AccountOrderApiController {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 
-		// if an affiliationUuid is supplied, scan for it
-		String employeeId = null;
-		Affiliation triggerAffiliation = null;
-		for (Affiliation affiliation : AffiliationService.notStoppedAffiliations(person.getAffiliations())) {
-			if (affiliation.getUuid().equals(order.getAffiliationUuid())) {
-				employeeId = affiliation.getEmployeeId();
-				triggerAffiliation = affiliation;
-				break;
-			}
-		}
-
-		if (StringUtils.hasLength(order.getChosenUserId())) {
-			order.setChosenUserId(order.getChosenUserId().trim());
-		}
-		else {
-			String generatedUserId = usernameGeneratorService.getUsername(person, employeeId, order.getUserType(), null, triggerAffiliation);
-			order.setChosenUserId(generatedUserId == null ? "" : generatedUserId);
-		}
-
-		AccountOrder pendingADOrder = null;
-		// extra validation for exchange accounts
-		if (SupportedUserTypeService.isExchange(order.getUserType())) {
-			// if they have added an actual mail domain, trim it
-			if (order.getChosenUserId().contains("@")) {
-				order.setChosenUserId(order.getChosenUserId().substring(0, order.getChosenUserId().indexOf("@")));
-			}
-
-			var userIds = new HashSet<String>();
-
-			// check if there is an ad account_order that this Exchange order should be linked to
-			pendingADOrder = accountOrderService.getPendingOrders(person).stream().filter(o -> o.getOrderType() == AccountOrderType.CREATE && SupportedUserTypeService.isActiveDirectory(o.getUserType())).findFirst().orElse(null);
-			if (pendingADOrder != null) {
-				userIds.add(pendingADOrder.getRequestedUserId());
-			}
-			else {
-				userIds.addAll(accountOrderService.getActiveDirectoryUsersForExchangeAccount(person.getAffiliations()));
-			}
-
-			if (!userIds.contains(order.getUserId())) {
-
-				if (accountOrderService.getPendingOrders(person).stream().noneMatch(o -> o.getOrderType() == AccountOrderType.CREATE && SupportedUserTypeService.isActiveDirectory(o.getUserType()))) {
-					log.warn("Chosen userId is not valid for ordering an Exchange Account: " + order.getUserId());
-					return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+		AccountOrder accountOrder;
+		if (order.getOrderType() == AccountOrderType.DEACTIVATE) {
+			accountOrder = accountOrderService.deactivateOrDeleteAccountOrder(
+					AccountOrderType.DEACTIVATE,
+					person,
+					null,
+					order.getUserType(),
+					order.getUserId(),
+					order.getActivationDate() != null ? order.getActivationDate() : new Date());
+		} else {
+			// if an affiliationUuid is supplied, scan for it
+			String employeeId = null;
+			Affiliation triggerAffiliation = null;
+			for (Affiliation affiliation : AffiliationService.notStoppedAffiliations(person.getAffiliations())) {
+				if (affiliation.getUuid().equals(order.getAffiliationUuid())) {
+					employeeId = affiliation.getEmployeeId();
+					triggerAffiliation = affiliation;
+					break;
 				}
 			}
-		}
 
-		AccountOrder accountOrder = accountOrderService.createAccountOrder(
-				person,
-				supportedUserType,
-				order.getChosenUserId(),
-				order.getUserId(),
-				employeeId,
-				order.getActivationDate() != null ? order.getActivationDate() : new Date(),
-				(SupportedUserTypeService.getActiveDirectoryUserType().equals(supportedUserType.getKey()) ? order.getUserEndDate() : EndDate.NO),
-				null,
-				false,
-				configuration.getModules().getAccountCreation().isForceSetEmployeeId(),				
-				true,
-				true,
-				pendingADOrder,
-				triggerAffiliation);
+			if (StringUtils.hasLength(order.getChosenUserId())) {
+				order.setChosenUserId(order.getChosenUserId().trim());
+			}
+			else {
+				String generatedUserId = usernameGeneratorService.getUsername(person, employeeId, order.getUserType(), null, triggerAffiliation);
+				order.setChosenUserId(generatedUserId == null ? "" : generatedUserId);
+			}
+
+			AccountOrder pendingADOrder = null;
+			// extra validation for exchange accounts
+			if (SupportedUserTypeService.isExchange(order.getUserType())) {
+				// if they have added an actual mail domain, trim it
+				if (order.getChosenUserId().contains("@")) {
+					order.setChosenUserId(order.getChosenUserId().substring(0, order.getChosenUserId().indexOf("@")));
+				}
+
+				var userIds = new HashSet<String>();
+
+				// check if there is an ad account_order that this Exchange order should be linked to
+				pendingADOrder = accountOrderService.getPendingOrders(person).stream().filter(o -> o.getOrderType() == AccountOrderType.CREATE && SupportedUserTypeService.isActiveDirectory(o.getUserType())).findFirst().orElse(null);
+				if (pendingADOrder != null) {
+					userIds.add(pendingADOrder.getRequestedUserId());
+				}
+				else {
+					userIds.addAll(accountOrderService.getActiveDirectoryUsersForExchangeAccount(person.getAffiliations()));
+				}
+
+				if (!userIds.contains(order.getUserId())) {
+
+					if (accountOrderService.getPendingOrders(person).stream().noneMatch(o -> o.getOrderType() == AccountOrderType.CREATE && SupportedUserTypeService.isActiveDirectory(o.getUserType()))) {
+						log.warn("Chosen userId is not valid for ordering an Exchange Account: " + order.getUserId());
+						return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+					}
+				}
+			}
+
+			accountOrder = accountOrderService.createAccountOrder(
+					person,
+					supportedUserType,
+					order.getChosenUserId(),
+					order.getUserId(),
+					employeeId,
+					order.getActivationDate() != null ? order.getActivationDate() : new Date(),
+					(SupportedUserTypeService.getActiveDirectoryUserType().equals(supportedUserType.getKey()) ? order.getUserEndDate() : EndDate.NO),
+					null,
+					false,
+					configuration.getModules().getAccountCreation().isForceSetEmployeeId(),
+					true,
+					true,
+					pendingADOrder,
+					triggerAffiliation);
+		}
 
 		AccountOrder result = accountOrderService.save(accountOrder);
 		AccountOrderDTO dto = new AccountOrderDTO(result, null, person, configuration.getModules().getAccountCreation().isEncodeCpr());
