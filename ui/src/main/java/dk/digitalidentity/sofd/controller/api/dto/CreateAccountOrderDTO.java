@@ -1,5 +1,6 @@
 package dk.digitalidentity.sofd.controller.api.dto;
 
+import dk.digitalidentity.sofd.dao.model.enums.AccountOrderType;
 import dk.digitalidentity.sofd.dao.model.enums.EndDate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,4 +25,5 @@ public class CreateAccountOrderDTO {
 	private EndDate userEndDate;
 	private boolean showEndDate;
 	private Date activationDate;
+	private AccountOrderType orderType = AccountOrderType.CREATE;
 }
