@@ -894,6 +894,20 @@ public class PersonService {
 			}
 		}
 
+		// when allManagersApproveEnabled collects managers from multiple affiliations,
+		// also look up org unit substitutes for those affiliations' org units
+		if (person != null && sofdConfiguration.getModules().getAccountCreation().isAllManagersApproveEnabled()) {
+			for (Affiliation aff : AffiliationService.notStoppedAffiliations(person.getAffiliations())) {
+				if (affiliation != null && Objects.equals(aff.getId(), affiliation.getId())) {
+					continue; // already checked above
+				}
+				var orgUnit = aff.getCalculatedOrgUnit();
+				if (orgUnit != null) {
+					substitutes.addAll(substituteOrgUnitAssignmentService.getSofdSubstituteUuids(orgUnit.getUuid()));
+				}
+			}
+		}
+
 		// find all managers' substitutes
 		for( Person manager : managers ) {
 			for (SubstituteAssignment substituteAssignment : manager.getSubstitutes()) {
