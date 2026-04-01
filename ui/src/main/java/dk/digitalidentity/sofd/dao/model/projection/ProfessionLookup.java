@@ -4,6 +4,7 @@ public interface ProfessionLookup {
 	long getAffiliationId();
 	String getPositionName();
 	String getPayGrade();
+	String getPositionTypeName();
 	Long getProfessionId();
 	long getOrganisationId();
 }

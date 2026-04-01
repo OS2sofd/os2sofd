@@ -4,6 +4,8 @@ import java.util.Date;
 
 import org.springframework.util.StringUtils;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 import dk.digitalidentity.sofd.dao.model.AccountOrder;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderStatus;
@@ -44,6 +46,8 @@ public class AccountOrderDTO {
 	private String actualUserId;
 	private String triggerAffiliation;
 	
+	// we have to tell Jackson not to use this constructor, so it uses the default version instead
+	@JsonCreator(mode = JsonCreator.Mode.DISABLED)
 	public AccountOrderDTO(AccountOrder order, Person person) {
 		this.id = order.getId();
 

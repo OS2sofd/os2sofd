@@ -14,8 +14,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import dk.digitalidentity.sofd.dao.model.User;
-import dk.digitalidentity.sofd.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
@@ -44,6 +42,7 @@ import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.PersonLeave;
 import dk.digitalidentity.sofd.dao.model.SubstituteAssignment;
 import dk.digitalidentity.sofd.dao.model.SubstituteOrgUnitAssignment;
+import dk.digitalidentity.sofd.dao.model.User;
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderStatus;
 import dk.digitalidentity.sofd.dao.model.enums.EventType;
 import dk.digitalidentity.sofd.dao.model.enums.LeaveReason;
@@ -98,9 +97,6 @@ public class ManagerUIApiController {
 
 	@Autowired
 	private ManagerService managerService;
-
-	@Autowired
-	private UserService userService;
 
 	private Locale locale = Locale.of("da-DK");
 

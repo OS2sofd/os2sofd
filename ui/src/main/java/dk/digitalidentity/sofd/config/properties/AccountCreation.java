@@ -35,4 +35,6 @@ public class AccountCreation {
 
 	// specifies how many days account orders stay in queue after completion
 	private int accountOrderRetentionDays = 35;
+
+	private boolean nightlyJobEnabled = true;
 }

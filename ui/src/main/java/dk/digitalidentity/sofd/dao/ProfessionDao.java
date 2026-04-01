@@ -26,6 +26,18 @@ public interface ProfessionDao extends CrudRepository<Profession, Long> {
 
 	@Query(nativeQuery = true, value = """
 			select
+			  distinct a.position_type_name
+			from organisations org
+			inner join orgunits o on o.belongs_to = org.id and o.deleted = 0
+			inner join affiliations a on a.orgunit_uuid = o.uuid and a.deleted = 0
+			where
+			  org.id = :organisationId
+			order by a.position_type_name
+			""")
+	List<String> getUniquePositionTypeNames(@Param("organisationId") long organisationId);
+	
+	@Query(nativeQuery = true, value = """
+			select
 			  distinct a.pay_grade
 			from organisations org
 			inner join orgunits o on o.belongs_to = org.id and o.deleted = 0
@@ -41,6 +53,7 @@ public interface ProfessionDao extends CrudRepository<Profession, Long> {
 				a.id as affiliationId,
 				a.position_name as positionName,
 				a.pay_grade as payGrade,
+				a.position_type_name as positionTypeName,
 				a.profession_id as professionId,
 				o.belongs_to as organisationId
 			from affiliations a

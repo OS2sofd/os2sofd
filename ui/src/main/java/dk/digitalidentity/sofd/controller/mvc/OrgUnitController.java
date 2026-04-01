@@ -32,7 +32,6 @@ import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.mvc.admin.dto.TagDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.AffiliationDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.EmployeeDTO;
-import dk.digitalidentity.sofd.controller.mvc.dto.EmployeeWithUsersDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.KleDTO;
 import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderRulesXlsDto;
 import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderRulesXlsView;

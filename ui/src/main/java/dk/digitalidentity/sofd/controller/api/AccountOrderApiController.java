@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -417,6 +418,24 @@ public class AccountOrderApiController {
 		}
 
 		return new ResponseEntity<String>(HttpStatus.OK);
+	}
+
+	/**
+	 * Deletes a PENDING account order
+	 */
+	@DeleteMapping("/api/account/{id}")
+	public ResponseEntity<?> deleteAccountOrder(@PathVariable("id") long id) {
+		AccountOrder accountOrder = accountOrderService.findById(id);
+		if (accountOrder == null) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+
+		if (accountOrder.getStatus() != AccountOrderStatus.PENDING) {
+			return new ResponseEntity<>(HttpStatus.CONFLICT);
+		}
+
+		accountOrderService.delete(accountOrder);
+		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
 	/**

@@ -15,9 +15,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.CacheEvict;
@@ -63,9 +60,10 @@ import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.dao.model.enums.EventType;
 import dk.digitalidentity.sofd.dao.model.enums.NotificationType;
 import dk.digitalidentity.sofd.dao.model.mapping.PersonUserMapping;
-import dk.digitalidentity.sofd.dao.paginator.PersonPaginator;
 import dk.digitalidentity.sofd.log.AuditLogger;
 import dk.digitalidentity.sofd.service.model.UserAudRow;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -134,18 +132,12 @@ public class AccountOrderService {
 	@PersistenceContext
 	private EntityManager entityManager;
 
-    @Autowired
-    private SofdConfiguration sofdConfiguration;
-
 	@Autowired
 	private AuditLogger auditLogger;
 	
 	@Autowired
 	private EmailTemplateChildService emailTemplateChildService;
 	
-	@Autowired
-	private PersonPaginator personPaginator;
-
 	public static <T> Predicate<T> distinctByKey(Function<? super T, ?> keyExtractor) {
 	    Set<Object> seen = ConcurrentHashMap.newKeySet();
 	    return t -> seen.add(keyExtractor.apply(t));
@@ -1159,7 +1151,7 @@ public class AccountOrderService {
 										log.debug("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + (affiliation != null ? affiliation.getUuid() : "<null>") + ". The affiliation OU was filtered out.");
 										continue;
 									}
-									String positionName = affiliation != null ? affiliationService.getPositionName(affiliation) : "";
+									String positionName = affiliation != null ? AffiliationService.getPositionName(affiliation) : "";
 
 									String message = child.getMessage();
 									message = message.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
