@@ -2,7 +2,8 @@ package dk.digitalidentity.sofd.config.properties;
 
 public enum ProfessionField {
 	POSITION_NAME("positionName"),
-	PAY_GRADE("payGrade");
+	PAY_GRADE("payGrade"),
+	POSITION_TYPE_NAME("jobId");
 	
 	private String name;
 	

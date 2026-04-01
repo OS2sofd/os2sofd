@@ -72,6 +72,8 @@ public class ProfessionService {
 				return professionDao.getUniquePayGrades(organisationId);
 			case POSITION_NAME:
 				return professionDao.getUniquePositionNames(organisationId);
+			case POSITION_TYPE_NAME:
+				return professionDao.getUniquePositionTypeNames(organisationId);
 		}
 
 		// fall through default
@@ -135,6 +137,9 @@ public class ProfessionService {
 			case POSITION_NAME -> {
 				yield affiliation.getPositionName();
 			}
+			case POSITION_TYPE_NAME -> {
+				yield affiliation.getPositionTypeName();
+			}
 			default -> {
 				yield affiliation.getPositionName();
 			}
@@ -166,6 +171,9 @@ public class ProfessionService {
 				}
 				case POSITION_NAME -> {
 					yield lookupAffiliation.getPositionName();
+				}
+				case POSITION_TYPE_NAME -> {
+					yield lookupAffiliation.getPositionTypeName();
 				}
 				default -> {
 					yield lookupAffiliation.getPositionName();

@@ -407,12 +407,19 @@ public class OS2SyncService {
 		}
 
 		// find mobile phone number
-		var phoneValue = PersonService.getPhones(person).stream().filter(p ->
-				p.getPhoneType().equals(PhoneType.MOBILE)
-				&& (p.getVisibility() == Visibility.VISIBLE || configuration.getIntegrations().getOs2sync().isSendHiddenPhoneNumbers())) // only send hidden phonenumbers if configured to do so
-				.sorted(Comparator.comparing(Phone::isTypePrime).reversed().thenComparing(Phone::getPhoneNumber)).findFirst() // sort by typeprime (if present), then by phone number to prevent flip-flopping between multiple valid numbers.
-				.map(Phone::getPhoneNumber).orElse(null);
+		String phoneValue = PersonService.getPhones(person).stream()
+				.filter(p ->
+				// only send hidden phonenumbers if configured to do so
+				p.getPhoneType().equals(PhoneType.MOBILE) && (p.getVisibility() == Visibility.VISIBLE || configuration.getIntegrations().getOs2sync().isSendHiddenPhoneNumbers()))
+				// sort by typeprime (if present), then by phone number to prevent flip-flopping between multiple valid numbers.
+				.sorted(Comparator.comparing(Phone::isTypePrime).reversed().thenComparing(Phone::getPhoneNumber))
+				.findFirst()
+				.map(p -> {
+					return p.getPhoneNumber().trim();
+				})
+				.orElse(null);
 
+		
 		// find landline phone number
 		Optional<Phone> landline = PersonService.getPhones(person).stream().filter(p -> p.isTypePrime() && p.getPhoneType().equals(PhoneType.LANDLINE)).findFirst();
 		String landlineValueTemp = null;
@@ -427,15 +434,15 @@ public class OS2SyncService {
 					landlineValueTemp = null;
 				}
 				else {
-					landlineValueTemp = broadBand.get().getPhoneNumber();
+					landlineValueTemp = broadBand.get().getPhoneNumber().trim();
 				}
 			}
 			else {
-				landlineValueTemp = ip.get().getPhoneNumber();
+				landlineValueTemp = ip.get().getPhoneNumber().trim();
 			}
 		}
 		else {
-			landlineValueTemp = landline.get().getPhoneNumber();
+			landlineValueTemp = landline.get().getPhoneNumber().trim();
 		}
 		final String landlineValue = landlineValueTemp;
 
