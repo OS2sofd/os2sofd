@@ -1,7 +1,6 @@
 package dk.digitalidentity.sofd.controller.mvc.dto;
 
 import dk.digitalidentity.sofd.dao.model.enums.PersonType;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,7 +13,6 @@ import lombok.Setter;
 public class ProfileDTO {
 	private String personUuid;
 	
-	@Size(min = 1)
 	private String chosenName;
 
 	private String firstname;
