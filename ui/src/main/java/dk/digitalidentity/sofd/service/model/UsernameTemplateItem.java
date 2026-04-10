@@ -103,27 +103,46 @@ public class UsernameTemplateItem {
             previousInfix = infix;
         }
 
+        // Collect into two buckets so exact-length permutations are always preferred over shorter ones.
+        // A short surname may not reach lengthLimit with a single-char prefix, but can with a longer one.
+        var exactLength = new ArrayList<String>();
+        var shorter = new ArrayList<String>();
+
         for (var prefix : prefixes) {
             for (var infix : infixes) {
                 var infixPrefix = prefix + infix;
                 if (nameParts.length > 1) { // we have a surname
                     // add the normal variant
                     var suffix = nameParts[nameParts.length - 1];
-                    var permutation = infixPrefix + suffix;
-                    permutation = permutation.substring(0, Math.min(permutation.length(), lengthLimit));
-                    permutations.add(permutation);
+                    var permutation = (infixPrefix + suffix).substring(0, Math.min((infixPrefix + suffix).length(), lengthLimit));
+                    if (permutation.length() == lengthLimit) {
+                        exactLength.add(permutation);
+                    } else {
+                        shorter.add(permutation);
+                    }
 
                     // add a variant where we remove the first vowel from suffix
-                    suffix = suffix.replaceFirst("(a|e|i|o|u)", "");
-                    permutation = infixPrefix + suffix;
-                    permutation = permutation.substring(0, Math.min(permutation.length(), lengthLimit));
-                    permutations.add(permutation);
+                    var suffixNoVowel = suffix.replaceFirst("(a|e|i|o|u)", "");
+                    var permutationNoVowel = (infixPrefix + suffixNoVowel).substring(0, Math.min((infixPrefix + suffixNoVowel).length(), lengthLimit));
+                    if (permutationNoVowel.length() == lengthLimit) {
+                        exactLength.add(permutationNoVowel);
+                    } else {
+                        shorter.add(permutationNoVowel);
+                    }
                 } else {
+                    // handles the case where we have only one name part for some reason
                     var permutation = infixPrefix.substring(0, Math.min(infixPrefix.length(), lengthLimit));
-                    permutations.add(permutation); // handles the case where we have only one name part for some reason
+                    if (permutation.length() == lengthLimit) {
+                        exactLength.add(permutation);
+                    } else {
+                        shorter.add(permutation);
+                    }
                 }
             }
         }
+
+        permutations.addAll(exactLength);
+        permutations.addAll(shorter);
     }
 
 
