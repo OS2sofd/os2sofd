@@ -18,6 +18,8 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "sofd")
 public class SofdConfiguration {
 	private boolean autoUpdateEnabled = false;
+	// TODO: 2026-04-10 PSO: flip this boolean to false once all customers are running 2026R1-04-10 or or newer.
+	private boolean flywayRepairEnabled = true;
 	private Modules modules = new Modules();
 	private Customer customer = new Customer();
 	private Integrations integrations = new Integrations();
