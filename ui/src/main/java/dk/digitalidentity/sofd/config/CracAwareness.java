@@ -210,12 +210,17 @@ public class CracAwareness implements DataSource, Resource {
     }
     
     private void flywayMigrate() {
-        Flyway.configure()
+        Flyway flyway = Flyway.configure()
 	        .dataSource(this.delegate)
 	        .locations("classpath:db/migration")
 	        .table("schema_version")
-	        .load()
-	        .migrate();
+	        .load();
+        
+		if (sofdConfiguration.isFlywayRepairEnabled()) {
+			flyway.repair();
+		}
+
+        flyway.migrate();
     }
 
 	private void reloadLoggingConfiguration() {
