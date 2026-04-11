@@ -1,8 +1,5 @@
 package dk.digitalidentity.sofd.config;
 
-import java.util.Random;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,43 +10,16 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.session.jdbc.MySqlJdbcIndexedSessionRepositoryCustomizer;
 import org.springframework.session.jdbc.config.annotation.web.http.EnableJdbcHttpSession;
-import org.springframework.session.jdbc.config.annotation.web.http.JdbcHttpSessionConfiguration;
 import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
 import org.springframework.session.web.http.SessionRepositoryFilter;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.servlet.Filter;
 import jakarta.servlet.http.HttpServletRequest;
 
 @Configuration
-@EnableJdbcHttpSession(maxInactiveIntervalInSeconds = 14400) // 4 hours
+@EnableJdbcHttpSession(maxInactiveIntervalInSeconds = 14400, cleanupCron = Scheduled.CRON_DISABLED) // 4 hours
 public class SessionCacheConfiguration {
-
-	@Autowired
-	private JdbcHttpSessionConfiguration sessionConfiguration;
-
-	@Autowired
-	private SofdConfiguration sofdConfiguration;
-
-	// cleanup Spring Sessions JDB every 10 minutes with a bit of fuzz
-	// run only on master instance and and spread load across customers
-	// note that this grabs an SQL connection
-	@PostConstruct
-	public void configureCleanup() {
-		if (sofdConfiguration.getScheduled().isEnabled()) {
-			// master instance: run cleanup with randomized schedule
-			Random random = new Random();
-			int seconds = random.nextInt(60);  // 0-59
-			int minuteStart = random.nextInt(10);  // 0-9
-
-			String cleanupCron = String.format("%d %d/10 * * * *", seconds, minuteStart);
-			sessionConfiguration.setCleanupCron(cleanupCron);
-		} else {
-			// slave instance: disable cleanup
-			sessionConfiguration.setCleanupCron(Scheduled.CRON_DISABLED);
-		}
-	}
 
 	@Bean
 	public CookieSerializer cookieSerializer() {

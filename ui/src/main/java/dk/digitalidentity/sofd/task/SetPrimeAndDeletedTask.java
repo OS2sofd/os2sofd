@@ -21,7 +21,8 @@ public class SetPrimeAndDeletedTask {
 	@Autowired
 	private PersonService personService;
 
-	@Scheduled(cron = "${cron.primeAndDeleted:0 #{new java.util.Random().nextInt(10)} 6 * * ?}")
+	@Reschedule(cron = "${cron.primeAndDeleted:0 #{new java.util.Random().nextInt(10)} 6 * * ?}")
+	@Scheduled(cron = "${cron.primeAndDeleted:0 0 6 * * ?}")
 	@Transactional(rollbackFor = Exception.class)
 	public void setPrimeAndDeletedTask() {
 		if (!configuration.getScheduled().isEnabled()) {

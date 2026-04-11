@@ -31,7 +31,8 @@ public class CprUpdateTask {
         }
     }
 
-    @Scheduled(cron = "0 #{new java.util.Random().nextInt(55)} 21 * * ?")
+	@Reschedule(cron = "0 #{new java.util.Random().nextInt(60)} 21 * * ?")
+    @Scheduled(cron = "0 0 21 * * ?")
     public void updateFromCpr() {
         if (!configuration.getScheduled().isEnabled() || !configuration.getScheduled().getCprSync().isEnabled()) {
             log.debug("Scheduled update of addresses are disabled on this instance");
@@ -47,8 +48,9 @@ public class CprUpdateTask {
         
         log.info("Scheduled update of persons from cpr completed");
     }
-    
-    @Scheduled(cron = "${cron.cpr.badstate:0 #{new java.util.Random().nextInt(55)} 3 * * ?}")
+
+	@Reschedule(cron = "${cron.cpr.badstate:0 #{new java.util.Random().nextInt(60)} 3 * * ?}")
+    @Scheduled(cron = "${cron.cpr.badstate:0 0 3 * * ?}")
     public void updateBadStates() {
         if (!configuration.getScheduled().isEnabled() || !configuration.getScheduled().getCprSync().isEnabled()) {
             log.debug("Scheduled update of addresses are disabled on this instance");

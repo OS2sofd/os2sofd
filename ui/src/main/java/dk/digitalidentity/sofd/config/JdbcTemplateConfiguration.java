@@ -34,21 +34,19 @@ public class JdbcTemplateConfiguration {
 
 	@Bean(name = "OS2syncTemplate")
 	public JdbcTemplate os2syncTemplate() {
-		if (configuration.getScheduled().isEnabled() && configuration.getIntegrations().getOs2sync().isEnabled()) {
-			HikariConfig config = new HikariConfig();
-			config.setDriverClassName("com.mysql.cj.jdbc.Driver");
-			config.setMinimumIdle(0);
-			config.setMaximumPoolSize(2);
-			config.setJdbcUrl(configuration.getIntegrations().getOs2sync().getDatasourceUrl());
-			config.setPassword(configuration.getIntegrations().getOs2sync().getDatasourcePassword());
-			config.setUsername(configuration.getIntegrations().getOs2sync().getDatasourceUsername());
-			config.setConnectionTimeout(5 * 1000);
-	
-			HikariDataSource dataSource = new HikariDataSource(config);
-	
-			return new JdbcTemplate(dataSource);
-		}
-		
-		return null;
+		HikariConfig config = new HikariConfig();
+		config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+		config.setMinimumIdle(0);
+		// this ensures it does not try to connect until a connection is needed, so we can do CRaC checkpoint
+		config.setInitializationFailTimeout(-1);
+		config.setMaximumPoolSize(2);
+		config.setJdbcUrl(configuration.getIntegrations().getOs2sync().getDatasourceUrl());
+		config.setPassword(configuration.getIntegrations().getOs2sync().getDatasourcePassword());
+		config.setUsername(configuration.getIntegrations().getOs2sync().getDatasourceUsername());
+		config.setConnectionTimeout(5 * 1000);
+
+		HikariDataSource dataSource = new HikariDataSource(config);
+
+		return new JdbcTemplate(dataSource);
 	}
 }

@@ -35,6 +35,14 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class AuthorizationCodeService {
 
+	// make static so it is reused inside this class (expensive to build).
+	// we cannot reuse with other services, as the useWrapper field is set to false
+	private static final XmlMapper xmlMapper = XmlMapper.builder()
+		.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
+		.defaultUseWrapper(false)
+		.addModule(new JavaTimeModule())
+		.build();
+
     @Autowired
     private PersonService personService;
     
@@ -151,11 +159,6 @@ public class AuthorizationCodeService {
             		return changes;
             	}
             	
-            	XmlMapper xmlMapper = XmlMapper.builder()
-												.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
-												.defaultUseWrapper(false)
-												.addModule(new JavaTimeModule())
-												.build();
     			try {
 					authResponse = xmlMapper.readValue(body, ArrayOfHealthProfessional.class);
 				}
