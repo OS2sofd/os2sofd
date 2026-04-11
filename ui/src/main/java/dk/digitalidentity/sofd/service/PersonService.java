@@ -1469,7 +1469,6 @@ public class PersonService {
 		var result = "[]";
 		if (revision != null) {
 			try {
-				ObjectMapper mapper = new ObjectMapper();
 				mapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS); // ensures backwards compatibility with old data
 				mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 				mapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd"));

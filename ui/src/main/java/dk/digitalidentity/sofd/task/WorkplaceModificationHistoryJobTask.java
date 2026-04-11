@@ -21,7 +21,8 @@ public class WorkplaceModificationHistoryJobTask {
 	private WorkplaceService workplaceService;
 
 	// run every night
-	@Scheduled(cron = "0 #{new java.util.Random().nextInt(55)} 1 * * ?")
+	@Reschedule(cron = "0 #{new java.util.Random().nextInt(60)} 1 * * ?")
+	@Scheduled(cron = "0 0 1 * * ?")
 	public void processWorkplaceModifications() {
 		if (!configuration.getModules().getAffiliationWorkplaces().isEnabled()) {
 			return;

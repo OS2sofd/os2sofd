@@ -18,11 +18,7 @@ public class SchoolUserApiRecord extends BaseRecord {
 
 	@Getter(AccessLevel.NONE)
 	@Setter(AccessLevel.NONE)
-	private static final ObjectMapper OBJECT_MAPPER;
-
-	static {
-		OBJECT_MAPPER = new ObjectMapper();
-	}
+	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
 	private String uuid;
 	private String username;

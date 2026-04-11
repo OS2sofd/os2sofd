@@ -51,8 +51,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class OpusService {
-	private static final ObjectMapper mapper = new ObjectMapper();
 	
+	// custom for OPUS only, but make static so we reuse instead of building new instances
+	private static final XmlMapper xmlMapper = XmlMapper.builder()
+		.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
+		.build();
+
 	/* sample payload for testing
 	 * 
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:oio:medarbejder:1.0.0" xmlns:urn1="urn:oio:sagdok:3.0.0">
@@ -120,6 +124,9 @@ public class OpusService {
 	
 	@Autowired
 	private SupportedUserTypeService supportedUserTypeService;
+	
+	@Autowired
+	private ObjectMapper objectMapper;
 
 	@Transactional(rollbackFor = Exception.class)
 	public void handleOrders() {
@@ -176,7 +183,7 @@ public class OpusService {
 		            	boolean changes = false;
 		            	
 		                Map<String, String> localExtensions = StringUtils.hasText(user.getLocalExtensions())
-		                		? mapper.readValue(user.getLocalExtensions(), new TypeReference<Map<String, String>>() { })
+		                		? objectMapper.readValue(user.getLocalExtensions(), new TypeReference<Map<String, String>>() { })
                 				: new HashMap<String, String>();
 
 		                if (localExtensions.containsKey(OPUS_EMAIL_KEY)) {
@@ -205,7 +212,7 @@ public class OpusService {
 		                	localExtensions.put(OPUS_EMAIL_KEY, emailAddress);
 		                	
 		            		try {
-		            			String localExtensionsStr = mapper.writeValueAsString(new TreeMap<>(localExtensions));
+		            			String localExtensionsStr = objectMapper.writeValueAsString(new TreeMap<>(localExtensions));
 		            			user.setLocalExtensions(localExtensionsStr);
 		            		}
 		            		catch (Exception ex) {
@@ -978,8 +985,6 @@ public class OpusService {
 		String responseBody = response.getBody();		
 
 		try {
-			XmlMapper xmlMapper = XmlMapper.builder().configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true).build();
-
 			Envelope envelope = xmlMapper.readValue(responseBody, Envelope.class);
 			
 			if (envelope.getBody() != null) {

@@ -137,6 +137,9 @@ public class PersonController {
 
     @Autowired
     private SofdConfiguration configuration;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @InitBinder("createPersonDTO")
     public void initClientBinder(WebDataBinder binder) {
@@ -787,7 +790,7 @@ public class PersonController {
         personDTO.setLocalExtensions(new ArrayList<>());
         if (person.getLocalExtensions() != null) {
             try {
-                Map<String, String> someMap = new ObjectMapper().readValue(person.getLocalExtensions(), new TypeReference<Map<String, String>>() {
+                Map<String, String> someMap = objectMapper.readValue(person.getLocalExtensions(), new TypeReference<Map<String, String>>() {
                 });
 
                 for (Entry<String, String> entry : someMap.entrySet()) {
@@ -821,7 +824,7 @@ public class PersonController {
         	
             if (user.getLocalExtensions() != null) {
                 try {
-                    Map<String, String> someMap = new ObjectMapper().readValue(user.getLocalExtensions(), new TypeReference<Map<String, String>>() {
+                    Map<String, String> someMap = objectMapper.readValue(user.getLocalExtensions(), new TypeReference<Map<String, String>>() {
                     });
 
                     for (Entry<String, String> entry : someMap.entrySet()) {
@@ -854,7 +857,7 @@ public class PersonController {
         for (Affiliation aff : person.getAffiliations()) {
             if (aff.getLocalExtensions() != null) {
                 try {
-                    Map<String, String> someMap = new ObjectMapper().readValue(aff.getLocalExtensions(), new TypeReference<Map<String, String>>() {
+                    Map<String, String> someMap = objectMapper.readValue(aff.getLocalExtensions(), new TypeReference<Map<String, String>>() {
                     });
 
                     for (Entry<String, String> entry : someMap.entrySet()) {

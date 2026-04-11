@@ -1,5 +1,6 @@
 package dk.digitalidentity.sofd.service;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -32,15 +33,11 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.text.SimpleDateFormat;
-
 import dk.digitalidentity.sofd.config.RoleConstants;
 import dk.digitalidentity.sofd.config.SessionConstants;
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.mvc.dto.EmployeeWithUsersDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.PUnitDTO;
-import dk.digitalidentity.sofd.dao.model.SupportedUserType;
-import dk.digitalidentity.sofd.dao.model.User;
 import dk.digitalidentity.sofd.controller.rest.model.OrgUnitCoreInfo;
 import dk.digitalidentity.sofd.dao.OrgUnitDao;
 import dk.digitalidentity.sofd.dao.OrgUnitTypeDao;
@@ -53,6 +50,8 @@ import dk.digitalidentity.sofd.dao.model.Organisation;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Phone;
 import dk.digitalidentity.sofd.dao.model.Post;
+import dk.digitalidentity.sofd.dao.model.SupportedUserType;
+import dk.digitalidentity.sofd.dao.model.User;
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPostMapping;
 import dk.digitalidentity.sofd.security.SecurityUtil;

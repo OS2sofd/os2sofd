@@ -11,11 +11,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-
-import dk.digitalidentity.sofd.controller.mvc.dto.OrgUnitFutureChangeDTO;
-import dk.digitalidentity.sofd.dao.model.OrgUnitTag;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,11 +21,13 @@ import org.springframework.util.StringUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import dk.digitalidentity.sofd.controller.mvc.dto.OrgUnitFutureChangeDTO;
 import dk.digitalidentity.sofd.controller.rest.model.OrgUnitCoreInfo;
 import dk.digitalidentity.sofd.dao.OrgUnitFutureChangesDao;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.OrgUnitFutureChange;
 import dk.digitalidentity.sofd.dao.model.OrgUnitManager;
+import dk.digitalidentity.sofd.dao.model.OrgUnitTag;
 import dk.digitalidentity.sofd.dao.model.OrgUnitType;
 import dk.digitalidentity.sofd.dao.model.Organisation;
 import dk.digitalidentity.sofd.dao.model.Person;
@@ -39,6 +36,8 @@ import dk.digitalidentity.sofd.dao.model.enums.OrgUnitAttribute;
 import dk.digitalidentity.sofd.dao.model.enums.OrgUnitChangeType;
 import dk.digitalidentity.sofd.service.model.OUTreeForm;
 import dk.digitalidentity.sofd.service.model.OUTreeFormWithTags;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
 
 // TODO: consider moving a lot of this "apply" logic into SofdRepositoryImpl class
@@ -66,6 +65,9 @@ public class OrgUnitFutureChangesService {
 
 	@Autowired
 	private TagsService tagsService;
+	
+	@Autowired
+	private ObjectMapper objectMapper;
 
 	public List<OUTreeForm> getAllTreeFutureOrgUnits(List<OUTreeForm> ouTreeForms, Date date) {
 		List<OrgUnitFutureChange> oUsChangesTillDate = getAllChangesTillDateAndNotApplied(date);
@@ -440,8 +442,7 @@ public class OrgUnitFutureChangesService {
 			}
 		}
 
-		ObjectMapper mapper = new ObjectMapper();
-		String createPayload = mapper.writeValueAsString(map);
+		String createPayload = objectMapper.writeValueAsString(map);
 
 		OrgUnit parentOU = getFutureOrgUnit(orgUnitCoreInfo.getParent(), date);
 		
@@ -530,9 +531,8 @@ public class OrgUnitFutureChangesService {
 		switch (change.getChangeType()) {
 			case CREATE:
 				try {
-					ObjectMapper mapper = new ObjectMapper();
 					TypeReference<HashMap<OrgUnitAttribute, String>> typeRef = new TypeReference<HashMap<OrgUnitAttribute, String>>() { };
-					Map<OrgUnitAttribute, String> coreInfoMap = mapper.readValue(change.getCreatePayload(), typeRef);
+					Map<OrgUnitAttribute, String> coreInfoMap = objectMapper.readValue(change.getCreatePayload(), typeRef);
 
 					orgUnit = new OrgUnit();
 					orgUnit.setUuid(change.getOrgunitUuid());
@@ -706,9 +706,8 @@ public class OrgUnitFutureChangesService {
 		switch (change.getChangeType()) {
 			case CREATE:
 				try {
-					ObjectMapper mapper = new ObjectMapper();
 					TypeReference<HashMap<OrgUnitAttribute, String>> typeRef = new TypeReference<HashMap<OrgUnitAttribute, String>>() {};
-					Map<OrgUnitAttribute, String> coreInfoMap = mapper.readValue(change.getCreatePayload(), typeRef);
+					Map<OrgUnitAttribute, String> coreInfoMap = objectMapper.readValue(change.getCreatePayload(), typeRef);
 
 					ouTreeForm = new OUTreeForm();
 					ouTreeForm.setId(change.getOrgunitUuid());
@@ -754,9 +753,8 @@ public class OrgUnitFutureChangesService {
 		switch (change.getChangeType()) {
 			case CREATE:
 				try {
-					ObjectMapper mapper = new ObjectMapper();
 					TypeReference<HashMap<OrgUnitAttribute, String>> typeRef = new TypeReference<HashMap<OrgUnitAttribute, String>>() {};
-					Map<OrgUnitAttribute, String> coreInfoMap = mapper.readValue(change.getCreatePayload(), typeRef);
+					Map<OrgUnitAttribute, String> coreInfoMap = objectMapper.readValue(change.getCreatePayload(), typeRef);
 
 					ouTreeForm = new OUTreeFormWithTags();
 					ouTreeForm.setId(change.getOrgunitUuid());

@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.node.BaseJsonNode;
 import net.minidev.json.JSONObject;
 
 public class LocalExtensionsDeserializer extends JsonDeserializer<String> {
+	private static final ObjectMapper mapper = new ObjectMapper();
 
 	@SuppressWarnings("unchecked")
 	@Override
@@ -24,7 +25,6 @@ public class LocalExtensionsDeserializer extends JsonDeserializer<String> {
 			throw new JsonParseException(jp, "Only JSON objects are allowed as localExtensions!");
 		}
 		else {
-			ObjectMapper mapper = new ObjectMapper();
 			Map<String, Object> map = mapper.convertValue(node, Map.class);
 
 			return new JSONObject(map).toString();
