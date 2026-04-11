@@ -3,7 +3,6 @@ package dk.digitalidentity.sofd.config;
 import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.flyway.autoconfigure.FlywayMigrationStrategy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -16,16 +15,6 @@ public class JdbcTemplateConfiguration {
 
 	@Autowired
 	private SofdConfiguration configuration;
-
-	@Bean
-	public FlywayMigrationStrategy flywayMigrationStrategy(SofdConfiguration sofdConfiguration) {
-		return flyway -> {
-			if (sofdConfiguration.isFlywayRepairEnabled()) {
-				flyway.repair();
-			}
-			flyway.migrate();
-		};
-	}
 
 	@Bean(name = "defaultTemplate")
 	public JdbcTemplate defaultTemplate(DataSource dataSource) {
