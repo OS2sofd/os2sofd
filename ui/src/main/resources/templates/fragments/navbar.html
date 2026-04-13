@@ -626,8 +626,7 @@
 					</li>
 					
 					<li sec:authorize="isAuthenticated()">
-						<form th:action="@{/logout}" id="logout_form" method="post"></form>
-						<a href="#" onclick="$('#logout_form').submit();">
+						<a th:href="@{/saml/SingleLogout}">
 							<em class="fa fa-sign-out"></em>
 							<span th:text="#{html.navbar.logout}"></span>
 						</a>
