@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
+import dk.digitalidentity.samlmodule.config.settings.DISAML_Configuration;
 import jakarta.annotation.PostConstruct;
 
 // this class solves problems with CRaC
@@ -45,6 +46,9 @@ public class CracAwareness implements DataSource, Resource {
 
     @Autowired
     private SofdConfiguration sofdConfiguration;
+    
+    @Autowired
+    private DISAML_Configuration samlConfiguration;
     
     @PostConstruct
     public void init() throws InitializationException {
@@ -203,6 +207,11 @@ public class CracAwareness implements DataSource, Resource {
             org.springframework.boot.context.properties.bind.Binder
                 .get(environment)
                 .bind("sofd", org.springframework.boot.context.properties.bind.Bindable.ofInstance(sofdConfiguration));
+
+            // re-bind SAML configuration
+            org.springframework.boot.context.properties.bind.Binder
+	            .get(environment)
+	            .bind("di.saml", org.springframework.boot.context.properties.bind.Bindable.ofInstance(samlConfiguration));
         }
         catch (Exception ex) {
             System.out.println("CRaC ERROR: SofdConfiguration rebind failed: " + ex.getMessage());
