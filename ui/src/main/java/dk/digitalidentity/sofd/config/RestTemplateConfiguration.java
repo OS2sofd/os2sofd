@@ -20,6 +20,7 @@ import org.apache.hc.core5.ssl.TrustStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.ClientHttpResponse;
@@ -72,6 +73,8 @@ public class RestTemplateConfiguration {
 		return new RestTemplate(requestFactory);
 	}
 	
+    // have to be LAZY to ensure the keystore information is not loaded at checkpoint
+    @Lazy(true)
     @SuppressWarnings("deprecation")
 	@Bean(name = "opusRestTemplate")
 	public RestTemplate opusRestTemplate() throws Exception {
