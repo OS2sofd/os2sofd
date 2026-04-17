@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -102,7 +103,9 @@ public class OpusService {
 	// {2} = 0010 (email) / 0001 (brugerid) / (9905) IT Bruger / 0020 (telefonnummer eller mobilnummer) / 9021 (afdelingsnummer) 
 	// {3} = Værdi på ovenstående (fx email eller brugernavn)
 	private static final String OPUS_SOAP_KOMMUNIKATION = "<urn:Kommunikation><urn:Gyldighedsstart>{0}</urn:Gyldighedsstart><urn:Gyldighedsstop>{1}</urn:Gyldighedsstop><urn:Sekvensnummer>000</urn:Sekvensnummer><urn:Kommunikationsart>{2}</urn:Kommunikationsart><urn:KommunikationsID>{3}</urn:KommunikationsID></urn:Kommunikation>";
-	
+
+	// CRaC lazy to avoid keystore issue
+	@Lazy(true)
 	@Qualifier("opusRestTemplate")
 	@Autowired
 	private RestTemplate restTemplate;
