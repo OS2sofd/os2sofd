@@ -174,9 +174,10 @@ public class PersonApi {
 			seedPrefix = sofdConfiguration.getCustomer().getCvr() + record.getCpr();
 		}
 
-		Person person = record.toPerson(null, seedPrefix);
-		personService.deleteExistingDuplicateUsers(person,record.getUuid());
-		person = personService.save(record.toPerson(null, seedPrefix));
+		boolean defaultInheritPrivileges = sofdConfiguration.getModules().getAffiliation().isExternalDefaultInheritPrivileges();
+		Person person = record.toPerson(null, seedPrefix, defaultInheritPrivileges);
+		personService.deleteExistingDuplicateUsers(person, record.getUuid());
+		person = personService.save(record.toPerson(null, seedPrefix, defaultInheritPrivileges));
 
 		return new ResponseEntity<>(new PersonApiRecord(person), HttpStatus.CREATED);
 	}
@@ -221,7 +222,7 @@ public class PersonApi {
 			seedPrefix = sofdConfiguration.getCustomer().getCvr() + personRecord.getCpr();
 		}
 
-		Person record = personRecord.toPerson(person, seedPrefix);
+		Person record = personRecord.toPerson(person, seedPrefix, sofdConfiguration.getModules().getAffiliation().isExternalDefaultInheritPrivileges());
 		// we need to delete duplicates before attempting to do any changes
 		personService.deleteExistingDuplicateUsers(record, person.getUuid());
 		boolean changes = false;

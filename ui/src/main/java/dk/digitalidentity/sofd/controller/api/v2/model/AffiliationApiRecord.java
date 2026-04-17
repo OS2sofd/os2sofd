@@ -136,9 +136,9 @@ public class AffiliationApiRecord extends BaseRecord {
 		this.deactivateAndDeleteRule = affiliation.getDeactivateAndDeleteRule();
 	}
 
-	public Affiliation toAffiliation(Person person) {		
+	public Affiliation toAffiliation(Person person, boolean defaultInheritPrivileges) {
 		Affiliation affiliation = new Affiliation();
-		
+
 		// the supplied person might have the same affiliation, in which case all back-references should go to that instance (make Hibernate happy)
 		Affiliation actualAffiliation = affiliation;
 		if (person.getAffiliations() != null && person.getAffiliations().size() > 0) {
@@ -149,7 +149,14 @@ public class AffiliationApiRecord extends BaseRecord {
 				}
 			}
 		}
-		
+
+		// for new affiliations use the configured default; for existing ones preserve the stored value
+		if (actualAffiliation == affiliation) {
+			affiliation.setInheritPrivileges(defaultInheritPrivileges);
+		} else {
+			affiliation.setInheritPrivileges(actualAffiliation.isInheritPrivileges());
+		}
+
 		affiliation.setAffiliationType((affiliationType != null) ? AffiliationType.valueOf(affiliationType) : AffiliationType.EMPLOYEE);
 		affiliation.setEmployeeId(employeeId);
 		affiliation.setEmploymentTerms(employmentTerms);
