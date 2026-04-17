@@ -32,6 +32,7 @@ public class OpusAccountOrderHandler {
 	@JsonIgnore
 	private String keystorePwd;
 
+	// new URL: https://opus-api-prod.prod01.apimanagement.eu10.hana.ondemand.com/lpe/employee-info
 	// url contains a parameter that needs to be merged with the municipalityNumber
 	private String wsUrl = "https://kmdpiprd.kmd.dk/XISOAPAdapter/MessageServlet?senderParty=&senderService=LPE_Employee_KOM_{CODE}&receiverParty=&receiverService=&interface=Employee_Provide_Out&interfaceNamespace=urn:kmd.dk:LPE:EMPLOYEE:external";
 
