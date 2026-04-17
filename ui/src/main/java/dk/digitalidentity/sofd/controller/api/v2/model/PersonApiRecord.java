@@ -148,7 +148,7 @@ public class PersonApiRecord extends BaseRecord {
 
 	}
 
-	public Person toPerson(Person actualPerson, String seedPrefix) {
+	public Person toPerson(Person actualPerson, String seedPrefix, boolean defaultInheritPrivileges) {
 		Person person = new Person();
 		
 		if (actualPerson == null) {
@@ -171,7 +171,7 @@ public class PersonApiRecord extends BaseRecord {
 			person.setAffiliations(new ArrayList<>());
 
 			for (AffiliationApiRecord affiliationRecord : affiliations) {
-				person.getAffiliations().add(affiliationRecord.toAffiliation(actualPerson));
+				person.getAffiliations().add(affiliationRecord.toAffiliation(actualPerson, defaultInheritPrivileges));
 			}
 		}
 		
