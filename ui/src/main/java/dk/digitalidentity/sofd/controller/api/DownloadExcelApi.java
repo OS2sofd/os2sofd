@@ -15,8 +15,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
+import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderRulesXlsDto;
 import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderRulesXlsView;
+import dk.digitalidentity.sofd.controller.mvc.xls.ManagersReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.EmployeesInformationXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.ActiveAffiliationOrActiveAdAccountReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.GenericReportXlsView;
@@ -48,6 +50,10 @@ public class DownloadExcelApi {
 
 	private static final String ORG_UNIT_EMPLOYEES = "ORG_UNIT_EMPLOYEES";
 	private static final String ORG_UNIT_EMPLOYEES_NESTED = "ORG_UNIT_EMPLOYEES_NESTED";
+	private static final String MANAGERS = "MANAGERS";
+
+	@Autowired
+	private SofdConfiguration configuration;
 
 	@Autowired
 	private OrgUnitService orgUnitService;
@@ -101,6 +107,7 @@ public class DownloadExcelApi {
 
 		response.put(ORG_UNIT_EMPLOYEES, messageSource.getMessage("html.report.orgunit_employees", null, loc));
 		response.put(ORG_UNIT_EMPLOYEES_NESTED, messageSource.getMessage("html.report.orgunit_employees_nested", null, loc));
+		response.put(MANAGERS, messageSource.getMessage("html.managers.list.headline", null, loc));
 
 		return ResponseEntity.ok(response);
 	}
@@ -116,6 +123,18 @@ public class DownloadExcelApi {
 			@Parameter(description = "Rapporttype - se /api/excel/reports for mulige værdier") @PathVariable("reportType") String reportType,
 			@Parameter(description = "UUID på enheden - påkrævet for ORG_UNIT_EMPLOYEES og ORG_UNIT_EMPLOYEES_NESTED") @RequestParam(required = false) String orgUnitUuid,
 			Locale loc, HttpServletRequest request, HttpServletResponse response) throws Exception {
+
+		// managers report
+		if (MANAGERS.equals(reportType)) {
+			boolean orgUnitSubstituteEnabled = configuration.getModules().getOrgUnitSubstitute().isEnabled();
+			Map<String, Object> model = new HashMap<>();
+			model.put("rows", reportService.generateManagersReport(orgUnitSubstituteEnabled));
+			model.put("orgUnitSubstituteEnabled", orgUnitSubstituteEnabled);
+			model.put("messagesBundle", messageSource);
+			model.put("locale", loc);
+			new ManagersReportXlsView("Ledere.xlsx").render(model, request, response);
+			return;
+		}
 
 		// org unit reports
 		if (ORG_UNIT_EMPLOYEES.equals(reportType) || ORG_UNIT_EMPLOYEES_NESTED.equals(reportType)) {

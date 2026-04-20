@@ -29,7 +29,9 @@ import org.springframework.web.servlet.ModelAndView;
 import dk.digitalidentity.sofd.config.SessionConstants;
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.mvc.dto.AccountOrderDTO;
+import dk.digitalidentity.sofd.controller.mvc.dto.ManagerReportDTO;
 import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderApprovalReportXlsView;
+import dk.digitalidentity.sofd.controller.mvc.xls.ManagersReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.ActiveAffiliationOrActiveAdAccountReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.GenericReportXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.MultipleAffiliationsReportXlsView;
@@ -40,13 +42,10 @@ import dk.digitalidentity.sofd.controller.mvc.xls.UsersReportXlsView;
 import dk.digitalidentity.sofd.dao.model.AccountOrder;
 import dk.digitalidentity.sofd.dao.model.AccountOrderApproved;
 import dk.digitalidentity.sofd.dao.model.Notification;
-import dk.digitalidentity.sofd.dao.model.OrgUnit;
-import dk.digitalidentity.sofd.dao.model.OrgUnitManager;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Setting;
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderStatus;
 import dk.digitalidentity.sofd.dao.model.enums.CustomerSetting;
-import dk.digitalidentity.sofd.dao.model.enums.OrgUnitManagerSource;
 import dk.digitalidentity.sofd.dao.model.enums.ReportType;
 import dk.digitalidentity.sofd.security.RequireControllerWriteAccess;
 import dk.digitalidentity.sofd.security.RequireReadOrManagerAccess;
@@ -371,25 +370,23 @@ public class ReportController {
 		return "report/notificationView";
 	}
 
-	record ManagerDTO(String uuid, String name, OrgUnit orgUnit, List<String> substitutes, OrgUnitManagerSource source, boolean inherited) {}
-
 	@GetMapping("/ui/report/managers")
 	public String managers(Model model) {
-		List<ManagerDTO> dtos = new ArrayList<>();
-
-		var managerMapping = personService.findAllManagersWithOrgUnits().stream().filter(mm -> mm.getManagerUuid() != null).toList();
-		for (OrgUnitManager mapping : managerMapping) {
-			Person manager = mapping.getManager();
-			OrgUnit orgUnit = mapping.getOrgUnit();
-
-			List<String> substitutes = manager.getSubstitutes().stream().filter(sub -> sub.getConstraintMappings().isEmpty() || sub.getConstraintMappings().stream().anyMatch(cm -> cm.getOrgUnit().equals(orgUnit)))
-					.map(s -> PersonService.getName(s.getSubstitute()) + " (" + s.getContext().getName() + ")").toList();
-			dtos.add(new ManagerDTO(manager.getUuid(), mapping.getName(), orgUnit, substitutes, mapping.getSource(),mapping.isInherited()));
-		}
-
-		model.addAttribute("managers", dtos);
-
+		boolean orgUnitSubstituteEnabled = configuration.getModules().getOrgUnitSubstitute().isEnabled();
+		model.addAttribute("orgUnitSubstituteEnabled", orgUnitSubstituteEnabled);
+		model.addAttribute("managers", reportService.generateManagersReport(orgUnitSubstituteEnabled));
 		return "report/managers";
+	}
+
+	@GetMapping("/ui/report/managers/download")
+	public ModelAndView downloadManagersReport(HttpServletResponse response, Locale loc) {
+		boolean orgUnitSubstituteEnabled = configuration.getModules().getOrgUnitSubstitute().isEnabled();
+		Map<String, Object> model = new HashMap<>();
+		model.put("rows", reportService.generateManagersReport(orgUnitSubstituteEnabled));
+		model.put("orgUnitSubstituteEnabled", orgUnitSubstituteEnabled);
+		model.put("locale", loc);
+		model.put("messagesBundle", messageSource);
+		return new ModelAndView(new ManagersReportXlsView("Ledere.xlsx"), model);
 	}
 	
 	@GetMapping(path = "/ui/report/users")

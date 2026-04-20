@@ -23,6 +23,7 @@ import org.springframework.util.StringUtils;
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.mvc.dto.ADUserReportDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.ActiveAffiliationOrActiveADAccountReportDTO;
+import dk.digitalidentity.sofd.controller.mvc.dto.ManagerReportDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.MultipleAffiliationsReportDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.PersonWithActiveSOFDAffiliationsReportDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.PersonWithAffiliationsWorkplacesReportDTO;
@@ -30,9 +31,11 @@ import dk.digitalidentity.sofd.controller.mvc.dto.SofdAffiliationsReportDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.enums.ADUserStatus;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
+import dk.digitalidentity.sofd.dao.model.OrgUnitManager;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.User;
 import dk.digitalidentity.sofd.dao.model.Workplace;
+import dk.digitalidentity.sofd.dao.model.enums.OrgUnitManagerSource;
 
 @Service
 public class ReportService {
@@ -42,6 +45,9 @@ public class ReportService {
 
 	@Autowired
 	private PersonService personService;
+
+	@Autowired
+	private OrgUnitService orgUnitService;
 
 	@Qualifier("defaultTemplate")
 	@Autowired
@@ -547,6 +553,23 @@ public class ReportService {
 			return placementString(orgunit.getParent(), orgunit.getParent().getName() + "/" + placement);
 		}
 		return placement;
+	}
+
+	public List<ManagerReportDTO> generateManagersReport(boolean orgUnitSubstituteEnabled) {
+		List<ManagerReportDTO> dtos = new ArrayList<>();
+		var managerMapping = personService.findAllManagersWithOrgUnits().stream().filter(mm -> mm.getManagerUuid() != null).toList();
+		for (OrgUnitManager mapping : managerMapping) {
+			Person manager = mapping.getManager();
+			OrgUnit orgUnit = mapping.getOrgUnit();
+			List<String> substitutes = manager.getSubstitutes().stream()
+					.filter(sub -> sub.getConstraintMappings().isEmpty() || sub.getConstraintMappings().stream().anyMatch(cm -> cm.getOrgUnit().equals(orgUnit)))
+					.map(s -> PersonService.getName(s.getSubstitute()) + " (" + s.getContext().getName() + ")").toList();
+			List<String> orgUnitSubstitutes = orgUnitSubstituteEnabled
+					? orgUnitService.getOrgUnitSubstitutes(orgUnit).stream().map(s -> s.getSubstituteName() + " (" + s.getSubstituteContext() + ")").toList()
+					: List.of();
+			dtos.add(new ManagerReportDTO(manager.getUuid(), mapping.getName(), orgUnit.getName(), substitutes, orgUnitSubstitutes, mapping.getSource(), mapping.isInherited()));
+		}
+		return dtos;
 	}
 
 }
