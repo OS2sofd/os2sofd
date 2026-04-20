@@ -9,30 +9,40 @@
 		<section>
 			<div class="content-wrapper">
 				<h3 th:text="#{html.managers.list.headline}"></h3>
-				<div class="panel panel-default">
+				<a class="btn btn-primary" th:href="@{/ui/report/managers/download}">
+					<em class="fa fa-fw fa-file-excel-o"></em>&nbsp;
+					<span th:text="#{html.button.download}"></span>
+				</a>
+				<div style="margin-top: 15px;" class="panel panel-default">
 					<div class="panel-heading"></div>
 					<div class="panel-body">
 						<table id="table" class="listTable table table-responsive table-striped">
 							<thead>
 								<tr>
-									<th class="col-md-3" th:text="#{html.manager.name}"></th>
-									<th class="col-md-4" th:text="#{html.manager.ous}"></th>
-									<th class="col-md-4" th:text="#{html.manager.source}"></th>
-									<th class="col-md-4" th:text="#{html.manager.inherited}"></th>
-									<th class="col-md-4" th:text="#{html.manager.substitutes}"></th>
+									<th class="col-md-2" th:text="#{html.manager.name}"></th>
+									<th class="col-md-2" th:text="#{html.manager.ous}"></th>
+									<th class="col-md-1" th:text="#{html.manager.source}"></th>
+									<th class="col-md-1" th:text="#{html.manager.inherited}"></th>
+									<th th:class="${orgUnitSubstituteEnabled} ? 'col-md-3' : 'col-md-5'" th:text="#{html.manager.substitutes}"></th>
+									<th th:if="${orgUnitSubstituteEnabled}" class="col-md-2" th:text="#{html.manager.orgunit.substitutes}"></th>
 									<th class="col-md-1" th:text="#{html.control.operations}"></th>
 								</tr>
 							</thead>
 							<tbody>
 								<tr th:each="manager : ${managers}">
 									<td th:text="${manager.name}"></td>
-									<td th:text="${manager.orgUnit.name}"></td>
+									<td th:text="${manager.orgUnitName}"></td>
 									<td th:if="${manager.source == T(dk.digitalidentity.sofd.dao.model.enums.OrgUnitManagerSource).SELECTED}" th:text="#{html.manager.source.selected}"></td>
 									<td th:if="${manager.source == T(dk.digitalidentity.sofd.dao.model.enums.OrgUnitManagerSource).IMPORTED}" th:text="#{html.manager.source.imported}"></td>
 									<td th:text="${manager.inherited} ? 'Ja' : 'Nej'"></td>
 									<td>
 										<ul style="padding-left: 20px;">
 											<li th:each="substitute : ${manager.substitutes}" th:text="${substitute}"></li>
+										</ul>
+									</td>
+									<td th:if="${orgUnitSubstituteEnabled}">
+										<ul style="padding-left: 20px;">
+											<li th:each="substitute : ${manager.orgUnitSubstitutes}" th:text="${substitute}"></li>
 										</ul>
 									</td>
 									<td>
