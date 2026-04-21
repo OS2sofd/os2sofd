@@ -22,6 +22,9 @@
 								<form class="form-horizontal" id="user-form" th:action="@{/ui/account/order/double}" method="post" th:object="${order}">
 									<input type="hidden" th:field="*{personUuid}" />
 									<input type="hidden" th:field="*{userType}" />
+									<input type="hidden" th:field="*{forceDespiteValidation}" />
+									<input type="hidden" id="adUserType" th:value="${adUserType}" />
+									<input type="hidden" id="exchangeUserType" th:value="${exchangeUserType}" />
 
 									<div class="form-group">
 										<h4 class="col-sm-12" style="margin-left: 15px;" th:text="${adPrettyName}"></h4>
@@ -98,12 +101,81 @@
 
 	<script th:inline="javascript">
 	/*<![CDATA[*/
-	
+
 		/*[+
 		+]*/
 		var token = $("meta[name='_csrf']").attr("content");
 
+		var swalValidationTitle = [[#{html.error.username.title}]];
+		var swalValidationConfirm = [[#{html.error.username.confirm}]];
+		var swalValidationCancel = [[#{html.error.username.cancel}]];
+		var validateUrl = /*[[@{/ui/account/validateUserId}]]*/ '';
+
+		function validateOne(userId, userType, personUuid) {
+			// returns a jQuery promise resolving to an array of violations (empty if valid)
+			if (!userId || userId.trim().length === 0) {
+				return $.Deferred().resolve([]).promise();
+			}
+			return $.ajax({
+				method : "GET",
+				url : validateUrl,
+				data : { userId: userId.trim(), userType: userType, personUuid: personUuid }
+			}).then(function(data) {
+				return data.valid ? [] : data.violations;
+			});
+		}
+
 		$(document).ready(function () {
+			$('#user-form').on('submit', function(e) {
+				if ($('#forceDespiteValidation').val() === 'true') {
+					return true;
+				}
+				e.preventDefault();
+				var personUuid = $('#personUuid').val();
+				var adUserType = $('#adUserType').val();
+				var exchangeUserType = $('#exchangeUserType').val();
+				var adUserId = $('#adChosenUserId').val();
+				var exUserId = $('#exchangeChosenUserId').val();
+
+				$.when(
+					validateOne(adUserId, adUserType, personUuid),
+					validateOne(exUserId, exchangeUserType, personUuid)
+				).done(function(adResult, exResult) {
+					var combined = (adResult || []).concat(exResult || []);
+					if (combined.length === 0) {
+						$('#user-form').off('submit').submit();
+						return;
+					}
+					// de-duplicate by code (a violation can trigger for both AD and Exchange)
+					var seen = {};
+					var unique = combined.filter(function(v) {
+						if (seen[v.code]) { return false; }
+						seen[v.code] = true;
+						return true;
+					});
+					var messages = unique.map(function(v) { return '- ' + v.message; }).join('<br/>');
+					swal({
+						html : true,
+						title : swalValidationTitle,
+						text : messages,
+						type : "warning",
+						showCancelButton : true,
+						confirmButtonColor : "#DD6B55",
+						confirmButtonText : swalValidationConfirm,
+						cancelButtonText : swalValidationCancel,
+						closeOnConfirm : true,
+						closeOnCancel : true
+					}, function(isConfirm) {
+						if (isConfirm) {
+							$('#forceDespiteValidation').val('true');
+							$('#user-form').off('submit').submit();
+						}
+					});
+				}).fail(function() {
+					$('#user-form').off('submit').submit();
+				});
+				return false;
+			});
 		});
 
 		function handleOnChangeEventForCollapse(id, flip){

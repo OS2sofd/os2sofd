@@ -21,4 +21,5 @@ public class CreateDoubleAccountOrderDTO {
 	private EndDate adUserEndDate;
 	private String exchangeChosenUserId;
 	private boolean requireApproval;
+	private boolean forceDespiteValidation;
 }

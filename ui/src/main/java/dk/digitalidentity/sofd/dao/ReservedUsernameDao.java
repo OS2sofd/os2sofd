@@ -23,12 +23,29 @@ public interface ReservedUsernameDao extends JpaRepository<ReservedUsername, Lon
 	@Query(nativeQuery = true, value = """
     select
         exists (select 1 from known_usernames where username = :userId limit 1)
-        or exists (select 1 from reserved_usernames where user_id = :userId limit 1)
-        or exists (select 1 from account_orders where requested_user_id = :userId limit 1)
+        or exists (select 1 from reserved_usernames where user_id = :userId and person_uuid <> :personUuid limit 1)
+        or exists (
+            select 1 from account_orders
+            where requested_user_id = :userId
+              and person_uuid <> :personUuid
+              and order_type = 'CREATE'
+              and status in ('PENDING', 'PENDING_APPROVAL', 'BLOCKED')
+            limit 1
+        )
         or exists (select 1 from bad_words where value = :userId limit 1)
-        or exists (select 1 from users where user_id = :userId limit 1)
+        or exists (
+            select 1 from users u
+            where u.user_id = :userId
+              and not exists (
+                  select 1 from persons_users pu
+                  where pu.user_id = u.id and pu.person_uuid = :personUuid
+              )
+            limit 1
+        )
     """)
-	Integer isIllegalGeneratedName(@Param("userId") String userId);
+	Integer isIllegalGeneratedName(@Param("userId") String userId, @Param("personUuid") String personUuid);
+
+	boolean existsByUserIdAndPersonUuidNot(String userId, String personUuid);
 
 	@Query(nativeQuery = true, value = """
 	select exists (select 1 from bad_words where value = :badWord limit 1)

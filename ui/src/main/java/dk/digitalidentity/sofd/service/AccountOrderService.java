@@ -1762,7 +1762,11 @@ public class AccountOrderService {
 	}
 
 	public boolean pendingCreateOrderExists(String userType, String userId) {
-		return accountOrderDao.existsByUserTypeAndOrderTypeAndRequestedUserIdAndStatusIn(userType,AccountOrderType.CREATE,userId,List.of(AccountOrderStatus.PENDING,AccountOrderStatus.PENDING_APPROVAL));
+		return accountOrderDao.existsByUserTypeAndOrderTypeAndRequestedUserIdAndStatusIn(userType,AccountOrderType.CREATE,userId,List.of(AccountOrderStatus.PENDING,AccountOrderStatus.PENDING_APPROVAL,AccountOrderStatus.BLOCKED));
+	}
+
+	public boolean pendingCreateOrderExistsByOtherPerson(String userId, String excludePersonUuid) {
+		return accountOrderDao.existsByOrderTypeAndRequestedUserIdAndPersonUuidNotAndStatusIn(AccountOrderType.CREATE,userId,excludePersonUuid,List.of(AccountOrderStatus.PENDING,AccountOrderStatus.PENDING_APPROVAL,AccountOrderStatus.BLOCKED));
 	}
 
     public List<AccountOrder> findOrder(String userType, AccountOrderType orderType, AccountOrderStatus status, String actualUserId) {

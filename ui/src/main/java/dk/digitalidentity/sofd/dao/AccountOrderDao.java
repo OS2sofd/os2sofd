@@ -69,5 +69,7 @@ public interface AccountOrderDao extends CrudRepository<AccountOrder, Long> {
 
 	boolean existsByUserTypeAndOrderTypeAndRequestedUserIdAndStatusIn(String userType, AccountOrderType accountOrderType, String userId, List<AccountOrderStatus> pending);
 
+	boolean existsByOrderTypeAndRequestedUserIdAndPersonUuidNotAndStatusIn(AccountOrderType accountOrderType, String userId, String personUuid, List<AccountOrderStatus> pending);
+
 	void deleteByStatusInAndOrderTypeInAndUserTypeAndRequestedUserId(Set<AccountOrderStatus> statuses, Set<AccountOrderType> orderTypes, String userType, String userId);
 }

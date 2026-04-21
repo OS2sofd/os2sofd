@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -33,6 +34,7 @@ import dk.digitalidentity.sofd.dao.model.enums.UsernameInfixType;
 import dk.digitalidentity.sofd.dao.model.enums.UsernameSuffixType;
 import dk.digitalidentity.sofd.service.model.UsernameTemplateItem;
 import dk.digitalidentity.sofd.service.model.enums.UsernameTemplateVariableType;
+import dk.digitalidentity.sofd.service.model.enums.UsernameViolation;
 import dk.digitalidentity.sofd.service.transliteration.Transliteration;
 import lombok.extern.slf4j.Slf4j;
 
@@ -533,10 +535,10 @@ public class UsernameGeneratorService {
 				infix = longName(person, userType.getKey(), prefix, suffix, true, optionalPrefix);
 				break;
 			case RANDOM:
-				infix = random(userType.getKey(), getLong(userType.getUsernameInfixValue(), 5), prefix, suffix, optionalPrefix);
+				infix = random(userType.getKey(), getLong(userType.getUsernameInfixValue(), 5), prefix, suffix, optionalPrefix, person.getUuid());
 				break;
 			case NUMBER:
-				infix = number(userType.getKey(), getLong(userType.getUsernameInfixValue(), 5), prefix, suffix, optionalPrefix);
+				infix = number(userType.getKey(), getLong(userType.getUsernameInfixValue(), 5), prefix, suffix, optionalPrefix, person.getUuid());
 				break;
 			case FROM_NAME_SERIAL:
 				infix = shortNameSerial(person, userType.getKey(), getLong(userType.getUsernameInfixValue(), 3), prefix, suffix, optionalPrefix);
@@ -675,7 +677,7 @@ public class UsernameGeneratorService {
 				suggestionBuilder.append(templateItemValue);
 			}
 			var suggestion = suggestionBuilder.toString();
-			if( StringUtils.hasLength(suggestion) && reservedUsernameDao.isIllegalGeneratedName(suggestion) == 0)
+			if( StringUtils.hasLength(suggestion) && reservedUsernameDao.isIllegalGeneratedName(suggestion, person.getUuid()) == 0)
 			{
 				result = suggestion;
 				break;
@@ -695,14 +697,14 @@ public class UsernameGeneratorService {
 		return defaultValue;
 	}
 
-	private String random(String userType, long len, String prefix, String suffix, String optionalPrefix) {
+	private String random(String userType, long len, String prefix, String suffix, String optionalPrefix, String personUuid) {
 		int maxTries = 10;
-		
+
 		String username = null;
 		while (maxTries-- > 0) {
 			String word = randomWord(len);
 
-			if (isRejected(word, userType, prefix, suffix, optionalPrefix)) {
+			if (isRejected(word, userType, prefix, suffix, optionalPrefix, personUuid)) {
 				continue;
 			}
 
@@ -713,7 +715,7 @@ public class UsernameGeneratorService {
 		return username;
 	}
 
-	private String number(String userType, long len, String prefix, String suffix, String optionalPrefix) {
+	private String number(String userType, long len, String prefix, String suffix, String optionalPrefix, String personUuid) {
 		int maxTries = 50;
 		var number = settingService.getLastUserNameNumberUsed(userType) + 1;
 
@@ -724,7 +726,7 @@ public class UsernameGeneratorService {
 			// zero-pad the number
 			String paddedNumber = String.format("%0" + String.valueOf(len) + "d", number);
 
-			if (isRejected(paddedNumber, userType, prefix, suffix, optionalPrefix)) {
+			if (isRejected(paddedNumber, userType, prefix, suffix, optionalPrefix, personUuid)) {
 				number++;
 				continue;
 			}
@@ -775,8 +777,8 @@ public class UsernameGeneratorService {
         // for now, we max out at 99, but we can safely increase this later if needed (se code below in serialToString)
         while (serial < 100) {
 	        String candidate = infix + serialToString(serial);
-	        
-	        if (!isRejected(candidate, userType, prefix, suffix, optionalPrefix)) {
+
+	        if (!isRejected(candidate, userType, prefix, suffix, optionalPrefix, person.getUuid())) {
 	            return candidate;
 	        }
 	        
@@ -830,8 +832,8 @@ public class UsernameGeneratorService {
 	                for (int i = 1; i < 100; i++) {
 	        			String paddedNumber = String.format("%02d", i);
 	        			String paddedUsername = username + paddedNumber;
-	                	
-		                if (!isRejected(paddedUsername, userType, prefix, suffix, optionalPrefix)) {
+
+		                if (!isRejected(paddedUsername, userType, prefix, suffix, optionalPrefix, person.getUuid())) {
 		                    return paddedUsername;
 		                }
 	                }
@@ -871,8 +873,8 @@ public class UsernameGeneratorService {
 	                while (username.length() < len) {
 	                    username += "x";
 	                }
-	
-	                if (!isRejected(username, userType, prefix, suffix, optionalPrefix)) {
+
+	                if (!isRejected(username, userType, prefix, suffix, optionalPrefix, person.getUuid())) {
 	                    return username;
 	                }
 	
@@ -906,46 +908,67 @@ public class UsernameGeneratorService {
 		}
 
 
-        if (!isRejected(rootName, userType, prefix, suffix, optionalPrefix)) {
+        if (!isRejected(rootName, userType, prefix, suffix, optionalPrefix, person.getUuid())) {
         	return rootName;
         }
 
         return null;
 	}
 
-	private boolean isRejected(String word, String userType, String prefix, String suffix, String optionalPrefix) {
+	public EnumSet<UsernameViolation> validate(String userId, String userType, String personUuid) {
+		EnumSet<UsernameViolation> violations = EnumSet.noneOf(UsernameViolation.class);
+
+		if (isSwearWord(userId)) {
+			violations.add(UsernameViolation.BAD_WORD);
+		}
+
+		if (isExistingUsername(userId, userType)) {
+			violations.add(UsernameViolation.EXISTING_USER);
+		}
+
+		// only surface the "previously used" signal when the name isn't currently in use -
+		// otherwise both fire for every active username and the two messages are redundant
+		if (!violations.contains(UsernameViolation.EXISTING_USER)
+				&& !configuration.getModules().getAccountCreation().isReuseExistingUsernames()) {
+			if (isKnownUsername(userId, userType)) {
+				violations.add(UsernameViolation.KNOWN_USERNAME);
+			}
+		}
+
+		if (reservedUsernameDao.existsByUserIdAndPersonUuidNot(userId, personUuid)) {
+			violations.add(UsernameViolation.RESERVED_BY_OTHER_PERSON);
+		}
+
+		if (accountOrderService.pendingCreateOrderExistsByOtherPerson(userId, personUuid)) {
+			violations.add(UsernameViolation.PENDING_ORDER_BY_OTHER_PERSON);
+		}
+
+		return violations;
+	}
+
+	private boolean isRejected(String word, String userType, String prefix, String suffix, String optionalPrefix, String personUuid) {
+		// raw-word swear check is done separately from the assembled-name check so we reject early
+		// on a dirty infix without paying for the assembled-name DB checks
 		if (isSwearWord(word)) {
 			log.info("Rejecting username '" + word + "' because it is a bad word");
 			return true;
 		}
-		
-		// checking against existing/old usernames requires prefix/suffix values to be added
+
 		String fullWord = prefix + word + suffix;
-		if (isSwearWord(fullWord)) {
-			log.info("Rejecting username '{}' because it is a bad word", fullWord);
+		EnumSet<UsernameViolation> violations = validate(fullWord, userType, personUuid);
+		if (!violations.isEmpty()) {
+			log.info("Rejecting username '{}' due to violations: {}", fullWord, violations);
 			return true;
 		}
 
-		if (isExistingUsername(fullWord, userType)) {
-			log.info("Rejecting username '" + fullWord + "' because it is already used by someone else");
-			return true;
-		}
-				
-		if (!configuration.getModules().getAccountCreation().isReuseExistingUsernames()) {
-			if (isKnownUsername(fullWord, userType)) {
-				log.info("Rejecting username '" + fullWord + "' because it has been used by someone else in the past");
-				return true;
-			}
-		}
-		
 		// special case - for AD accounts it is possible to setup an additional prefix for external users, and
 		// we want to make sure there are no duplicates across the prefixes, so we validate against both variants
 		if (SupportedUserTypeService.isActiveDirectory(userType) && StringUtils.hasLength(optionalPrefix)) {
 
 			// try again, with other prefix
-			return isRejected(word, userType, optionalPrefix, suffix, null);
+			return isRejected(word, userType, optionalPrefix, suffix, null, personUuid);
 		}
-		
+
 		return false;
 	}
 

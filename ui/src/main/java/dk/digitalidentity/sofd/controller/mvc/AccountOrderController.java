@@ -2,12 +2,18 @@ package dk.digitalidentity.sofd.controller.mvc;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
@@ -15,6 +21,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.mvc.dto.CreateAccountOrderDTO;
@@ -34,6 +42,7 @@ import dk.digitalidentity.sofd.service.AffiliationService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
 import dk.digitalidentity.sofd.service.UsernameGeneratorService;
+import dk.digitalidentity.sofd.service.model.enums.UsernameViolation;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -58,6 +67,44 @@ public class AccountOrderController {
 	
 	@Autowired
 	private UsernameGeneratorService usernameGeneratorService;
+
+	@Autowired
+	private MessageSource messageSource;
+
+	@GetMapping("/ui/account/validateUserId")
+	@ResponseBody
+	public Map<String, Object> validateUserId(@RequestParam("userId") String userId,
+	                                          @RequestParam("userType") String userType,
+	                                          @RequestParam("personUuid") String personUuid) {
+		String trimmed = (userId == null) ? "" : userId.trim();
+
+		// mirror the Exchange "@domain" stripping the controllers do before storing the userId
+		if (SupportedUserTypeService.isExchange(userType) && trimmed.contains("@")) {
+			trimmed = trimmed.substring(0, trimmed.indexOf("@"));
+		}
+
+		Map<String, Object> response = new HashMap<>();
+		if (!StringUtils.hasLength(trimmed)) {
+			response.put("valid", true);
+			response.put("violations", List.of());
+			return response;
+		}
+
+		EnumSet<UsernameViolation> violations = usernameGeneratorService.validate(trimmed, userType, personUuid);
+		Locale locale = LocaleContextHolder.getLocale();
+
+		List<Map<String, String>> violationDtos = new ArrayList<>();
+		for (UsernameViolation v : violations) {
+			Map<String, String> dto = new HashMap<>();
+			dto.put("code", v.name());
+			dto.put("message", messageSource.getMessage(v.getMessageKey(), null, v.getMessageKey(), locale));
+			violationDtos.add(dto);
+		}
+
+		response.put("valid", violations.isEmpty());
+		response.put("violations", violationDtos);
+		return response;
+	}
 
 	@GetMapping("/ui/account/order/{uuid}/error/{cause}")
 	public String errorPage(Model model, @PathVariable("uuid") String uuid, @PathVariable("cause") String cause) {
@@ -216,6 +263,8 @@ public class AccountOrderController {
 
 		model.addAttribute("adPrettyName", supportedUserTypeService.getPrettyName(SupportedUserTypeService.getActiveDirectoryUserType()));
 		model.addAttribute("exchangePrettyName", supportedUserTypeService.getPrettyName(SupportedUserTypeService.getExchangeUserType()));
+		model.addAttribute("adUserType", SupportedUserTypeService.getActiveDirectoryUserType());
+		model.addAttribute("exchangeUserType", SupportedUserTypeService.getExchangeUserType());
 		model.addAttribute("order", accountOrder);
 		model.addAttribute("adAffiliations", adAffiliations);
 
@@ -247,14 +296,15 @@ public class AccountOrderController {
 			}
 		}
 				
-		if (StringUtils.hasLength(order.getChosenUserId())) {
+		boolean userSuppliedUserId = StringUtils.hasLength(order.getChosenUserId());
+		if (userSuppliedUserId) {
 			order.setChosenUserId(order.getChosenUserId().trim());
 		}
 		else {
 			String generatedUserId = usernameGeneratorService.getUsername(person, employeeId, order.getUserType(), order.getUserId(), triggerAffiliation);
 			order.setChosenUserId(generatedUserId == null ? "" : generatedUserId);
 		}
-		
+
 		// extra validation for exchange accounts
 		if (SupportedUserTypeService.isExchange(order.getUserType())) {
 			Set<String> userIds = accountOrderService.getActiveDirectoryUsersForExchangeAccount(person.getAffiliations());
@@ -263,10 +313,19 @@ public class AccountOrderController {
 			if (order.getChosenUserId().contains("@")) {
 				order.setChosenUserId(order.getChosenUserId().substring(0, order.getChosenUserId().indexOf("@")));
 			}
-			
+
 			if (!userIds.contains(order.getUserId())) {
 				log.warn("Chosen userId is not valid for ordering an Exchange Account: " + order.getUserId());
 				return "redirect:/ui/account/order/" + person.getUuid() + "/error/exchange";
+			}
+		}
+
+		// run validation on user-supplied userIds (generator already validates its own output)
+		if (userSuppliedUserId && !order.isForceDespiteValidation()) {
+			EnumSet<UsernameViolation> violations = usernameGeneratorService.validate(order.getChosenUserId(), order.getUserType(), person.getUuid());
+			if (!violations.isEmpty()) {
+				log.warn("Chosen userId '{}' for {} has violations {} and force flag was not set", order.getChosenUserId(), person.getUuid(), violations);
+				return "redirect:/ui/account/order/" + person.getUuid() + "/error/validation";
 			}
 		}
 
@@ -332,7 +391,8 @@ public class AccountOrderController {
 			}
 		}
 
-		if (StringUtils.hasLength(order.getAdChosenUserId())) {
+		boolean userSuppliedAdUserId = StringUtils.hasLength(order.getAdChosenUserId());
+		if (userSuppliedAdUserId) {
 			order.setAdChosenUserId(order.getAdChosenUserId().trim());
 		}
 		else {
@@ -340,7 +400,8 @@ public class AccountOrderController {
 			order.setAdChosenUserId(generatedUserId == null ? "" : generatedUserId);
 		}
 
-		if (StringUtils.hasLength(order.getExchangeChosenUserId())) {
+		boolean userSuppliedExchangeUserId = StringUtils.hasLength(order.getExchangeChosenUserId());
+		if (userSuppliedExchangeUserId) {
 			order.setExchangeChosenUserId(order.getExchangeChosenUserId().trim());
 		}
 		else {
@@ -351,6 +412,24 @@ public class AccountOrderController {
 		// if they have added an actual mail domain, trim it
 		if (order.getExchangeChosenUserId().contains("@")) {
 			order.setExchangeChosenUserId(order.getExchangeChosenUserId().substring(0, order.getExchangeChosenUserId().indexOf("@")));
+		}
+
+		// run validation on user-supplied userIds (generator already validates its own output)
+		if (!order.isForceDespiteValidation()) {
+			if (userSuppliedAdUserId) {
+				EnumSet<UsernameViolation> adViolations = usernameGeneratorService.validate(order.getAdChosenUserId(), adUserType.getKey(), person.getUuid());
+				if (!adViolations.isEmpty()) {
+					log.warn("Chosen AD userId '{}' for {} has violations {} and force flag was not set", order.getAdChosenUserId(), person.getUuid(), adViolations);
+					return "redirect:/ui/account/order/" + person.getUuid() + "/error/validation";
+				}
+			}
+			if (userSuppliedExchangeUserId) {
+				EnumSet<UsernameViolation> exViolations = usernameGeneratorService.validate(order.getExchangeChosenUserId(), exchangeUserType.getKey(), person.getUuid());
+				if (!exViolations.isEmpty()) {
+					log.warn("Chosen Exchange userId '{}' for {} has violations {} and force flag was not set", order.getExchangeChosenUserId(), person.getUuid(), exViolations);
+					return "redirect:/ui/account/order/" + person.getUuid() + "/error/validation";
+				}
+			}
 		}
 		
 		AccountOrder adAccountOrder = accountOrderService.createAccountOrder(
@@ -393,13 +472,22 @@ public class AccountOrderController {
 	}
 
 	@GetMapping("/ui/report/accountorders/retry/{id}/{userId:.+}")
-	public String retryAccountOrder(Model model, @PathVariable("id") long id, @PathVariable("userId") String userId) {
+	public String retryAccountOrder(Model model, @PathVariable("id") long id, @PathVariable("userId") String userId,
+	                                @RequestParam(value = "force", defaultValue = "false") boolean force) {
 		AccountOrder order = accountOrderService.findById(id);
 		if (order != null && order.getStatus().equals(AccountOrderStatus.FAILED)) {
 
 			// if they have added an actual mail domain, trim it
 			if (userId.contains("@")) {
 				userId = userId.substring(0, userId.indexOf("@"));
+			}
+
+			if (!force) {
+				EnumSet<UsernameViolation> violations = usernameGeneratorService.validate(userId, order.getUserType(), order.getPersonUuid());
+				if (!violations.isEmpty()) {
+					log.warn("Retry userId '{}' for {} has violations {} and force flag was not set", userId, order.getPersonUuid(), violations);
+					return "redirect:/ui/report/accountorders";
+				}
 			}
 
 			order.setRequestedUserId(userId);
