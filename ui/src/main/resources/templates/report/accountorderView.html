@@ -163,13 +163,49 @@
 	/*<![CDATA[*/
 	/*[+
 		var url = [[@{/ui/report/accountorders/retry/} + ${order.id}]];
+		var validateUrl = [[@{/ui/account/validateUserId}]];
+		var orderUserType = [[${order.userType}]];
+		var orderPersonUuid = [[${order.personUuid}]];
+		var swalValidationTitle = [[#{html.error.username.title}]];
+		var swalValidationConfirm = [[#{html.error.username.confirm}]];
+		var swalValidationCancel = [[#{html.error.username.cancel}]];
 	+]*/
 
 	$(document).ready(function () {
 		$("#retryButton").on('click', function() {
 			if($("#userIdField").val() && $("#userIdField").val() != "") {
 				var userId = $("#userIdField").val();
-				window.location = url + "/" + userId;
+				$.ajax({
+					method : "GET",
+					url : validateUrl,
+					data : { userId: userId.trim(), userType: orderUserType, personUuid: orderPersonUuid }
+				}).done(function(data) {
+					if (data.valid) {
+						window.location = url + "/" + userId;
+					}
+					else {
+						var messages = data.violations.map(function(v) { return '- ' + v.message; }).join('<br/>');
+						swal({
+							html : true,
+							title : swalValidationTitle,
+							text : messages,
+							type : "warning",
+							showCancelButton : true,
+							confirmButtonColor : "#DD6B55",
+							confirmButtonText : swalValidationConfirm,
+							cancelButtonText : swalValidationCancel,
+							closeOnConfirm : true,
+							closeOnCancel : true
+						}, function(isConfirm) {
+							if (isConfirm) {
+								window.location = url + "/" + userId + "?force=true";
+							}
+						});
+					}
+				}).fail(function() {
+					// fall back to unchecked retry if validation endpoint fails
+					window.location = url + "/" + userId;
+				});
 			}
 			else {
 				$("#userIdField").css("background-color", "#FFD6E4");
@@ -182,7 +218,7 @@
 			}
 		});
 	});
-	
+
 	/*]]>*/
 </script>
 

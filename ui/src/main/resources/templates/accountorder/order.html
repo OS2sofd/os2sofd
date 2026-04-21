@@ -22,6 +22,7 @@
 								<form class="form-horizontal" id="user-form" th:action="@{/ui/account/order}" method="post" th:object="${order}">
 									<input type="hidden" th:field="*{personUuid}" />
 									<input type="hidden" th:field="*{userType}" />
+									<input type="hidden" th:field="*{forceDespiteValidation}" />
 
 									<div class="form-group" th:if="${not #lists.isEmpty(affiliations)}">
 										<label class="col-sm-3 control-label" th:text="#{html.entity.person.order.it.user.positionName}"></label>
@@ -90,12 +91,60 @@
 
 	<script th:inline="javascript">
 	/*<![CDATA[*/
-	
+
 		/*[+
 		+]*/
 		var token = $("meta[name='_csrf']").attr("content");
 
+		var swalValidationTitle = [[#{html.error.username.title}]];
+		var swalValidationConfirm = [[#{html.error.username.confirm}]];
+		var swalValidationCancel = [[#{html.error.username.cancel}]];
+
 		$(document).ready(function () {
+			$('#user-form').on('submit', function(e) {
+				if ($('#forceDespiteValidation').val() === 'true') {
+					return true;
+				}
+				var chosenUserId = $('#chosenUserId').val();
+				if (!chosenUserId || chosenUserId.trim().length === 0) {
+					return true;
+				}
+				e.preventDefault();
+				var personUuid = $('#personUuid').val();
+				var userType = $('#userType').val();
+				$.ajax({
+					method : "GET",
+					url : /*[[@{/ui/account/validateUserId}]]*/ '',
+					data : { userId: chosenUserId.trim(), userType: userType, personUuid: personUuid }
+				}).done(function(data) {
+					if (data.valid) {
+						$('#user-form').off('submit').submit();
+					} else {
+						var messages = data.violations.map(function(v) { return '- ' + v.message; }).join('<br/>');
+						swal({
+							html : true,
+							title : swalValidationTitle,
+							text : messages,
+							type : "warning",
+							showCancelButton : true,
+							confirmButtonColor : "#DD6B55",
+							confirmButtonText : swalValidationConfirm,
+							cancelButtonText : swalValidationCancel,
+							closeOnConfirm : true,
+							closeOnCancel : true
+						}, function(isConfirm) {
+							if (isConfirm) {
+								$('#forceDespiteValidation').val('true');
+								$('#user-form').off('submit').submit();
+							}
+						});
+					}
+				}).fail(function() {
+					// if the validation endpoint itself fails, don't block the user
+					$('#user-form').off('submit').submit();
+				});
+				return false;
+			});
 		});
 
 		function handleOnChangeEventForCollapse(id, flip){
