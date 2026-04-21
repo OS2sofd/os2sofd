@@ -150,9 +150,10 @@ public class AffiliationApiRecord extends BaseRecord {
 			}
 		}
 
-		// for new affiliations use the configured default; for existing ones preserve the stored value
+		// for new EXTERNAL affiliations use the configured default; for existing ones preserve the stored value
 		if (actualAffiliation == affiliation) {
-			affiliation.setInheritPrivileges(defaultInheritPrivileges);
+			boolean isExternal = AffiliationType.EXTERNAL.toString().equals(affiliationType);
+			affiliation.setInheritPrivileges(isExternal && defaultInheritPrivileges);
 		} else {
 			affiliation.setInheritPrivileges(actualAffiliation.isInheritPrivileges());
 		}
