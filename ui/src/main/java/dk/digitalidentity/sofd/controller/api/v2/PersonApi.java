@@ -174,10 +174,10 @@ public class PersonApi {
 			seedPrefix = sofdConfiguration.getCustomer().getCvr() + record.getCpr();
 		}
 
-		boolean defaultInheritPrivileges = sofdConfiguration.getModules().getAffiliation().isExternalDefaultInheritPrivileges();
-		Person person = record.toPerson(null, seedPrefix, defaultInheritPrivileges);
+		boolean externalDefaultInheritPrivileges = sofdConfiguration.getModules().getAffiliation().isExternalDefaultInheritPrivileges();
+		Person person = record.toPerson(null, seedPrefix, externalDefaultInheritPrivileges);
 		personService.deleteExistingDuplicateUsers(person, record.getUuid());
-		person = personService.save(record.toPerson(null, seedPrefix, defaultInheritPrivileges));
+		person = personService.save(record.toPerson(null, seedPrefix, externalDefaultInheritPrivileges));
 
 		return new ResponseEntity<>(new PersonApiRecord(person), HttpStatus.CREATED);
 	}
