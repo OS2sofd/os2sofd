@@ -373,6 +373,7 @@ public class AccountOrderService {
         Date deleteSuccessful = cal.getTime();
         Date deleteFailed = cal.getTime();
 
+		Set<Long> toDeleteIds = new HashSet<>();
 		for (AccountOrder order : orders) {
 			switch (order.getStatus()) {
 				case EXPIRED:
@@ -382,7 +383,7 @@ public class AccountOrderService {
 				case FAILED:
 				case REACTIVATED:
 					if (order.getModifiedTimestamp().before(deleteSuccessful)) {
-						accountOrderDao.delete(order);
+						toDeleteIds.add(order.getId());
 					}
 					break;
 				case PENDING_APPROVAL:
@@ -390,14 +391,56 @@ public class AccountOrderService {
 					break;
 				case PENDING:
 					if (order.getActivationTimestamp().before(deleteFailed)) {
-						log.warn("Pending order deleted due to not being processed: " + order.getId() + " / " + order.getUserType() + " / " + order.getPersonUuid());
-						accountOrderDao.delete(order);
+						toDeleteIds.add(order.getId());
 					}
 					break;
 				case BLOCKED:
 					// faktisk ikke nødvendigt, de bliver slettet via cascade SQL regel når den linkede konto bliver slettet
 					break;
 			}
+		}
+
+		// snapshot so we can distinguish orders deleted for their own reason vs pulled in via cascade
+		Set<Long> initialDeleteIds = new HashSet<>(toDeleteIds);
+
+		// cascade: also delete any order that (transitively) depends on one of the orders being deleted.
+		// Without this, Hibernate throws TransientPropertyValueException on flush when a persistent order
+		// still references a removed one via its dependsOn field.
+		boolean grew = true;
+		while (grew) {
+			grew = false;
+			for (AccountOrder order : orders) {
+				if (toDeleteIds.contains(order.getId())) {
+					continue;
+				}
+				AccountOrder dependsOn = order.getDependsOn();
+				if (dependsOn != null && toDeleteIds.contains(dependsOn.getId())) {
+					toDeleteIds.add(order.getId());
+					grew = true;
+				}
+			}
+		}
+
+		// delete each order in the set, first clearing its dependsOn so Hibernate does not trip the
+		// transient-reference check when the referenced order is also being removed in this batch
+		for (AccountOrder order : orders) {
+			if (!toDeleteIds.contains(order.getId())) {
+				continue;
+			}
+			String identifier = order.getId() + " / " + order.getUserType() + " / " + order.getPersonUuid();
+			if (!initialDeleteIds.contains(order.getId())) {
+				log.info("Deleting order because a dependency is being deleted: " + identifier);
+			}
+			else if (order.getStatus() == AccountOrderStatus.PENDING) {
+				log.warn("Deleting pending order due to not being processed: " + identifier);
+			}
+			else {
+				log.info("Deleting order past retention window: " + identifier);
+			}
+			if (order.getDependsOn() != null) {
+				order.setDependsOn(null);
+			}
+			accountOrderDao.delete(order);
 		}
 	}
 
