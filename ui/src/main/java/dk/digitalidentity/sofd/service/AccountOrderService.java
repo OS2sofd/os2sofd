@@ -1022,11 +1022,6 @@ public class AccountOrderService {
 		}
 
 		for (Affiliation affiliation : affiliations) {
-			// external affiliations that does not inherit privileges are skipped
-			if (affiliation.getAffiliationType().equals(AffiliationType.EXTERNAL) && !affiliation.isInheritPrivileges()) {
-				continue;
-			}
-
 			// for non-singleUserMode we need to check if an account already exists for this affiliation
 			if (!ignoreExistingAccounts && !supportedUserType.isSingleUserMode()) {
 				boolean doNotOrder = false;
