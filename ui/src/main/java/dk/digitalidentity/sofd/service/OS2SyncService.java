@@ -200,6 +200,7 @@ public class OS2SyncService {
 		log.info("Users cleanup completed");
 	}
 
+	@Transactional
 	public void fullUpdate() {
 		Long head = syncService.getMaxOffset();
 		if (head == null) {
