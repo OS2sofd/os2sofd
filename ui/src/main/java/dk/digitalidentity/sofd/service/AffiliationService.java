@@ -371,7 +371,7 @@ public class AffiliationService {
 			for( var recipient : manualRecipients ) {
 				var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 				var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
-				emailQueueService.queueEmail(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
+				emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
 			}
 
 			if (!child.isOnlyManualRecipients()) {

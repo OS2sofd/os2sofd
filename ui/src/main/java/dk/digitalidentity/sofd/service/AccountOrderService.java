@@ -270,7 +270,7 @@ public class AccountOrderService {
 										for( var recipient : recipients ) {
 											var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 											var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
-											emailQueueService.queueEmail(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
+											emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
 										}
 										if (!child.isOnlyManualRecipients()) {
 											List<Person> personRecipients = emailTemplateService.getManagerOrSubstitutes(child, manager, orgUnitManager.getOrgunitUuid());
@@ -1214,7 +1214,7 @@ public class AccountOrderService {
 									for( var recipient : manualRecpients ) {
 										var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 										var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
-										emailQueueService.queueEmail(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
+										emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
 									}
 									if(!child.isOnlyManualRecipients()) {
 										List<Person> personRecipients = emailTemplateService.getManagerOrSubstitutes(child, manager, orgUnitUuid);
@@ -1313,7 +1313,7 @@ public class AccountOrderService {
 								for( var recipient : recipients ) {
 									var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 									var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
-									emailQueueService.queueEmail(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
+									emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
 								}
 
 								if (!child.isOnlyManualRecipients()) {
@@ -1351,7 +1351,7 @@ public class AccountOrderService {
 								for( var recipient : recipients ) {
 									var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 									var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
-									emailQueueService.queueEmail(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
+									emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
 								}
 
 								if (!child.isOnlyManualRecipients()) {
@@ -1461,7 +1461,7 @@ public class AccountOrderService {
 								for( var recipient : manualRecipients ) {
 									var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 									var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
-									emailQueueService.queueEmail(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
+									emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
 								}
 
 								if (!child.isOnlyManualRecipients()) {
@@ -1514,7 +1514,7 @@ public class AccountOrderService {
                                     for( var recipient : manualRecpients ) {
                                         var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
                                         var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
-                                        emailQueueService.queueEmail(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
+                                        emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
                                     }
                                     if(!child.isOnlyManualRecipients()) {
                                         List<Person> personRecipients = emailTemplateService.getManagerOrSubstitutes(child, manager, orgUnitUuid);
@@ -1649,7 +1649,7 @@ public class AccountOrderService {
 								for (var recipient : manualRecipients) {
 									var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 									var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
-									emailQueueService.queueEmail(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
+									emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
 								}
 
 								if (!child.isOnlyManualRecipients()) {
@@ -1709,7 +1709,7 @@ public class AccountOrderService {
 							for( var recipient : manualRecipients ) {
 								var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 								var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
-								emailQueueService.queueEmail(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
+								emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
 							}
 
 							if (!child.isOnlyManualRecipients()) {
