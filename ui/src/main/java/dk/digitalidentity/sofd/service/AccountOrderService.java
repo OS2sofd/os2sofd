@@ -982,7 +982,7 @@ public class AccountOrderService {
 		}
 		if (ruleType.getRule() == AccountOrderRule.BY_POSITION_NAME) {
 			var positionRule = ruleType.getPositions().stream()
-					.filter(p -> p.getPositionName().equals(affiliation.getPositionName()))
+					.filter(p -> p.getPositionName().equals(AffiliationService.getPositionName(affiliation)))
 					.findFirst().orElse(null);
 			if (positionRule != null) {
 				return !positionRule.isRequiresApproval();
@@ -1069,7 +1069,7 @@ public class AccountOrderService {
 						return true;
 					case BY_POSITION_NAME:
 						for (OrgUnitAccountOrderTypePosition positionRule : orderType.getPositions()) {
-							if (affiliation.getPositionName().equals(positionRule.getPositionName())) {
+							if (AffiliationService.getPositionName(affiliation).equals(positionRule.getPositionName())) {
 								switch (positionRule.getRule()) {
 									case BY_POSITION_NAME: // not used
 									case DISABLED:
