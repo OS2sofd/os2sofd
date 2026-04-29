@@ -202,6 +202,6 @@ public class NewAffiliationNotifyManagerListener implements ListenerAdapter {
 		logContext.append(", ").append("Medarbejdernummer: ").append(affiliation.getEmployeeId());
 		logContext.append(", ").append("Enhed: ").append(affiliation.getCalculatedOrgUnit().getName());
 
-		emailQueueService.queueEmail(recipient, title, message, child.getMinutesDelay(), child, logContext.toString());
+		emailQueueService.queueEmailToSystemMailbox(recipient, title, message, child.getMinutesDelay(), child, logContext.toString());
 	}
 }

@@ -93,7 +93,7 @@ public class FunctionAssignmentService {
 					if (StringUtils.hasLength(recipient)) {
 						var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 						var recipientTitle = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
-						emailQueueService.queueEmail(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
+						emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
 					}
 				}
 
@@ -148,7 +148,7 @@ public class FunctionAssignmentService {
 				for( var recipient : recipients ) {
 					var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 					var recipientTitle = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
-					emailQueueService.queueEmail(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
+					emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
 				}
 
 				if( !child.isOnlyManualRecipients()) {

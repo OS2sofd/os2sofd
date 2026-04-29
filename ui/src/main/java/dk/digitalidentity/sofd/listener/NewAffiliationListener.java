@@ -160,7 +160,7 @@ public class NewAffiliationListener implements ListenerAdapter {
 					for( var recipient : recipients ) {
 						var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 						var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
-						emailQueueService.queueEmail(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
+						emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
 					}
 
 					// handle other recipients if not sending to manual only
@@ -202,7 +202,7 @@ public class NewAffiliationListener implements ListenerAdapter {
 					for( var recipient : recipients ) {
 						var recipientMessage = messageReminder.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 						var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
-						emailQueueService.queueEmail(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
+						emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
 					}
 					// handle other recipients
 					if (!child.isOnlyManualRecipients()) {

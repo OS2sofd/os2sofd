@@ -1063,7 +1063,7 @@ public class PersonService {
 		for( var recipient : recipients ) {
 			var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 			var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
-			emailQueueService.queueEmail(recipient, recipientTitle, recipientMessage, 0, templateChild, logContext.toString());
+			emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, templateChild, logContext.toString());
 		}
 
 		// handle the rest of the recipients if not sending to manual only
