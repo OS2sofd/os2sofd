@@ -677,7 +677,8 @@ public class UsernameGeneratorService {
 				suggestionBuilder.append(templateItemValue);
 			}
 			var suggestion = suggestionBuilder.toString();
-			if( StringUtils.hasLength(suggestion) && reservedUsernameDao.isIllegalGeneratedName(suggestion, person.getUuid()) == 0)
+			boolean enforceKnownUsernames = !configuration.getModules().getAccountCreation().isReuseExistingUsernames();
+			if( StringUtils.hasLength(suggestion) && reservedUsernameDao.isIllegalGeneratedName(suggestion, userType.getKey(), person.getUuid(), enforceKnownUsernames) == 0)
 			{
 				result = suggestion;
 				break;
