@@ -44,19 +44,23 @@ public class NotificationGenerationTask {
 		}
 		
 		log.info("Starting notification generation");
+		long taskStart = System.currentTimeMillis();
 
 		int count = 0;
 		if (configuration.getModules().getAccountCreation().isEnabled()) {
+			long t = System.currentTimeMillis();
 			var missingRulesNotifications = notificationService.generateMissingRulesNotifications();
-			log.info("missingRulesNotifications count: " + missingRulesNotifications);
+			log.info("missingRulesNotifications count: " + missingRulesNotifications + " (" + (System.currentTimeMillis() - t) + "ms)");
 			count += missingRulesNotifications;
 
+			t = System.currentTimeMillis();
 			var missingRulesNotificationsTitles = notificationService.generateMissingRulesTitlesNotifications();
-			log.info("missingRulesNotificationsTitles count: " + missingRulesNotificationsTitles);
+			log.info("missingRulesNotificationsTitles count: " + missingRulesNotificationsTitles + " (" + (System.currentTimeMillis() - t) + "ms)");
 			count += missingRulesNotificationsTitles;
 
+			t = System.currentTimeMillis();
 			var usersNotSupportedByRuleNotifications = notificationService.generateUsersNotSupportedByRuleNotifications();
-			log.info("usersNotSupportedByRuleNotifications count: " + usersNotSupportedByRuleNotifications);
+			log.info("usersNotSupportedByRuleNotifications count: " + usersNotSupportedByRuleNotifications + " (" + (System.currentTimeMillis() - t) + "ms)");
 			count += usersNotSupportedByRuleNotifications;
 		}
 
@@ -64,27 +68,31 @@ public class NotificationGenerationTask {
 			log.info("Sending mail to SOFD admin");
 			String subject = "Der er " + count + " nye adviser";
 			String message = "Til SOFD Administratoren.<br/><p>Der er dannet " + count + " nye adviser i SOFD som skal behandles.</p><p>Log venligst ind i SOFD og behandl disse adviser</p>";
-			
+
 			emailService.sendMessage(configuration.getCustomer().getNotificationEmail(), subject, message, null, null, null,"Mail om adviser til SOFD Administratoren");
 			log.info("done sending mail to SOFD admin");
 		}
 
+		long t = System.currentTimeMillis();
 		var adWithBadEmployeeIdNotifications = notificationService.generateADWithBadEmployeeIdNotifications();
-		log.info("adWithBadEmployeeIdNotifications count: " + adWithBadEmployeeIdNotifications);
+		log.info("adWithBadEmployeeIdNotifications count: " + adWithBadEmployeeIdNotifications + " (" + (System.currentTimeMillis() - t) + "ms)");
 		count += adWithBadEmployeeIdNotifications;
-		
+
+		t = System.currentTimeMillis();
 		var futureADWithBadEmployeeIdNotifications = notificationService.generateFutureADWithBadEmployeeIdNotifications();
-		log.info("futureADWithBadEmployeeIdNotifications count: " + futureADWithBadEmployeeIdNotifications);
+		log.info("futureADWithBadEmployeeIdNotifications count: " + futureADWithBadEmployeeIdNotifications + " (" + (System.currentTimeMillis() - t) + "ms)");
 		count += futureADWithBadEmployeeIdNotifications;
 
+		t = System.currentTimeMillis();
 		var deletedParentOrgUnitNotifications = notificationService.generateDeletedParentOrgUnitNotifications();
-		log.info("deletedParentOrgUnitNotifications count: " + deletedParentOrgUnitNotifications);
+		log.info("deletedParentOrgUnitNotifications count: " + deletedParentOrgUnitNotifications + " (" + (System.currentTimeMillis() - t) + "ms)");
 		count += deletedParentOrgUnitNotifications;
 
+		t = System.currentTimeMillis();
         long manualNotifications = notificationService.generateManualNotifications();
-        log.info("manualNotifications count: " + manualNotifications);
+        log.info("manualNotifications count: " + manualNotifications + " (" + (System.currentTimeMillis() - t) + "ms)");
         count += (int) manualNotifications;
-		
-		log.info("Completed notification generation with " + count + " new notifications");
+
+		log.info("Completed notification generation with " + count + " new notifications in " + (System.currentTimeMillis() - taskStart) + "ms");
 	}
 }
