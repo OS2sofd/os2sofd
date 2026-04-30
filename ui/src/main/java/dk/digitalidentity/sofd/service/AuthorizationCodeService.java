@@ -239,13 +239,27 @@ public class AuthorizationCodeService {
             			PersonAuthorizationCodeMapping mapping = new PersonAuthorizationCodeMapping();
             			mapping.setPerson(person);
             			mapping.setAuthorizationCode(authorizationCode);
-            			
+
             			person.getAuthorizationCodes().add(mapping);
 
             			log.info("Adding authorization code " + authorizationCode.getCode() + " to " + PersonService.getName(person) + " / " + person.getUuid());
-            			
+
             			changes = true;
         			}
+        		}
+
+        		// ensure exactly one code is prime - if the previously prime code was removed,
+        		// promote the most recent (by authorization date) of the remaining codes
+        		if (!person.getAuthorizationCodes().isEmpty() && person.getAuthorizationCodes().stream().noneMatch(pa -> pa.getAuthorizationCode().isPrime())) {
+        			String primeCode = sortedAndValidAuthorizationCodes.get(0).getCode();
+        			person.getAuthorizationCodes().stream()
+        					.filter(pa -> Objects.equals(pa.getAuthorizationCode().getCode(), primeCode))
+        					.findFirst()
+        					.ifPresent(pa -> {
+        						pa.getAuthorizationCode().setPrime(true);
+        						log.info("Promoting authorization code " + primeCode + " to prime on " + PersonService.getName(person) + " / " + person.getUuid());
+        					});
+        			changes = true;
         		}
         	}
         }
