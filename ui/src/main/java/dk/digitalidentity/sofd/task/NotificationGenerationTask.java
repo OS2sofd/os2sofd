@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.task;
 
+import java.util.Random;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -25,6 +27,16 @@ public class NotificationGenerationTask {
 	@Autowired
 	private EmailService emailService;
 	
+	// spread tenants out over a 60-minute window starting at 04:15 to avoid all instances
+	// hammering shared infra at the same second
+	public static String fuzzedNotificationCron() {
+		int totalMinutes = 15 + new Random().nextInt(60);
+		int minute = totalMinutes % 60;
+		int hour = 4 + (totalMinutes / 60);
+		return "0 " + minute + " " + hour + " * * ?";
+	}
+
+	@Reschedule(cron = "${cron.notification.task:#{T(dk.digitalidentity.sofd.task.NotificationGenerationTask).fuzzedNotificationCron()}}")
 	@Scheduled(cron = "${cron.notification.task:0 15 4 * * ?}")
 	public void processChanges() {
 		if (!configuration.getScheduled().isEnabled()) {
