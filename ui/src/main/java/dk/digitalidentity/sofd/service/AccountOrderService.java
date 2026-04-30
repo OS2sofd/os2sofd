@@ -966,7 +966,7 @@ public class AccountOrderService {
 		return shouldOrderAccountOfType(userType, affiliation, offsetDays, ignoreExistingAccounts, null);
 	}
 
-	private boolean shouldOrderAccountOfType(String userType, Affiliation affiliation, int offsetDays, boolean ignoreExistingAccounts, OrgUnitAccountOrder rules) {
+	public boolean shouldOrderAccountOfType(String userType, Affiliation affiliation, int offsetDays, boolean ignoreExistingAccounts, OrgUnitAccountOrder rules) {
 		if (affiliation == null) {
 			return false;
 		}

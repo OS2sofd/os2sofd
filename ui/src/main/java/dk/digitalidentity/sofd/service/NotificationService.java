@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -128,10 +129,14 @@ public class NotificationService {
 
 	@Transactional
 	public long generateUsersNotSupportedByRuleNotifications() {
+		if (!settingService.isNotificationTypeEnabled(NotificationType.PERSON_WITH_DISALLOWED_ACCOUNT)) {
+			notificationDao.deleteByNotificationType(NotificationType.PERSON_WITH_DISALLOWED_ACCOUNT);
+			return 0;
+		}
 		List<SupportedUserType> supportedUserTypes = userTypeService.findAll().stream()
 				.filter(u -> u.isCanOrder())
 				.collect(Collectors.toList());
-		
+
 		// if nothing can be ordered, no events can be generated
 		if (supportedUserTypes.size() == 0) {
 			return 0;
@@ -139,24 +144,31 @@ public class NotificationService {
 
 		Map<String, Notification> existingNotificationsMap = findAllByType(NotificationType.PERSON_WITH_DISALLOWED_ACCOUNT).stream().collect(Collectors.toMap(Notification::getAffectedEntityUuid, Function.identity()));
 		List<Notification> notifications = new ArrayList<>();
-		
+
 		List<Person> persons = personService.getActive();
+
+		// memoize per-OU account-order rules across the whole batch so we don't rebuild the
+		// template (and re-iterate OU affiliations) for every person+userType+affiliation combo
+		Map<String, OrgUnitAccountOrder> rulesCache = new HashMap<>();
+
 		for (Person person : persons) {
 			if (person.getUsers() == null || person.getUsers().size() == 0) {
 				continue;
 			}
-			
+
 			// skip persons without active affiliations
 			if (AffiliationService.onlyActiveAffiliations(person.getAffiliations()).size() == 0) {
 				continue;
 			}
 
+			List<User> activeUsers = person.onlyActiveUsers();
+
 			StringBuilder builder = null;
 			for (SupportedUserType userType : supportedUserTypes) {
 
 				// filter users on Type
-				List<User> filteredUsers = person.onlyActiveUsers().stream().filter(u -> u.getUserType().equals(userType.getKey())).collect(Collectors.toList());
-				
+				List<User> filteredUsers = activeUsers.stream().filter(u -> u.getUserType().equals(userType.getKey())).collect(Collectors.toList());
+
 				// if OS2vikar is available, ignore all AD accounts with userId vikXXXX
 				if (SupportedUserTypeService.isActiveDirectory(userType.getKey()) && configuration.getModules().getSubstitute().isEnabled()) {
 					filteredUsers = filteredUsers.stream().filter(u -> !UserService.isSubstituteUser(u)).collect(Collectors.toList());
@@ -170,7 +182,11 @@ public class NotificationService {
 				// the user has an account of this type - is it supported by a rule?
 				boolean shouldOrder = false;
 				for (Affiliation affiliation : person.getAffiliations()) {
-					shouldOrder = accountOrderService.shouldOrderAccountOfType(userType.getKey(), affiliation, (int) userType.getDaysBeforeToCreate(), true);
+					OrgUnit calculatedOrgUnit = affiliation.getCalculatedOrgUnit();
+					OrgUnitAccountOrder rules = (calculatedOrgUnit != null)
+							? rulesCache.computeIfAbsent(calculatedOrgUnit.getUuid(), k -> accountOrderService.getAccountOrderSettings(calculatedOrgUnit, false))
+							: null;
+					shouldOrder = accountOrderService.shouldOrderAccountOfType(userType.getKey(), affiliation, (int) userType.getDaysBeforeToCreate(), true, rules);
 
 					if (shouldOrder) {
 						break;
@@ -210,12 +226,16 @@ public class NotificationService {
 		if (notifications.size() > 0) {
 			return saveAll(notifications);
 		}
-		
+
 		return 0;
 	}
 
 	@Transactional
 	public long generateADWithBadEmployeeIdNotifications() {
+		if (!settingService.isNotificationTypeEnabled(NotificationType.PERSON_WITH_AD_ACCOUNT_WITH_BAD_EMPLOYEEID)) {
+			notificationDao.deleteByNotificationType(NotificationType.PERSON_WITH_AD_ACCOUNT_WITH_BAD_EMPLOYEEID);
+			return 0;
+		}
 		Map<String, Notification> existingNotificationsMap = findAllByType(NotificationType.PERSON_WITH_AD_ACCOUNT_WITH_BAD_EMPLOYEEID).stream().collect(Collectors.toMap(Notification::getAffectedEntityUuid, Function.identity()));
 		List<Notification> notifications = new ArrayList<Notification>();
 		
@@ -269,6 +289,10 @@ public class NotificationService {
 
 	@Transactional
 	public long generateFutureADWithBadEmployeeIdNotifications() {
+		if (!settingService.isNotificationTypeEnabled(NotificationType.PERSON_WITH_FUTURE_AD_ACCOUNT_WITH_BAD_EMPLOYEEID)) {
+			notificationDao.deleteByNotificationType(NotificationType.PERSON_WITH_FUTURE_AD_ACCOUNT_WITH_BAD_EMPLOYEEID);
+			return 0;
+		}
 		Map<String, Notification> existingNotificationsMap = findAllByType(NotificationType.PERSON_WITH_FUTURE_AD_ACCOUNT_WITH_BAD_EMPLOYEEID).stream().collect(Collectors.toMap(Notification::getAffectedEntityUuid, Function.identity()));
 		List<Notification> notifications = new ArrayList<Notification>();
 
@@ -340,6 +364,10 @@ public class NotificationService {
 
 	@Transactional
 	public long generateDeletedParentOrgUnitNotifications() {
+		if (!settingService.isNotificationTypeEnabled(NotificationType.DELETED_PARENT_ORGUNIT)) {
+			notificationDao.deleteByNotificationType(NotificationType.DELETED_PARENT_ORGUNIT);
+			return 0;
+		}
 
 		Map<String, Notification> existingNotificationsMap = findAllByType(NotificationType.DELETED_PARENT_ORGUNIT).stream().collect(Collectors.toMap(Notification::getAffectedEntityUuid, Function.identity()));
 		List<Notification> notifications = new ArrayList<Notification>();
@@ -370,16 +398,21 @@ public class NotificationService {
 
 	@Transactional
 	public long generateMissingRulesNotifications() {
+		if (!settingService.isNotificationTypeEnabled(NotificationType.ORGUNIT_WITH_MISSING_RULES)) {
+			notificationDao.deleteByNotificationType(NotificationType.ORGUNIT_WITH_MISSING_RULES);
+			return 0;
+		}
+
 		List<String> supportedUserTypes = userTypeService.findAll().stream()
 				.filter(u -> u.isCanOrder())
 				.map(u -> u.getKey())
 				.collect(Collectors.toList());
-		
+
 		// if nothing can be ordered, no events can be generated
 		if (supportedUserTypes.size() == 0) {
 			return 0;
 		}
-		
+
 		Map<String, Notification> existingNotificationsMap = findAllByType(NotificationType.ORGUNIT_WITH_MISSING_RULES).stream().collect(Collectors.toMap(Notification::getAffectedEntityUuid, Function.identity()));
 		List<Notification> notifications = new ArrayList<Notification>();
 		StringBuilder builder = null;
@@ -435,16 +468,21 @@ public class NotificationService {
 	
 	@Transactional
 	public long generateMissingRulesTitlesNotifications() {
+		if (!settingService.isNotificationTypeEnabled(NotificationType.ORGUNIT_WITH_MISSING_RULES_TITLES)) {
+			notificationDao.deleteByNotificationType(NotificationType.ORGUNIT_WITH_MISSING_RULES_TITLES);
+			return 0;
+		}
+
 		List<String> supportedUserTypes = userTypeService.findAll().stream()
 				.filter(u -> u.isCanOrder())
 				.map(u -> u.getKey())
 				.collect(Collectors.toList());
-		
+
 		// if nothing can be ordered, no events can be generated
 		if (supportedUserTypes.size() == 0) {
 			return 0;
 		}
-		
+
 		Map<String, Notification> existingNotificationsMap = findAllByType(NotificationType.ORGUNIT_WITH_MISSING_RULES_TITLES).stream().collect(Collectors.toMap(Notification::getAffectedEntityUuid, Function.identity()));
 		List<Notification> notifications = new ArrayList<Notification>();
 		StringBuilder builder = null;
