@@ -95,7 +95,9 @@ public class AuthorizationCodeService {
 			changes = true;
 		}
 		
-    	String name = person.getFirstname() + " " + person.getSurname();
+    	// SST's GetHealthProfessionals endpoint can't match names containing apostrophes;
+    	// substitute SQL single-char wildcard '_' so e.g. D'Astugues becomes D_Astugues
+    	String name = (person.getFirstname() + " " + person.getSurname()).replace("'", "_");
     	String day = person.getCpr().substring(0, 2);
     	String month = person.getCpr().substring(2, 4);
     	String yearString = person.getCpr().substring(4, 6);
