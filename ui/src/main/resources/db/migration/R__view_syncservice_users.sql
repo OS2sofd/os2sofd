@@ -23,6 +23,7 @@ CREATE OR REPLACE VIEW view_syncservice_users AS
     COALESCE(a.start_date, '1979-05-21 00:00:00') AS start_date,
     COALESCE(workplace.orgunit_uuid, a.`alt_orgunit_uuid`, a.`orgunit_uuid`) AS `orgunit_uuid`,
     a.inherit_privileges,
+    a.local_extensions AS affiliation_local_extensions,
     ad.upn,
     mitid.user_id AS nemlogin_user_uuid,
     kpa.kle_values AS kle_primary_values,

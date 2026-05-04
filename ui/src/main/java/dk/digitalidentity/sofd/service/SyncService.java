@@ -20,6 +20,9 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.model.ModificationHistory;
 import dk.digitalidentity.sofd.dao.model.User;
@@ -35,6 +38,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class SyncService {
+	private static final ObjectMapper localExtensionsMapper = new ObjectMapper();
+	private static final TypeReference<Map<String, Object>> localExtensionsType = new TypeReference<Map<String, Object>>() {};
+
 	
 	private static final String adGridPersonQuery =
 			"SELECT person_uuid," +
@@ -55,7 +61,8 @@ public class SyncService {
 			"       upn," +
 			"       nemlogin_user_uuid," +
 			"       inherit_privileges," +
-			"       kle_primary_values," + 
+			"       affiliation_local_extensions," +
+			"       kle_primary_values," +
 			"       kle_secondary_values," +
 			"       user_type" +
 			"  FROM view_syncservice_users" +
@@ -295,6 +302,16 @@ public class SyncService {
 			String professionName = rs.getString("profession_name");
 			String payGradeText = rs.getString("pay_grade_text");
 			String orgUnitUuid = rs.getString("orgunit_uuid");
+			String affiliationLocalExtensionsJson = rs.getString("affiliation_local_extensions");
+			Map<String, Object> affiliationLocalExtensions = null;
+			if (StringUtils.hasText(affiliationLocalExtensionsJson)) {
+				try {
+					affiliationLocalExtensions = localExtensionsMapper.readValue(affiliationLocalExtensionsJson, localExtensionsType);
+				}
+				catch (Exception ex) {
+					log.warn("Failed to parse affiliation localExtensions: " + ex.getMessage());
+				}
+			}
 			String userType = rs.getString("user_type");
 
 			String startDateStr = rs.getString("start_date");
@@ -349,6 +366,7 @@ public class SyncService {
 				affiliation.setRawPositionName(rawPositionName);
 				affiliation.setProfessionName(professionName);
 				affiliation.setDoNotInherit(!inheritPrivileges);
+				affiliation.setLocalExtensions(affiliationLocalExtensions);
 
 				person.getAffiliations().add(affiliation);
 			}
@@ -359,6 +377,7 @@ public class SyncService {
 				affiliation.setRawPositionName(rawPositionName);
 				affiliation.setProfessionName(professionName);
 				affiliation.setDoNotInherit(!inheritPrivileges);
+				affiliation.setLocalExtensions(affiliationLocalExtensions);
 
 				person.getAffiliations().add(affiliation);
 			}
