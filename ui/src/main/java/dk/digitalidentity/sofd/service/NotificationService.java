@@ -184,7 +184,7 @@ public class NotificationService {
 				for (Affiliation affiliation : person.getAffiliations()) {
 					OrgUnit calculatedOrgUnit = affiliation.getCalculatedOrgUnit();
 					OrgUnitAccountOrder rules = (calculatedOrgUnit != null)
-							? rulesCache.computeIfAbsent(calculatedOrgUnit.getUuid(), k -> accountOrderService.getAccountOrderSettings(calculatedOrgUnit, false))
+							? rulesCache.computeIfAbsent(calculatedOrgUnit.getUuid(), _ -> accountOrderService.getAccountOrderSettings(calculatedOrgUnit, false))
 							: null;
 					shouldOrder = accountOrderService.shouldOrderAccountOfType(userType.getKey(), affiliation, (int) userType.getDaysBeforeToCreate(), true, rules);
 

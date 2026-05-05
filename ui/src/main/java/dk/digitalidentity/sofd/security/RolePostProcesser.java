@@ -4,16 +4,14 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import jakarta.servlet.http.HttpServletRequest;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import dk.digitalidentity.samlmodule.model.SamlGrantedAuthority;
-import dk.digitalidentity.samlmodule.model.SamlLoginPostProcessor;
-import dk.digitalidentity.samlmodule.model.TokenUser;
+import dk.digitalidentity.saml.interfaces.SamlLoginPostProcessor;
+import dk.digitalidentity.saml.service.model.SamlGrantedAuthority;
+import dk.digitalidentity.saml.service.model.TokenUser;
 import dk.digitalidentity.sofd.config.RoleConstants;
 import dk.digitalidentity.sofd.config.SessionConstants;
 import dk.digitalidentity.sofd.config.SofdConfiguration;
@@ -24,6 +22,7 @@ import dk.digitalidentity.sofd.service.OrgUnitService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
 import dk.digitalidentity.sofd.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Component
 public class RolePostProcesser implements SamlLoginPostProcessor {

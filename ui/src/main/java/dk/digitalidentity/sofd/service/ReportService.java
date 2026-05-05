@@ -35,7 +35,6 @@ import dk.digitalidentity.sofd.dao.model.OrgUnitManager;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.User;
 import dk.digitalidentity.sofd.dao.model.Workplace;
-import dk.digitalidentity.sofd.dao.model.enums.OrgUnitManagerSource;
 
 @Service
 public class ReportService {

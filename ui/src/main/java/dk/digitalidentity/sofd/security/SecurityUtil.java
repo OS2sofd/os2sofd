@@ -16,9 +16,9 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-import dk.digitalidentity.samlmodule.model.SamlGrantedAuthority;
-import dk.digitalidentity.samlmodule.model.SamlGrantedAuthority.Constraint;
-import dk.digitalidentity.samlmodule.model.TokenUser;
+import dk.digitalidentity.saml.service.model.SamlGrantedAuthority;
+import dk.digitalidentity.saml.service.model.SamlGrantedAuthority.Constraint;
+import dk.digitalidentity.saml.service.model.TokenUser;
 import dk.digitalidentity.sofd.config.RoleConstants;
 import dk.digitalidentity.sofd.dao.model.Client;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;

@@ -48,7 +48,7 @@ public class MitIDErhvervApiController {
 		log.info("Invoking MitID Erhverv UUID update through API");
 		
 		PersonPage pager = personPaginator.initPaginator(
-		    (root, query, cb) -> {
+		    (root, _, cb) -> {
 		    	return cb.equal(root.get("deleted"), false);
 		    },
 	        (p) -> {
