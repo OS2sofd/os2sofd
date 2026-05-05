@@ -11,7 +11,6 @@ import org.crac.Core;
 import org.crac.Resource;
 import org.flywaydb.core.Flyway;
 import org.opensaml.core.config.InitializationException;
-import org.opensaml.core.config.InitializationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.logging.LoggingInitializationContext;
 import org.springframework.boot.logging.LoggingSystem;
@@ -24,7 +23,7 @@ import org.springframework.stereotype.Component;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
-import dk.digitalidentity.samlmodule.config.settings.DISAML_Configuration;
+import dk.digitalidentity.saml.config.SamlConfiguration;
 import jakarta.annotation.PostConstruct;
 
 // this class solves problems with CRaC
@@ -48,7 +47,7 @@ public class CracAwareness implements DataSource, Resource {
     private SofdConfiguration sofdConfiguration;
     
     @Autowired
-    private DISAML_Configuration samlConfiguration;
+    private SamlConfiguration samlConfiguration;
     
     @PostConstruct
     public void init() throws InitializationException {
@@ -76,6 +75,9 @@ public class CracAwareness implements DataSource, Resource {
 
     @Override
     public void beforeCheckpoint(Context<? extends Resource> context) throws Exception {
+    	// ensure SAML is initialized, so we do not have to do it after restore
+        SamlConfiguration.init();
+
         delegate.close();
     }
 
@@ -86,8 +88,6 @@ public class CracAwareness implements DataSource, Resource {
         System.getenv().forEach((key, value) -> {
             System.setProperty(key, value);
         });
-
-        InitializationService.initialize();
         
         // ensure sofdConfiguration knows about all the loaded properties
         rebindConfiguration();

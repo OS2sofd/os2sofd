@@ -92,7 +92,7 @@ public class CprUpdateService {
 			SecurityUtil.fakeLoginSession();
 
 			PersonPage pager = personPaginator.initPaginator(
-			    (root, query, cb) -> {
+			    (root, _, cb) -> {
 			    	return cb.equal(root.get("deleted"), false);
 			    },
 		        (p) -> {

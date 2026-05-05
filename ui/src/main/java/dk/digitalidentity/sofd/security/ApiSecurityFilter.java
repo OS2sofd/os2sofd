@@ -8,7 +8,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 
-import dk.digitalidentity.samlmodule.model.SamlGrantedAuthority;
+import dk.digitalidentity.saml.service.model.SamlGrantedAuthority;
 import dk.digitalidentity.sofd.dao.model.Client;
 import dk.digitalidentity.sofd.dao.model.enums.AccessRole;
 import dk.digitalidentity.sofd.service.ClientService;

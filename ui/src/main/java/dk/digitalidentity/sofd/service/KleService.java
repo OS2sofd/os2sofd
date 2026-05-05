@@ -124,7 +124,7 @@ public class KleService {
 	}
 	
 	public void updateCache() {
-		if (!configuration.getScheduled().isEnabled()) {
+		if (!configuration.getScheduled().isEnabled() || !configuration.getIntegrations().getKle().isEnabled()) {
 			return;
 		}
 
