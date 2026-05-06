@@ -566,6 +566,7 @@ public class AccountOrderService {
 
 	// create and delete in one go, transaction needed
 	@Transactional(rollbackFor = Exception.class)
+	@CacheEvict(value = "internalCacheAll", allEntries = true)
 	public OrgUnitAccountOrder setAccountOrderSettings(OrgUnit orgUnit, OrgUnitAccountOrder accountOrders, boolean override) {
 		OrgUnitAccountOrder originalOrder = getAccountOrderSettings(orgUnit, true);
 		boolean changes = false;
