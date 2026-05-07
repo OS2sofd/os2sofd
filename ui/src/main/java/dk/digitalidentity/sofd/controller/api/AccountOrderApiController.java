@@ -142,9 +142,9 @@ public class AccountOrderApiController {
 		}
 
 		AccountOrder accountOrder;
-		if (order.getOrderType() == AccountOrderType.DEACTIVATE) {
+		if (order.getOrderType() == AccountOrderType.DEACTIVATE || order.getOrderType() == AccountOrderType.DELETE) {
 			accountOrder = accountOrderService.deactivateOrDeleteAccountOrder(
-					AccountOrderType.DEACTIVATE,
+					order.getOrderType(),
 					person,
 					null,
 					order.getUserType(),
