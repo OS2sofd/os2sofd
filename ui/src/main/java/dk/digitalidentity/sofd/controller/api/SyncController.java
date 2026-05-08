@@ -9,10 +9,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.security.RequireReadAccess;
+import dk.digitalidentity.sofd.service.SettingService;
 import dk.digitalidentity.sofd.service.SyncService;
 import dk.digitalidentity.sofd.service.model.ADGridAD;
 import dk.digitalidentity.sofd.service.model.ADGridOrgUnit;
 import dk.digitalidentity.sofd.service.model.ADGridPerson;
+import dk.digitalidentity.sofd.service.model.OrgManagerVersionResponse;
 import dk.digitalidentity.sofd.service.model.SyncResult;
 
 @RestController
@@ -21,6 +23,9 @@ public class SyncController {
 
 	@Autowired
 	private SyncService syncService;
+
+	@Autowired
+	private SettingService settingService;
 
 	@GetMapping("/api/sync/persons")
 	public SyncResult getPersonChanges(@RequestParam(value = "offset", required = true) Long offset) {
@@ -35,6 +40,16 @@ public class SyncController {
 	@GetMapping("/api/sync/head")
 	public Long getMaxOffset() {
 		return syncService.getMaxOffset();
+	}
+
+	// Polled by the AD Writeback Agent (every 5 minutes) to detect when a
+	// full sync is required because manager attributes need to propagate
+	// into AD. The value is opaque to the client - it only checks whether
+	// it changed since the last poll. The counter is maintained by SQL
+	// triggers in R__trigger_update_orgunits_manager.sql.
+	@GetMapping("/api/sync/orgManagerVersion")
+	public OrgManagerVersionResponse getOrgManagerVersion() {
+		return new OrgManagerVersionResponse(settingService.getOrgManagerStructureVersion());
 	}
 
 	// TODO: this can only be accessed by someone with WRITE or READ access, those with LIMITED_READ cannot access

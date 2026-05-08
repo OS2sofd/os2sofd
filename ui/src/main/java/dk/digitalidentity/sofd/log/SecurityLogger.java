@@ -45,6 +45,7 @@ public class SecurityLogger {
 	private boolean shouldLog(String request) {
 		return !(request.startsWith("uri=/api/sync/orgunits") ||
 				 request.startsWith("uri=/api/sync/persons") ||
-				 request.startsWith("uri=/api/sync/head"));
+				 request.startsWith("uri=/api/sync/head") ||
+				 request.startsWith("uri=/api/sync/orgManagerVersion"));
 	}
 }

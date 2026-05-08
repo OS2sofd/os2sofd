@@ -99,6 +99,15 @@ DELIMITER ;
 -- load initial data
 CALL update_orgunit_manager_recursive(null,true);
 
+-- seed monotonic counter polled by the AD Writeback Agent to detect
+-- manager-structure changes (see GET /api/sync/orgManagerVersion).
+-- Guarded with NOT EXISTS because settings.setting_key has no unique
+-- constraint, so this repeatable migration must not insert duplicates
+-- when it re-runs after edits.
+INSERT INTO settings (setting_key, setting_value)
+SELECT 'ORG_MANAGER_STRUCTURE_VERSION', '0'
+WHERE NOT EXISTS (SELECT 1 FROM settings WHERE setting_key = 'ORG_MANAGER_STRUCTURE_VERSION');
+
 -- clean up old triggers if they exist
 DROP TRIGGER IF EXISTS orgunits_manager_insert;
 DROP TRIGGER IF EXISTS orgunits_manager_update;
@@ -111,6 +120,10 @@ AFTER INSERT ON orgunits
 FOR EACH ROW
 BEGIN
     CALL update_orgunit_manager_recursive(NEW.uuid, false);
+
+    UPDATE settings
+    SET setting_value = CAST(setting_value AS UNSIGNED) + 1
+    WHERE setting_key = 'ORG_MANAGER_STRUCTURE_VERSION';
 END$$
 
 -- update trigger
@@ -119,6 +132,18 @@ AFTER UPDATE ON orgunits
 FOR EACH ROW
 BEGIN
     CALL update_orgunit_manager_recursive(NEW.uuid, false);
+
+    -- only bump the version counter when a column that actually feeds the
+    -- manager hierarchy changed. <=> is MySQL's NULL-safe equality so
+    -- NULL->NULL is treated as "no change" rather than "different".
+    IF NOT (OLD.parent_uuid           <=> NEW.parent_uuid
+        AND OLD.selected_manager_uuid <=> NEW.selected_manager_uuid
+        AND OLD.imported_manager_uuid <=> NEW.imported_manager_uuid
+        AND OLD.deleted               <=> NEW.deleted) THEN
+        UPDATE settings
+        SET setting_value = CAST(setting_value AS UNSIGNED) + 1
+        WHERE setting_key = 'ORG_MANAGER_STRUCTURE_VERSION';
+    END IF;
 END$$
 
 -- delete trigger
@@ -128,6 +153,10 @@ FOR EACH ROW
 BEGIN
     DELETE FROM orgunits_manager
     WHERE orgunit_uuid = OLD.uuid;
+
+    UPDATE settings
+    SET setting_value = CAST(setting_value AS UNSIGNED) + 1
+    WHERE setting_key = 'ORG_MANAGER_STRUCTURE_VERSION';
 END$$
 
 DELIMITER ;

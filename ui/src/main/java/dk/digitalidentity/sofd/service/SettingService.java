@@ -16,6 +16,7 @@ import dk.digitalidentity.sofd.service.model.PersonDeletePeriod;
 public class SettingService {
 	private static final String SETTING_PERSON_DELETE_PERIOD = "PersonDeletePeriod";
 	private static final String SETTING_SCHEDULED_TASKS_RUNNING = "ScheduledTasksRunning";
+	private static final String SETTING_ORG_MANAGER_STRUCTURE_VERSION = "ORG_MANAGER_STRUCTURE_VERSION";
 
 	@Autowired
 	private SettingDao settingDao;
@@ -82,6 +83,24 @@ public class SettingService {
 
 		setting.setValue(Boolean.toString(enabled));
 		settingDao.save(setting);
+	}
+
+	// Monotonic counter maintained by the orgunits triggers in
+	// R__trigger_update_orgunits_manager.sql. Bumps on parent / manager column
+	// changes and on OU create/delete. AD Writeback Agent polls this to
+	// detect when a full sync is required for manager attributes.
+	public long getOrgManagerStructureVersion() {
+		Setting setting = settingDao.findByKey(SETTING_ORG_MANAGER_STRUCTURE_VERSION);
+		if (setting == null || setting.getValue() == null) {
+			return 0L;
+		}
+
+		try {
+			return Long.parseLong(setting.getValue());
+		}
+		catch (NumberFormatException ex) {
+			return 0L;
+		}
 	}
 
 	public long getLastUserNameNumberUsed(String userType)
