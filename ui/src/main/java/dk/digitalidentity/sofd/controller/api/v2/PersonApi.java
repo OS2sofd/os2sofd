@@ -256,7 +256,12 @@ public class PersonApi {
 			person.setFirstname(record.getFirstname());
 			changes = true;
 		}
-		
+
+		if (record.getNotes() != null && !Objects.equals(record.getNotes(), person.getNotes())) {
+			person.setNotes(record.getNotes());
+			changes = true;
+		}
+
 		if (record.getLocalExtensions() != null && !Objects.equals(record.getLocalExtensions(), person.getLocalExtensions())) {
 			person.setLocalExtensions(record.getLocalExtensions());
 			changes = true;

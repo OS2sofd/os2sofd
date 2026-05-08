@@ -45,6 +45,8 @@ public class PersonApiRecord extends BaseRecord {
 	
 	@NotNull
 	private String surname;
+	
+	private String notes;
 
 	@Valid
 	private PostApiRecord registeredPostAddress;
@@ -98,6 +100,7 @@ public class PersonApiRecord extends BaseRecord {
 		this.firstname = person.getFirstname();
 		this.surname = person.getSurname();
 		this.chosenName = person.getChosenName();
+		this.notes = person.getNotes();
 		this.firstEmploymentDate = (person.getFirstEmploymentDate() != null) ? toLocalDate(person.getFirstEmploymentDate()) : null;
 		this.anniversaryDate = (person.getAnniversaryDate() != null) ? toLocalDate(person.getAnniversaryDate()) : null;
 		this.registeredPostAddress = (person.getRegisteredPostAddress() != null) ? new PostApiRecord(person.getRegisteredPostAddress()) : null;
@@ -159,6 +162,7 @@ public class PersonApiRecord extends BaseRecord {
 		person.setAnniversaryDate(toDate(anniversaryDate));
 		person.setChosenName(chosenName);
 		person.setCpr(cpr);
+		person.setNotes(notes);
 		person.setFirstEmploymentDate(toDate(firstEmploymentDate));
 		person.setFirstname(firstname);
 		person.setLocalExtensions(mapToString(localExtensions));
