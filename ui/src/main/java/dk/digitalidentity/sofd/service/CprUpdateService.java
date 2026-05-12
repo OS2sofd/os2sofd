@@ -138,7 +138,7 @@ public class CprUpdateService {
 
 				log.info("Found " + activePersons.size() + " persons");
 	
-				activePersons = activePersons.stream().filter(p -> p.getAffiliations().size() > 1).collect(Collectors.toList());
+				activePersons = activePersons.stream().filter(p -> !p.getAffiliations().isEmpty()).collect(Collectors.toList());
 	
 				log.info("Filtered to " + activePersons.size() + " persons");
 	
