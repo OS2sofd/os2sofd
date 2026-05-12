@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.MapperFeature;
@@ -46,6 +47,9 @@ public class AuthorizationCodeService {
     @Autowired
     private PersonService personService;
     
+    @Autowired
+    private AutorisationLookupService fallbackService;
+    
     // SST uses a certificate that Java does not trust by default (Sectigo issued)
     @Qualifier("trustEverythingRestTemplate")
     @Autowired
@@ -53,6 +57,8 @@ public class AuthorizationCodeService {
 
 	public void syncAll(boolean forceAll) {
     	SecurityUtil.fakeLoginSession();
+
+    	boolean useFallback = false;
 
     	// flex load all persons and corresponding authorization codes (consumer runs inside transaction)
     	List<Person> persons = personService.getActive(p -> {
@@ -74,18 +80,101 @@ public class AuthorizationCodeService {
 			}
 
 	    	if (!person.isHasUpdatedAuthorizationCode() || forceAll || Long.parseLong(person.getCpr().substring(9, 10)) == dayOfMonthDigit) {
-	    		if (syncAuthorizationCodes(person)) {
-	    			changedPersons.add(person);
+	    		if (!useFallback) {
+		    		try {
+			    		if (syncAuthorizationCodes(person)) {
+			    			changedPersons.add(person);
+			    		}
+		    		}
+		    		catch (HttpServerErrorException ex) {
+		    			log.warn("Failed to lookup authorization code - doing fallback implementation for this run", ex);
+		    			useFallback = true;
+		    		}
+	    		}
+	    		
+	    		if (useFallback) {
+	    			syncAuthorizationCodesWithFallbackService(person);
 	    		}
 	    	}
 		}
-		
+
 		if (changedPersons.size() > 0) {
 			log.info("Updating authorization codes on " + changedPersons.size() + " persons");
 			personService.saveBulkWithTransaction(changedPersons);
 		}
 	}
     
+    public boolean syncAuthorizationCodesWithFallbackService(Person person) {
+    	boolean changes = false;
+
+    	// we only do a forced update once (and yes, if the call fails, then we only retry once every 10 days
+		if (!person.isHasUpdatedAuthorizationCode()) {
+			person.setHasUpdatedAuthorizationCode(true);
+			changes = true;
+		}
+
+    	String name = (person.getFirstname() + " " + person.getSurname()).replace("'", "_");
+    	String day = person.getCpr().substring(0, 2);
+    	String month = person.getCpr().substring(2, 4);
+    	String yearString = person.getCpr().substring(4, 6);
+    	int year = Integer.parseInt(yearString);
+    	
+    	switch (person.getCpr().charAt(6)) {
+	    	case '0':
+	    	case '1':
+	    	case '2':
+	    	case '3':
+	    		yearString = "19" + yearString;
+	    		break;
+	    	case '4':
+	    	case '9':
+	    		if (year <= 36) {
+		    		yearString = "20" + yearString;		    			
+	    		}
+	    		else {
+		    		yearString = "19" + yearString;
+	    		}
+	    		break;
+	    	case '5':
+	    	case '6':
+	    	case '7':
+	    	case '8':
+	    		if (year <= 57) {
+		    		yearString = "20" + yearString;		    			
+	    		}
+	    		else {
+		    		yearString = "18" + yearString;
+	    		}
+	    		break;
+			default:
+				return changes;
+		}
+    	
+    	String date = yearString + "-" + month + "-" + day;
+    	
+    	// verify it is an actual CPR (robots and stuff will be skipped here)
+    	LocalDate birthday = null;
+    	try {
+    		birthday = LocalDate.parse(date);
+    	}
+    	catch (Exception ex) {
+    		return changes;
+    	}
+    	
+    	List<AuthorizationCode> authorizationCodes = fallbackService.findValidAutorisationsIds(name, birthday);        	
+    	if (authorizationCodes.size() == 0) {
+    		return changes;
+    	}
+        	
+        changes |= updateAuthorizationCodes(person, authorizationCodes);
+
+        if (changes) {
+        	log.info("Updating authorization codes on " + PersonService.getName(person) + " / " + person.getUuid());
+        }
+        
+        return changes;
+    }
+
     public boolean syncAuthorizationCodes(Person person) {
     	boolean changes = false;
     	
@@ -201,69 +290,7 @@ public class AuthorizationCodeService {
         		return changes;
         	}
         	
-        	if (person.getAuthorizationCodes() == null || person.getAuthorizationCodes().size() == 0) {
-        		if (person.getAuthorizationCodes() == null) {
-        			person.setAuthorizationCodes(new ArrayList<>());
-        		}
-        		
-        		// flag the first as prime
-        		sortedAndValidAuthorizationCodes.get(0).setPrime(true);
-
-        		for (AuthorizationCode authorizationCode : sortedAndValidAuthorizationCodes) {
-        			PersonAuthorizationCodeMapping mapping = new PersonAuthorizationCodeMapping();
-        			mapping.setPerson(person);
-        			mapping.setAuthorizationCode(authorizationCode);
-        			
-        			person.getAuthorizationCodes().add(mapping);
-        			
-        			log.info("Adding authorization code " + authorizationCode.getCode() + " to " + PersonService.getName(person) + " / " + person.getUuid());
-        		}
-        		
-        		changes = true;
-        	}
-        	else {
-
-        		// find those to remove
-        		for (Iterator<PersonAuthorizationCodeMapping> iterator = person.getAuthorizationCodes().iterator(); iterator.hasNext();) {
-					PersonAuthorizationCodeMapping personCode = iterator.next();
-					
-					if (sortedAndValidAuthorizationCodes.stream().noneMatch(a -> Objects.equals(a.getCode(), personCode.getAuthorizationCode().getCode()))) {
-						iterator.remove();
-						changes = true;
-						
-			        	log.info("Removing authorization code " + personCode.getAuthorizationCode().getCode() + " from " + PersonService.getName(person) + " / " + person.getUuid());
-					}
-				}
-        		
-        		// find those to add
-        		for (AuthorizationCode authorizationCode : sortedAndValidAuthorizationCodes) {
-        			if (person.getAuthorizationCodes().stream().noneMatch(pa -> Objects.equals(pa.getAuthorizationCode().getCode(), authorizationCode.getCode()))) {
-            			PersonAuthorizationCodeMapping mapping = new PersonAuthorizationCodeMapping();
-            			mapping.setPerson(person);
-            			mapping.setAuthorizationCode(authorizationCode);
-
-            			person.getAuthorizationCodes().add(mapping);
-
-            			log.info("Adding authorization code " + authorizationCode.getCode() + " to " + PersonService.getName(person) + " / " + person.getUuid());
-
-            			changes = true;
-        			}
-        		}
-
-        		// ensure exactly one code is prime - if the previously prime code was removed,
-        		// promote the most recent (by authorization date) of the remaining codes
-        		if (!person.getAuthorizationCodes().isEmpty() && person.getAuthorizationCodes().stream().noneMatch(pa -> pa.getAuthorizationCode().isPrime())) {
-        			String primeCode = sortedAndValidAuthorizationCodes.get(0).getCode();
-        			person.getAuthorizationCodes().stream()
-        					.filter(pa -> Objects.equals(pa.getAuthorizationCode().getCode(), primeCode))
-        					.findFirst()
-        					.ifPresent(pa -> {
-        						pa.getAuthorizationCode().setPrime(true);
-        						log.info("Promoting authorization code " + primeCode + " to prime on " + PersonService.getName(person) + " / " + person.getUuid());
-        					});
-        			changes = true;
-        		}
-        	}
+        	changes |= updateAuthorizationCodes(person, sortedAndValidAuthorizationCodes);
         }
 
         if (changes) {
@@ -272,6 +299,78 @@ public class AuthorizationCodeService {
         
         return changes;
     }
+
+	private boolean updateAuthorizationCodes(Person person, List<AuthorizationCode> sortedAndValidAuthorizationCodes) {
+		boolean changes = false;
+
+    	if (person.getAuthorizationCodes() == null || person.getAuthorizationCodes().size() == 0) {
+    		if (person.getAuthorizationCodes() == null) {
+    			person.setAuthorizationCodes(new ArrayList<>());
+    		}
+    		
+    		// flag the first as prime
+    		sortedAndValidAuthorizationCodes.get(0).setPrime(true);
+
+    		for (AuthorizationCode authorizationCode : sortedAndValidAuthorizationCodes) {
+    			PersonAuthorizationCodeMapping mapping = new PersonAuthorizationCodeMapping();
+    			mapping.setPerson(person);
+    			mapping.setAuthorizationCode(authorizationCode);
+    			
+    			person.getAuthorizationCodes().add(mapping);
+    			
+    			log.info("Adding authorization code " + authorizationCode.getCode() + " to " + PersonService.getName(person) + " / " + person.getUuid());
+    		}
+    		
+    		changes = true;
+    	}
+    	else {
+
+    		// find those to remove
+    		for (Iterator<PersonAuthorizationCodeMapping> iterator = person.getAuthorizationCodes().iterator(); iterator.hasNext();) {
+				PersonAuthorizationCodeMapping personCode = iterator.next();
+				
+				if (sortedAndValidAuthorizationCodes.stream().noneMatch(a -> Objects.equals(a.getCode(), personCode.getAuthorizationCode().getCode()))) {
+					iterator.remove();
+					changes = true;
+					
+		        	log.info("Removing authorization code " + personCode.getAuthorizationCode().getCode() + " from " + PersonService.getName(person) + " / " + person.getUuid());
+				}
+			}
+    		
+    		// find those to add
+    		for (AuthorizationCode authorizationCode : sortedAndValidAuthorizationCodes) {
+    			if (person.getAuthorizationCodes().stream().noneMatch(pa -> Objects.equals(pa.getAuthorizationCode().getCode(), authorizationCode.getCode()))) {
+        			PersonAuthorizationCodeMapping mapping = new PersonAuthorizationCodeMapping();
+        			mapping.setPerson(person);
+        			mapping.setAuthorizationCode(authorizationCode);
+
+        			person.getAuthorizationCodes().add(mapping);
+
+        			log.info("Adding authorization code " + authorizationCode.getCode() + " to " + PersonService.getName(person) + " / " + person.getUuid());
+
+        			changes = true;
+    			}
+    		}
+
+    		// ensure exactly one code is prime - if the previously prime code was removed,
+    		// promote the most recent (by authorization date) of the remaining codes
+    		if (!person.getAuthorizationCodes().isEmpty() && person.getAuthorizationCodes().stream().noneMatch(pa -> pa.getAuthorizationCode().isPrime())) {
+    			String primeCode = sortedAndValidAuthorizationCodes.get(0).getCode();
+
+    			person.getAuthorizationCodes().stream()
+					.filter(pa -> Objects.equals(pa.getAuthorizationCode().getCode(), primeCode))
+					.findFirst()
+					.ifPresent(pa -> {
+						pa.getAuthorizationCode().setPrime(true);
+						log.info("Promoting authorization code " + primeCode + " to prime on " + PersonService.getName(person) + " / " + person.getUuid());
+					});
+
+    			changes = true;
+    		}
+    	}
+    	
+		return changes;
+	}
 
 	private AuthorizationCode toAuthorizationCode(HealthProfessional healthProfessional) {
 		AuthorizationCode authorizationCode = new AuthorizationCode();
