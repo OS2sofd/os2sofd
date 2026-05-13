@@ -8,6 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ADGridAffiliation {
+	private String affiliationUuid;
 	private String positionName;
 	private String professionName;
 	private String rawPositionName;

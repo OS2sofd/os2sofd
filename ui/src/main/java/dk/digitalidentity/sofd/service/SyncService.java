@@ -55,6 +55,7 @@ public class SyncService {
 			"       position_name," +
 			"       profession_name," +
 			"       raw_position_name," +
+			"       affiliation_uuid," +
 			"       pay_grade_text," +
 			"       start_date," + 
 			"       orgunit_uuid," +
@@ -302,6 +303,7 @@ public class SyncService {
 			String professionName = rs.getString("profession_name");
 			String payGradeText = rs.getString("pay_grade_text");
 			String orgUnitUuid = rs.getString("orgunit_uuid");
+			String affiliationUuid = rs.getString("affiliation_uuid");
 			String affiliationLocalExtensionsJson = rs.getString("affiliation_local_extensions");
 			Map<String, Object> affiliationLocalExtensions = null;
 			if (StringUtils.hasText(affiliationLocalExtensionsJson)) {
@@ -361,6 +363,7 @@ public class SyncService {
 			// TODO: bruges kun af Sønderborg, og kan nok fjernes når de kan bruge stillingskataloget i stedet
 			if (configuration.getIntegrations().getRoleCatalogue().isUsePayGradeText() && StringUtils.hasText(payGradeText) && StringUtils.hasText(orgUnitUuid)) {
 				ADGridAffiliation affiliation = new ADGridAffiliation();
+				affiliation.setAffiliationUuid(affiliationUuid);
 				affiliation.setOrgUnitUuid(orgUnitUuid);
 				affiliation.setPositionName(payGradeText);
 				affiliation.setRawPositionName(rawPositionName);
@@ -372,6 +375,7 @@ public class SyncService {
 			}
 			else if (StringUtils.hasLength(positionName) && StringUtils.hasLength(orgUnitUuid)) {
 				ADGridAffiliation affiliation = new ADGridAffiliation();
+				affiliation.setAffiliationUuid(affiliationUuid);
 				affiliation.setOrgUnitUuid(orgUnitUuid);
 				affiliation.setPositionName(positionName);
 				affiliation.setRawPositionName(rawPositionName);
