@@ -144,7 +144,7 @@ public class CprUpdateService {
 	
 				for (Person person : activePersons) {
 					if (person.getCpr().endsWith(digit) || !person.isUpdatedFromCpr()) {
-						syncPerson(person);
+						syncPerson(person, false);
 						count++;
 					}
 				}
@@ -163,12 +163,13 @@ public class CprUpdateService {
 	public void updatePerson(String personUuid) {
 		var person = personService.getByUuid(personUuid);
 		if (person != null) {
-			syncPerson(person);
+			// user-triggered lookups bypass the cache so the freshest data is returned
+			syncPerson(person, true);
 		}
 	}
 
-	private void syncPerson(Person person) {
-		CprLookupDTO cprLookupDTO = cprService.getByCpr(person.getCpr());
+	private void syncPerson(Person person, boolean avoidCache) {
+		CprLookupDTO cprLookupDTO = cprService.getByCpr(person.getCpr(), avoidCache);
 
 		if (cprLookupDTO != null) {
 			Post cprPost = null;
@@ -329,7 +330,7 @@ public class CprUpdateService {
 
 			int count = 0;
 			for (Person person : activePersons) {
-				syncPerson(person);
+				syncPerson(person, false);
 				count++;
 				if( count % 100 == 0) {
 					log.info("Updated " + count + " persons out of " + activePersons.size());
