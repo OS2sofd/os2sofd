@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.MapperFeature;
@@ -86,7 +87,7 @@ public class AuthorizationCodeService {
 			    			changedPersons.add(person);
 			    		}
 		    		}
-		    		catch (HttpServerErrorException ex) {
+		    		catch (HttpServerErrorException | ResourceAccessException ex) {
 		    			log.warn("Failed to lookup authorization code - doing fallback implementation for this run", ex);
 		    			useFallback = true;
 		    		}
