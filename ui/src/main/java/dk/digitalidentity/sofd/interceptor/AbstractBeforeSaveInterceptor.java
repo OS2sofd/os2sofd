@@ -213,6 +213,20 @@ public class AbstractBeforeSaveInterceptor {
 		// have to be after, so we can sort by UUID when picking a random affiliation :)
 		primeService.setPrimeAffilation(person);
 
+		// re-evaluate the slettemarkeret (deleted) flag based on the freshly recomputed prime affiliation
+		// and current users. Mirrors the logic in PersonService.setPrimeAffiliationPrimeUserAndDeleted so
+		// that manager-initiated edits don't have to wait for the nightly cron.
+		boolean shouldBeDeleted = (person.getUsers() == null || person.getUsers().isEmpty())
+				&& (person.getAffiliations() == null || person.getAffiliations().stream().noneMatch(Affiliation::isPrime));
+		if (shouldBeDeleted && !person.isDeleted()) {
+			if (person.getSubstitutes() != null) {
+				person.getSubstitutes().clear();
+			}
+			person.setDeleted(true);
+		} else if (!shouldBeDeleted && person.isDeleted()) {
+			person.setDeleted(false);
+		}
+
 		// do this last! reading the professions from database apparently flushes the person to database before our interceptor is done
 		if (person.getAffiliations() != null) {
 			for (Affiliation affiliation : person.getAffiliations()) {
