@@ -232,16 +232,24 @@ public class CracAwareness implements DataSource, Resource {
         flyway.migrate();
     }
 
-	private void reloadLoggingConfiguration() {
-		try {
-	        LoggingSystem loggingSystem = LoggingSystem.get(getClass().getClassLoader());
+    private void reloadLoggingConfiguration() {
+        try {
+            LoggingSystem loggingSystem = LoggingSystem.get(getClass().getClassLoader());
+            LoggingInitializationContext ctx = new LoggingInitializationContext(environment);
+            loggingSystem.initialize(ctx, null, null);
 
-	        LoggingInitializationContext initializationContext = new LoggingInitializationContext(environment);
+            // apply logging.level.* from the (refreshed) Spring environment.
+            org.springframework.boot.context.properties.bind.Binder binder = org.springframework.boot.context.properties.bind.Binder.get(environment);
 
-	        loggingSystem.initialize(initializationContext, null, null);
-	    }
-		catch (Exception e) {
-	        System.out.println("CRaC: Logback re-init failed: " + e.getMessage());
-	    }
-	}
+            binder.bind("logging.level", org.springframework.boot.context.properties.bind.Bindable.mapOf(String.class, String.class))
+                  .ifBound(levels -> levels.forEach((logger, level) -> {
+                      String name = "ROOT".equalsIgnoreCase(logger) ? null : logger;
+                      org.springframework.boot.logging.LogLevel parsed = org.springframework.boot.logging.LogLevel.valueOf(level.toUpperCase());
+                      loggingSystem.setLogLevel(name, parsed);
+                  }));
+        }
+        catch (Exception e) {
+            System.out.println("CRaC: Logback re-init failed: " + e.getMessage());
+        }
+    }
 }
