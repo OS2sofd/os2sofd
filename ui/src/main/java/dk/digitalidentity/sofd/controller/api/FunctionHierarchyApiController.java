@@ -37,6 +37,7 @@ import dk.digitalidentity.sofd.dao.model.FunctionAssignment;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.enums.FacetType;
 import dk.digitalidentity.sofd.security.RequireDaoWriteAccess;
+import dk.digitalidentity.sofd.security.RequireReadAccess;
 import dk.digitalidentity.sofd.service.AffiliationService;
 import dk.digitalidentity.sofd.service.FacetService;
 import dk.digitalidentity.sofd.service.FunctionAssignmentService;
@@ -49,7 +50,7 @@ import dk.digitalidentity.sofd.telephony.controller.rest.dto.ValueData;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@RequireDaoWriteAccess
+@RequireReadAccess
 @RestController
 public class FunctionHierarchyApiController {
 	
@@ -182,6 +183,7 @@ public class FunctionHierarchyApiController {
 		return new ResponseEntity<List<FunctionAssignmentDTO>>(result, HttpStatus.OK);
 	}
 	
+	@RequireDaoWriteAccess
 	@PostMapping("/api/functionhierarchy/functionassignments/create")
 	public ResponseEntity<?> createFunctionAssignment(@RequestBody FunctionAssignmentCreateDTO dto) {
 		if (!StringUtils.hasLength(dto.getAffiliationUuid()) || dto.getFunctionId() == 0) {
@@ -267,6 +269,7 @@ public class FunctionHierarchyApiController {
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 	
+	@RequireDaoWriteAccess
 	@PostMapping("/api/functionhierarchy/functionassignments/{id}/edit")
 	public ResponseEntity<?> editFunctionAssignment(@RequestBody FunctionAssignmentEditDTO dto, @PathVariable long id) {
 		FunctionAssignment functionAssignment = functionAssignmentService.getById(id);
@@ -438,6 +441,7 @@ public class FunctionHierarchyApiController {
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 	
+	@RequireDaoWriteAccess
 	@PostMapping("/api/functionhierarchy/functionassignments/{id}/delete")
 	public ResponseEntity<?> editFunctionAssignment(@PathVariable long id) {
 		FunctionAssignment functionAssignment = functionAssignmentService.getById(id);
