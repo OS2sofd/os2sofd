@@ -145,13 +145,24 @@ public class PersonApi {
 	}
 
 	// various integrations may need to know about these settings
-	public record PersonApiSettings(boolean activeDirectoryEmployeeIdAssociationEnabled) { }
+	public record PersonApiSettings(boolean activeDirectoryEmployeeIdAssociationEnabled, boolean chosenNameWritable) { }
 
 	@GetMapping("/api/v2/persons/settings")
 	public ResponseEntity<?> getSettings() {
+		boolean chosenNameWritable;
+		if (sofdConfiguration.getModules().getPerson().isChosenNameEditable()) {
+			// SOFD is master of chosenName (editable in GUI); no integration may write it
+			chosenNameWritable = false;
+		}
+		else {
+			// SOFD is not master; allow if no client allow-list is configured, or this client is on the list
+			chosenNameWritable = isChosenNameEditableForClient();
+		}
+
 		return new ResponseEntity<>(
 			new PersonApiSettings(
-				sofdConfiguration.getIntegrations().getOpus().isEnableActiveDirectoryEmployeeIdAssociation()
+				sofdConfiguration.getIntegrations().getOpus().isEnableActiveDirectoryEmployeeIdAssociation(),
+				chosenNameWritable
 			),
 			HttpStatus.OK
 		);
