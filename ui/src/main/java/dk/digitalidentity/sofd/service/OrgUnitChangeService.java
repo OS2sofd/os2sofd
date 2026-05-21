@@ -5,22 +5,22 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import dk.digitalidentity.sofd.config.SofdConfiguration;
-import dk.digitalidentity.sofd.dao.model.EmailTemplate;
-import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
-import dk.digitalidentity.sofd.dao.model.enums.EmailTemplatePlaceholder;
-import dk.digitalidentity.sofd.dao.model.enums.EmailTemplateType;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
-import dk.digitalidentity.sofd.dao.OrgUnitChangeDao;
-import dk.digitalidentity.sofd.dao.model.OrgUnitChange;
-import dk.digitalidentity.sofd.dao.model.enums.OrgUnitChangeStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+
+import dk.digitalidentity.saml.config.SamlConfiguration;
+import dk.digitalidentity.sofd.config.SofdConfiguration;
+import dk.digitalidentity.sofd.dao.OrgUnitChangeDao;
+import dk.digitalidentity.sofd.dao.model.EmailTemplate;
+import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
+import dk.digitalidentity.sofd.dao.model.OrgUnitChange;
+import dk.digitalidentity.sofd.dao.model.enums.EmailTemplatePlaceholder;
+import dk.digitalidentity.sofd.dao.model.enums.EmailTemplateType;
+import dk.digitalidentity.sofd.dao.model.enums.OrgUnitChangeStatus;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
@@ -46,9 +46,9 @@ public class OrgUnitChangeService {
 	@Autowired
 	private TemplateEngine templateEngine;
 
-	// using already existing configuration although it breaks segregation
-	@Value("${di.saml.sp.baseUrl}")
-	private String linkBaseUrl;
+	// TODO: get the baseUrl in some other way - this is NOT the way
+	@Autowired
+	private SamlConfiguration samlConfiguration;
 
 	public OrgUnitChange save(OrgUnitChange orgUnitChange) {
 		return orgUnitChangeDao.save(orgUnitChange);
@@ -115,7 +115,7 @@ public class OrgUnitChangeService {
 	private String getHtmlString(List<OrgUnitChange> pendingChanges) {
 		Context context = new Context();
 		context.setVariable("pendingChanges", pendingChanges);
-		context.setVariable("linkBaseUrl", linkBaseUrl);
+		context.setVariable("linkBaseUrl", samlConfiguration.getSp().getBaseUrl());
 		String html = templateEngine.process("orgunit/changes/pendingChangesEmailTable", context);
 		return html;
 	}
