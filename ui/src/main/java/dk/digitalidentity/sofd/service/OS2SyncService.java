@@ -526,14 +526,14 @@ public class OS2SyncService {
 			String emailValue = null;
 			if (SupportedUserTypeService.isActiveDirectory(adUser.getUserType())) {
 				Optional<User> emailUser = PersonService.getUsers(person).stream()
-						.filter(u -> SupportedUserTypeService.isExchange(u.getUserType()) && u.getMaster().equalsIgnoreCase(adUser.getUserId()))
+						.filter(u -> SupportedUserTypeService.isExchange(u.getUserType()) && u.getMasterId().equalsIgnoreCase(adUser.getUserId()))
 						.findFirst();
 
 				emailValue = (emailUser.isPresent()) ? emailUser.get().getUserId() : null;
 			}
 			else if (SupportedUserTypeService.isActiveDirectorySchool(adUser.getUserType())) {
 				Optional<User> emailUser = PersonService.getUsers(person).stream()
-						.filter(u -> SupportedUserTypeService.isSchoolEmail(u.getUserType()) && u.getMaster().equalsIgnoreCase(adUser.getUserId()))
+						.filter(u -> SupportedUserTypeService.isSchoolEmail(u.getUserType()) && u.getMasterId().equalsIgnoreCase(adUser.getUserId()))
 						.findFirst();
 
 				emailValue = (emailUser.isPresent()) ? emailUser.get().getUserId() : null;
