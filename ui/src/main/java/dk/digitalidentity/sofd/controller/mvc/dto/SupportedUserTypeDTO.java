@@ -16,6 +16,8 @@ public class SupportedUserTypeDTO {
 	private long daysToDeactivate;
 	private long daysToDelete;
 	private long daysBeforeToCreate;
+	private boolean createAsDisabled;
+	private long daysToReactivate;
 	private String key;
 	private String name;
 	private long dependsOn;

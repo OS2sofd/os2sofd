@@ -29,8 +29,10 @@ public class UserTypeRestController {
 
 	@Autowired
 	private SupportedUserTypeService supportedUserTypeService;
-    @Autowired
+
+	@Autowired
     private PersonService personService;
+	
 	@Autowired
 	private UsernameGeneratorService usernameGeneratorService;
 
@@ -86,6 +88,22 @@ public class UserTypeRestController {
 			userType.setKey(supportedUserTypeDTO.getKey());
 		}
 
+		if (SupportedUserTypeService.isActiveDirectory(userType.getKey())) {
+			if (supportedUserTypeDTO.isCreateAsDisabled() && userType.isCreateEnabled() && userType.getDaysBeforeToCreate() > 0) {
+				// enforce that reactivation has to happen at least one day later than creation
+				if (supportedUserTypeDTO.getDaysBeforeToCreate() <= supportedUserTypeDTO.getDaysToReactivate()) {
+					supportedUserTypeDTO.setDaysToReactivate(supportedUserTypeDTO.getDaysBeforeToCreate() - 1);
+				}
+
+				userType.setCreateAsDisabled(true);
+				userType.setDaysBeforeToReactivate(supportedUserTypeDTO.getDaysToReactivate());
+			}
+			else {
+				userType.setCreateAsDisabled(false);
+				userType.setDaysBeforeToReactivate(0);
+			}
+		}
+
 		userType.setUsernameType(supportedUserTypeDTO.getUsernameType());
 		userType.setUsernamePrefix(supportedUserTypeDTO.getPrefix());
 		userType.setUsernamePrefixValue(supportedUserTypeDTO.getPrefixValue());
@@ -129,7 +147,12 @@ public class UserTypeRestController {
 			log.warn("Requested SupportedUserType with name:" + supportedUserTypeDTO.getName() + " has invalid daysToDeactivate");
 			return false;
 		}
-		
+
+		if (supportedUserTypeDTO.getDaysToReactivate() < 0) {
+			log.warn("Requested SupportedUserType with name:" + supportedUserTypeDTO.getName() + " has invalid daysToReactivate");
+			return false;
+		}
+
 		if (supportedUserTypeDTO.getDaysToDelete() < 0) {
 			log.warn("Requested SupportedUserType with name:" + supportedUserTypeDTO.getName() + " has invalid daysToDelete");
 			return false;

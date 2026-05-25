@@ -20,6 +20,7 @@ public class UserDTO {
 	private Boolean disabled;
 	private Boolean passwordLocked;
 	private boolean pendingDeactivation;
+	private boolean pendingReactivation;
 	private boolean substituteAccount;
 	private LocalDate accountExpireDate;
 	private boolean pending;

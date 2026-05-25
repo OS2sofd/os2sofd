@@ -329,7 +329,7 @@ public class AccountOrderController {
 			}
 		}
 
-		AccountOrder accountOrder = accountOrderService.createAccountOrder(
+		AccountOrder accountOrder = accountOrderService.createOrReactivateAccountOrder(
 				person,
 				supportedUserType,
 				order.getChosenUserId(),
@@ -342,7 +342,8 @@ public class AccountOrderController {
 				(StringUtils.hasLength(employeeId) ? true : false),
 				!order.isRequireApproval(),
 				true,
-				triggerAffiliation);
+				triggerAffiliation,
+				false);
 		
 		accountOrderService.save(accountOrder);
 
@@ -432,7 +433,7 @@ public class AccountOrderController {
 			}
 		}
 		
-		AccountOrder adAccountOrder = accountOrderService.createAccountOrder(
+		AccountOrder adAccountOrder = accountOrderService.createOrReactivateAccountOrder(
 				person,
 				adUserType,
 				order.getAdChosenUserId(),
@@ -445,11 +446,12 @@ public class AccountOrderController {
 				(StringUtils.hasLength(employeeId)),
 				!order.isRequireApproval(),
 				true,
-				triggerAffiliation);
+				triggerAffiliation,
+				false);
 
 		accountOrderService.save(adAccountOrder);
 		
-		AccountOrder exchangeAccountOrder = accountOrderService.createAccountOrder(
+		AccountOrder exchangeAccountOrder = accountOrderService.createOrReactivateAccountOrder(
 				person,
 				exchangeUserType,
 				order.getExchangeChosenUserId(),
@@ -462,7 +464,8 @@ public class AccountOrderController {
 				(StringUtils.hasLength(employeeId)),
 				true,
 				true,
-				triggerAffiliation);
+				triggerAffiliation,
+				false);
 
 		exchangeAccountOrder.setStatus(AccountOrderStatus.BLOCKED);
 		exchangeAccountOrder.setDependsOn(adAccountOrder);

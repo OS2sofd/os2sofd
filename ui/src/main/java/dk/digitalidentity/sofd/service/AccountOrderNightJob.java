@@ -64,19 +64,15 @@ public class AccountOrderNightJob {
 
 			long startTts = System.currentTimeMillis();
 
-			// get all affiliations that are relevant and not stopped
-			List<String> masters = configuration.getScheduled().getAccountOrderGeneration().getMasters();
-			List<String> organisations =  configuration.getScheduled().getAccountOrderGeneration().getOrganisations();
-
-			List<AccountOrder> existingOrders = accountOrderService.findAllCreateOrders();
-			List<AccountOrder> existingDeleteOrders = accountOrderService.findAllDeleteAndDeactivateOrders();
+			List<AccountOrder> existingReactivateAndCreateOrders = accountOrderService.findAllCreateAndReactivateOrders();
+			List<AccountOrder> existingDeactivateAndDeleteOrders = accountOrderService.findAllDeleteAndDeactivateOrders();
 
 			List<Person> persons = personService.getActive();
 
 			Map<String, User> activeDirectoryUserMap = new HashMap<>();
 			List<AccountOrder> distinctCreateOrders = new ArrayList<>();
 			List<AccountOrder> distinctDeleteDeactivateOrders = new ArrayList<>();
-			int addedCreateOrders = 0;
+			int addedReactivateCreateOrders = 0;
 			int addedDeleteDeactivateOrders = 0;
 			int removedDeleteDeactivateOrders = 0;
 
@@ -98,34 +94,26 @@ public class AccountOrderNightJob {
 			Map<String, Person> allPersons = persons.stream().collect(Collectors.toMap(Person::getUuid, Function.identity()));
 
 			// remove any affiliation that is not relevant for the IdM processes
-			affiliations = affiliations.stream()
-				.filter(a ->
-					masters.contains(a.getMaster()) &&
-					organisations.contains(a.getCalculatedOrgUnit().getBelongsTo().getShortName()) &&
-					a.getPerson().isDisableAccountOrdersCreate() == false &&
-					a.getDeactivateAndDeleteRule() == AccountOrderDeactivateAndDeleteRule.KEEP_ALIVE
-				)
-				.collect(Collectors.toList());
-			affiliations = AffiliationService.notStoppedAffiliations(affiliations);
+			affiliations = accountOrderService.filterAffiliationsForCreateOrders(affiliations);
 
 			log.info("Handling create orders for " + affiliations.size() + " affiliations");
 
 			// NOTE: we are setting the "takeExistingAccounts" flag to false, so we ensure a clean set of
 			//       orders, so any changes to the dataset (affiliations mostly) will result in old (unprocessed)
 			//       orders being removed.
-			List<AccountOrder> newCreateOrders = accountOrderService.getAccountsToCreate(affiliations, false, true);
+			List<AccountOrder> newReactivateAndCreateOrders = accountOrderService.getAccountsToCreate(affiliations, false, true);
 
-			log.info("Got " + newCreateOrders.size() + " new orders in this batch");
+			log.info("Got " + newReactivateAndCreateOrders.size() + " new orders");
 
 			// remove any duplicate new orders
 			List<AccountOrder> distinctNewCreateOrders = new ArrayList<>();
-			newCreateOrders.forEach(newOrder -> {
+			newReactivateAndCreateOrders.forEach(newOrder -> {
 				if (distinctNewCreateOrders.stream().noneMatch(distinctOrder -> distinctOrder.logicalEquals(newOrder))) {
 					distinctNewCreateOrders.add(newOrder);
 				}
 			});
 
-			log.info("Got " + distinctNewCreateOrders.size() + " distinct new create orders from this batch");
+			log.info("Got " + distinctNewCreateOrders.size() + " distinct new create orders");
 			
 			// we need to keep track of ALL of them for later cleanup of existing orders
 			distinctCreateOrders.addAll(distinctNewCreateOrders);
@@ -134,7 +122,7 @@ public class AccountOrderNightJob {
 
 			// create those that are really new, and skip the rest
 			for (AccountOrder newOrder : distinctNewCreateOrders) {
-				boolean noMatch = existingOrders.stream()
+				boolean noMatch = existingReactivateAndCreateOrders.stream()
 						.noneMatch(existingOrder -> newOrder.getPersonUuid().equals(existingOrder.getPersonUuid()) &&
 								Objects.equals(newOrder.getEmployeeId(), existingOrder.getEmployeeId()) &&
 								newOrder.getUserType().equals(existingOrder.getUserType()) &&
@@ -142,9 +130,8 @@ public class AccountOrderNightJob {
 						);
 
 				if (noMatch) {
-					addedCreateOrders++;
+					addedReactivateCreateOrders++;
 					log.info("Adding " + newOrder.smallPrint());
-					// accountOrderService.save(newOrder, allPersons);
 					toSave.add(newOrder);
 				}
 			}
@@ -160,7 +147,7 @@ public class AccountOrderNightJob {
 
 			// new deactivate/delete orders to be added to table
 			for (AccountOrder newOrder : newDeleteOrders) {
-				boolean noMatch = existingDeleteOrders.stream()
+				boolean noMatch = existingDeactivateAndDeleteOrders.stream()
 						.noneMatch(existingOrder -> newOrder.getPersonUuid().equals(existingOrder.getPersonUuid()) &&
 								newOrder.getOrderType().equals(existingOrder.getOrderType()) &&
 								Objects.equals(newOrder.getEmployeeId(), existingOrder.getEmployeeId()) &&
@@ -170,7 +157,6 @@ public class AccountOrderNightJob {
 
 				if (noMatch) {
 					addedDeleteDeactivateOrders++;
-//					accountOrderService.save(newOrder);
 					toSave.add(newOrder);
 				}
 			}
@@ -181,10 +167,10 @@ public class AccountOrderNightJob {
 
 			log.info("Deleting old create orders against that are no longer relevant");
 
-			// remove existing create orders that are no longer relevant
+			// remove existing create/reactivate orders that are no longer relevant
 			int removedCreateOrders = 0;
 			List<AccountOrder> toDelete = new ArrayList<>();
-			for (AccountOrder existingOrder : existingOrders) {
+			for (AccountOrder existingOrder : existingReactivateAndCreateOrders) {
 
 				// manual orders are not removed by the nightly job
 				if (existingOrder.isManual()) {
@@ -206,7 +192,6 @@ public class AccountOrderNightJob {
 				if (noMatch) {
 					removedCreateOrders++;
 					log.info("Removing existing order: " + existingOrder.smallPrint());
-//					accountOrderService.delete(existingOrder);
 					toDelete.add(existingOrder);
 				}
 			}
@@ -218,7 +203,7 @@ public class AccountOrderNightJob {
 			log.info("Deleteing delete/deactivate orders that are no longer relevant");
 
 			// remove existing delete/deactivate (pending) orders that are no longer relevant
-			for (AccountOrder existingOrder : existingDeleteOrders) {
+			for (AccountOrder existingOrder : existingDeactivateAndDeleteOrders) {
 
 				// manual orders are not removed by the nightly job
 				if (existingOrder.isManual()) {
@@ -270,7 +255,7 @@ public class AccountOrderNightJob {
 				}
 			}
 
-			log.info("Ordered the creation of " + addedCreateOrders + " accounts, the deacivation/deletion of " + addedDeleteDeactivateOrders + " accounts, and cancelled " + (removedCreateOrders + removedDeleteDeactivateOrders) + " orders");
+			log.info("Ordered the reactivation/creation of " + addedReactivateCreateOrders + " accounts, the deactivation/deletion of " + addedDeleteDeactivateOrders + " accounts, and cancelled " + (removedCreateOrders + removedDeleteDeactivateOrders) + " orders");
 
 			long processingTime = System.currentTimeMillis() - startTts;
 			if (processingTime > (10 * 60 * 1000)) {

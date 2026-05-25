@@ -528,8 +528,27 @@ public class PersonRestController {
 			userId = userId.split("@")[0];
 			linkedUserId = user.getMasterId();
 		}
-
-		AccountOrder order = accountOrderService.createAccountOrder(
+		
+		AccountOrder order = null;
+		if (SupportedUserTypeService.isActiveDirectory(user.getUserType())) {
+			order = accountOrderService.createOrReactivateAccountOrder(
+					person,
+					supportedUserTypeService.findByKey(user.getUserType()),
+					userId,
+					linkedUserId,
+					user.getEmployeeId(),
+					null,
+					EndDate.NO,
+					null,
+					false,
+					configuration.getModules().getAccountCreation().isForceSetEmployeeId(),
+					true,
+					true,
+					null,
+					true);			
+		}
+		else {
+			order = accountOrderService.createOrReactivateAccountOrder(
 				person,
 				supportedUserTypeService.findByKey(user.getUserType()),
 				userId,
@@ -542,7 +561,10 @@ public class PersonRestController {
 				configuration.getModules().getAccountCreation().isForceSetEmployeeId(),
 				true,
 				true,
-				null);
+				null,
+				// we do not support the REACTIVATE order on other usertypes than ACTIVE_DIRECTORY
+				false);
+		}
 
 		accountOrderService.save(order);
 	}
