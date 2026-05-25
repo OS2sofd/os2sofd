@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.AuditLogDao;
-import dk.digitalidentity.sofd.task.Reschedule;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -27,8 +26,7 @@ public class AuditLogCleaner {
 	private AuditLogDao auditLogEntryDao;
 
 	// run every night at 04:??
-	@Reschedule(cron = "0 #{new java.util.Random().nextInt(60)} 4 * * ?")
-	@Scheduled(cron = "0 0 4 * * ?")
+	@Scheduled(cron = "0 #{new java.util.Random().nextInt(60)} 4 * * ?")
 	public void cleanupAuditLogs() {
 		if (!configuration.getScheduled().isEnabled()) {
 			log.info("Scheduled jobs are disabled on this instance");

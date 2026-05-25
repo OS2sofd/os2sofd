@@ -18,8 +18,7 @@ public class JdbcSessionCleanupTask {
     @Autowired
     private SofdConfiguration sofdConfiguration;
     
-    @Reschedule(cron = "#{new java.util.Random().nextInt(60)} #{new java.util.Random().nextInt(10)}/10 * * * ?")
-    @Scheduled(cron = "0 0/10 * * * ?")
+    @Scheduled(cron = "#{new java.util.Random().nextInt(60)} #{new java.util.Random().nextInt(10)}/10 * * * ?")
     public void cleanupJdbcSessions() {
     	if (sofdConfiguration.getScheduled().isEnabled()) {
     		sessionRepository.cleanUpExpiredSessions();

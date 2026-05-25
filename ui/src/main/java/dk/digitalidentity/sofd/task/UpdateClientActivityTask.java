@@ -32,8 +32,7 @@ public class UpdateClientActivityTask {
 	private SecurityLogDao securityLogDao;
 
 	// run every hour
-	@Reschedule(cron = "0 #{new java.util.Random().nextInt(60)} * * * ?")
-	@Scheduled(cron = "0 0 * * * ?")
+	@Scheduled(cron = "0 #{new java.util.Random().nextInt(60)} * * * ?")
 	@Transactional(rollbackFor = Exception.class)
 	public void updateTimestamps() {
 		if (!configuration.getScheduled().isEnabled()) {

@@ -20,8 +20,7 @@ public class NewlyActiveAffiliationPrimeTask {
 	@Autowired
 	private SofdConfiguration configuration;
 
-	@Reschedule(cron = "0 #{new java.util.Random().nextInt(60)} 3 * * ?")
-	@Scheduled(cron = "0 0 3 * * ?")
+	@Scheduled(cron = "0 #{new java.util.Random().nextInt(60)} 3 * * ?")
 	public void processChanges() {
 		if (!configuration.getScheduled().isEnabled()) {
 			log.debug("Scheduled jobs are disabled on this instance");

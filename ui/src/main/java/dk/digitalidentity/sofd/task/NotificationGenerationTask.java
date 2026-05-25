@@ -36,8 +36,7 @@ public class NotificationGenerationTask {
 		return "0 " + minute + " " + hour + " * * ?";
 	}
 
-	@Reschedule(cron = "${cron.notification.task:#{T(dk.digitalidentity.sofd.task.NotificationGenerationTask).fuzzedNotificationCron()}}")
-	@Scheduled(cron = "${cron.notification.task:0 15 4 * * ?}")
+	@Scheduled(cron = "${cron.notification.task:#{T(dk.digitalidentity.sofd.task.NotificationGenerationTask).fuzzedNotificationCron()}}")
 	public void processChanges() {
 		if (!configuration.getScheduled().isEnabled()) {
 			return;

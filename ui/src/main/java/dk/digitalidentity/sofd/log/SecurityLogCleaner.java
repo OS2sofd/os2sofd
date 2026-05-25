@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.SecurityLogDao;
-import dk.digitalidentity.sofd.task.Reschedule;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -27,8 +26,7 @@ public class SecurityLogCleaner {
 	private SecurityLogDao securityLogEntryDao;
 
 	// run thrice every night, totaling 75.000 records
-	@Reschedule(cron = "0 #{new java.util.Random().nextInt(60)} 2,3,4 * * ?")
-	@Scheduled(cron = "0 0 2,3,4 * * ?")
+	@Scheduled(cron = "0 #{new java.util.Random().nextInt(60)} 2,3,4 * * ?")
 	public void cleanupAuditLogs() {
 		if (!configuration.getScheduled().isEnabled()) {
 			log.info("Scheduled jobs are disabled on this instance");

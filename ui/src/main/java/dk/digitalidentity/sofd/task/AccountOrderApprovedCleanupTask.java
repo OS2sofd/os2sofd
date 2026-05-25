@@ -21,8 +21,7 @@ public class AccountOrderApprovedCleanupTask {
 	private AccountOrderApprovedService accountOrderApprovedService;
 
 	// run once every sunday
-	@Reschedule(cron = "0 #{new java.util.Random().nextInt(60)} 10 * * SUN")
-	@Scheduled(cron = "0 0 10 * * SUN")
+	@Scheduled(cron = "0 #{new java.util.Random().nextInt(60)} 10 * * SUN")
 	public void cleanup() {
 		if (!configuration.getScheduled().isEnabled()) {
 			log.debug("Scheduled jobs are disabled on this instance");
