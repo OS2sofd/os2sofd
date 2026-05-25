@@ -33,8 +33,7 @@ public class OpusTask {
 	}
 	
 	// run every midday (11-12)
-	@Reschedule(cron = "${cron.opus.email:0 #{new java.util.Random().nextInt(60)} 11 * * ?}")
-	@Scheduled(cron = "${cron.opus.email:0 0 11 * * ?}")
+	@Scheduled(cron = "${cron.opus.email:0 #{new java.util.Random().nextInt(60)} 11 * * ?}")
 	public void updateEmails() {
 		if (configuration.getScheduled().isEnabled() && configuration.getModules().getAccountCreation().getOpusHandler().isUpdateEmailWithoutIdM()) {
 			log.info("Running OPUS bulk email update task");
