@@ -1427,10 +1427,10 @@ public class AccountOrderService {
 						String upn = "";
 
 						User linkedADAccount = person.getUsers().stream().map(PersonUserMapping::getUser).filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType()) && Objects.equals(u.getUserId(), order.getLinkedUserId())).findAny().orElse(null);
-						if (linkedADAccount != null) {
+						if (linkedADAccount != null && linkedADAccount.getActiveDirectoryDetails().getUpn() != null) {
 							upn = linkedADAccount.getActiveDirectoryDetails().getUpn();
 						}
-						
+
 						EmailTemplate template = emailTemplateService.findByTemplateType(EmailTemplateType.EXCHANGE_CREATE_MANAGER);
 						for (EmailTemplateChild child : template.getChildren()) {
 							if (child.isEnabled()) {
