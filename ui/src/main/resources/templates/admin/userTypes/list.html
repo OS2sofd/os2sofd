@@ -22,8 +22,9 @@
 						<table sec:authorize="hasRole('ROLE_MODULE_ACCOUNT_CREATION')" id="listTable" class="table table-striped table-hover listTable">
 							<thead>
 								<tr>
-									<th class="col-md-3" th:text="#{html.entity.usertype.name}"></th>
+									<th class="col-md-2" th:text="#{html.entity.usertype.name}"></th>
 									<th class="col-md-1" th:text="#{html.entity.usertype.daysBeforeToCreate}"></th>
+									<th class="col-md-1" th:text="#{html.entity.usertype.daysBeforeToReactivate}"></th>
 									<th class="col-md-1" th:text="#{html.entity.usertype.daysToDeactivate}"></th>
 									<th class="col-md-1" th:text="#{html.entity.usertype.daysToDelete}"></th>
 									<th class="col-md-3" th:text="#{html.entity.usertype.dependsOn}"></th>
@@ -35,6 +36,7 @@
 								<tr th:each="userType : ${userTypes}">
 									<td th:text="${userType.name}"></td>
 									<td th:text="(${userType.createEnabled}) ? ${userType.daysBeforeToCreate} + ' dage' : ''"></td>
+									<td th:text="(${userType.createAsDisabled}) ? ${userType.daysBeforeToReactivate} + ' dage' : ''"></td>
 									<td th:text="(${userType.deactivateEnabled}) ? ${userType.daysToDeactivate} + ' dage' : ''"></td>
 									<td th:text="(${userType.deleteEnabled}) ? ${userType.daysToDelete} + ' dage' : ''"></td>
 									<td th:text="${userType.dependsOn != null ? userType.dependsOn.name : ''}"></td>
@@ -44,9 +46,11 @@
 									<td>
 										<a onclick="editUserType(this);" href="#"
 											th:attr="data-id=${userType.id},
+											data-key=${userType.key},
 											data-name=${userType.name},
 											data-canorder=${userType.canOrder},
 											data-create=${userType.daysBeforeToCreate},
+											data-daysbeforetoreactivate=${userType.daysBeforeToReactivate},
 											data-deactivate=${userType.daysToDeactivate},
 											data-delete=${userType.daysToDelete},
 											data-dependson=${userType.dependsOn != null ? userType.dependsOn.id : 0},
@@ -63,6 +67,7 @@
 											data-deactivateEnabled=${userType.deactivateEnabled},
 											data-deleteEnabled=${userType.deleteEnabled},
 											data-createEnabled=${userType.createEnabled},
+											data-createasdisabled=${userType.createAsDisabled},
 											data-usernameType=${userType.usernameType},
 											data-usernameTemplateString=${userType.usernameTemplateString}">
 											
@@ -169,6 +174,23 @@
 							<div class="col-sm-7">
 								<input id="userTypeCreate" class="form-control" />
 							</div>
+						</div>
+
+						<div class="form-group reactivateBlock">
+							<label th:utext="#{html.setting.usertype.deadlines.reactivate}" class="col-sm-3 control-label"></label>
+							<div class="checkbox c-checkbox col-sm-1" style="padding-left: 25px">
+								<label>
+									<input id="createAsDisabledEnabled" type="checkbox" onchange="enabledChanged('createAsDisabled')"/>
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+							<div class="col-sm-7">
+								<input id="userTypeCreateAsDisabled" class="form-control" />
+							</div>
+						</div>
+
+						<div class="form-group reactivateBlock">
+							<div class="col-sm-offset-1 col-sm-10"><p><i th:text="#{html.setting.usertype.reactivateDescription}" /></p></div>
 						</div>
 						
 						<div class="form-group">
@@ -524,12 +546,14 @@
 		var elem = $(obj);
 
 		var id = elem.attr('data-id');
+		var key = elem.attr('data-key');
 		var name = elem.attr('data-name');
 		var canOrder = elem.attr('data-canorder');
 		var singleUserMode = elem.attr('data-singleusermode');
 		var daysToDeactivate = elem.attr('data-deactivate');
 		var daysToDelete = elem.attr('data-delete');
 		var daysBeforeToCreate = elem.attr('data-create');
+		var daysBeforeToReactivate = elem.attr('data-daysbeforetoreactivate');
 		var dependsOn = elem.attr('data-dependson');
 		var dependsOnDelay = elem.attr('data-dependsondelay');
 		var prefix = elem.attr('data-prefix');
@@ -541,6 +565,7 @@
 		var prefixExternalValue = elem.attr('data-prefixexternalvalue');
 		var suffixExternalValue = elem.attr('data-suffixexternalvalue');
 		var createEnabled = elem.attr('data-createEnabled');
+		var createAsDisabled = elem.attr('data-createasdisabled');
 		var deleteEnabled = elem.attr('data-deleteEnabled');
 		var deactivateEnabled = elem.attr('data-deactivateEnabled');
 		var usernameType = elem.attr('data-usernameType');
@@ -549,12 +574,14 @@
 		$('#userTypeId').val(id);
 		$('#userTypeName').val(name);
 		$('#userTypeCreate').val(daysBeforeToCreate);
+		$('#userTypeCreateAsDisabled').val(daysBeforeToReactivate);
 		$('#userTypeDeactivate').val(daysToDeactivate);
 		$('#userTypeDelete').val(daysToDelete);
 		$('#userTypeKey').val("").parents(".form-group").hide();
 		$('#userTypeCanOrder').prop("checked", (canOrder === 'true'));
 		$('#userTypeSingleUser').prop("checked", (singleUserMode === 'true'));
 		$('#createEnabled').prop("checked", (createEnabled === 'true'));
+		$('#createAsDisabledEnabled').prop("checked", (createAsDisabled === 'true'));
 		$('#deleteEnabled').prop("checked", (deleteEnabled === 'true'));
 		$('#deactivateEnabled').prop("checked", (deactivateEnabled === 'true'));
 		$('#userTypeDependsOn').val(dependsOn);
@@ -563,7 +590,15 @@
 		enabledChanged("create");
 		enabledChanged("delete");
 		enabledChanged("deactivate");
+		enabledChanged("createAsDisabled");
 
+		if (key == 'ACTIVE_DIRECTORY') {
+			$('.reactivateBlock').show();
+		}
+		else {
+			$('.reactivateBlock').hide();
+		}
+		
 		$('#userTypeDependsOn option').each(function() {
 			if (this.value == id) {
 				$(this).attr("disabled", "disabled");
@@ -627,6 +662,7 @@
 		$('#infixStrategy').val("RANDOM").change();
 		$("#infixStrategyValue").val("5");
 		$('#createEnabled').prop("checked", false);
+		$('#createAsDisabled').prop("checked", false);
 		$('#deleteEnabled').prop("checked", false);
 		$('#deactivateEnabled').prop("checked", false);
 		$('#userTypeModal').modal("show");
@@ -641,12 +677,14 @@
 		var key = $('#userTypeKey').val();
 		var daysBeforeToCreate = $('#userTypeCreate').val();
 		var daysToDeactivate = $('#userTypeDeactivate').val();
+		var daysToReactivate = $('#userTypeCreateAsDisabled').val();
 		var daysToDelete = $('#userTypeDelete').val();
 		var dependsOn = $('#userTypeDependsOn').val();
 		var dependsOnDelay = $('#userTypeDependsOnDelay').val();
 		var canOrder = $('#userTypeCanOrder').prop("checked");
 		var singleUserMode = $('#userTypeSingleUser').prop("checked");
 		var createEnabled = $('#createEnabled').prop("checked");
+		var createAsDisabled = $('#createAsDisabledEnabled').prop("checked");
 		var deleteEnabled = $('#deleteEnabled').prop("checked");
 		var deactivateEnabled = $('#deactivateEnabled').prop("checked");
 
@@ -667,7 +705,7 @@
 		else if (infix == 'RANDOM' || infix == 'FROM_NAME' || infix == 'FROM_NAME_LONG' || infix == 'FROM_NAME_FULL' || infix == 'NUMBER' || infix == 'NAME23SERIAL' || infix == 'FROM_NAME_SERIAL') {
 			infixValue = $("#infixStrategyValue").val();
 		}
-
+		
 		$.ajax({
 			url: editUrl,
 			headers: {
@@ -683,6 +721,7 @@
 				'singleUserMode': singleUserMode,
 				'daysBeforeToCreate' : daysBeforeToCreate,
 				'daysToDeactivate': daysToDeactivate,
+				'daysToReactivate': daysToReactivate,
 				'daysToDelete': daysToDelete,
 				'dependsOn': dependsOn,
 				'dependsOnDelay': dependsOnDelay,
@@ -695,6 +734,7 @@
 				'suffixValue': suffixValue,
 				'suffixExternalValue': suffixExternalValue,
 				'createEnabled': createEnabled,
+				'createAsDisabled': createAsDisabled,
 				'deactivateEnabled': deactivateEnabled,
 				'deleteEnabled': deleteEnabled,
 				'usernameTemplateString': usernameTemplateString,

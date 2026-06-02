@@ -384,6 +384,7 @@
 										<span th:if="${user.expired == true}" class="badge badge-alert" th:text="#{html.entity.user.expired}"></span>
 										<span th:if="${@sofdConfiguration.getModules().getBadge().isEnablePasswordLockedBadge() == true and user.passwordLocked == true}" class="badge badge-alert" th:text="#{html.entity.user.passwordlocked}"></span>
 										<span th:if="${user.pendingDeactivation == true}" class="badge badge-warning" th:text="#{html.entity.user.pending_deactivation}"></span>
+										<span th:if="${user.pendingReactivation == true}" class="badge badge-success" th:text="#{html.entity.user.pending_reactivation}"></span>
 									</td>
 									<td th:text="${@supportedUserTypeService.getPrettyName(user.userType)}"></td>
 									<td>
@@ -401,7 +402,7 @@
 											<th:block th:if="${user.disabled == false}">
 												<a href="#" onclick="deleteUser(this);" th:attr="data-userid=${user.userId},data-usertype=${user.userType}"><em class="fa fa-times" th:title="#{html.entity.user.deactivate}"></em></a>
 											</th:block>
-											<th:block th:if="${user.disabled == true}">
+											<th:block th:if="${user.disabled == true && user.pendingReactivation == false}">
 												<a href="#" onclick="reactivateUser(this);" th:attr="data-userid=${user.userId},data-usertype=${user.userType}"><em class="fa fa-user-plus" th:title="#{html.entity.user.reactivate}"></em></a>
 											</th:block>
 										</th:block>

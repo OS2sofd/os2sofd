@@ -157,17 +157,19 @@ public class AccountOrderService {
 
 			// bit of a dirty hack to look at the first entry to decide the type for all of them
 			// but we always call with a set of the same type
-			List<AccountOrderType> types = new ArrayList<>();
+			Set<AccountOrderType> types = new HashSet<>();
 			switch (accounts.get(0).getOrderType()) {
 				case EXPIRE:
 					break;
 				case CREATE:
+				case REACTIVATE:
 					types.add(AccountOrderType.DEACTIVATE);
 					types.add(AccountOrderType.DELETE);
 					break;
 				case DEACTIVATE:
 				case DELETE:
 					types.add(AccountOrderType.CREATE);
+					types.add(AccountOrderType.REACTIVATE);
 					break;
 			}
 
@@ -208,6 +210,10 @@ public class AccountOrderService {
 	}
 
 	public AccountOrder save(AccountOrder order, Map<String, Person> allPersons) {
+
+		if (!StringUtils.hasLength(order.getRequestedUserId()) && order.getOrderType().equals(AccountOrderType.REACTIVATE)) {
+			throw new RuntimeException("Cannot persist a REACTIVATE order without a requestedUserId");
+		}
 
 		// on new create orders, generate a userId
 		if (!StringUtils.hasLength(order.getRequestedUserId())) {
@@ -315,10 +321,6 @@ public class AccountOrderService {
 		return accountOrderDao.save(order);
 	}
 
-	public List<AccountOrder> getPendingCreateOrdersForPerson(String uuid) {
-		return accountOrderDao.findByStatusAndOrderTypeAndPersonUuid(AccountOrderStatus.PENDING, AccountOrderType.CREATE, uuid);
-	}
-
 	public List<AccountOrder> getPendingAndBlockedCreateOrdersForPerson(String uuid) {
 		List<AccountOrder> result = accountOrderDao.findByStatusAndOrderTypeAndPersonUuid(AccountOrderStatus.PENDING, AccountOrderType.CREATE, uuid);
 		result.addAll(accountOrderDao.findByStatusAndOrderTypeAndPersonUuid(AccountOrderStatus.BLOCKED, AccountOrderType.CREATE, uuid));
@@ -345,8 +347,8 @@ public class AccountOrderService {
 		return accountOrderDao.findByStatusNotIn(statuses);
 	}
 
-	public List<AccountOrder> findAllCreateOrders() {
-		return accountOrderDao.findByOrderType(AccountOrderType.CREATE);
+	public List<AccountOrder> findAllCreateAndReactivateOrders() {
+		return accountOrderDao.findByOrderTypeIn(AccountOrderType.CREATE, AccountOrderType.REACTIVATE);
 	}
 
 	public List<AccountOrder> findAllCompletedOpusCreateOrders(Person person) {
@@ -481,11 +483,11 @@ public class AccountOrderService {
 		return accountOrder;
 	}
 
-	public AccountOrder createAccountOrder(Person person, SupportedUserType userType, String requestedUserId, String linkedUserId, String employeeId, Date activationDate, EndDate endDateValue, String apiUserId, boolean doNotLogRequester, boolean forceSetEmployeeId, boolean bypassApproval, boolean isManual, Affiliation triggerAffiliation) {
-		return createAccountOrder(person,userType,requestedUserId,linkedUserId,employeeId,activationDate,endDateValue,apiUserId,doNotLogRequester,forceSetEmployeeId,bypassApproval,isManual,null, triggerAffiliation);
+	public AccountOrder createOrReactivateAccountOrder(Person person, SupportedUserType userType, String requestedUserId, String linkedUserId, String employeeId, Date activationDate, EndDate endDateValue, String apiUserId, boolean doNotLogRequester, boolean forceSetEmployeeId, boolean bypassApproval, boolean isManual, Affiliation triggerAffiliation, boolean reactivate) {
+		return createOrReactivateAccountOrder(person, userType, requestedUserId, linkedUserId, employeeId, activationDate, endDateValue, apiUserId, doNotLogRequester, forceSetEmployeeId, bypassApproval, isManual, null, triggerAffiliation, reactivate);
 	}
 
-	public AccountOrder createAccountOrder(Person person, SupportedUserType userType, String requestedUserId, String linkedUserId, String employeeId, Date activationDate, EndDate endDateValue, String apiUserId, boolean doNotLogRequester, boolean forceSetEmployeeId, boolean bypassApproval, boolean isManual, AccountOrder dependsOn, Affiliation triggerAffiliation) {
+	public AccountOrder createOrReactivateAccountOrder(Person person, SupportedUserType userType, String requestedUserId, String linkedUserId, String employeeId, Date activationDate, EndDate endDateValue, String apiUserId, boolean doNotLogRequester, boolean forceSetEmployeeId, boolean bypassApproval, boolean isManual, AccountOrder dependsOn, Affiliation triggerAffiliation, boolean reactivate) {
 		activationDate = (activationDate != null) ? activationDate : new Date();
 
 		// if the userType has a delay configured, add that to the activationDate
@@ -525,7 +527,7 @@ public class AccountOrderService {
 		}
 
 		AccountOrder accountOrder = new AccountOrder();
-		accountOrder.setOrderType(AccountOrderType.CREATE);
+		accountOrder.setOrderType((reactivate) ? AccountOrderType.REACTIVATE : AccountOrderType.CREATE);
 		accountOrder.setActivationTimestamp(activationDate);
 		accountOrder.setEndDate(endDate);
 		accountOrder.setOrderedTimestamp(new Date());
@@ -555,7 +557,27 @@ public class AccountOrderService {
 		if (configuration.getModules().getAccountCreation().isAccountOrderApprove()
 				&& SupportedUserTypeService.isActiveDirectory(userType.getKey())
 				&& !bypassApproval) {
-			accountOrder.setStatus(AccountOrderStatus.PENDING_APPROVAL);
+			
+			// special case for REACTIVATE orders - if we have a completed (and thus approved) CREATE order in the queue with the same UUID,
+			// we will bypass approval, as it is not needed (approval was given at create-time)
+			if (accountOrder.getOrderType().equals(AccountOrderType.REACTIVATE)) {
+				List<AccountOrder> existingCompletedCreateOrdesForActiveDirectory = accountOrderDao.findByPersonUuidAndOrderTypeAndStatusAndUserType(
+					person.getUuid(),
+					AccountOrderType.CREATE,
+					AccountOrderStatus.CREATED,
+					SupportedUserTypeService.getActiveDirectoryUserType()
+				);
+				
+				if (existingCompletedCreateOrdesForActiveDirectory.stream().anyMatch(acc -> Objects.equals(accountOrder.getRequestedUserId(), acc.getActualUserId()))) {
+					accountOrder.setStatus(AccountOrderStatus.PENDING);
+				}
+				else {			
+					accountOrder.setStatus(AccountOrderStatus.PENDING_APPROVAL);
+				}
+			}
+			else {			
+				accountOrder.setStatus(AccountOrderStatus.PENDING_APPROVAL);
+			}
 		}
 		else {
 			accountOrder.setStatus(accountOrder.getDependsOn() == null ? AccountOrderStatus.PENDING : AccountOrderStatus.BLOCKED);
@@ -783,6 +805,31 @@ public class AccountOrderService {
 		return getAccountsToCreate(affiliations, takeExistingOrdersIntoAccount, null, doNotLogRequester);
 	}
 
+	/**
+	 * removes any affiliations from the given List<> that does not fulfill
+	 * 
+	 * - master must be from configured set of masters that can trigger IdM orders
+	 * - referenced OrgUnit must be in an Organisation that can trigger IdM orders
+	 * - neither person nor affiliation may have IdM orders disabled for create orders
+	 */
+	public List<Affiliation> filterAffiliationsForCreateOrders(List<Affiliation> affiliations) {
+		List<String> masters = configuration.getScheduled().getAccountOrderGeneration().getMasters();
+		List<String> organisations = configuration.getScheduled().getAccountOrderGeneration().getOrganisations();
+
+		affiliations = affiliations.stream()
+			.filter(a ->
+				masters.contains(a.getMaster()) &&
+				organisations.contains(a.getCalculatedOrgUnit().getBelongsTo().getShortName()) &&
+				a.getPerson().isDisableAccountOrdersCreate() == false &&
+				a.getDeactivateAndDeleteRule() == AccountOrderDeactivateAndDeleteRule.KEEP_ALIVE
+			)
+			.collect(Collectors.toList());
+
+		affiliations = AffiliationService.notStoppedAffiliations(affiliations);
+
+		return affiliations;
+	}
+
 	private List<AccountOrder> getAccountsToCreate(List<Affiliation> affiliations, boolean takeExistingOrdersIntoConsideration, OrgUnitAccountOrder rules, boolean doNotLogRequester) {
 		List<AccountOrder> accountOrdersResult = new ArrayList<>();
 
@@ -790,17 +837,7 @@ public class AccountOrderService {
 			return accountOrdersResult;
 		}
 
-		// filter out affiliations that are not of the supported type
-		List<String> masters = configuration.getScheduled().getAccountOrderGeneration().getMasters();
-		List<String> organisations = configuration.getScheduled().getAccountOrderGeneration().getOrganisations();
-		affiliations = affiliations.stream()
-		   .filter(a ->
-				   masters.contains(a.getMaster()) &&
-				   organisations.contains(a.getCalculatedOrgUnit().getBelongsTo().getShortName()) &&
-				   a.getPerson().isDisableAccountOrdersCreate() == false &&
-				   a.getDeactivateAndDeleteRule() == AccountOrderDeactivateAndDeleteRule.KEEP_ALIVE
-		   )
-		   .collect(Collectors.toList());
+		affiliations = filterAffiliationsForCreateOrders(affiliations);
 
 		if (affiliations.size() == 0) {
 			return accountOrdersResult;
@@ -811,10 +848,10 @@ public class AccountOrderService {
 				continue;
 			}
 
+			// when ordering OPUS accounts, only OPUS owned affiliations are relevant
 			List<Affiliation> relevantAffiliations = new ArrayList<>(affiliations);
 			if (SupportedUserTypeService.isOpus(userType.getKey())) {
-				// when ordering OPUS accounts, only OPUS owned affiliations are relevant
-				relevantAffiliations = relevantAffiliations.stream()
+				relevantAffiliations = affiliations.stream()
 						.filter(a -> "OPUS".equals(a.getMaster()))
 						.collect(Collectors.toList());
 			}
@@ -850,44 +887,144 @@ public class AccountOrderService {
 				// is there an existing CREATE order for this type of user account, then do not create a new one
 				String employeeId = affiliation.getEmployeeId();
 
+				// handle special case, where we might have some disabled AD users, that have been created earlier. We need to know that we can
+				// create a REACTIVATE order for those, even though they are currently disabled
+				List<User> disabledUsers = PersonService.getUsers(affiliation.getPerson()).stream()
+					.filter(
+						u -> SupportedUserTypeService.isActiveDirectory(u.getUserType()) &&
+						u.isDisabled() &&
+						!UserService.isSubstituteUser(u) &&
+						(u.getEmployeeId() == null || Objects.equals(u.getEmployeeId(), affiliation.getEmployeeId()))
+					).collect(Collectors.toList());
+
 				if (takeExistingOrdersIntoConsideration) {
-					List<AccountOrder> existingOrders = accountOrderDao.findByOrderTypeAndPersonUuid(AccountOrderType.CREATE, affiliation.getPerson().getUuid());
+					List<AccountOrder> existingOrders = accountOrderDao.findByOrderTypeInAndPersonUuid(Set.of(AccountOrderType.CREATE, AccountOrderType.REACTIVATE), affiliation.getPerson().getUuid());
 
 					if (!userType.isSingleUserMode()) {
-						generateOrder = existingOrders.stream()
-								.noneMatch(o -> o.getUserType().equals(userType.getKey()) && Objects.equals(employeeId, o.getEmployeeId()));
+						boolean blockingOrder = false;
+
+						for (AccountOrder existingOrder : existingOrders) {
+							if (!Objects.equals(existingOrder.getUserType(), userType.getKey())) {
+								continue;
+							}
+							
+							if (!Objects.equals(existingOrder.getEmployeeId(), employeeId)) {
+								continue;
+							}
+							
+							// CREATE orders are non-blocking if we have a disabled account that matches (employeeId + userId)
+							if (Objects.equals(existingOrder.getOrderType(), AccountOrderType.CREATE)) {
+								if (disabledUsers.stream().anyMatch(u -> Objects.equals(u.getUserId(), existingOrder.getActualUserId()) && Objects.equals(u.getEmployeeId(), employeeId))) {
+									continue;
+								}
+							}
+							
+							blockingOrder = true;
+							break;
+						}
+						
+						generateOrder = !blockingOrder;
 					}
 					else {
-						generateOrder = existingOrders.stream()
-								.noneMatch(o -> o.getUserType().equals(userType.getKey()));
+						boolean blockingOrder = false;
+
+						for (AccountOrder existingOrder : existingOrders) {
+							if (!Objects.equals(existingOrder.getUserType(), userType.getKey())) {
+								continue;
+							}
+
+							// CREATE orders are non-blocking if we have a disabled account that matches (userId)
+							if (Objects.equals(existingOrder.getOrderType(), AccountOrderType.CREATE)) {
+								if (disabledUsers.stream().anyMatch(u -> Objects.equals(u.getUserId(), existingOrder.getActualUserId()))) {
+									continue;
+								}
+							}
+
+							blockingOrder = true;
+							break;
+						}
+						
+						generateOrder = !blockingOrder;
 
 						// when orders are not associated with employeeIds, we need to check if there are other orders generated
 						// by previous iterations of this method
 						if (generateOrder) {
 							generateOrder = accountOrdersResult.stream()
-												.noneMatch(o -> o.getPersonUuid().contentEquals(affiliation.getPerson().getUuid()) &&
-														   o.getUserType().contentEquals(userType.getKey()));
+												.noneMatch(o ->
+													Objects.equals(o.getPersonUuid(), affiliation.getPerson().getUuid()) &&
+													Objects.equals(o.getUserType(), userType.getKey())
+												);
 						}
 					}
 				}
 
 				if (generateOrder) {
+					Date activationDate = new Date();
+					User existingDisabledUser = null;
 
+					if (SupportedUserTypeService.isActiveDirectory(userType.getKey())) {
 
-					AccountOrder accountOrder = createAccountOrder(
+						// does the user have a non-substitute disabled account, not associated with any affiliation, or affiliated with this specific affiliation?
+						existingDisabledUser = disabledUsers.stream().findFirst().orElse(null);
+
+						// when performing a reactivate, check if we are running with the createAsDisabled feature. In that
+						// case we should push the activation forward the configured amount of days
+						if (existingDisabledUser != null && userType.isCreateAsDisabled()) {
+							
+							// the following code is added due to some quirks in the flow-logic. We might have multiple
+							// affiliations triggering the creation, and we throw away "duplicates", so we only create
+							// a single account (in the default single-account-creation case).
+							//
+							// but this means that we might pick an affiliation that has a start date much further into the
+							// future than intended, so as a workaround of sorts, we pick whichever is "oldest" of
+							// the two values computed below - one of them is pretty close to today, and the other might be
+							// in the past, if this is a delayed creation, and having a delayed reactivation does not make much sense
+
+							Date affiliationActivationDate = null;
+							if (affiliation != null && affiliation.getStartDate() != null) {
+								affiliationActivationDate = affiliation.getStartDate();
+
+								Calendar calendar = Calendar.getInstance();
+								calendar.setTime(affiliationActivationDate);
+								calendar.add(Calendar.DAY_OF_MONTH, (int) (-1 * userType.getDaysBeforeToReactivate()));
+								calendar.set(Calendar.HOUR_OF_DAY, 6);
+								calendar.set(Calendar.MINUTE, 0);
+								calendar.set(Calendar.SECOND, 0);
+								calendar.set(Calendar.MILLISECOND, 0);
+								
+								affiliationActivationDate = calendar.getTime();
+							}
+
+							Calendar calendar = Calendar.getInstance();
+							calendar.setTime(new Date());
+							calendar.add(Calendar.DAY_OF_MONTH, (int) (userType.getDaysBeforeToCreate() - userType.getDaysBeforeToReactivate()));
+							calendar.set(Calendar.HOUR_OF_DAY, 6);
+							calendar.set(Calendar.MINUTE, 0);
+							calendar.set(Calendar.SECOND, 0);
+							calendar.set(Calendar.MILLISECOND, 0);
+
+							activationDate = calendar.getTime();
+							if (affiliationActivationDate != null && affiliationActivationDate.before(activationDate)) {
+								activationDate = affiliationActivationDate;
+							}
+						}
+					}
+
+					AccountOrder accountOrder = createOrReactivateAccountOrder(
 							affiliation.getPerson(),
 							userType,
-							null,
+							(existingDisabledUser != null) ? existingDisabledUser.getUserId() : null,
 							linkedUserId,
 							employeeId,
-							new Date(),
+							activationDate,
 							EndDate.NO,
 							null,
 							doNotLogRequester,
 							configuration.getModules().getAccountCreation().isForceSetEmployeeId(),
 							shouldBypassApproval(userType, affiliation, rules),
 							false,
-							affiliation);
+							affiliation,
+							existingDisabledUser != null);
 
 					accountOrdersResult.add(accountOrder);
 				}
@@ -1095,8 +1232,8 @@ public class AccountOrderService {
 	}
 
 	@Transactional(rollbackFor = Exception.class)
-	public void deletePendingCreateOrders(Person person) {
-		accountOrderDao.deleteByStatusInAndPersonUuidInAndOrderTypeIn(Set.of(AccountOrderStatus.PENDING, AccountOrderStatus.PENDING_APPROVAL), Collections.singleton(person.getUuid()), Collections.singletonList(AccountOrderType.CREATE));
+	public void deletePendingCreateAndReactivateOrders(Person person) {
+		accountOrderDao.deleteByStatusInAndPersonUuidInAndOrderTypeIn(Set.of(AccountOrderStatus.PENDING, AccountOrderStatus.PENDING_APPROVAL), Collections.singleton(person.getUuid()), Set.of(AccountOrderType.CREATE, AccountOrderType.REACTIVATE));
 	}
 
 	@Transactional(rollbackFor = Exception.class)
@@ -1112,7 +1249,7 @@ public class AccountOrderService {
 
 	@Transactional(rollbackFor = Exception.class)
 	public void deletePendingExpireOrders(Person person) {
-		accountOrderDao.deleteByStatusInAndPersonUuidInAndOrderTypeIn(Set.of(AccountOrderStatus.PENDING, AccountOrderStatus.PENDING_APPROVAL), Collections.singleton(person.getUuid()), Collections.singletonList(AccountOrderType.EXPIRE));
+		accountOrderDao.deleteByStatusInAndPersonUuidInAndOrderTypeIn(Set.of(AccountOrderStatus.PENDING, AccountOrderStatus.PENDING_APPROVAL), Collections.singleton(person.getUuid()), Set.of(AccountOrderType.EXPIRE));
 	}
 
 	// assumes that all orders are of the same userType and all have status PENDING
@@ -1801,11 +1938,19 @@ public class AccountOrderService {
 	}
 
 	public boolean pendingCreateOrderExists(String userType, String userId) {
-		return accountOrderDao.existsByUserTypeAndOrderTypeAndRequestedUserIdAndStatusIn(userType,AccountOrderType.CREATE,userId,List.of(AccountOrderStatus.PENDING,AccountOrderStatus.PENDING_APPROVAL,AccountOrderStatus.BLOCKED));
+		return accountOrderDao.existsByUserTypeAndOrderTypeInAndRequestedUserIdAndStatusIn(
+				userType,
+				Set.of(AccountOrderType.CREATE, AccountOrderType.REACTIVATE),
+				userId,
+				Set.of(AccountOrderStatus.PENDING, AccountOrderStatus.PENDING_APPROVAL, AccountOrderStatus.BLOCKED));
 	}
 
 	public boolean pendingCreateOrderExistsByOtherPerson(String userId, String excludePersonUuid) {
-		return accountOrderDao.existsByOrderTypeAndRequestedUserIdAndPersonUuidNotAndStatusIn(AccountOrderType.CREATE,userId,excludePersonUuid,List.of(AccountOrderStatus.PENDING,AccountOrderStatus.PENDING_APPROVAL,AccountOrderStatus.BLOCKED));
+		return accountOrderDao.existsByOrderTypeInAndRequestedUserIdAndPersonUuidNotAndStatusIn(
+				Set.of(AccountOrderType.CREATE, AccountOrderType.REACTIVATE),
+				userId,
+				excludePersonUuid,
+				Set.of(AccountOrderStatus.PENDING, AccountOrderStatus.PENDING_APPROVAL, AccountOrderStatus.BLOCKED));
 	}
 
     public List<AccountOrder> findOrder(String userType, AccountOrderType orderType, AccountOrderStatus status, String actualUserId) {
