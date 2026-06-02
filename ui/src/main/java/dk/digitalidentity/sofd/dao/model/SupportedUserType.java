@@ -48,12 +48,6 @@ public class SupportedUserType {
 	private long daysBeforeToCreate;
 
 	@Column
-	private boolean createAsDisabled;
-	
-	@Column
-	private long daysBeforeToReactivate;
-
-	@Column
 	private long daysToDeactivate;
 	
 	@Column
