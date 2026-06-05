@@ -623,6 +623,11 @@ public class PersonApi {
 			changes = true;
 		}
 
+		if (recordEntry.getPositionDisplayName() != null && !Objects.equals(personEntry.getPositionDisplayName(), recordEntry.getPositionDisplayName())) {
+			personEntry.setPositionDisplayName(recordEntry.getPositionDisplayName());
+			changes = true;
+		}
+
 		if (recordEntry.getPositionTypeId() != null && !Objects.equals(personEntry.getPositionTypeId(), recordEntry.getPositionTypeId())) {
 			personEntry.setPositionTypeId(recordEntry.getPositionTypeId());
 			changes = true;
