@@ -66,6 +66,7 @@ public class AffiliationApiRecord extends BaseRecord {
 	private String positionTypeName;
 	private String superiorLevel;
 	private String subordinateLevel;
+	private String positionDisplayName;
 	private Set<String> functions;
 
 	// TODO: remove at some point once we no longer manage deleted from our AD integration (which we really should stop doing)
@@ -79,7 +80,6 @@ public class AffiliationApiRecord extends BaseRecord {
 	private boolean prime;
 	private Boolean inheritPrivileges;
 	private String personUuid;
-	private String positionDisplayName;
 	private String professionName;
 	private String vendor;
 	private AccountOrderDeactivateAndDeleteRule deactivateAndDeleteRule;
@@ -179,6 +179,7 @@ public class AffiliationApiRecord extends BaseRecord {
 		affiliation.setPositionShort(positionShort);
 		affiliation.setPositionTypeId(positionTypeId);
 		affiliation.setPositionTypeName(positionTypeName);
+		affiliation.setPositionDisplayName(positionDisplayName);
 		affiliation.setSuperiorLevel(superiorLevel);
 		affiliation.setSubordinateLevel(subordinateLevel);
 		affiliation.setStartDate((startDate != null) ? toDate(startDate) : null);
