@@ -1,8 +1,8 @@
 package dk.digitalidentity.sofd.dao.model.enums;
 
 public enum AccountOrderStatus {
-	PENDING("html.enum.accountOrderStatus.pending",false),
-	CREATED("html.enum.accountOrderStatus.created",true),
+	PENDING("html.enum.accountOrderStatus.pending", false),
+	CREATED("html.enum.accountOrderStatus.created", true),
 	REACTIVATED("html.enum.accountOrderStatus.reactivated", true),
 	DEACTIVATED("html.enum.accountOrderStatus.deactivated", true),
 	DELETED("html.enum.accountOrderStatus.deleted", true),
@@ -23,7 +23,7 @@ public enum AccountOrderStatus {
 		return messageId;
 	}
 
-	public boolean isComletedStatus() {
+	public boolean isCompletedStatus() {
 		return isCompletedStatus;
 	}
 

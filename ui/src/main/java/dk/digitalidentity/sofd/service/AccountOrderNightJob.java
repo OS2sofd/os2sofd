@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.service;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -132,13 +134,20 @@ public class AccountOrderNightJob {
 
 			List<AccountOrder> toSave = new ArrayList<>();
 
+			// any processed (failed or completed) order that is more than 5 days old should not block new creation of orders
+			Date fiveDaysAgo = Date.from(LocalDate.now().minusDays(5).atStartOfDay().atZone(ZoneId.systemDefault()).toInstant());
+			
 			// create those that are really new, and skip the rest
 			for (AccountOrder newOrder : distinctNewCreateOrders) {
 				boolean noMatch = existingOrders.stream()
 						.noneMatch(existingOrder -> newOrder.getPersonUuid().equals(existingOrder.getPersonUuid()) &&
+								(existingOrder.getStatus().equals(AccountOrderStatus.PENDING) ||
+								 existingOrder.getStatus().equals(AccountOrderStatus.PENDING_APPROVAL) ||
+								 existingOrder.getStatus().equals(AccountOrderStatus.BLOCKED) ||
+								 existingOrder.getActivationTimestamp().after(fiveDaysAgo)) &&
 								Objects.equals(newOrder.getEmployeeId(), existingOrder.getEmployeeId()) &&
 								newOrder.getUserType().equals(existingOrder.getUserType()) &&
-								!(existingOrder.getStatus().isComletedStatus() && (SupportedUserTypeService.isActiveDirectory(existingOrder.getUserType()) || SupportedUserTypeService.isExchange(existingOrder.getUserType())))
+								!(existingOrder.getStatus().isCompletedStatus() && (SupportedUserTypeService.isActiveDirectory(existingOrder.getUserType()) || SupportedUserTypeService.isExchange(existingOrder.getUserType())))
 						);
 
 				if (noMatch) {
