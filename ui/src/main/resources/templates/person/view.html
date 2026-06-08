@@ -384,6 +384,8 @@
 										<span th:if="${user.expired == true}" class="badge badge-alert" th:text="#{html.entity.user.expired}"></span>
 										<span th:if="${@sofdConfiguration.getModules().getBadge().isEnablePasswordLockedBadge() == true and user.passwordLocked == true}" class="badge badge-alert" th:text="#{html.entity.user.passwordlocked}"></span>
 										<span th:if="${user.pendingDeactivation == true}" class="badge badge-warning" th:text="#{html.entity.user.pending_deactivation}"></span>
+										<span th:if="${user.pendingReactivation == true}" class="badge badge-success" th:text="#{html.entity.user.pending_reactivation}"></span>
+										<span th:if="${user.external == true}" class="badge badge-success" th:text="#{html.entity.user.external}"></span>
 									</td>
 									<td th:text="${@supportedUserTypeService.getPrettyName(user.userType)}"></td>
 									<td>
@@ -401,13 +403,13 @@
 											<th:block th:if="${user.disabled == false}">
 												<a href="#" onclick="deleteUser(this);" th:attr="data-userid=${user.userId},data-usertype=${user.userType}"><em class="fa fa-times" th:title="#{html.entity.user.deactivate}"></em></a>
 											</th:block>
-											<th:block th:if="${user.disabled == true}">
+											<th:block th:if="${user.disabled == true && user.pendingReactivation == false}">
 												<a href="#" onclick="reactivateUser(this);" th:attr="data-userid=${user.userId},data-usertype=${user.userType}"><em class="fa fa-user-plus" th:title="#{html.entity.user.reactivate}"></em></a>
 											</th:block>
 										</th:block>
 										
 										<th:block th:if="${@sofdConfiguration.integrations.opus.enableActiveDirectoryEmployeeIdAssociation and user.userType == 'ACTIVE_DIRECTORY'}">
-											<a th:if="${user.userChangeEmployeeIdQueueDTO == null}" href="#" onclick="editUser(this);" th:attr="data-userid=${user.userId},data-usertype=${user.userType},data-employeeid=${user.employeeId}"><em class="fa fa-fw fa-pencil"></em></a>
+											<a th:if="${user.userChangeEmployeeIdQueueDTO == null}" href="#" onclick="editUser(this);" th:attr="data-userid=${user.userId},data-external=${user.external},data-usertype=${user.userType},data-employeeid=${user.employeeId}"><em class="fa fa-fw fa-pencil"></em></a>
 											<a th:unless="${user.userChangeEmployeeIdQueueDTO == null}" href="#" onclick="editUser(this);" th:attr="data-userid=${user.userId},data-usertype=${user.userType},data-employeeid=${user.employeeId},data-queuedate=${user.userChangeEmployeeIdQueueDTO.date},data-queueemployeeid=${user.userChangeEmployeeIdQueueDTO.employeeId}"><em class="fa fa-fw fa-pencil"></em></a>
 										</th:block>
 										
@@ -831,6 +833,7 @@
 			<div class="modal-header">
 				<h4 th:text="#{html.page.person.view.edit.user.modal}"></h4>
 				<p th:text="#{html.page.person.view.edit.user.modal.body}"></p>
+				<p th:text="#{html.page.person.view.edit.user.modal.body2}"></p>
 			</div>
 
 			<div class="modal-body">
@@ -839,7 +842,7 @@
 					<input id="editUserUserType" type="hidden" />
 	
 					<div class="row">
-						<label class="col-sm-2 control-label" th:text="#{html.entity.user.affiliation}"></label>
+						<label class="col-sm-2 control-label" style="padding-top: 8px;" th:text="#{html.entity.user.affiliation}"></label>
 						<div class="col-sm-9">
 							<select class="form-control" id="editUserEmployeeId">
 								<option value="0">Ikke tilknyttet noget tilhørsforhold</option>
@@ -849,7 +852,7 @@
 					</div>
 					
 					<div class="row">
-						<label class="col-sm-2 control-label" th:text="#{html.entity.user.date}"></label>
+						<label class="col-sm-2 control-label" style="padding-top: 8px;" th:text="#{html.entity.user.date}"></label>
 						<div class="col-sm-9" style="display: flex">
 							<div class="input-group date col-lg-4" id="editUserDatePicker">
 								<input id="editUserDate" class="form-control" th:value="${person.leaveStartDate} != null ? ${person.leaveStartDate} : ${today}"/>
@@ -861,12 +864,24 @@
 							<button type="button" class="btn btn-warning col-lg-3" th:text="#{html.entity.user.remove_future_change}" onclick="removeFutureChange(); return false;"></button>
 						</div>
 					</div>
+					
+					<div class="row">
+						<label class="col-sm-2 control-label" style="padding-top: 8px;" th:text="#{html.entity.user.external}"></label>
+						<div class="col-sm-9">
+							<div class="checkbox c-checkbox">
+								<label>
+									<input id="editUserExternal" type="checkbox" />
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+						</div>
+					</div>
 				</form>
 			</div>
 
 			<div class="modal-footer">
-				<button type="button" class="btn btn-primary" th:text="#{html.button.save}" onclick="saveEditUser();"></button>
-				<button type="button" class="btn btn-danger" th:text="#{html.control.button.cancel}" data-dismiss="modal"></button>
+				<button type="button" class="btn btn-primary" style="width: 100px;" th:text="#{html.button.save}" onclick="saveEditUser();"></button>
+				<button type="button" class="btn btn-danger" style="width: 100px;" th:text="#{html.control.button.cancel}" data-dismiss="modal"></button>
 			</div>
 		</div>
 	</div>
@@ -1291,11 +1306,12 @@
 			var userId = $('#editUserUserId').val();
 			var userType = $('#editUserUserType').val();
 			var employeeId = $('#editUserEmployeeId').val();
+			var isExternal = $('#editUserExternal').prop("checked");
 			var date = $('#editUserDate').val();
 			
 			$.ajax({
 				method : "POST",
-				url: restUrl + "/" + uuid + "/setEmployeeId/" + userType + "/" + userId + "/" + employeeId + "?date=" + date,
+				url: restUrl + "/" + uuid + "/setEmployeeId/" + userType + "/" + userId + "/" + employeeId + "?date=" + date + "&external=" + isExternal,
 				headers: {
 					'X-CSRF-TOKEN': token
 				}
@@ -1341,6 +1357,7 @@
 			var userId = $(elem).data('userid');
 			var userType = $(elem).data('usertype');
 			var employeeId = $(elem).data('employeeid');
+			var isExternal = $(elem).data('external');
 			
 			var date = $(elem).data('queuedate');
 			var queueEmployeeId = $(elem).data('queueemployeeid');
@@ -1353,6 +1370,7 @@
 			
 			$('#editUserUserId').val(userId);
 			$('#editUserUserType').val(userType);
+			$('#editUserExternal').prop("checked", isExternal);
 
 			if (queueEmployeeId != null) {
 				$('#editUserEmployeeId').val(queueEmployeeId);
