@@ -70,23 +70,6 @@
 										</div>
 									</div>
 
-									<div class="form-group" th:if="${order.showExternal} == true">
-										<label class="col-sm-3 control-label">
-											<span th:text="#{html.entity.user.external}"></span>
-											<a tabindex="0" class="hintPopovers" data-toggle="popover" data-trigger="focus" data-placement="bottom" th:attr="data-content=#{html.page.person.view.edit.user.modal.body2},title=#{html.entity.user.external}" style="text-decoration: none;">
-												<em style="color: black;" class="fa fa-fw fa-question"></em>
-											</a>
-										</label>
-										<div class="col-sm-8">
-											<div class="checkbox c-checkbox">
-												<label>
-													<input th:field="*{external}" id="external" type="checkbox" value="false"/>
-													<span class="fa fa-check"></span>
-												</label>
-											</div>
-										</div>
-									</div>
-
 									<br/>
 									<div class="form-group">
 										<div class="col-sm-offset-3 col-sm-10">

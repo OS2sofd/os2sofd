@@ -107,9 +107,6 @@ public class AccountOrder {
 	@Column
 	private String token;
 
-	@Column
-	private boolean external;
-
 	@ManyToOne
 	@JoinColumn(name = "trigger_affiliation_id")
 	private Affiliation triggerAffiliation;

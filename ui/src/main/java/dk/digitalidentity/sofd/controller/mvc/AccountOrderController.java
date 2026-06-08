@@ -182,7 +182,6 @@ public class AccountOrderController {
 				.personName(PersonService.getName(person))
 				.userType(userType)
 				.showEndDate(SupportedUserTypeService.getActiveDirectoryUserType().equals(userType))
-				.showExternal(SupportedUserTypeService.getActiveDirectoryUserType().equals(userType))
 				.affiliationUuid((affiliations.size() > 0) ? affiliations.get(0).getUuid() : "")
 				.build();
 
@@ -330,7 +329,7 @@ public class AccountOrderController {
 			}
 		}
 
-		AccountOrder accountOrder = accountOrderService.createOrReactivateAccountOrder(
+		AccountOrder accountOrder = accountOrderService.createAccountOrder(
 				person,
 				supportedUserType,
 				order.getChosenUserId(),
@@ -343,12 +342,7 @@ public class AccountOrderController {
 				(StringUtils.hasLength(employeeId) ? true : false),
 				!order.isRequireApproval(),
 				true,
-				triggerAffiliation,
-				false);
-		
-		if (SupportedUserTypeService.isActiveDirectory(supportedUserType.getKey()) && order.isExternal()) {
-			accountOrder.setExternal(true);
-		}
+				triggerAffiliation);
 		
 		accountOrderService.save(accountOrder);
 
@@ -438,7 +432,7 @@ public class AccountOrderController {
 			}
 		}
 		
-		AccountOrder adAccountOrder = accountOrderService.createOrReactivateAccountOrder(
+		AccountOrder adAccountOrder = accountOrderService.createAccountOrder(
 				person,
 				adUserType,
 				order.getAdChosenUserId(),
@@ -451,12 +445,11 @@ public class AccountOrderController {
 				(StringUtils.hasLength(employeeId)),
 				!order.isRequireApproval(),
 				true,
-				triggerAffiliation,
-				false);
+				triggerAffiliation);
 
 		accountOrderService.save(adAccountOrder);
 		
-		AccountOrder exchangeAccountOrder = accountOrderService.createOrReactivateAccountOrder(
+		AccountOrder exchangeAccountOrder = accountOrderService.createAccountOrder(
 				person,
 				exchangeUserType,
 				order.getExchangeChosenUserId(),
@@ -469,8 +462,7 @@ public class AccountOrderController {
 				(StringUtils.hasLength(employeeId)),
 				true,
 				true,
-				triggerAffiliation,
-				false);
+				triggerAffiliation);
 
 		exchangeAccountOrder.setStatus(AccountOrderStatus.BLOCKED);
 		exchangeAccountOrder.setDependsOn(adAccountOrder);

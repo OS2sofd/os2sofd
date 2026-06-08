@@ -24,17 +24,17 @@ public interface AccountOrderDao extends CrudRepository<AccountOrder, Long> {
 
 	List<AccountOrder> findByStatusAndOrderTypeAndPersonUuid(AccountOrderStatus status, AccountOrderType orderType, String uuid);
 
-	void deleteByStatusInAndPersonUuidInAndOrderTypeIn(Set<AccountOrderStatus> pending, Set<String> personUuids, Set<AccountOrderType> types);
+	void deleteByStatusInAndPersonUuidInAndOrderTypeIn(Set<AccountOrderStatus> pending, Set<String> personUuids, List<AccountOrderType> types);
 
-	List<AccountOrder> findByOrderTypeInAndPersonUuid(Set<AccountOrderType> types, String personUuid);
+	List<AccountOrder> findByOrderTypeAndPersonUuid(AccountOrderType orderType, String personUuid);
 
 	List<AccountOrder> findByOrderTypeIn(AccountOrderType ... types);
 
-	List<AccountOrder> findByOrderTypeAndStatus(AccountOrderType orderType, AccountOrderStatus orderStatus);
+	List<AccountOrder> findByOrderTypeAndStatus(AccountOrderType create, AccountOrderStatus pending);
 
-	List<AccountOrder> findByOrderTypeAndStatusAndUserType(AccountOrderType orderType, AccountOrderStatus orderStatus, String userType);
+	List<AccountOrder> findByOrderTypeAndStatusAndUserType(AccountOrderType create, AccountOrderStatus created, String opusUserType);
 
-	List<AccountOrder> findByPersonUuidAndOrderTypeAndStatusAndUserType(String uuid, AccountOrderType orderType, AccountOrderStatus orderStatus, String userType);
+	List<AccountOrder> findByPersonUuidAndOrderTypeAndStatusAndUserType(String uuid, AccountOrderType create, AccountOrderStatus created, String opusUserType);
 
 	List<AccountOrder> findByOrderType(AccountOrderType orderType);
 
@@ -67,9 +67,9 @@ public interface AccountOrderDao extends CrudRepository<AccountOrder, Long> {
     	""")
 	void cleanupByTriggerAffiliation();
 
-	boolean existsByUserTypeAndOrderTypeInAndRequestedUserIdAndStatusIn(String userType, Set<AccountOrderType> accountOrderType, String userId, Set<AccountOrderStatus> pending);
+	boolean existsByUserTypeAndOrderTypeAndRequestedUserIdAndStatusIn(String userType, AccountOrderType accountOrderType, String userId, List<AccountOrderStatus> pending);
 
-	boolean existsByOrderTypeInAndRequestedUserIdAndPersonUuidNotAndStatusIn(Set<AccountOrderType> accountOrderType, String userId, String personUuid, Set<AccountOrderStatus> pending);
+	boolean existsByOrderTypeAndRequestedUserIdAndPersonUuidNotAndStatusIn(AccountOrderType accountOrderType, String userId, String personUuid, List<AccountOrderStatus> pending);
 
 	void deleteByStatusInAndOrderTypeInAndUserTypeAndRequestedUserId(Set<AccountOrderStatus> statuses, Set<AccountOrderType> orderTypes, String userType, String userId);
 }

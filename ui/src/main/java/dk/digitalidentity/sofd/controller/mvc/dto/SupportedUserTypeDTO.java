@@ -14,11 +14,8 @@ public class SupportedUserTypeDTO {
 	private boolean canOrder;
 	private boolean singleUserMode;
 	private long daysToDeactivate;
-	private long daysToCleanup;
 	private long daysToDelete;
 	private long daysBeforeToCreate;
-	private boolean createAsDisabled;
-	private long daysToReactivate;
 	private String key;
 	private String name;
 	private long dependsOn;
@@ -34,7 +31,6 @@ public class SupportedUserTypeDTO {
 	private String suffixExternalValue;
 	private String usernameTemplateString;
 	private boolean deactivateEnabled;
-	private boolean cleanupEnabled;
 	private boolean deleteEnabled;
 	private boolean createEnabled;
 }

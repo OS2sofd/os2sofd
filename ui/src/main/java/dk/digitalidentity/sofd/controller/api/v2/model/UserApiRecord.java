@@ -48,7 +48,7 @@ public class UserApiRecord extends BaseRecord {
 	private Boolean disabled;
 	
 	private Boolean substituteAccount;
-		
+	
 	// these fields are only relevant for AD accounts, they are NULL for all others
 	// note that neither the fancy converter-constructor, nor the "toUser" does with this
 	// in any meaningful way, as they are used 100% outside the scope of the person/user construct
@@ -64,7 +64,6 @@ public class UserApiRecord extends BaseRecord {
 	// read-only fields
 
 	private boolean prime;
-	private Boolean external;
 
 	public UserApiRecord(User user) {
 		this.master = user.getMaster();
@@ -78,7 +77,7 @@ public class UserApiRecord extends BaseRecord {
 		this.disabled = user.isDisabled();
 		this.substituteAccount = user.isSubstituteAccount();
 
-		// fields mapping for AD accounts
+		// readonly fields mapping for AD accounts
 		if (user.getActiveDirectoryDetails() != null) {
 			this.passwordLocked = user.getActiveDirectoryDetails().isPasswordLocked();
 			this.accountExpireDate = (user.getActiveDirectoryDetails().getAccountExpireDate() != null) ? user.getActiveDirectoryDetails().getAccountExpireDate().toString() : null;
@@ -87,7 +86,6 @@ public class UserApiRecord extends BaseRecord {
 			this.upn = (StringUtils.hasLength(user.getActiveDirectoryDetails().getUpn())) ? user.getActiveDirectoryDetails().getUpn() : null;
 			this.kombitUuid = user.getActiveDirectoryDetails().getKombitUuid();
 			this.title = (StringUtils.hasLength(user.getActiveDirectoryDetails().getTitle())) ? user.getActiveDirectoryDetails().getTitle() : null;
-			this.external = user.getActiveDirectoryDetails().isExternal();
 		}
 	}
 
@@ -144,8 +142,7 @@ public class UserApiRecord extends BaseRecord {
 			details.setPasswordExpireDate(StringUtils.hasLength(passwordExpireDate) ? LocalDate.parse(passwordExpireDate) : null);
 			details.setWhenCreated(StringUtils.hasLength(whenCreated) ? LocalDate.parse(whenCreated) : null);
 			details.setAccountExpireDate(StringUtils.hasLength(accountExpireDate) ? LocalDate.parse(accountExpireDate) : null);
-			details.setExternal(external != null ? external : false);
-			
+
 			user.setActiveDirectoryDetails(details);
 		}
 

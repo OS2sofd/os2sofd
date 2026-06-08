@@ -33,8 +33,6 @@ import dk.digitalidentity.sofd.controller.mvc.admin.dto.TagDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.AffiliationDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.EmployeeDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.KleDTO;
-import dk.digitalidentity.sofd.controller.mvc.dto.OrgUnitAccountOrderDTO;
-import dk.digitalidentity.sofd.controller.mvc.dto.OrgUnitAccountOrderTypeDTO;
 import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderRulesXlsDto;
 import dk.digitalidentity.sofd.controller.mvc.xls.AccountOrderRulesXlsView;
 import dk.digitalidentity.sofd.controller.mvc.xls.EmployeesInformationXlsView;
@@ -42,6 +40,7 @@ import dk.digitalidentity.sofd.controller.mvc.xls.OrgUnitsXlsxView;
 import dk.digitalidentity.sofd.controller.rest.model.PhoneDTO;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
+import dk.digitalidentity.sofd.dao.model.OrgUnitAccountOrder;
 import dk.digitalidentity.sofd.dao.model.OrgUnitTag;
 import dk.digitalidentity.sofd.dao.model.OrgUnitType;
 import dk.digitalidentity.sofd.dao.model.Person;
@@ -120,8 +119,7 @@ public class OrgUnitController {
 
 	@Autowired
 	private SubstituteContextService substituteContextService;
-
-	@Autowired
+    @Autowired
     private SofdConfiguration sofdConfiguration;
 
 	record TagAssignmentDTO(String uuid, String value, String shortValue) {}
@@ -230,24 +228,11 @@ public class OrgUnitController {
 		List<SubstituteOrgUnitAssignmentDTO> substitutes = orgUnitService.getOrgUnitSubstitutes(orgUnit);
 		model.addAttribute("substitutes", substitutes);
 
-		if (sofdConfiguration.getModules().getAccountCreation().isEnabled()) {
-			OrgUnitAccountOrderDTO accountOrdersDTO = new OrgUnitAccountOrderDTO(accountOrderService.getAccountOrderSettings(orgUnit, true));
-
-			List<SupportedUserType> supportedUserTypes = supportedUserTypeService.findAll();
-			for (OrgUnitAccountOrderTypeDTO accountOrderType : accountOrdersDTO.getTypes()) {
-				SupportedUserType supportedUserType = supportedUserTypes.stream().filter(sut -> sut.getKey().equals(accountOrderType.getUserType())).findAny().orElse(null);
-				if (supportedUserType != null) {
-					accountOrderType.setCreateEnabled(supportedUserType.isCreateEnabled());
-					accountOrderType.setReactivateEnabled(supportedUserType.isCreateAsDisabled());
-					accountOrderType.setGlobalDaysBeforeToCreate(supportedUserType.getDaysBeforeToCreate());
-					accountOrderType.setGlobalDaysBeforeToReactivate(supportedUserType.getDaysBeforeToReactivate());
-				}
-			}
-			
-			model.addAttribute("orgUnitAccountOrder", accountOrdersDTO);
-			model.addAttribute("canCopyRules", !accountOrdersDTO.getTypes().stream().anyMatch(t -> t.getRule().equals(AccountOrderRule.BY_POSITION_NAME)));
-			model.addAttribute("ous", orgUnitService.getAllTree());
-		}
+		// TODO: these we only need to load for admins when the account creation module is enabled....
+		OrgUnitAccountOrder accountOrders = accountOrderService.getAccountOrderSettings(orgUnit, true);
+		model.addAttribute("orgUnitAccountOrder", accountOrders);
+		model.addAttribute("ous", orgUnitService.getAllTree());
+		model.addAttribute("canCopyRules", !accountOrders.getTypes().stream().anyMatch(t -> t.getRule().equals(AccountOrderRule.BY_POSITION_NAME)));
 
 		return "orgunit/view";
 	}
@@ -633,22 +618,10 @@ public class OrgUnitController {
 			log.warn("No OrgUnit with uuid: " + uuid);
 		}
 		else {
-			OrgUnitAccountOrderDTO accountOrdersDTO = new OrgUnitAccountOrderDTO(accountOrderService.getAccountOrderSettings(orgUnit, true));
-
-			List<SupportedUserType> supportedUserTypes = supportedUserTypeService.findAll();
-			for (OrgUnitAccountOrderTypeDTO accountOrderType : accountOrdersDTO.getTypes()) {
-				SupportedUserType supportedUserType = supportedUserTypes.stream().filter(sut -> sut.getKey().equals(accountOrderType.getUserType())).findAny().orElse(null);
-				if (supportedUserType != null) {
-					accountOrderType.setCreateEnabled(supportedUserType.isCreateEnabled());
-					accountOrderType.setReactivateEnabled(supportedUserType.isCreateAsDisabled());
-					accountOrderType.setGlobalDaysBeforeToCreate(supportedUserType.getDaysBeforeToCreate());
-					accountOrderType.setGlobalDaysBeforeToReactivate(supportedUserType.getDaysBeforeToReactivate());
-				}
-			}
-			
-			model.addAttribute("orgUnitAccountOrder", accountOrdersDTO);
-			model.addAttribute("canCopyRules", !accountOrdersDTO.getTypes().stream().anyMatch(t -> t.getRule().equals(AccountOrderRule.BY_POSITION_NAME)));
+			OrgUnitAccountOrder accountOrders = accountOrderService.getAccountOrderSettings(orgUnit, true);
+			model.addAttribute("orgUnitAccountOrder", accountOrders);
 			model.addAttribute("ous", orgUnitService.getAllTree());
+			model.addAttribute("canCopyRules", !accountOrders.getTypes().stream().anyMatch(t -> t.getRule().equals(AccountOrderRule.BY_POSITION_NAME)));
 		}
 
 		if (type.equals("edit")) {

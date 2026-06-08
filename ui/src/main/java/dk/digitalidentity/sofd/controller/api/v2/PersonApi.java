@@ -33,7 +33,6 @@ import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.controller.api.v2.model.PersonApiRecord;
 import dk.digitalidentity.sofd.controller.api.v2.model.PersonResult;
 import dk.digitalidentity.sofd.controller.api.v2.model.validator.PersonApiRecordValidator;
-import dk.digitalidentity.sofd.dao.model.AccountOrder;
 import dk.digitalidentity.sofd.dao.model.ActiveDirectoryDetails;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.MasteredEntity;
@@ -188,15 +187,6 @@ public class PersonApi {
 
 		boolean externalDefaultInheritPrivileges = sofdConfiguration.getModules().getAffiliation().isExternalDefaultInheritPrivileges();
 		Person person = record.toPerson(null, seedPrefix, externalDefaultInheritPrivileges);
-		
-		if (!personService.isActive(person)) {
-			Client client = SecurityUtil.getClient();
-			// TODO: logging as ERROR might be overkill, change it to WARN at a later point, but we want to find any potential clients that are misbehaving
-			log.error("Client " + (client != null ? client.getName() : "<unknown client>") + " attempted to create an inactive person : " + PersonService.getName(person) + " / " + PersonService.maskCpr(person.getCpr()));
-			
-			return new ResponseEntity<>("Attempting to create an inactive person is not allowed - at least one active affiliation or user is required", HttpStatus.BAD_REQUEST);
-		}
-		
 		personService.deleteExistingDuplicateUsers(person, record.getUuid());
 		person = personService.save(record.toPerson(null, seedPrefix, externalDefaultInheritPrivileges));
 
@@ -218,22 +208,9 @@ public class PersonApi {
 				return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 			}
 			
-			boolean existingPersonActive = personService.isActive(person);
-			long existingPersonUserCount = PersonService.getUsers(person).size();
 			boolean changes = patch(person, record);
 
 			if (changes) {
-
-				// existing inactive persons MUST be activated for us to want to store the change
-				long patchedPersonUserCount = PersonService.getUsers(person).size();
-				if (!existingPersonActive && !personService.isActive(person) && existingPersonUserCount == patchedPersonUserCount) {
-					Client client = SecurityUtil.getClient();
-					// TODO: logging as ERROR might be overkill, change it to WARN at a later point, but we want to find any potential clients that are misbehaving
-					log.error("Client " + (client != null ? client.getName() : "<unknown client>") + " attempted to patch an inactive person without activating : " + PersonService.getName(person) + " / " + PersonService.maskCpr(person.getCpr()));
-					
-					return new ResponseEntity<>("Attempting to patch an inactive person is only allowed by supplying at least one active affiliation or user", HttpStatus.BAD_REQUEST);
-				}
-				
 				person = personService.save(person);
 			}
 			
@@ -315,6 +292,26 @@ public class PersonApi {
 		// an empty collection must be supplied to "empty" it.
 		
 		if (record.getUsers() != null) {
+			// check for any new AD users here and supply them with employee_id from matching account order - if any exists.
+			// note that this can fail due to timing between Event Dispatcher and Account Agent - in that case logic is handled in the AccountOrderApiController when it gets notified
+			for (var recordUser : record.getUsers()) {
+				if (Objects.equals(recordUser.getUser().getUserType(), SupportedUserTypeService.getActiveDirectoryUserType())) {
+					var userExists = person.getUsers().stream().anyMatch(pu ->
+						Objects.equals(pu.getUser().getUserType(), recordUser.getUser().getUserType())
+						&& Objects.equals(pu.getUser().getMaster(), recordUser.getUser().getMaster())
+						&& Objects.equals(pu.getUser().getMasterId(), recordUser.getUser().getMasterId()));
+					
+					if (!userExists) {
+						// lookup matching account order
+						var matchingAccountOrders = accountOrderService.findOrder(SupportedUserTypeService.getActiveDirectoryUserType(),AccountOrderType.CREATE, AccountOrderStatus.CREATED, recordUser.getUser().getUserId());						
+						if (matchingAccountOrders != null && matchingAccountOrders.size() > 0) {
+							recordUser.getUser().setEmployeeId(matchingAccountOrders.get(0).getEmployeeId());
+						}
+					}
+				}
+			}
+
+			// perform normal patchCollection check
 			if (this.<PersonUserMapping>patchCollection(person, record, Person.class.getMethod("getUsers"), Person.class.getMethod("setUsers", List.class))) {
 				changes = true;
 			}
@@ -524,20 +521,6 @@ public class PersonApi {
 
 					// add if it does not exist
 					if (!found) {
-
-						// lookup matching account order for newly created users, and copy relevant information to those
-						if (recordEntry.getEntity() instanceof User recordUser) {
-							List<AccountOrder> matchingAccountOrders = accountOrderService.findOrder(SupportedUserTypeService.getActiveDirectoryUserType(), AccountOrderType.CREATE, AccountOrderStatus.CREATED, recordUser.getUserId());
-							if (matchingAccountOrders != null && matchingAccountOrders.size() > 0) {
-								AccountOrder accountOrder = matchingAccountOrders.get(0);
-								
-								recordUser.setEmployeeId(accountOrder.getEmployeeId());
-								if (recordUser.getActiveDirectoryDetails() != null) {
-									recordUser.getActiveDirectoryDetails().setExternal(accountOrder.isExternal());
-								}
-							}
-						}
-
 						personCollection.add(recordEntry);
 						changes = true;
 					}
@@ -915,7 +898,7 @@ public class PersonApi {
 				details.setKombitUuid(UUID.nameUUIDFromBytes(seed.toLowerCase().getBytes()).toString());
 			}
 		}
-
+		
 		// TODO: these booleans cannot be null, so we cannot avoid patching them - that is an issue
 		if (userRecord.getActiveDirectoryDetails().isPasswordLocked() && details.isPasswordLocked() == false) {
 			changes = true;

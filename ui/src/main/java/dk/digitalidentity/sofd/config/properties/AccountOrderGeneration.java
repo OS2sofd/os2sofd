@@ -1,7 +1,7 @@
 package dk.digitalidentity.sofd.config.properties;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 import dk.digitalidentity.sofd.config.FeatureDocumentation;
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderDeactivateAndDeleteRule;
@@ -11,19 +11,10 @@ import lombok.Setter;
 @Getter
 @Setter
 public class AccountOrderGeneration {
-	// any affiliation where master is in this set, is used for triggereing IdM processes 
-	private Set<String> masters;
-	
-	// optional list - if empty just use the above "masters" for AD, but if filled out, use this set instead for AD accounts
-	private Set<String> adOptionalMasters;
-	
-	// optional list - if available, do pre-validation on OPUS accounts before creation to ensure they start with one of these
-	private Set<String> opusOptionalPrefix;
-
-	private Set<String> organisations = new HashSet<>(Set.of("ADMORG"));
+	private List<String> masters;
+	private List<String> organisations = new ArrayList<>(List.of("ADMORG"));
 	private boolean ignoreDeleteOrdersIfNoAffiliations = true;
 	private AccountOrderDeactivateAndDeleteRule affiliationDeactivateAndDeleteRuleDefault = AccountOrderDeactivateAndDeleteRule.KEEP_ALIVE;
-
 	@FeatureDocumentation(name = "Udførelse af AD tasks", description = "Bruges til at definere den time kontobestillinger skal udføres, i 24 timers format")
 	private int timeOfExecution = 9;
 
@@ -32,5 +23,4 @@ public class AccountOrderGeneration {
 	private int pendingOrderDeactivateThreshold = Integer.MAX_VALUE;
 	private int pendingOrderDeleteThreshold = Integer.MAX_VALUE;
 	private int pendingOrderExpireThreshold = Integer.MAX_VALUE;
-	private int pendingOrderCleanupThreshold = Integer.MAX_VALUE;
 }
