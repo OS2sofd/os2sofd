@@ -74,7 +74,6 @@ import dk.digitalidentity.sofd.dao.paginator.PersonPage;
 import dk.digitalidentity.sofd.dao.paginator.PersonPaginator;
 import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.model.ChangeType;
-import dk.digitalidentity.sofd.service.model.PersonDeletePeriod;
 import dk.digitalidentity.sofd.telephony.controller.rest.dto.AutoCompleteResult;
 import dk.digitalidentity.sofd.telephony.controller.rest.dto.ValueData;
 import lombok.extern.slf4j.Slf4j;
@@ -453,7 +452,7 @@ public class PersonService {
 			for (Person person : persons) {
 				counter ++;
 				if (counter % 500 == 0) {
-					log.info("Handling person " + counter + " of " + persons.size());
+					log.info("Handling persons: " + counter);
 				}
 	
 				boolean changes = primeService.setPrimeAffilation(person);
@@ -468,8 +467,8 @@ public class PersonService {
 					}
 				}
 
-				// if the person does not have any users, and does not have any prime affiliations (i.e. no active affiliations), then flip the delete flag
-				boolean shouldBeDeleted = (person.getUsers().size() == 0 && !person.getAffiliations().stream().anyMatch(a -> a.isPrime()));
+				// if the person does not have any ACTIVE users, and does not have any prime affiliations (i.e. no ACTIVE affiliations), then flip the delete flag
+				boolean shouldBeDeleted = !isActive(person);
 				if (shouldBeDeleted && !person.isDeleted()) {
 					person.getSubstitutes().clear();
 					person.setDeleted(true);
@@ -500,26 +499,12 @@ public class PersonService {
 	
 	@Transactional
 	public void cleanupDeletedPersons() {
-		int months = 0;
-		PersonDeletePeriod interval = settingService.getPersonDeletePeriod();
-		switch (interval) {
-			case MONTH_6:
-				months = 6;
-				break;
-			case MONTH_12:
-				months = 12;
-				break;
-			case MONTH_36:
-				months = 36;
-				break;
-			case MONTH_60:
-				months = 60;
-				break;
-			case NEVER:
-				return;
-			default:
-				return;
-		}
+		int months = switch (settingService.getPersonDeletePeriod()) {
+			case MONTH_6 -> { yield 6; }
+			case MONTH_12 -> { yield 12; }
+			case MONTH_36 -> { yield 36; }
+			case MONTH_60 -> { yield 60; }
+		};
 
 		Calendar cal = Calendar.getInstance();
 		cal.setTime(new Date());
@@ -1566,6 +1551,14 @@ public class PersonService {
 	public void resetChosenName(Person person) {
 		person.setChosenName(null);
 		self.save(person);
+	}
+
+	// if a person has at least one active/future affiliation OR at least one active user, the person is active
+	public boolean isActive(Person person) {
+		boolean activeUsers = person.getUsers().stream().filter(u -> u.getUser().isDisabled() == false).count() > 0;
+		boolean activeAffiliations = person.getAffiliations().stream().anyMatch(a -> a.isPrime());
+		
+		return activeUsers || activeAffiliations;
 	}
 
 }
