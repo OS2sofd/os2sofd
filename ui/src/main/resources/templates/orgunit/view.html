@@ -244,7 +244,7 @@
 									<th:block th:replace="~{orgunit/fragments/localExtensions :: localExtensions}" />
 								</div>
 
-                                <div th:if="${session.SESSION_FUTURE_DATE} == null" sec:authorize="hasRole('ROLE_MODULE_ACCOUNT_CREATION')" id="order_accounts_menu" class="tab-pane fade">
+                                <div th:if="${session.SESSION_FUTURE_DATE} == null" id="order_accounts_menu" class="tab-pane fade">
                                     <div th:replace="~{orgunit/fragments/viewAccountOrdersTab :: accountOrdersTab (orgUnitAccountOrder = ${orgUnitAccountOrder})}"></div>
                                 </div>
 
@@ -664,16 +664,7 @@
 				var row = $(this);
 				var usertype = row.data('usertype');
 
-				var payloadElem = {
-					"userType": usertype,
-					"rule": "",
-					"positions": [],
-					"deactivateAndDeleteRule": $('#deactivateAndDeleteRule-' + usertype).val(),
-					"requiresApproval": true,
-					"localRules": $('#localRulesCheckbox-' + usertype).is(":checked"),
-					"daysBeforeToCreate": $('#localRulesActivate-' + usertype).val(),
-					"daysBeforeToReactivate": $('#localRulesReactivate-' + usertype).val()
-				};
+				var payloadElem = { "userType": usertype, "rule": "", "positions": [], "deactivateAndDeleteRule": $('#deactivateAndDeleteRule-' + usertype).val(), "requiresApproval": true };
 			
 				// each() only returns one element, everything is okay ;)
 				row.find("> td > select").each(function() {

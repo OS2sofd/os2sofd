@@ -56,9 +56,6 @@ public class ActiveDirectoryDetails {
 	
 	@Column
 	private boolean passwordLocked;
-	
-	@Column
-	private boolean external;
 
 	@Column
 	private String kombitUuid;

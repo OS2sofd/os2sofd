@@ -278,7 +278,6 @@ public class SyncService {
 		}
 		if (includeSchoolADUsers ) {
 			includedUserTypes.add("'ACTIVE_DIRECTORY_SCHOOL'");
-			includedUserTypes.add("'AZURE_AD'");
 		}
 		query += " AND user_type in (" + String.join(",", includedUserTypes) + ") ";
 
@@ -330,7 +329,7 @@ public class SyncService {
 				return null;
 			}
 			
-			person.setSchoolUser(userType.equalsIgnoreCase("ACTIVE_DIRECTORY_SCHOOL") || userType.equalsIgnoreCase("AZURE_AD"));
+			person.setSchoolUser(userType.equalsIgnoreCase("ACTIVE_DIRECTORY_SCHOOL"));
 			person.setPersonUuid(personUuid);
 			person.setUuid(uuid);
 			person.setEmail(email);

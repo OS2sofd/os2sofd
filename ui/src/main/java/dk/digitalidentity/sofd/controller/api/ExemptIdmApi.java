@@ -58,7 +58,7 @@ public class ExemptIdmApi {
 		person.setDisableAccountOrdersDelete(true);
 
 		personService.save(person);
-		accountOrderService.deletePendingCreateAndReactivateOrders(person);
+		accountOrderService.deletePendingCreateOrders(person);
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
