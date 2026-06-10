@@ -51,7 +51,7 @@ CREATE OR REPLACE VIEW view_syncservice_users AS
         -- or school_users
         OR
         (
-            u.user_type IN ('ACTIVE_DIRECTORY_SCHOOL', 'AZURE_AD')
+            u.user_type IN ('ACTIVE_DIRECTORY_SCHOOL')
             AND
             (
                 (
@@ -121,7 +121,7 @@ CREATE OR REPLACE VIEW view_syncservice_users AS
   WHERE p.deleted = 0
     AND p.force_stop = 0
     AND (ph.prime IS NULL OR ph.prime = 1)
-    AND (u.user_type IN ('ACTIVE_DIRECTORY','ACTIVE_DIRECTORY_SCHOOL','UNILOGIN','AZURE_AD'))
+    AND (u.user_type IN ('ACTIVE_DIRECTORY','ACTIVE_DIRECTORY_SCHOOL','UNILOGIN'))
     AND a.deleted = 0
     AND o.deleted = 0
     AND (a.stop_date IS NULL OR CAST(a.stop_date AS DATE) >= CAST(CURRENT_TIMESTAMP AS DATE));

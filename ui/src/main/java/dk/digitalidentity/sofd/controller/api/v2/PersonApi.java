@@ -859,14 +859,12 @@ public class PersonApi {
 		boolean changes = false;
 
 		if (!SupportedUserTypeService.isActiveDirectory(user.getUserType()) &&
-			!SupportedUserTypeService.isActiveDirectorySchool(user.getUserType()) &&
-			!SupportedUserTypeService.isAzureAd(user.getUserType())) {
+			!SupportedUserTypeService.isActiveDirectorySchool(user.getUserType())) {
 			return changes;
 		}
 		
 		if (!SupportedUserTypeService.isActiveDirectory(userRecord.getUserType()) &&
-			!SupportedUserTypeService.isActiveDirectorySchool(userRecord.getUserType()) &&
-			!SupportedUserTypeService.isAzureAd(userRecord.getUserType())) {
+			!SupportedUserTypeService.isActiveDirectorySchool(userRecord.getUserType())) {
 			return changes;
 		}
 

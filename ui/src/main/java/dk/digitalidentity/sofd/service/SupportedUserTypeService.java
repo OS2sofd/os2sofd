@@ -25,7 +25,7 @@ public class SupportedUserTypeService {
 	// this list should be kept, even when we have the database values,
 	// as these are the UserTypes that the code deals with in a special way
 	private static enum WellKnownUserType {
-		ACTIVE_DIRECTORY, OPUS, UNILOGIN, EXCHANGE, KSPCICS, ACTIVE_DIRECTORY_AND_EXCHANGE, SCHOOL_EMAIL, MITID_ERHVERV, ACTIVE_DIRECTORY_SCHOOL, AZURE_AD
+		ACTIVE_DIRECTORY, OPUS, UNILOGIN, EXCHANGE, KSPCICS, ACTIVE_DIRECTORY_AND_EXCHANGE, SCHOOL_EMAIL, MITID_ERHVERV, ACTIVE_DIRECTORY_SCHOOL
 	}
 
 	@Autowired
@@ -96,10 +96,6 @@ public class SupportedUserTypeService {
 		return (WellKnownUserType.ACTIVE_DIRECTORY.toString().equals(userType));
 	}
 
-	public static boolean isAzureAd(String userType) {
-		return (WellKnownUserType.AZURE_AD.toString().equals(userType));
-	}
-
 	public static boolean isActiveDirectorySchool(String userType) {
 		return (WellKnownUserType.ACTIVE_DIRECTORY_SCHOOL.toString().equals(userType));
 	}
@@ -152,9 +148,7 @@ public class SupportedUserTypeService {
 		return WellKnownUserType.UNILOGIN.toString();
 	}
 	
-	public static String getAzureAdUserType() {
-		return WellKnownUserType.AZURE_AD.toString();
-	}
-
-    public static String getKspCicsUserType() { return WellKnownUserType.KSPCICS.toString(); }
+    public static String getKspCicsUserType() {
+    	return WellKnownUserType.KSPCICS.toString();
+    }
 }

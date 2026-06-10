@@ -481,10 +481,10 @@ public class OS2SyncService {
 
 		List<User> adUsers = PersonService.getUsers(person)
 				.stream()
-				.filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType())
-					|| (configuration.getIntegrations().getOs2sync().isSchoolEnabled() &&
-							// OBS! We currently assume that AzureAD is always from a school domain (that will bite us later ;))
-							(SupportedUserTypeService.isActiveDirectorySchool(u.getUserType()) || SupportedUserTypeService.isAzureAd(u.getUserType()))))
+				.filter(u ->
+					SupportedUserTypeService.isActiveDirectory(u.getUserType()) ||
+					(configuration.getIntegrations().getOs2sync().isSchoolEnabled() && SupportedUserTypeService.isActiveDirectorySchool(u.getUserType()))
+				)
 				.collect(Collectors.toList());
 
 		// filter out affiliations that are linked to a single user account
@@ -538,10 +538,6 @@ public class OS2SyncService {
 
 				emailValue = (emailUser.isPresent()) ? emailUser.get().getUserId() : null;
 			}
-			else if (SupportedUserTypeService.isAzureAd(adUser.getUserType())) {
-				// in Azure, the userId is actually an email address
-				emailValue = adUser.getUserId();
-			}
 
 			boolean blankCpr = false;
 			if (!configuration.getIntegrations().getOs2sync().isCprEnabled()) {
@@ -563,10 +559,10 @@ public class OS2SyncService {
 			// at a later point, should that school-employee switch to being an administrative employee *sigh*
 			final String finalUuid = (adUser.getActiveDirectoryDetails() != null && StringUtils.hasLength(adUser.getActiveDirectoryDetails().getKombitUuid()))
 					? adUser.getActiveDirectoryDetails().getKombitUuid()
-					: (SupportedUserTypeService.isAzureAd(adUser.getUserType()) ? adUser.getMasterId() : person.getUuid());
+					: person.getUuid();
 			
 			final String finalEmailValue = emailValue;
-			final String finalUserId = (SupportedUserTypeService.isAzureAd(adUser.getUserType()) ? getEmailSuffix(adUser.getUserId()) : adUser.getUserId());
+			final String finalUserId = getEmailSuffix(adUser.getUserId());
 
 			// we want to fasttrack sync of substitute users (vikXXXX)
 			final long priority = (UserService.isSubstituteUser(adUser)) ? 8 : 10;

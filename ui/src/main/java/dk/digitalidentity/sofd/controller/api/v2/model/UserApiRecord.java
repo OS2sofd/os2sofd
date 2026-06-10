@@ -101,8 +101,7 @@ public class UserApiRecord extends BaseRecord {
 		
 		// this code is only really used during creation of a new User - the update code looks at the stored field on the userRecord
 		if (SupportedUserTypeService.isActiveDirectory(userType) || 
-			SupportedUserTypeService.isActiveDirectorySchool(userType) ||
-			SupportedUserTypeService.isAzureAd(userType)) {
+			SupportedUserTypeService.isActiveDirectorySchool(userType)) {
 
 			// compute kombitUuid
 			if (StringUtils.hasLength(seedPrefix)) {
