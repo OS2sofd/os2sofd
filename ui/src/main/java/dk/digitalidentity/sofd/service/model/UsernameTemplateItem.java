@@ -239,6 +239,28 @@ public class UsernameTemplateItem {
         return result;
     }
 
+    /**
+     * For a SERIAL ({løbenummer}) with a numeric parameter, the parameter is the total target width of
+     * the generated username. When the serial is non-empty (i.e. on a name collision) its digits overwrite
+     * the tail of what has been built so far, so the username keeps its width instead of growing. Returns
+     * null when no target width applies (any other type, or no/zero numeric parameter).
+     */
+    public Integer getTargetWidth() {
+        if (usernameTemplateVariableType != UsernameTemplateVariableType.SERIAL || parameter == null) {
+            return null;
+        }
+        try {
+            var digits = parameter.replaceAll("\\D", "");
+            if (digits.isEmpty()) {
+                return null;
+            }
+            var width = Integer.parseInt(digits);
+            return width > 0 ? width : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private String getDateValue() {
         var pattern = parameter == null ? "ddmm" : parameter;
         pattern = pattern.toLowerCase().replaceAll("[^dmy]",""); // remove anything that is not d,m or y
