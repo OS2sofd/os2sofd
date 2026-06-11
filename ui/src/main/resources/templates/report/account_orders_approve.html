@@ -17,10 +17,10 @@
 								<thead>
 									<tr>
 										<th class="col-md-2" th:text="#{html.page.accountorders.activationTime}"></th>
-										<th class="col-md-4" th:text="#{html.page.accountorders.personName}"></th>
-										<th class="col-md-3" th:text="#{html.page.accountorders.triggerAffiliation}"></th>
-										<th class="col-md-1" th:text="#{html.page.accountorders.userId}"></th>
-										<th class="col-md-1" th:text="#{html.page.accountorders.orderType}"></th>
+										<th class="col-md-5" th:text="#{html.page.accountorders.personName}"></th>
+										<th class="col-md-5" th:text="#{html.page.accountorders.triggerAffiliation}"></th>
+										<th class="col-md-2" th:text="#{html.page.accountorders.userId}"></th>
+										<th class="col-md-2" th:text="#{html.page.accountorders.userType}"></th>
 										<th class="col-md-1" th:text="#{html.control.operations}"></th>
 									</tr>
 								</thead>
@@ -37,7 +37,7 @@
 										<td th:text="${order.triggerAffiliation}"></td>
 										<td th:text="${order.userId}"></td>
 
-										<td th:text="#{__${order.orderType.messageId}__}"></td>
+										<td th:text="${@supportedUserTypeService.getPrettyName(order.getUserType())}"></td>
 										<td>
 											<a href="#" onclick="accountOrderDatatableService.approve(this);" th:attr="data-orderid=${order.id},data-personuuid=${order.personUuid}"><em class="fa fa-fw fa-check"></em></a>
 											<a href="#" onclick="accountOrderDatatableService.reject(this);" th:attr="data-orderid=${order.id}"><em class="fa fa-fw fa-times"></em></a>
@@ -50,7 +50,7 @@
 										<th th:text="#{html.page.accountorders.personName}"></th>
 										<th th:text="#{html.page.accountorders.triggerAffiliation}"></th>
 										<th th:text="#{html.page.accountorders.userId}"></th>
-										<th th:text="#{html.page.accountorders.orderType}"></th>
+										<th th:text="#{html.page.accountorders.userType}"></th>
 										<th class="disabled"></th>
 									</tr>
 								</tfoot>

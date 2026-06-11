@@ -19,10 +19,8 @@ public class CreateAccountOrderDTO {
 	private String affiliationUuid;
 	private String userId;
 	private String chosenUserId;
-	private boolean external;
 	private EndDate userEndDate;
 	private boolean showEndDate;
-	private boolean showExternal;
 	private boolean requireApproval;
 	private boolean forceDespiteValidation;
 }

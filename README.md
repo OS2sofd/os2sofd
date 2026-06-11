@@ -4,4 +4,3 @@ so it is recommended to increase the value
 group_concat_max_len = 10240
 
 the default is 1024
-

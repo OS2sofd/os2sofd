@@ -220,7 +220,7 @@ public class PersonRestController {
 	@RequirePersonCreaterOrControllerWriteAccess
 	@PostMapping("/rest/person/{uuid}/setEmployeeId/{userType}/{userId:.+}/{employeeId}")
 	@ResponseBody
-	public ResponseEntity<String> setEmployeeIdOnUser(@PathVariable("uuid") String uuid, @PathVariable("userType") String userType, @PathVariable("userId") String userId, @PathVariable("employeeId") String employeeIdInput, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate date, @RequestParam(required = false, defaultValue = "false") boolean external) {
+	public ResponseEntity<String> setEmployeeIdOnUser(@PathVariable("uuid") String uuid, @PathVariable("userType") String userType, @PathVariable("userId") String userId, @PathVariable("employeeId") String employeeIdInput, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate date) {
 		// 0 = no employment selected
 		var employeeId = "0".equals(employeeIdInput) ? null : employeeIdInput;
 		Person person = personService.getByUuid(uuid);
@@ -233,10 +233,6 @@ public class PersonRestController {
 		if (user == null) {
 			log.warn("Could not find userId: " + userId + " of type " + userType);
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-		}
-		
-		if (user.getActiveDirectoryDetails() != null) {
-			user.getActiveDirectoryDetails().setExternal(external);
 		}
 
 		if (employeeId != null) {
@@ -532,27 +528,8 @@ public class PersonRestController {
 			userId = userId.split("@")[0];
 			linkedUserId = user.getMasterId();
 		}
-		
-		AccountOrder order = null;
-		if (SupportedUserTypeService.isActiveDirectory(user.getUserType())) {
-			order = accountOrderService.createOrReactivateAccountOrder(
-					person,
-					supportedUserTypeService.findByKey(user.getUserType()),
-					userId,
-					linkedUserId,
-					user.getEmployeeId(),
-					null,
-					EndDate.NO,
-					null,
-					false,
-					configuration.getModules().getAccountCreation().isForceSetEmployeeId(),
-					true,
-					true,
-					null,
-					true);			
-		}
-		else {
-			order = accountOrderService.createOrReactivateAccountOrder(
+
+		AccountOrder order = accountOrderService.createAccountOrder(
 				person,
 				supportedUserTypeService.findByKey(user.getUserType()),
 				userId,
@@ -565,10 +542,7 @@ public class PersonRestController {
 				configuration.getModules().getAccountCreation().isForceSetEmployeeId(),
 				true,
 				true,
-				null,
-				// we do not support the REACTIVATE order on other usertypes than ACTIVE_DIRECTORY
-				false);
-		}
+				null);
 
 		accountOrderService.save(order);
 	}

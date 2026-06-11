@@ -674,6 +674,16 @@ public class UsernameGeneratorService {
 					// we also do not allow concatenated parts to be bad words.
 					continue;
 				}
+				// a serial ({løbenummer}) with a numeric parameter treats that number as the total target width:
+				// when the serial is non-empty (on a collision) its digits overwrite the tail of what we have built
+				// so far, so the username keeps its width instead of growing. It is allowed to eat all the way through.
+				var targetWidth = templateItem.getTargetWidth();
+				if (targetWidth != null && StringUtils.hasLength(templateItemValue)) {
+					var keep = Math.max(0, targetWidth - templateItemValue.length());
+					if (keep < suggestionBuilder.length()) {
+						suggestionBuilder.setLength(keep); // guarded: keep is >= 0 and < current length, so setLength never goes out of bounds
+					}
+				}
 				suggestionBuilder.append(templateItemValue);
 			}
 			var suggestion = suggestionBuilder.toString();

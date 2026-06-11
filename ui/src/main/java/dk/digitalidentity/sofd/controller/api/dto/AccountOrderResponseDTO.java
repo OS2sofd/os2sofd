@@ -9,7 +9,6 @@ import lombok.Setter;
 @Setter
 public class AccountOrderResponseDTO {
 	private boolean singleAccount;
-	private boolean createAsDisabled;
 
 	private List<AccountOrderDTO> pendingOrders;
 }
