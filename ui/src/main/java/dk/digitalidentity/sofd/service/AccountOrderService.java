@@ -1819,7 +1819,39 @@ public class AccountOrderService {
 	}
 
 	@Transactional
-	public void cleanup() {
+	public void cleanup(Person person) {
+		// (1) Hard-removed affiliations: when an affiliation is left out of a PATCH, orphanRemoval on Person.affiliations
+		// hard-deletes it. A pending CREATE order on that affiliation is still a managed entity here (loaded by
+		// getAccountsToCreate), and the global native delete in step (2) forces a flush that would fail with
+		// TransientPropertyValueException (managed order -> removed affiliation) - the flush-prep transient check fires
+		// before the DB ON DELETE CASCADE on trigger_affiliation_id can run. So we delete those orders through the
+		// session first, which clears them from the persistence context and gives us an Envers revision.
+		if (person.getAffiliations() != null) {
+			Set<Long> survivingAffiliationIds = person.getAffiliations().stream()
+					.map(Affiliation::getId)
+					.collect(Collectors.toSet());
+
+			// only CREATE orders are loaded as managed entities in this flow, so only those can trip the flush; orders
+			// of other types referencing the removed affiliation are handled silently by the DB cascade
+			for (AccountOrder order : accountOrderDao.findByOrderTypeAndPersonUuid(AccountOrderType.CREATE, person.getUuid())) {
+				Affiliation trigger = order.getTriggerAffiliation();
+				if (trigger == null || survivingAffiliationIds.contains(trigger.getId())) {
+					continue;
+				}
+
+				log.info("Deleting CREATE order " + order.getId() + " (" + order.getUserType() + " / " + order.getPersonUuid() + ") because its trigger affiliation was removed");
+
+				// clear the reference first so the flush-prep transient check does not trip on the deleted order
+				// (same guard as cleanupOld does for dependsOn)
+				order.setTriggerAffiliation(null);
+				accountOrderDao.delete(order);
+			}
+		}
+
+		// (2) Affiliations that still exist but became invalid (soft-deleted or stop_date passed): their pending CREATE
+		// orders are cleaned up in bulk, globally, across all persons. These rows still exist so there is no dangling
+		// reference; the bulk delete is cheap, and the forced flush is now safe because step (1) made the context
+		// consistent. This is also the only mechanism that catches purely time-based stop_date expiry on other persons.
 		accountOrderDao.cleanupByTriggerAffiliation();
 	}
 

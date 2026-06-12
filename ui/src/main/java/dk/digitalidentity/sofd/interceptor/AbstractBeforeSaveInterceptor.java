@@ -253,6 +253,11 @@ public class AbstractBeforeSaveInterceptor {
 	}
 
 	public void handleAccountOrders(Person person) {
+		// cleanup runs first: it must happen before getAccountsToCreate loads the person's existing orders, otherwise
+		// the managed delete inside cleanup would query a dirty account_orders table and force the very flush we are
+		// trying to avoid. See AccountOrderService.cleanup for details.
+		accountOrderService.cleanup(person);
+
 		// we only do this when saving persons, not OrgUnits, because the order-account-settings are not part
 		// of the actual OrgUnit data-structure, and editing those will not trigger this event. Instead we
 		// also call this method from the actual service that sets these values on the OrgUnit
@@ -284,10 +289,6 @@ public class AbstractBeforeSaveInterceptor {
 				accountOrderService.save(orderAccounts);
 			}
 		}
-		// we need to trigger the account order cleanup whenever an affiliation is updated.
-		// since the affiliation can be updated directly by Affiliation dao, but also by Person dao, we place the cleanup listener here
-		// to make sure cleanup is invoked whenever a person is updated.
-		accountOrderService.cleanup();
 	}
 
 	@Transactional
