@@ -28,7 +28,8 @@ CREATE OR REPLACE VIEW view_syncservice_users AS
     ad.upn,
     mitid.user_id AS nemlogin_user_uuid,
     kpa.kle_values AS kle_primary_values,
-    ksa.kle_values AS kle_secondary_values
+    ksa.kle_values AS kle_secondary_values,
+    af.function_values AS affiliation_functions
   FROM persons p
   JOIN persons_users pu ON pu.person_uuid = p.uuid
   JOIN users u ON u.id = pu.user_id
@@ -117,6 +118,12 @@ CREATE OR REPLACE VIEW view_syncservice_users AS
         FROM affiliations_kle_secondary ks
         GROUP BY ks.affiliation_id
   ) ksa ON ksa.affiliation_id = a.id
+  -- join functions (strip semicolons from values so the semicolon-separated list stays splittable)
+  LEFT JOIN (
+      SELECT f.affiliation_id, GROUP_CONCAT(REPLACE(f.`function`, ';', '') SEPARATOR ';') AS function_values
+        FROM affiliations_function f
+        GROUP BY f.affiliation_id
+  ) af ON af.affiliation_id = a.id
   INNER JOIN view_adm_organisation vao ON vao.id = o.belongs_to
   WHERE p.deleted = 0
     AND p.force_stop = 0

@@ -1,6 +1,7 @@
 package dk.digitalidentity.sofd.service.model;
 
 import java.util.Map;
+import java.util.Set;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -15,4 +16,5 @@ public class ADGridAffiliation {
 	private String orgUnitUuid;
 	private boolean doNotInherit;
 	private Map<String, Object> localExtensions;
+	private Set<String> functions;
 }

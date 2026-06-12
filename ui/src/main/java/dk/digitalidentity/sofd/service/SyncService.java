@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,6 +66,7 @@ public class SyncService {
 			"       affiliation_local_extensions," +
 			"       kle_primary_values," +
 			"       kle_secondary_values," +
+			"       affiliation_functions," +
 			"       user_type" +
 			"  FROM view_syncservice_users" +
 			"  WHERE 1=1 ";
@@ -313,6 +315,11 @@ public class SyncService {
 					log.warn("Failed to parse affiliation localExtensions: " + ex.getMessage());
 				}
 			}
+			String functionsValues = rs.getString("affiliation_functions");
+			Set<String> functions = new HashSet<>();
+			if (functionsValues != null) {
+				functions.addAll(Arrays.asList(functionsValues.split(";")));
+			}
 			String userType = rs.getString("user_type");
 
 			String startDateStr = rs.getString("start_date");
@@ -369,6 +376,7 @@ public class SyncService {
 				affiliation.setProfessionName(professionName);
 				affiliation.setDoNotInherit(!inheritPrivileges);
 				affiliation.setLocalExtensions(affiliationLocalExtensions);
+				affiliation.setFunctions(functions);
 
 				person.getAffiliations().add(affiliation);
 			}
@@ -381,6 +389,7 @@ public class SyncService {
 				affiliation.setProfessionName(professionName);
 				affiliation.setDoNotInherit(!inheritPrivileges);
 				affiliation.setLocalExtensions(affiliationLocalExtensions);
+				affiliation.setFunctions(functions);
 
 				person.getAffiliations().add(affiliation);
 			}
