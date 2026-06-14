@@ -29,8 +29,10 @@ public class UserTypeRestController {
 
 	@Autowired
 	private SupportedUserTypeService supportedUserTypeService;
-    @Autowired
+
+	@Autowired
     private PersonService personService;
+	
 	@Autowired
 	private UsernameGeneratorService usernameGeneratorService;
 
@@ -68,12 +70,21 @@ public class UserTypeRestController {
 		userType.setName(supportedUserTypeDTO.getName());
 		userType.setCanOrder(supportedUserTypeDTO.isCanOrder());
 		userType.setDaysToDeactivate(supportedUserTypeDTO.getDaysToDeactivate());
+		userType.setDaysToCleanup(supportedUserTypeDTO.getDaysToCleanup());
 		userType.setDaysToDelete(supportedUserTypeDTO.getDaysToDelete());
 		userType.setDaysBeforeToCreate(supportedUserTypeDTO.getDaysBeforeToCreate());
 		userType.setMinutesDelay(supportedUserTypeDTO.getDependsOnDelay());
 		userType.setCreateEnabled(supportedUserTypeDTO.isCreateEnabled());
 		userType.setDeactivateEnabled(supportedUserTypeDTO.isDeactivateEnabled());
+		userType.setCleanupEnabled(supportedUserTypeDTO.isCleanupEnabled());
 		userType.setDeleteEnabled(supportedUserTypeDTO.isDeleteEnabled());
+		
+		if (userType.isDeactivateEnabled() && userType.isCleanupEnabled()) {
+			// cleanup should always happen AFTER deactivate...
+			if (userType.getDaysToCleanup() <= userType.getDaysToDeactivate()) {
+				userType.setDaysToCleanup(userType.getDaysToDeactivate() + 1);
+			}
+		}
 
 		// log an error, so we get an alarm, and can deal with this change pro-actively
 		if (!Objects.equals(userType.isSingleUserMode(), supportedUserTypeDTO.isSingleUserMode())) {
@@ -84,6 +95,22 @@ public class UserTypeRestController {
 		// key can only be set when creating
 		if (supportedUserTypeDTO.getId() == 0) {
 			userType.setKey(supportedUserTypeDTO.getKey());
+		}
+
+		if (SupportedUserTypeService.isActiveDirectory(userType.getKey())) {
+			if (supportedUserTypeDTO.isCreateAsDisabled() && userType.isCreateEnabled() && userType.getDaysBeforeToCreate() > 0) {
+				// enforce that reactivation has to happen at least one day later than creation
+				if (supportedUserTypeDTO.getDaysBeforeToCreate() <= supportedUserTypeDTO.getDaysToReactivate()) {
+					supportedUserTypeDTO.setDaysToReactivate(supportedUserTypeDTO.getDaysBeforeToCreate() - 1);
+				}
+
+				userType.setCreateAsDisabled(true);
+				userType.setDaysBeforeToReactivate(supportedUserTypeDTO.getDaysToReactivate());
+			}
+			else {
+				userType.setCreateAsDisabled(false);
+				userType.setDaysBeforeToReactivate(0);
+			}
 		}
 
 		userType.setUsernameType(supportedUserTypeDTO.getUsernameType());
@@ -129,7 +156,12 @@ public class UserTypeRestController {
 			log.warn("Requested SupportedUserType with name:" + supportedUserTypeDTO.getName() + " has invalid daysToDeactivate");
 			return false;
 		}
-		
+
+		if (supportedUserTypeDTO.getDaysToReactivate() < 0) {
+			log.warn("Requested SupportedUserType with name:" + supportedUserTypeDTO.getName() + " has invalid daysToReactivate");
+			return false;
+		}
+
 		if (supportedUserTypeDTO.getDaysToDelete() < 0) {
 			log.warn("Requested SupportedUserType with name:" + supportedUserTypeDTO.getName() + " has invalid daysToDelete");
 			return false;
