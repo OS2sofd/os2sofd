@@ -85,19 +85,10 @@ public class SyncService {
 			"       primary_orgunit_name," +
 			"       password_expire_date," +
 			"       local_extensions," +
-			"       robot" +
+			"       robot," +
+			"       user_type" +
 			"  FROM view_syncservice_all_ad_users" +
 			"  WHERE 1=1 ";
-
-	private static final String adGridAllAzureQuery =
-			"SELECT person_uuid," +
-			"       uuid," +
-			"       cpr," + 
-			"       name," + 
-			"       user_id," +
-			"       disabled," +
-			"       prime" + 
-			"  FROM view_syncservice_all_azure_users";
 
 	private static final String adGridOpusNoAdQuery =
 			"SELECT person_uuid," +
@@ -158,48 +149,21 @@ public class SyncService {
 	public Long getMaxOffset() {
 		return jdbcTemplate.queryForObject(maxQuery, Long.class);
 	}
-
-	@SuppressWarnings("deprecation")
-	public Collection<ADGridAD> getADGridAllAzure() {
-		String query = adGridAllAzureQuery;
-		
-		return jdbcTemplate.query(query, new Object[0], (RowMapper<ADGridAD>) (rs, _) -> {
-			ADGridAD person = new ADGridAD();
-
-			String personUuid = rs.getString("person_uuid");
-			String uuid = rs.getString("uuid");
-			String cpr = rs.getString("cpr");
-			String name = rs.getString("name");
-			String email = rs.getString("user_id");
-			boolean prime = rs.getBoolean("prime");
-			boolean disabled = rs.getBoolean("disabled");
-
-			String userId = email;
-			int idx = email.indexOf("@");
-			if (idx > 0) {
-				userId = email.substring(0, idx);
-			}
-			
-			person.setPersonUuid(personUuid);
-			person.setUuid(uuid);
-			person.setEmail(email);
-			person.setName(name);
-			person.setCpr(cpr);
-			person.setPrime(prime);
-			person.setUserId(userId);
-			person.setDisabled(disabled);
-
-			return person;
-		});
-	}
 	
 	@SuppressWarnings("deprecation")
-	public Collection<ADGridAD> getADGridAllAD() {
+	public Collection<ADGridAD> getADGridAllAD(boolean schoolUsers) {
 		String query = adGridAllAdQuery;
 
 		if (!configuration.getIntegrations().getRoleCatalogue().isIncludeDisabled()) {
 			query += " AND disabled = 0 ";
 		}
+
+		String userType = "ACTIVE_DIRECTORY";
+		if (schoolUsers) {
+			userType = "ACTIVE_DIRECTORY_SCHOOL";
+		}
+
+		query += " AND user_type = '" + userType + "' ";
 
 		return jdbcTemplate.query(query, new Object[0], (RowMapper<ADGridAD>) (rs, _) -> {
 			ADGridAD person = new ADGridAD();

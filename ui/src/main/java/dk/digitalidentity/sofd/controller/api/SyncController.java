@@ -63,13 +63,8 @@ public class SyncController {
 	}
 	
 	@GetMapping("/api/sync/adgrid/allad")
-	public Collection<ADGridAD> adGridAllAD() {
-		return syncService.getADGridAllAD();
-	}
-	
-	@GetMapping("/api/sync/adgrid/allazure")
-	public Collection<ADGridAD> adGridAllAzure() {
-		return syncService.getADGridAllAzure();
+	public Collection<ADGridAD> adGridAllAD(@RequestParam(required = false, defaultValue = "false") boolean schoolUsers) {
+		return syncService.getADGridAllAD(schoolUsers);
 	}
 
 	@GetMapping("/api/sync/adgrid/orgunits")

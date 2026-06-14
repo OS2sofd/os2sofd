@@ -20,7 +20,8 @@ SELECT
     ad.upn,
     o.name AS primary_orgunit_name,
     u.local_extensions,
-    CASE WHEN p.person_type = 'ROBOT' THEN 1 ELSE 0 END AS robot
+    CASE WHEN p.person_type = 'ROBOT' THEN 1 ELSE 0 END AS robot,
+    u.user_type
 FROM users u
 INNER JOIN persons_users pu ON pu.user_id = u.id
 INNER JOIN persons p ON p.uuid = pu.person_uuid AND p.deleted = 0
@@ -28,12 +29,12 @@ LEFT JOIN active_directory_details ad ON ad.user_id = u.id
 LEFT JOIN (
     SELECT pu2.person_uuid, u2.master_id, u2.user_id
     FROM persons_users pu2
-    INNER JOIN users u2 ON u2.id = pu2.user_id AND u2.user_type = 'EXCHANGE'
-) e ON e.person_uuid = p.uuid AND e.master_id = u.user_id
+    INNER JOIN users u2 ON u2.id = pu2.user_id AND u2.user_type IN ('EXCHANGE', 'SCHOOL_EMAIL')
+) e ON e.person_uuid = p.uuid AND (e.master_id = u.user_id OR e.master_id = CONCAT('m', u.master_id))
 LEFT JOIN (
     SELECT a.person_uuid, ou.name
     FROM affiliations a
     INNER JOIN orgunits ou ON ou.uuid = a.orgunit_uuid
     WHERE a.prime = 1
 ) o ON o.person_uuid = p.uuid
-WHERE u.user_type = 'ACTIVE_DIRECTORY';
+WHERE u.user_type IN ('ACTIVE_DIRECTORY', 'ACTIVE_DIRECTORY_SCHOOL');
