@@ -54,7 +54,7 @@ public class SettingService {
 	}
 	
 	public PersonDeletePeriod getPersonDeletePeriod() {
-		String value = getKeyWithDefault(SETTING_PERSON_DELETE_PERIOD, PersonDeletePeriod.MONTH_36.toString());
+		String value = getKeyWithDefault(SETTING_PERSON_DELETE_PERIOD, PersonDeletePeriod.NEVER.toString());
 		
 		return PersonDeletePeriod.valueOf(value);
 	}

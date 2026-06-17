@@ -43,15 +43,6 @@ public class OrgUnitAccountOrderType {
 	private String userType;
 	
 	@Column
-	private boolean localRules;
-
-	@Column
-	private long daysBeforeToCreate;
-
-	@Column
-	private long daysBeforeToReactivate;
-
-	@Column
 	@NotNull
 	@Enumerated(EnumType.STRING)
 	private AccountOrderRule rule;

@@ -26,6 +26,7 @@ import org.springframework.web.client.RestTemplate;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.service.model.SystemRoleDTO;
+import dk.digitalidentity.sofd.service.model.UserRoleDTO;
 import dk.digitalidentity.sofd.service.rc.dto.ItSystemDTO;
 import dk.digitalidentity.sofd.service.rc.dto.UserReadWrapperDTO;
 import lombok.extern.slf4j.Slf4j;
@@ -80,7 +81,7 @@ public class RoleCatalogueService {
 		self.wipeCache();
 	}
 	
-	@CacheEvict(value = "systemRolesForItSystem", allEntries = true)
+	@CacheEvict(value = { "systemRolesForItSystem", "userRolesForItSystem" }, allEntries = true)
 	public void wipeCache() {
 		;
 	}
@@ -112,6 +113,46 @@ public class RoleCatalogueService {
 			
 			Collections.sort(result, new Comparator<SystemRoleDTO>() {
 				public int compare(SystemRoleDTO o1, SystemRoleDTO o2) {
+					return o1.getName().compareTo(o2.getName());
+				}
+			});
+
+			return result;
+		}
+		catch (RestClientException ex) {
+			log.error("Error occured while connecting to Role Catalogue", ex);
+
+			return null;
+		}
+	}
+	
+	@Cacheable("userRolesForItSystem")
+	public List<UserRoleDTO> getUserRolesByItSystem(String identifier) {
+		if (!StringUtils.hasLength(configuration.getIntegrations().getRoleCatalogue().getUrl())) {
+			log.warn("RC integration is not enabled!");
+			return new ArrayList<>();
+		}
+
+		RestTemplate restTemplate = new RestTemplate();
+
+		String resourceUrl = configuration.getIntegrations().getRoleCatalogue().getUrl();
+		if (!resourceUrl.endsWith("/")) {
+			resourceUrl += "/";
+		}
+		resourceUrl += "v2/itsystem/" + identifier + "/userroles";
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("ApiKey", configuration.getIntegrations().getRoleCatalogue().getApiKey());
+
+		HttpEntity<List<UserRoleDTO>> request = new HttpEntity<>(headers);
+
+		try {
+			ResponseEntity<List<UserRoleDTO>> response = restTemplate.exchange(resourceUrl, HttpMethod.GET, request, new ParameterizedTypeReference<List<UserRoleDTO>>() { });
+
+			List<UserRoleDTO> result = response.getBody();
+			
+			Collections.sort(result, new Comparator<UserRoleDTO>() {
+				public int compare(UserRoleDTO o1, UserRoleDTO o2) {
 					return o1.getName().compareTo(o2.getName());
 				}
 			});

@@ -49,6 +49,7 @@ import dk.digitalidentity.sofd.controller.mvc.dto.FlaggedUserType;
 import dk.digitalidentity.sofd.controller.mvc.dto.LocalExtensionDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.PersonDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.PostDTO;
+import dk.digitalidentity.sofd.controller.mvc.dto.PrimeUserDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.SimpleAffiliationDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.SubstituteAssignmentDTO;
 import dk.digitalidentity.sofd.controller.mvc.dto.SupportedUserTypeSlimDTO;
@@ -70,7 +71,6 @@ import dk.digitalidentity.sofd.dao.model.RevisionId;
 import dk.digitalidentity.sofd.dao.model.SupportedUserType;
 import dk.digitalidentity.sofd.dao.model.User;
 import dk.digitalidentity.sofd.dao.model.UserChangeEmployeeIdQueue;
-import dk.digitalidentity.sofd.dao.model.enums.AccountOrderType;
 import dk.digitalidentity.sofd.dao.model.enums.AffiliationType;
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.dao.model.enums.EventType;
@@ -275,7 +275,7 @@ public class PersonController {
                 continue;
             }
 
-            boolean flagged = accountOrderService.shouldOrderAccountOfType(userType.getKey(), affiliation, false);
+            boolean flagged = accountOrderService.shouldOrderAccountOfType(userType.getKey(), affiliation, 0, false);
 
             FlaggedUserType flaggedUserType = new FlaggedUserType();
             flaggedUserType.setFlagged(flagged);
@@ -359,6 +359,7 @@ public class PersonController {
         model.addAttribute("supportedUserTypes", supportedUserTypes);
         model.addAttribute("affiliations", affiliations);
         model.addAttribute("phones", PersonService.getPhones(person).stream().map(p -> new PhoneDTO(p)).collect(Collectors.toList()));
+        model.addAttribute("users", PersonService.getUsers(person).stream().map(u -> new PrimeUserDTO(u)).collect(Collectors.toList()));
         model.addAttribute("allUserTypes", supportedUserTypeService.findAll());
         model.addAttribute("functionTypes", functionTypeService.findAllAsDTO());
         model.addAttribute("backRef", backRef);
@@ -760,7 +761,7 @@ public class PersonController {
         for (AccountOrder accountOrder : accountOrders) {
             UserDTO userDTO = new UserDTO();
 
-            userDTO.setUserId("Afventer oprettelse (" + accountOrder.getRequestedUserId() + ")");
+            userDTO.setUserId("(afventer oprettelse)");
             userDTO.setUserType(accountOrder.getUserType());
             userDTO.setPending(true);
 
@@ -886,7 +887,7 @@ public class PersonController {
     }
 
     private List<UserDTO> toDTOUsers(Person person) {
-        List<AccountOrder> pendingAccountOrders = accountOrderService.getPendingOrders(person);
+        List<AccountOrder> accountOrdersPendingDeactivation = accountOrderService.findPendingDeactivation(person);
         List<UserDTO> userDTOs = new ArrayList<>();
 
         for (User user : PersonService.getUsers(person)) {
@@ -895,25 +896,10 @@ public class PersonController {
             UserDTO userDTO = new UserDTO();
             userDTO.setAccountExpireDate(activeDirectoryDetails != null ? activeDirectoryDetails.getAccountExpireDate() : null);
             userDTO.setDisabled(user.isDisabled());
-            userDTO.setExternal(user.getActiveDirectoryDetails() != null ? user.getActiveDirectoryDetails().isExternal() : false);
             userDTO.setPasswordLocked(activeDirectoryDetails != null ? activeDirectoryDetails.isPasswordLocked() : false);
-
-            userDTO.setPendingDeactivation(pendingAccountOrders.stream()
-                    .anyMatch(ao ->
-                    		Objects.equals(ao.getOrderType(), AccountOrderType.DEACTIVATE) &&
-                    		Objects.equals(ao.getUserType(), user.getUserType()) &&
-                    		Objects.equals(ao.getRequestedUserId(), user.getUserId())
-                    	)
-                    );
-
-            userDTO.setPendingReactivation(pendingAccountOrders.stream()
-                    .anyMatch(ao ->
-                    		Objects.equals(ao.getOrderType(), AccountOrderType.REACTIVATE) &&
-                    		Objects.equals(ao.getUserType(), user.getUserType()) &&
-                    		Objects.equals(ao.getRequestedUserId(), user.getUserId())
-                    	)
-                    );
-
+            userDTO.setPendingDeactivation(accountOrdersPendingDeactivation.stream()
+                    .anyMatch(ao -> Objects.equals(ao.getUserType(), user.getUserType()) &&
+                            Objects.equals(ao.getRequestedUserId(), user.getUserId())));
             userDTO.setPrime(user.isPrime());
             userDTO.setUserId(user.getUserId());
             userDTO.setUserType(user.getUserType());

@@ -186,7 +186,7 @@ public class NotificationService {
 					OrgUnitAccountOrder rules = (calculatedOrgUnit != null)
 							? rulesCache.computeIfAbsent(calculatedOrgUnit.getUuid(), _ -> accountOrderService.getAccountOrderSettings(calculatedOrgUnit, false))
 							: null;
-					shouldOrder = accountOrderService.shouldOrderAccountOfType(userType.getKey(), affiliation, true, rules);
+					shouldOrder = accountOrderService.shouldOrderAccountOfType(userType.getKey(), affiliation, (int) userType.getDaysBeforeToCreate(), true, rules);
 
 					if (shouldOrder) {
 						break;
