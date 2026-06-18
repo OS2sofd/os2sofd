@@ -39,6 +39,8 @@ public interface OrgUnitDao extends JpaRepository<OrgUnit, String> {
 
 	List<OrgUnit> findBySourceNameAndDeleted(String sourceName, boolean deleted);
 
+	List<OrgUnit> findByPhonesPhoneMasterAndPhonesPhoneMasterId(String master, String masterId);
+
 	@RequireDaoWriteAccess
 	<S extends OrgUnit> List<S> save(Iterable<S> entities);
 
