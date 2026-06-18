@@ -233,6 +233,10 @@ public class OrgUnitService {
 		return orgUnitDao.findBySourceNameAndDeleted(sourceName,false);
 	}
 
+	public List<OrgUnit> getByPhoneMasterAndMasterId(String master, String masterId) {
+		return orgUnitDao.findByPhonesPhoneMasterAndPhonesPhoneMasterId(master, masterId);
+	}
+
 	public List<OrgUnit> getAll() {
 		return getAll(organisationService.getAdmOrg());
 	}

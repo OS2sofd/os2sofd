@@ -77,6 +77,26 @@ public class TelephonyPhoneService {
 	}
 	
 	@Transactional(rollbackFor = Exception.class)
+	public void delete(TelephonyPhone telephonyPhone) throws Exception {
+		// remove the synced phone (master/masterId) from any person currently holding it. We remove the
+		// mapping from the person and save the person; orphanRemoval then deletes the phone row itself.
+		for (Person person : personService.getByPhoneMasterAndMasterId(telephonyPhone.getMaster(), telephonyPhone.getMasterId())) {
+			person.getPhones().removeIf(p -> p.getPhone().getMaster().equalsIgnoreCase(telephonyPhone.getMaster())
+					&& p.getPhone().getMasterId().equalsIgnoreCase(telephonyPhone.getMasterId()));
+			personService.save(person);
+		}
+
+		// same for any org unit currently holding it
+		for (OrgUnit orgUnit : orgUnitService.getByPhoneMasterAndMasterId(telephonyPhone.getMaster(), telephonyPhone.getMasterId())) {
+			orgUnit.getPhones().removeIf(p -> p.getPhone().getMaster().equalsIgnoreCase(telephonyPhone.getMaster())
+					&& p.getPhone().getMasterId().equalsIgnoreCase(telephonyPhone.getMasterId()));
+			orgUnitService.save(orgUnit);
+		}
+
+		telephonyPhoneDao.delete(telephonyPhone);
+	}
+
+	@Transactional(rollbackFor = Exception.class)
 	public long deltaSync() throws Exception {
 		long count = 0;
 		SecurityUtil.fakeLoginSession();

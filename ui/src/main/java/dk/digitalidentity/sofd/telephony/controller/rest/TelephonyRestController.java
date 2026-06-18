@@ -116,7 +116,7 @@ public class TelephonyRestController {
 
 	@PostMapping("/rest/telephony/deletePhone")
 	@ResponseBody
-	public ResponseEntity<HttpStatus> deletePhone(@RequestHeader("id") long id) {
+	public ResponseEntity<HttpStatus> deletePhone(@RequestHeader("id") long id) throws Exception {
 		TelephonyPhone phone = telephonyPhoneDao.findById(id);
 		if (phone == null) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -126,7 +126,7 @@ public class TelephonyRestController {
 			return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 		}
 
-		telephonyPhoneDao.deleteById(id);
+		telephonyPhoneService.delete(phone);
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
