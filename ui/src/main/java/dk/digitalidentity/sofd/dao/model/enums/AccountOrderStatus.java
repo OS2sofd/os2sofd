@@ -5,6 +5,7 @@ public enum AccountOrderStatus {
 	CREATED("html.enum.accountOrderStatus.created", true),
 	REACTIVATED("html.enum.accountOrderStatus.reactivated", true),
 	DEACTIVATED("html.enum.accountOrderStatus.deactivated", true),
+	CLEANEDUP("html.enum.accountOrderStatus.cleanedup", true),
 	DELETED("html.enum.accountOrderStatus.deleted", true),
 	FAILED("html.enum.accountOrderStatus.failed", false),
 	EXPIRED("html.enum.accountOrderStatus.expired", true),

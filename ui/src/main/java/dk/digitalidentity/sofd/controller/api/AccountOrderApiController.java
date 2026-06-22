@@ -1,11 +1,15 @@
 package dk.digitalidentity.sofd.controller.api;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -107,7 +111,7 @@ public class AccountOrderApiController {
 			log.warn("Failed to generate username");
 			String code = "UsernameNotGenerated";
 			String message = "Failed to generate username";
-			return new ResponseEntity<>(new ErrorDTO(code, message), HttpStatus.UNPROCESSABLE_ENTITY);
+			return new ResponseEntity<>(new ErrorDTO(code, message), HttpStatus.UNPROCESSABLE_CONTENT);
 		}
 
 		log.debug("Generated username for person {}: {}", personUuid, userId);
@@ -150,7 +154,15 @@ public class AccountOrderApiController {
 					order.getUserType(),
 					order.getUserId(),
 					order.getActivationDate() != null ? order.getActivationDate() : new Date());
-		} else {
+		}
+		else if (order.getOrderType() == AccountOrderType.CLEANUP) {
+			accountOrder = accountOrderService.cleanupAccountOrder(
+					person,
+					order.getUserType(),
+					order.getUserId(),
+					order.getActivationDate() != null ? order.getActivationDate() : new Date());
+		}
+		else {
 			// if an affiliationUuid is supplied, scan for it
 			String employeeId = null;
 			Affiliation triggerAffiliation = null;
@@ -160,6 +172,11 @@ public class AccountOrderApiController {
 					triggerAffiliation = affiliation;
 					break;
 				}
+			}
+
+			if (order.getOrderType() == AccountOrderType.REACTIVATE && !StringUtils.hasLength(order.getChosenUserId())) {
+				log.warn("chosenUserId is null for REACTIVATE");
+				return new ResponseEntity<>("REACTIVATE orders require a chosenUserId", HttpStatus.NOT_FOUND);
 			}
 
 			if (StringUtils.hasLength(order.getChosenUserId())) {
@@ -178,7 +195,7 @@ public class AccountOrderApiController {
 					order.setChosenUserId(order.getChosenUserId().substring(0, order.getChosenUserId().indexOf("@")));
 				}
 
-				var userIds = new HashSet<String>();
+				Set<String> userIds = new HashSet<String>();
 
 				// check if there is an ad account_order that this Exchange order should be linked to
 				pendingADOrder = accountOrderService.getPendingOrders(person).stream().filter(o -> o.getOrderType() == AccountOrderType.CREATE && SupportedUserTypeService.isActiveDirectory(o.getUserType())).findFirst().orElse(null);
@@ -190,7 +207,6 @@ public class AccountOrderApiController {
 				}
 
 				if (!userIds.contains(order.getUserId())) {
-
 					if (accountOrderService.getPendingOrders(person).stream().noneMatch(o -> o.getOrderType() == AccountOrderType.CREATE && SupportedUserTypeService.isActiveDirectory(o.getUserType()))) {
 						log.warn("Chosen userId is not valid for ordering an Exchange Account: " + order.getUserId());
 						return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -198,7 +214,7 @@ public class AccountOrderApiController {
 				}
 			}
 
-			accountOrder = accountOrderService.createAccountOrder(
+			accountOrder = accountOrderService.createOrReactivateAccountOrder(
 					person,
 					supportedUserType,
 					order.getChosenUserId(),
@@ -212,7 +228,8 @@ public class AccountOrderApiController {
 					true,
 					true,
 					pendingADOrder,
-					triggerAffiliation);
+					triggerAffiliation,
+					(order.getOrderType() == AccountOrderType.REACTIVATE));
 		}
 
 		AccountOrder result = accountOrderService.save(accountOrder);
@@ -259,9 +276,8 @@ public class AccountOrderApiController {
 	}
 
 	/**
-	 * Returns all pending orders (CREATE, DEACTIVATE and DELETE) of a specific UserType,
-	 * filtered by ActivationTimestamp, so only those that are in need of being processed
-	 * now will be returned
+	 * Returns all pending orders (CREATE, REACTIVATE, DEACTIVATE, CLEANUP and DELETE) of a specific UserType,
+	 * filtered by ActivationTimestamp, so only those that are in need of being processed now will be returned
 	 */
 	@GetMapping("/api/account/{type}/pending")
 	public ResponseEntity<AccountOrderResponseDTO> getPendingOrders(@PathVariable("type") String userType, @RequestParam("type") AccountOrderType type) {
@@ -273,10 +289,26 @@ public class AccountOrderApiController {
 
 		AccountOrderResponseDTO responseDTO = new AccountOrderResponseDTO();
 		responseDTO.setSingleAccount(supportedUserType.isSingleUserMode());
+		responseDTO.setCreateAsDisabled(supportedUserType.isCreateAsDisabled());
 
 		List<AccountOrder> pendingOrders = accountOrderService.getPendingOrders(userType, type);
 
 		pendingOrders = accountOrderService.identifyAndDeleteDuplicates(pendingOrders);
+		
+		// for cleanup orders, we do want to make sure all referenced accounts are active
+		if (type.equals(AccountOrderType.CLEANUP)) {
+			Iterator<AccountOrder> iter = pendingOrders.iterator();
+			while (iter.hasNext()) {
+				AccountOrder accountOrder = iter.next();
+				
+				User user = userService.findByUserIdAndUserType(accountOrder.getRequestedUserId(), userType);
+				if (user == null || user.isDisabled() == false) {
+					log.warn("Cleanup order " + accountOrder.getId() + " for " + accountOrder.getRequestedUserId() + " no longer relevant - removing...");
+					accountOrderService.delete(accountOrder);
+					iter.remove();
+				}				
+			}
+		}
 
 		responseDTO.setPendingOrders(new ArrayList<AccountOrderDTO>());
 		for (AccountOrder order : pendingOrders) {
@@ -302,14 +334,17 @@ public class AccountOrderApiController {
 			}
 		}
 
-		// Failsafe: refuse to return if any order type exceeds its configured threshold
+		// failsafe: refuse to return if any order type exceeds its configured threshold
 		AccountOrderGeneration orderGenerationConfig = configuration.getScheduled().getAccountOrderGeneration();
 		int threshold = switch (type) {
 			case CREATE     -> orderGenerationConfig.getPendingOrderCreateThreshold();
+			case CLEANUP    -> orderGenerationConfig.getPendingOrderCleanupThreshold();
+			case REACTIVATE -> orderGenerationConfig.getPendingOrderCreateThreshold();
 			case DEACTIVATE -> orderGenerationConfig.getPendingOrderDeactivateThreshold();
 			case DELETE     -> orderGenerationConfig.getPendingOrderDeleteThreshold();
 			case EXPIRE     -> orderGenerationConfig.getPendingOrderExpireThreshold();
 		};
+
 		int count = responseDTO.getPendingOrders().size();
 		if (count > threshold) {
 			throw new IllegalStateException("Pending " + type + " orders (" + count + ") exceeds threshold (" + threshold + ") for userType " + userType);
@@ -364,8 +399,7 @@ public class AccountOrderApiController {
 			else {
 				accountOrder.setActualUserId(dto.getAffectedUserId());
 
-				if ((dto.getStatus().equals(AccountOrderStatus.CREATED) || dto.getStatus().equals(AccountOrderStatus.REACTIVATED)) &&
-						SupportedUserTypeService.isActiveDirectory(userType)) {
+				if ((dto.getStatus().equals(AccountOrderStatus.CREATED) || dto.getStatus().equals(AccountOrderStatus.REACTIVATED)) && SupportedUserTypeService.isActiveDirectory(userType)) {
 
 					// check if we need to set employeeId
 					if (StringUtils.hasLength(accountOrder.getEmployeeId())) {
@@ -373,6 +407,12 @@ public class AccountOrderApiController {
 						var existingUser = userService.findByUserIdAndUserType(accountOrder.getActualUserId(),SupportedUserTypeService.getActiveDirectoryUserType());
 						if (existingUser != null) {
 							existingUser.setEmployeeId(accountOrder.getEmployeeId());
+
+							// if this is an AD account, we also copy the external flag to the account from the order
+							if (existingUser.getActiveDirectoryDetails() != null) {
+								existingUser.getActiveDirectoryDetails().setExternal(accountOrder.isExternal());
+							}
+
 							userService.save(existingUser);
 						}
 					}
@@ -403,6 +443,30 @@ public class AccountOrderApiController {
 						}
 
 						accountOrderService.save(orderDependingOn);
+					}
+				}
+				// for AD/Exchange, we should use this to trigger the creation of the CLEANUP job
+				else if (dto.getStatus().equals(AccountOrderStatus.DEACTIVATED) && (SupportedUserTypeService.isActiveDirectory(userType) || SupportedUserTypeService.isExchange(userType))) {
+					SupportedUserType supportedUserType = supportedUserTypeService.findByKey(userType);
+
+					if (supportedUserType != null && supportedUserType.isCleanupEnabled()) {
+						Person person = personService.getByUuid(accountOrder.getPersonUuid());
+						
+						if (person != null) {
+
+							// bit of a hack, but compute the difference between disable and cleanup, and add to today						
+							Date cleanupDate = Date.from(LocalDate
+									.now()
+									.plusDays(supportedUserType.getDaysToCleanup() - supportedUserType.getDaysToDeactivate())
+									.atTime(6, 0)
+									.atZone(ZoneId.systemDefault())
+									.toInstant());
+
+							AccountOrder cleanupOrder = accountOrderService.cleanupAccountOrder(person, userType, accountOrder.getRequestedUserId(), cleanupDate);
+							cleanupOrder.setLinkedUserId(accountOrder.getLinkedUserId());
+							
+							accountOrderService.save(cleanupOrder);
+						}
 					}
 				}
 			}
