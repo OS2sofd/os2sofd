@@ -20,13 +20,11 @@ public class UserDTO {
 	private Boolean disabled;
 	private Boolean passwordLocked;
 	private boolean pendingDeactivation;
-	private boolean pendingReactivation;
 	private boolean substituteAccount;
 	private LocalDate accountExpireDate;
 	private boolean pending;
 	private UserChangeEmployeeIdQueueDTO userChangeEmployeeIdQueueDTO;
 	private String kombitUuid;
-	private boolean external;
 
 	public boolean isDisabled() {
 		return (disabled != null && disabled == true);

@@ -526,7 +526,10 @@ public class OS2SyncService {
 			String emailValue = null;
 			if (SupportedUserTypeService.isActiveDirectory(adUser.getUserType())) {
 				Optional<User> emailUser = PersonService.getUsers(person).stream()
-						.filter(u -> SupportedUserTypeService.isExchange(u.getUserType()) && u.getMasterId().equalsIgnoreCase(adUser.getUserId()))
+						.filter(u -> SupportedUserTypeService.isExchange(u.getUserType()) && (
+								// for EXCHANGE and AD-supplied SCHOOL_EMAIL they match on masterId == userId, but for AZURE read school emails,
+								// they match on m+masterId == masterId
+								u.getMasterId().equalsIgnoreCase(adUser.getUserId())) || u.getMasterId().equalsIgnoreCase("m" + adUser.getMasterId()))
 						.findFirst();
 
 				emailValue = (emailUser.isPresent()) ? emailUser.get().getUserId() : null;

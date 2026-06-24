@@ -88,7 +88,7 @@ public class User extends MasteredEntity {
 	@Column
 	@NotNull
 	private boolean disabled;
-
+	
 	// TODO: temporary hack to ensure we can deal with null values in Better API
 	private transient Boolean tSubstituteAccount;
 	private transient Boolean tDisabled;

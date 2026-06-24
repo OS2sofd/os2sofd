@@ -564,7 +564,7 @@ public class AffiliationService {
 		return onlyActiveAffiliations(affiliations);
 	}
 
-	public Set<String> getPersonUuidsWithAffiliationHistory(Set<String> masters) {
+	public Set<String> getPersonUuidsWithAffiliationHistory(List<String> masters) {
 		return affiliationDao.getPersonUuidsWithAffiliationHistory(masters);
 	}
 	

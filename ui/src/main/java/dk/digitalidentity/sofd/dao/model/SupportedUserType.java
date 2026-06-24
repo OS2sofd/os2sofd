@@ -18,6 +18,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
+
 @Entity(name = "supported_user_types")
 @Getter
 @Setter
@@ -47,19 +48,10 @@ public class SupportedUserType {
 	private long daysBeforeToCreate;
 
 	@Column
-	private boolean createAsDisabled;
-	
-	@Column
-	private long daysBeforeToReactivate;
-
-	@Column
 	private long daysToDeactivate;
 	
 	@Column
 	private long daysToDelete;
-
-	@Column
-	private long daysToCleanup;
 
 	@ManyToOne
 	@JoinColumn(name = "depends_on")
@@ -111,6 +103,4 @@ public class SupportedUserType {
 	@Column
 	private boolean createEnabled;
 
-	@Column
-	private boolean cleanupEnabled;
 }
