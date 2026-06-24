@@ -612,6 +612,13 @@ public class OpusService {
 		String payload = builder.toString();
     	HttpEntity<String> request = new HttpEntity<String>(payload, headers);
 		ResponseEntity<String> response;
+		
+		if (log.isDebugEnabled()) {
+			log.debug("URL endpoint          : " + configuration.getModules().getAccountCreation().getOpusHandler().getConvertedUrl());
+			log.debug("Header (Content-Type) : " + "text/xml; charset=utf-8");
+			log.debug("Header (SOAPAction)   : " + "http://sap.com/xi/WebService/soap1.1");
+			log.debug("Payload               : " + payload);
+		}
 
     	// KMD has some issues, so we might have to try multiple times
     	int tries = 3;
