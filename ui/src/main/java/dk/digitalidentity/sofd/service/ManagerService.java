@@ -103,6 +103,7 @@ public class ManagerService {
 	}
 
 	public record OrgUnitManagerDto(String orgunitUuid, String managerUuid) { }
+	@Transactional
 	public void importManagers(List<OrgUnitManagerDto> importManagers, boolean fullsync) {
 		List<OrgUnit> allOrgUnits = orgUnitService.getAll();
 		
