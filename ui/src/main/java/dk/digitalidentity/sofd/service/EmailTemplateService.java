@@ -208,7 +208,7 @@ public class EmailTemplateService {
 		return child;
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional
 	public EmailTemplate findByTemplateType(EmailTemplateType type) {
 		EmailTemplate template = emailTemplateDao.findByTemplateType(type);
 		if (template == null) {
