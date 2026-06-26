@@ -5,14 +5,16 @@
 	<table id="accountOrderTable" class="table table-striped table-hover nodatatables">
 		<thead>
 			<th class="col-md-2" th:text="#{html.page.orgunit.view.accountorders.usertype.name}"></th>
-			<th th:if="${@sofdConfiguration.getModules().getAccountCreation().isAccountOrderApprove() == true}" class="col-md-2" th:text="#{html.page.orgunit.view.accountorders.usertype.requires_approval}"></th>
+			<th th:if="${@sofdConfiguration.getModules().getAccountCreation().isAccountOrderApprove() == true}" class="col-md-1" th:text="#{html.page.orgunit.view.accountorders.usertype.requires_approval}"></th>
 			<th class="col-md-4" th:text="#{html.page.orgunit.view.accountorders.usertype.rule}"></th>
-			<th class="col-md-4" th:text="#{html.page.orgunit.view.accountorders.usertype.deactivate_and_delete_rule}"></th>
+			<th class="col-md-2" th:text="#{html.page.orgunit.view.accountorders.usertype.deactivate_and_delete_rule}"></th>
+			<th class="col-md-3" th:text="#{html.page.orgunit.view.accountorders.usertype.overrule_days}"></th>
 		</thead>
 
 		<tbody>
 			<tr th:each="type : ${orgUnitAccountOrder.types}" th:attr="data-usertype=${type.userType}">
 				<td th:text="${@supportedUserTypeService.getPrettyName(type.getUserType())}"></td>
+				
 				<td th:if="${@sofdConfiguration.getModules().getAccountCreation().isAccountOrderApprove() == true}">
 					<div th:if="${type.getUserType()=='ACTIVE_DIRECTORY'}" class="pull-left checkbox c-checkbox">
 						<label>
@@ -21,6 +23,7 @@
 						</label>
 					</div>					
 				</td>
+				
 				<td>
 					<select id="rule" th:attr="data-usertype=${type.userType}" class="form-control" onchange="handleTypeEventChange(this);">
 						<option th:each="rule : ${T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderRule).values()}"
@@ -66,6 +69,7 @@
 						</table>
 					</div>
 				</td>
+				
 				<td>
 					<select th:id="'deactivateAndDeleteRule-' + ${type.userType}" class="form-control">
 						<option th:each="deactivateAndDeleteRule : ${T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderDeactivateAndDeleteRule).values()}"
@@ -75,11 +79,74 @@
 						</option>
 					</select>
 				</td>
+				
+				<td>
+					<div class="row">
+						<label class="col-sm-5 control-label" th:text="#{html.page.orgunit.view.accountorders.usertype.enable_local_rules}"></label>
+						<div class="checkbox c-checkbox col-sm-5" style="padding-top: 4px;">
+							<label>
+								<input th:id="'localRulesCheckbox-' + ${type.userType}" class="localRuleCheckbox" th:attr="data-usertype=${type.userType},data-createenabled=${type.createEnabled},data-reactivateenabled=${type.reactivateEnabled},data-globaldaystocreate=${type.globalDaysBeforeToCreate},data-globaldaystoreactivate=${type.globalDaysBeforeToReactivate}" onchange="handleLocalRulesChange(this, true);" type="checkbox" th:checked="${type.localRules}">
+								<span class="fa fa-check"></span>
+							</label>
+						</div>
+					</div>
+
+					<div class="row" style="display: none;">
+						<label class="col-sm-5 control-label" th:utext="#{html.setting.usertype.deadlines.activate}"></label>
+						<div class="col-sm-5">
+							<input th:id="'localRulesActivate-' + ${type.userType}" th:value="${type.daysBeforeToCreate}" class="form-control">
+						</div>
+					</div>
+					
+					<div class="row" style="display: none;">
+						<label class="col-sm-5 control-label" th:utext="#{html.setting.usertype.deadlines.reactivate}"></label>
+						<div class="col-sm-5">
+							<input th:id="'localRulesReactivate-' + ${type.userType}" th:value="${type.daysBeforeToReactivate}" class="form-control">
+						</div>
+					</div>
+				</td>
 			</tr>
 		</tbody>
 	</table>
 	
 	<script type="text/javascript">
+		$("document").ready(function() {
+			const checkboxes = document.getElementsByClassName('localRuleCheckbox');
+			for (let i = 0; i < checkboxes.length; i++) {
+				handleLocalRulesChange(checkboxes[i], false);
+			}
+		});
+
+		function handleLocalRulesChange(elem, initCall) {
+			var jqueryElem = $(elem);
+			var userType = jqueryElem.attr('data-usertype');
+
+			if (jqueryElem.is(":checked")) {
+				var createEnabled = jqueryElem.attr('data-createenabled');
+				var reactivateEnabled = jqueryElem.attr('data-reactivateenabled');
+				var globalDaysToCreate = jqueryElem.attr('data-globaldaystocreate');				
+				var globalDaysToReactivate = jqueryElem.attr('data-globaldaystoreactivate');
+				
+				if (createEnabled) {
+					$('#localRulesActivate-' + userType).parent().parent().show();
+					if (initCall) {
+						$('#localRulesActivate-' + userType).val(globalDaysToCreate);
+					}
+					
+					if (reactivateEnabled && userType == 'ACTIVE_DIRECTORY') {
+						$('#localRulesReactivate-' + userType).parent().parent().show();
+						if (initCall) {
+							$('#localRulesReactivate-' + userType).val(globalDaysToReactivate);
+						}
+					}
+				}
+			}
+			else {
+				$('#localRulesActivate-' + userType).parent().parent().hide();
+				$('#localRulesReactivate-' + userType).parent().parent().hide();
+			}
+		}
+		
 	    function handleTypeEventChange(elem) {
 	    	var jqueryElem = $(elem);
 	    	

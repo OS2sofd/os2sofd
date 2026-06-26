@@ -3,7 +3,9 @@ public enum AccountOrderType {
 	CREATE("html.enum.accountOrderStatus.create"),
 	DEACTIVATE("html.enum.accountOrderStatus.deactivate"),
 	DELETE("html.enum.accountOrderStatus.delete"),
-	EXPIRE("html.enum.accountOrderStatus.expire");
+	EXPIRE("html.enum.accountOrderStatus.expire"),
+	REACTIVATE("html.enum.accountOrderStatus.reactivate"),
+	CLEANUP("html.enum.accountOrderStatus.cleanup");
 
 	private String messageId;
 

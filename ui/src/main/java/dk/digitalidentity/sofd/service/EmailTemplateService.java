@@ -4,8 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import dk.digitalidentity.sofd.dao.model.enums.MailPriority;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -22,6 +23,7 @@ import dk.digitalidentity.sofd.dao.model.SubstituteAssignment;
 import dk.digitalidentity.sofd.dao.model.enums.EmailOrgUnitFilterType;
 import dk.digitalidentity.sofd.dao.model.enums.EmailTemplateType;
 import dk.digitalidentity.sofd.dao.model.enums.EmployeeFilter;
+import dk.digitalidentity.sofd.dao.model.enums.MailPriority;
 import dk.digitalidentity.sofd.dao.model.enums.SendTo;
 import lombok.extern.slf4j.Slf4j;
 
@@ -208,6 +210,13 @@ public class EmailTemplateService {
 		return child;
 	}
 
+	@CacheEvict(value = "emailTemplateCache", allEntries = true)
+	public void resetEmailTemplateCache() {
+		;
+	}
+
+	// lots of batchjobs load these, and we do not want to hit the DB every time for data that changes almost never
+	@Cacheable("emailTemplateCache")
 	@Transactional
 	public EmailTemplate findByTemplateType(EmailTemplateType type) {
 		EmailTemplate template = emailTemplateDao.findByTemplateType(type);
