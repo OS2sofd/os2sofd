@@ -220,9 +220,9 @@ public class PersonRestController {
 	@RequirePersonCreaterOrControllerWriteAccess
 	@PostMapping("/rest/person/{uuid}/setEmployeeId/{userType}/{userId:.+}/{employeeId}")
 	@ResponseBody
-	public ResponseEntity<String> setEmployeeIdOnUser(@PathVariable("uuid") String uuid, @PathVariable("userType") String userType, @PathVariable("userId") String userId, @PathVariable("employeeId") String employeeIdInput, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate date) {
+	public ResponseEntity<String> setEmployeeIdOnUser(@PathVariable("uuid") String uuid, @PathVariable("userType") String userType, @PathVariable("userId") String userId, @PathVariable("employeeId") String employeeIdInput, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate date, @RequestParam(required = false, defaultValue = "false") boolean external) {
 		// 0 = no employment selected
-		var employeeId = "0".equals(employeeIdInput) ? null : employeeIdInput;
+		String employeeId = "0".equals(employeeIdInput) ? null : employeeIdInput;
 		Person person = personService.getByUuid(uuid);
 		if (person == null) {
 			log.warn("Could not find person: " + uuid);
@@ -234,14 +234,20 @@ public class PersonRestController {
 			log.warn("Could not find userId: " + userId + " of type " + userType);
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
+		
+		if (user.getActiveDirectoryDetails() != null) {
+			user.getActiveDirectoryDetails().setExternal(external);
+		}
 
 		if (employeeId != null) {
 			Affiliation affiliation = person.getAffiliations().stream().filter(a -> a.getEmployeeId().equalsIgnoreCase(employeeId)).findFirst().orElse(null);
-			if( affiliation == null ) {
+			if (affiliation == null) {
 				log.warn("Could not find affiliation with employeeId: " + employeeId);
 				return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 			}
+			
 			Set<String> constraintOUs = SecurityUtil.getOrgUnitUuidsConstraintFromPersonCreaterRole();
+
 			if (!SecurityUtil.hasRole(RoleConstants.SYSTEM_ROLE_WRITE_ACCESS) && SecurityUtil.hasRole(RoleConstants.USER_ROLE_PERSON_CREATER) && !constraintOUs.isEmpty()) {
 				if( !constraintOUs.contains(affiliation.getOrgUnit().getUuid()) ) {
 					log.warn("PersonCreator has no access to affiliation with employeeId: " + employeeId);
@@ -252,11 +258,12 @@ public class PersonRestController {
 
 		try {
 			personService.setEmployeeId(person, user, employeeId, date);
-		} catch (Exception e) {
-			return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+		}
+		catch (Exception ex) {
+			return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
 		}
 		
-		String message = "Tilførsfohold på " + supportedUserTypeService.getPrettyName(user.getUserType()) + " ændret til " + user.getUserId() + "/" + employeeId + ".";
+		String message = "Tilførsforhold på " + supportedUserTypeService.getPrettyName(user.getUserType()) + " ændret til " + user.getUserId() + "/" + employeeId + ".";
 		auditLogger.log(person.getUuid(), EntityType.PERSON, EventType.PERSON_CHANGED, PersonService.getName(person), message);
 
 		return new ResponseEntity<>(HttpStatus.OK);
@@ -528,8 +535,27 @@ public class PersonRestController {
 			userId = userId.split("@")[0];
 			linkedUserId = user.getMasterId();
 		}
-
-		AccountOrder order = accountOrderService.createAccountOrder(
+		
+		AccountOrder order = null;
+		if (SupportedUserTypeService.isActiveDirectory(user.getUserType())) {
+			order = accountOrderService.createOrReactivateAccountOrder(
+					person,
+					supportedUserTypeService.findByKey(user.getUserType()),
+					userId,
+					linkedUserId,
+					user.getEmployeeId(),
+					null,
+					EndDate.NO,
+					null,
+					false,
+					configuration.getModules().getAccountCreation().isForceSetEmployeeId(),
+					true,
+					true,
+					null,
+					true);			
+		}
+		else {
+			order = accountOrderService.createOrReactivateAccountOrder(
 				person,
 				supportedUserTypeService.findByKey(user.getUserType()),
 				userId,
@@ -542,7 +568,10 @@ public class PersonRestController {
 				configuration.getModules().getAccountCreation().isForceSetEmployeeId(),
 				true,
 				true,
-				null);
+				null,
+				// we do not support the REACTIVATE order on other usertypes than ACTIVE_DIRECTORY
+				false);
+		}
 
 		accountOrderService.save(order);
 	}

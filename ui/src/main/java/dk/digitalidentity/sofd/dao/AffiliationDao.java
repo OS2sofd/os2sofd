@@ -73,7 +73,7 @@ public interface AffiliationDao extends CrudRepository<Affiliation, Long> {
 				where
 					sub.master in (:masters)
 			""")
-	Set<String> getPersonUuidsWithAffiliationHistory(List<String> masters);
+	Set<String> getPersonUuidsWithAffiliationHistory(Set<String> masters);
 
 	Affiliation findByMasterId(String masterId);
 

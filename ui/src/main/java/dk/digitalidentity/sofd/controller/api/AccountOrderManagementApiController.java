@@ -1,5 +1,8 @@
 package dk.digitalidentity.sofd.controller.api;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,9 +67,19 @@ public class AccountOrderManagementApiController {
 		}
 		
 		AccountOrder order = accountOrderService.deactivateOrDeleteAccountOrder(AccountOrderType.DEACTIVATE, person, user.getEmployeeId(), userType, userId);
-		
 		accountOrderService.save(order);
 		
+		if (supportedUserType.isDeleteEnabled()) {
+			order = accountOrderService.deactivateOrDeleteAccountOrder(AccountOrderType.DELETE, person, user.getEmployeeId(), userType, userId);			
+			order.setActivationTimestamp(Date.from(LocalDate.now().plusDays(supportedUserType.getDaysToDelete()).atStartOfDay(ZoneId.systemDefault()).toInstant()));
+			accountOrderService.save(order);			
+		}
+
+		if (supportedUserType.isCleanupEnabled()) {
+			order = accountOrderService.cleanupAccountOrder(person, userType, userId, Date.from(LocalDate.now().plusDays(supportedUserType.getDaysToCleanup()).atStartOfDay(ZoneId.systemDefault()).toInstant()));			
+			accountOrderService.save(order);			
+		}
+
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 }

@@ -156,7 +156,8 @@ public class AffiliationApiRecord extends BaseRecord {
 			if (AffiliationType.EXTERNAL.toString().equals(affiliationType)) {
 				affiliation.setInheritPrivileges(externalDefaultInheritPrivileges);
 			}
-		} else {
+		}
+		else {
 			affiliation.setInheritPrivileges(actualAffiliation.isInheritPrivileges());
 		}
 
