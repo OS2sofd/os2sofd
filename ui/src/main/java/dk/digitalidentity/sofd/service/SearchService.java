@@ -104,11 +104,11 @@ public class SearchService {
 			results.add(result);
 		}
 
-		// Brugermanual
-		if ("manual".startsWith(query) || "brugermanual".startsWith(query)) {
+		// Brugervejledning
+		if ("manual".startsWith(query) || "brugermanual".startsWith(query) || "brugervejledning".startsWith(query) || "vejledning".startsWith(query)) {
 			Map<String, String> result = new HashMap<>();
-			result.put("name", "Brugermanual (Book)");
-			result.put("url", "/download/brugermanual.pdf");
+			result.put("name", "Brugervejledning (Book)");
+			result.put("url", "https://www.sofd.io/brugervejledning/");
 			results.add(result);
 		}
 
