@@ -296,7 +296,7 @@ public class NightBatchTask {
 		}
 
 		// generate new account orders (05:15 - 05:45)
-		if (configuration.getModules().getAccountCreation().isEnabled() && configuration.getModules().getAccountCreation().isNightlyJobEnabled()) {
+		if (configuration.getModules().getAccountCreation().isEnabled() && !configuration.getModules().getAccountCreation().isIdmHandledExternally()) {
 			batchJobs.add(BatchJob.builder()
 					.name("Generate Account Orders Task")
 					.time(LocalTime.of(5, random.nextInt(30) + 15))

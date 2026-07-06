@@ -36,5 +36,10 @@ public class AccountCreation {
 	// specifies how many days account orders stay in queue after completion
 	private int accountOrderRetentionDays = 35;
 
-	private boolean nightlyJobEnabled = true;
+	// When true, SOFD does not auto-generate any account orders - an external integration (e.g. HR-ON)
+	// owns the IDM flow. The account-order REST API, the on-prem agent poll/report endpoints, and the
+	// admin configuration UI all keep working; only SOFD's own generation (nightly job, on-save generation
+	// and cleanup) is suppressed.
+	@FeatureDocumentation(name = "IDM håndteres eksternt", description = "SOFD genererer ikke selv kontoordrer; en ekstern integration håndterer IDM-flowet")
+	private boolean idmHandledExternally = false;
 }

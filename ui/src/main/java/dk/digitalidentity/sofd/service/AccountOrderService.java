@@ -925,7 +925,8 @@ public class AccountOrderService {
 	private List<AccountOrder> getAccountsToCreate(List<Affiliation> affiliations, boolean takeExistingOrdersIntoConsideration, OrgUnitAccountOrder rules, boolean doNotLogRequester) {
 		List<AccountOrder> accountOrdersResult = new ArrayList<>();
 
-		if (!configuration.getModules().getAccountCreation().isEnabled()) {
+		if (!configuration.getModules().getAccountCreation().isEnabled()
+				|| configuration.getModules().getAccountCreation().isIdmHandledExternally()) {
 			return accountOrdersResult;
 		}
 
@@ -2140,6 +2141,12 @@ public class AccountOrderService {
 
 	@Transactional
 	public void cleanup(Person person) {
+		// When IDM is handled externally, SOFD must not touch account orders at all - an external
+		// integration owns their full lifecycle, so we skip cleanup of "stale" orders here.
+		if (configuration.getModules().getAccountCreation().isIdmHandledExternally()) {
+			return;
+		}
+
 		// (1) Hard-removed affiliations: when an affiliation is left out of a PATCH, orphanRemoval on Person.affiliations
 		// hard-deletes it. A pending CREATE order on that affiliation is still a managed entity here (loaded by
 		// getAccountsToCreate), and the global native delete in step (2) forces a flush that would fail with
