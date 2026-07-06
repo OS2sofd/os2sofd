@@ -59,6 +59,11 @@ public class AccountOrderNightJob {
 	
 	@Transactional(readOnly = true)
 	public void nightlyJob() {
+		if (configuration.getModules().getAccountCreation().isIdmHandledExternally()) {
+			log.info("Skipping nightly account order job - IDM is handled externally");
+			return;
+		}
+
 		log.info("Starting nightly job - preloading data");
 
 		Authentication authentication = SecurityUtil.getLoginSession();
