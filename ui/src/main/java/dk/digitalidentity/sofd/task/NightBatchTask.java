@@ -418,10 +418,10 @@ public class NightBatchTask {
 		}
 
 		
-		// cleanup orgUnits in FK Organisation every Monday (10:00 to 15:59)
+		// cleanup orgUnits in FK Organisation every Monday (08:00 to 11:59)
 		batchJobs.add(BatchJob.builder()
 				.name("Cleanup OUs in FK Organisation")
-				.time(LocalTime.of(10 + random.nextInt(6), random.nextInt(59)))
+				.time(LocalTime.of(8 + random.nextInt(4), random.nextInt(59)))
 				.dayOfWeek(DayOfWeek.MONDAY)
 				.function(() -> {
 					os2SyncService.synchronizeHierarchy();
@@ -429,10 +429,10 @@ public class NightBatchTask {
 					return true;
 				}).build());
 		
-		// cleanup users in FK Organisation every Tuesday (10:00 to 15:59)
+		// cleanup users in FK Organisation every Tuesday (08:00 to 11:59)
 		batchJobs.add(BatchJob.builder()
 				.name("Cleanup users in FK Organisation")
-				.time(LocalTime.of(10 + random.nextInt(6), random.nextInt(59)))
+				.time(LocalTime.of(8 + random.nextInt(4), random.nextInt(59)))
 				.dayOfWeek(DayOfWeek.TUESDAY)
 				.function(() -> {
 					os2SyncService.cleanupUsers();
