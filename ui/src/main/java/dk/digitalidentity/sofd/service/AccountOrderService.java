@@ -219,14 +219,7 @@ public class AccountOrderService {
 		if (!StringUtils.hasLength(order.getRequestedUserId())) {
 			if (order.getId() == 0 && order.getOrderType().equals(AccountOrderType.CREATE)) {
 
-				// attempt to lookup through cached map first, then directly from DB if needed (useful for nightly batchjob only)
-				Person person = null;
-				if (allPersons != null) {
-					person = allPersons.get(order.getPersonUuid());
-				}
-				if (person == null) {
-					person = personService.getByUuid(order.getPersonUuid());
-				}
+				Person person = getPersonForOrder(order, allPersons);
 
 				SupportedUserType userType = supportedUserTypeService.findByKey(order.getUserType());
 
@@ -248,45 +241,9 @@ public class AccountOrderService {
 						}
 
 						order.setRequestedUserId(userId);
-						
+
 						// notify approver if this is a new ad account and status is pending approval
-						if (order.getId() == 0 && order.getStatus() == AccountOrderStatus.PENDING_APPROVAL) {
-							EmailTemplate template = emailTemplateService.findByTemplateType(EmailTemplateType.ORDER_PENDING_APPOVAL);
-							for (EmailTemplateChild child : template.getChildren()) {
-								if (child.isEnabled()) {
-									String message = child.getMessage();
-									message = message.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
-
-									String title = child.getTitle();
-									title = title.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
-
-									OrgUnitManager orgUnitManager = PersonService.getOrgUnitManager(order.getTriggerAffiliation(), person, order.getEmployeeId());
-									if (orgUnitManager != null) {
-										Person manager = orgUnitManager.getManager();
-
-										message = message.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnitManager.getOrgUnit().getName());
-										title = title.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnitManager.getOrgUnit().getName());
-
-										var logContext = new StringBuilder();
-										logContext.append("Skabelon: ").append(child.getTitle());
-										logContext.append(", ").append("Enhed: ").append(orgUnitManager.getOrgUnit().getName());
-
-										// handle manual recipients
-										List<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
-										for( var recipient : recipients ) {
-											var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
-											var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
-											emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
-										}
-										if (!child.isOnlyManualRecipients()) {
-											List<Person> personRecipients = emailTemplateService.getManagerOrSubstitutes(child, manager, orgUnitManager.getOrgunitUuid());
-											emailQueueService.queueEmail(title, message, new Date(), child, personRecipients, logContext.toString());
-
-										}
-									}
-								}
-							}
-						}
+						notifyApprover(order, person);
 					}
 					else {
 						log.warn("Failed to generate a username for accountOrder: " + userType.getName() + " / " + PersonService.getName(person) + " / " + person.getUuid());
@@ -317,7 +274,12 @@ public class AccountOrderService {
 				}
 			}
 		}
-		
+		// manually created and API orders arrive with a requestedUserId already set, so they skip the
+		// username-generation branch above - make sure the approver is still notified for new pending-approval orders
+		else if (order.getId() == 0 && order.getOrderType().equals(AccountOrderType.CREATE)) {
+			notifyApprover(order, getPersonForOrder(order, allPersons));
+		}
+
 		// for OPUS accounts, we should do pre-validation (and auto-fail the order) against an optional list of allowed prefixes
 		if (SupportedUserTypeService.isOpus(order.getUserType()) &&
 			StringUtils.hasLength(order.getRequestedUserId()) &&
@@ -342,6 +304,65 @@ public class AccountOrderService {
 
 
 		return accountOrderDao.save(order);
+	}
+
+	// resolves the person for an order, preferring the cached map (used by the nightly batchjob) before hitting the DB
+	private Person getPersonForOrder(AccountOrder order, Map<String, Person> allPersons) {
+		Person person = null;
+		if (allPersons != null) {
+			person = allPersons.get(order.getPersonUuid());
+		}
+		if (person == null) {
+			person = personService.getByUuid(order.getPersonUuid());
+		}
+		return person;
+	}
+
+	// notifies the approver (manager and/or substitutes) that a new AD account order is awaiting approval
+	private void notifyApprover(AccountOrder order, Person person) {
+		if (order.getId() != 0 || order.getStatus() != AccountOrderStatus.PENDING_APPROVAL) {
+			return;
+		}
+		if (person == null) {
+			log.warn("Cannot notify approver for account order - person not found: " + order.getPersonUuid());
+			return;
+		}
+
+		EmailTemplate template = emailTemplateService.findByTemplateType(EmailTemplateType.ORDER_PENDING_APPOVAL);
+		for (EmailTemplateChild child : template.getChildren()) {
+			if (child.isEnabled()) {
+				String message = child.getMessage();
+				message = message.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
+
+				String title = child.getTitle();
+				title = title.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
+
+				OrgUnitManager orgUnitManager = PersonService.getOrgUnitManager(order.getTriggerAffiliation(), person, order.getEmployeeId());
+				if (orgUnitManager != null) {
+					Person manager = orgUnitManager.getManager();
+
+					message = message.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnitManager.getOrgUnit().getName());
+					title = title.replace(EmailTemplatePlaceholder.ORGUNIT_PLACEHOLDER.getPlaceholder(), orgUnitManager.getOrgUnit().getName());
+
+					var logContext = new StringBuilder();
+					logContext.append("Skabelon: ").append(child.getTitle());
+					logContext.append(", ").append("Enhed: ").append(orgUnitManager.getOrgUnit().getName());
+
+					// handle manual recipients
+					List<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+					for( var recipient : recipients ) {
+						var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
+						var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
+						emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
+					}
+					if (!child.isOnlyManualRecipients()) {
+						List<Person> personRecipients = emailTemplateService.getManagerOrSubstitutes(child, manager, orgUnitManager.getOrgunitUuid());
+						emailQueueService.queueEmail(title, message, new Date(), child, personRecipients, logContext.toString());
+
+					}
+				}
+			}
+		}
 	}
 
 	public List<AccountOrder> getPendingAndBlockedCreateOrdersForPerson(String uuid) {
