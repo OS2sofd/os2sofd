@@ -94,7 +94,9 @@ public class AuthorizationCodeService {
 	    		}
 	    		
 	    		if (useFallback) {
-	    			syncAuthorizationCodesWithFallbackService(person);
+	    			if (syncAuthorizationCodesWithFallbackService(person)) {
+	    				changedPersons.add(person);
+	    			}
 	    		}
 	    	}
 		}
