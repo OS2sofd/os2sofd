@@ -664,15 +664,20 @@ public class UsernameGeneratorService {
 		for( var attempt = 0; attempt < maxAttempts; attempt++ ) {
 			var remainingPermutations = new AtomicInteger(attempt); // we need to pass by reference, so use AtomicInteger instead of int
 			StringBuilder suggestionBuilder = new StringBuilder();
+			var rejected = false;
 			for( var templateItem : templateItems ) {
 				var templateItemValue = templateItem.getValue(person,affiliation,remainingPermutations);
 				if( StringUtils.hasLength(templateItemValue) && reservedUsernameDao.isBadWord(templateItemValue) != 0) {
-					// we do not allow template parts to be bad words
-					continue;
+					// a template part is a bad word - reject the whole suggestion and try the next permutation.
+					// dropping just this part would keep the remaining parts, producing a mangled username
+					// like "0000" from "{navnesekvens:3}{tal:4}" when {navnesekvens} is a bad word.
+					rejected = true;
+					break;
 				}
 				if( reservedUsernameDao.isBadWord(suggestionBuilder.toString() + templateItemValue) != 0 ) {
-					// we also do not allow concatenated parts to be bad words.
-					continue;
+					// the parts concatenated so far form a bad word - reject the whole suggestion, do not drop a part.
+					rejected = true;
+					break;
 				}
 				// a serial ({løbenummer}) with a numeric parameter treats that number as the total target width:
 				// when the serial is non-empty (on a collision) its digits overwrite the tail of what we have built
@@ -685,6 +690,10 @@ public class UsernameGeneratorService {
 					}
 				}
 				suggestionBuilder.append(templateItemValue);
+			}
+			if( rejected ) {
+				// a part was a bad word - do not accept a partial username, try the next permutation instead
+				continue;
 			}
 			var suggestion = suggestionBuilder.toString();
 			boolean enforceKnownUsernames = !configuration.getModules().getAccountCreation().isReuseExistingUsernames();
