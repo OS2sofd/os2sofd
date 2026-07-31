@@ -161,7 +161,13 @@ public class AffiliationApiRecord extends BaseRecord {
 			affiliation.setInheritPrivileges(actualAffiliation.isInheritPrivileges());
 		}
 
-		affiliation.setAffiliationType((affiliationType != null) ? AffiliationType.valueOf(affiliationType) : AffiliationType.EMPLOYEE);
+		affiliation.setAffiliationType(
+			(affiliationType != null)
+				? AffiliationType.valueOf(affiliationType)
+				: ((actualAffiliation != affiliation)
+					?  actualAffiliation.getAffiliationType()
+					: AffiliationType.EMPLOYEE)
+		);
 		affiliation.setEmployeeId(employeeId);
 		affiliation.setEmploymentTerms(employmentTerms);
 		affiliation.setEmploymentTermsText(employmentTermsText);

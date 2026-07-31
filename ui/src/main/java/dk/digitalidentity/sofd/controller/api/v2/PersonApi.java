@@ -206,7 +206,9 @@ public class PersonApi {
 	@RequireApiWriteAccess
 	@PatchMapping("/api/v2/persons/{uuid}")
 	public ResponseEntity<?> patchPerson(@PathVariable("uuid") String uuid, @RequestBody PersonApiRecord record, BindingResult bindingResult) throws Exception {
-
+		// we cannot annotate with @Valid, as that will also validate the annotations on the PersonApiRecord, which are only relevant when creating,
+		// so when patching we just call the validator manually, as it will ensure consistency on updated data
+		personValidator.validate(record, bindingResult);
 		if (bindingResult.hasErrors()) {
 			log.warn("Binding errors: " + bindingResult.getAllErrors());
 			return new ResponseEntity<>(bindingResult.getAllErrors(), HttpStatus.BAD_REQUEST);
@@ -266,6 +268,9 @@ public class PersonApi {
 
 		// comparison should be in date, not full object
 		if (record.getAnniversaryDate() != null && !Objects.equals(toLocalDate(record.getAnniversaryDate()), toLocalDate(person.getAnniversaryDate()))) {
+			if (log.isDebugEnabled()) {
+				log.debug("Person " + person.getUuid() + " had anniversaryDate changed from " + person.getAnniversaryDate() + " to " + record.getAnniversaryDate());
+			}
 			person.setAnniversaryDate(record.getAnniversaryDate());
 			changes = true;
 		}
@@ -275,6 +280,10 @@ public class PersonApi {
 			// then check if this specific API client is allowed to update it
 			if (isChosenNameEditableForClient()) {
 				if (record.getChosenName() != null && !Objects.equals(record.getChosenName(), person.getChosenName())) {
+					if (log.isDebugEnabled()) {
+						log.debug("Person " + person.getUuid() + " had chosenName changed from " + person.getChosenName() + " to " + record.getChosenName());
+					}
+
 					person.setChosenName(record.getChosenName());
 					changes = true;
 				}
@@ -282,31 +291,55 @@ public class PersonApi {
 		}
 		
 		if (record.getFirstEmploymentDate() != null && !Objects.equals(toLocalDate(record.getFirstEmploymentDate()), toLocalDate(person.getFirstEmploymentDate()))) {
+			if (log.isDebugEnabled()) {
+				log.debug("Person " + person.getUuid() + " had firstEmploymentDate changed from " + person.getFirstEmploymentDate() + " to " + record.getFirstEmploymentDate());
+			}
+			
 			person.setFirstEmploymentDate(record.getFirstEmploymentDate());
 			changes = true;
 		}
 		
 		if (record.getFirstname() != null && !Objects.equals(record.getFirstname(), person.getFirstname())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Person " + person.getUuid() + " had firstname changed from " + person.getFirstname() + " to " + record.getFirstname());
+			}
+
 			person.setFirstname(record.getFirstname());
 			changes = true;
 		}
 
 		if (record.getNotes() != null && !Objects.equals(record.getNotes(), person.getNotes())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Person " + person.getUuid() + " had notes changed from " + person.getNotes() + " to " + record.getNotes());
+			}
+
 			person.setNotes(record.getNotes());
 			changes = true;
 		}
 
 		if (record.getLocalExtensions() != null && !Objects.equals(record.getLocalExtensions(), person.getLocalExtensions())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Person " + person.getUuid() + " had localExtensions changed from " + person.getLocalExtensions() + " to " + record.getLocalExtensions());
+			}
+
 			person.setLocalExtensions(record.getLocalExtensions());
 			changes = true;
 		}
 		
 		if (record.getMaster() != null && !Objects.equals(record.getMaster(), person.getMaster())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Person " + person.getUuid() + " had master changed from " + person.getMaster() + " to " + record.getMaster());
+			}
+
 			person.setMaster(record.getMaster());
 			changes = true;
 		}
 	
 		if (record.getSurname() != null && !Objects.equals(record.getSurname(), person.getSurname())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Person " + person.getUuid() + " had surname changed from " + person.getSurname() + " to " + record.getSurname());
+			}
+
 			person.setSurname(record.getSurname());
 			changes = true;
 		}
@@ -316,30 +349,50 @@ public class PersonApi {
 		
 		if (record.getUsers() != null) {
 			if (this.<PersonUserMapping>patchCollection(person, record, Person.class.getMethod("getUsers"), Person.class.getMethod("setUsers", List.class))) {
+				if (log.isDebugEnabled()) {
+					log.debug("Person " + person.getUuid() + " had user collection changed");
+				}
+
 				changes = true;
 			}
 		}
 		
 		if (record.getAffiliations() != null) {
 			if (this.<Affiliation>patchCollection(person, record, Person.class.getMethod("getAffiliations"), Person.class.getMethod("setAffiliations", List.class))) {
+				if (log.isDebugEnabled()) {
+					log.debug("Person " + person.getUuid() + " had affiliation collection changed");
+				}
+
 				changes = true;
 			}
 		}
 		
 		if (record.getPhones() != null) {
 			if (this.<PersonPhoneMapping>patchCollection(person, record, Person.class.getMethod("getPhones"), Person.class.getMethod("setPhones", List.class))) {
+				if (log.isDebugEnabled()) {
+					log.debug("Person " + person.getUuid() + " had phone collection changed");
+				}
+
 				changes = true;
 			}
 		}
 		
 		if (record.getResidencePostAddress() != null) {
 			if (patchResidencePostAddress(person, record)) {
+				if (log.isDebugEnabled()) {
+					log.debug("Person " + person.getUuid() + " had residencePostAddress changed");
+				}
+
 				changes = true;
 			}
 		}
 
 		if (record.getRegisteredPostAddress() != null) {
 			if (patchRegisteredPostAddress(person, record)) {
+				if (log.isDebugEnabled()) {
+					log.debug("Person " + person.getUuid() + " had registeredPostAddress changed");
+				}
+
 				changes = true;
 			}
 		}
@@ -576,110 +629,198 @@ public class PersonApi {
 		boolean changes = false;
 
 		if (recordEntry.getAffiliationType() != null && !Objects.equals(personEntry.getAffiliationType(), recordEntry.getAffiliationType())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had affiliationType changed from " + personEntry.getAffiliationType() + " to " + recordEntry.getAffiliationType());
+			}
+			
 			personEntry.setAffiliationType(recordEntry.getAffiliationType());
 			changes = true;
 		}
 
 		if (recordEntry.getEmployeeId() != null && !Objects.equals(personEntry.getEmployeeId(), recordEntry.getEmployeeId())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had employeeId changed from " + personEntry.getEmployeeId() + " to " + recordEntry.getEmployeeId());
+			}
+
 			personEntry.setEmployeeId(recordEntry.getEmployeeId());
 			changes = true;
 		}
 
 		if (recordEntry.getEmploymentTerms() != null && !Objects.equals(personEntry.getEmploymentTerms(), recordEntry.getEmploymentTerms())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had employmentTerms changed from " + personEntry.getEmploymentTerms() + " to " + recordEntry.getEmploymentTerms());
+			}
+
 			personEntry.setEmploymentTerms(recordEntry.getEmploymentTerms());
 			changes = true;
 		}
 		
 		if (recordEntry.getEmploymentTermsText() != null && !Objects.equals(personEntry.getEmploymentTermsText(), recordEntry.getEmploymentTermsText())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had employmentTermsText changed from " + personEntry.getEmploymentTermsText() + " to " + recordEntry.getEmploymentTermsText());
+			}
+
 			personEntry.setEmploymentTermsText(recordEntry.getEmploymentTermsText());
 			changes = true;
 		}
 
 		if (recordEntry.getLocalExtensions() != null && !Objects.equals(personEntry.getLocalExtensions(), recordEntry.getLocalExtensions())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had localExtensions changed from " + personEntry.getLocalExtensions() + " to " + recordEntry.getLocalExtensions());
+			}
+
 			personEntry.setLocalExtensions(recordEntry.getLocalExtensions());
 			changes = true;
 		}
 		
 		if (recordEntry.getPayGrade() != null && !Objects.equals(personEntry.getPayGrade(), recordEntry.getPayGrade())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had payGrade changed from " + personEntry.getPayGrade() + " to " + recordEntry.getPayGrade());
+			}
+
 			personEntry.setPayGrade(recordEntry.getPayGrade());
 			changes = true;
 		}
 
 		if (recordEntry.getPayGradeText() != null && !Objects.equals(personEntry.getPayGradeText(), recordEntry.getPayGradeText())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had payGradeText changed from " + personEntry.getPayGradeText() + " to " + recordEntry.getPayGradeText());
+			}
+
 			personEntry.setPayGradeText(recordEntry.getPayGradeText());
 			changes = true;
 		}
 
 		if (recordEntry.getSuperiorLevel() != null && !Objects.equals(personEntry.getSuperiorLevel(), recordEntry.getSuperiorLevel())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had superiorLevel changed from " + personEntry.getSuperiorLevel() + " to " + recordEntry.getSuperiorLevel());
+			}
+
 			personEntry.setSuperiorLevel(recordEntry.getSuperiorLevel());
 			changes = true;
 		}
 
 		if (recordEntry.getSubordinateLevel() != null && !Objects.equals(personEntry.getSubordinateLevel(), recordEntry.getSubordinateLevel())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had subordinateLevel changed from " + personEntry.getSubordinateLevel() + " to " + recordEntry.getSubordinateLevel());
+			}
+
 			personEntry.setSubordinateLevel(recordEntry.getSubordinateLevel());
 			changes = true;
 		}
 
 		if (recordEntry.getWageStep() != null && !Objects.equals(personEntry.getWageStep(), recordEntry.getWageStep())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had wageStep changed from " + personEntry.getWageStep() + " to " + recordEntry.getWageStep());
+			}
+
 			personEntry.setWageStep(recordEntry.getWageStep());
 			changes = true;
 		}
 
 		if (recordEntry.getPositionId() != null && !Objects.equals(personEntry.getPositionId(), recordEntry.getPositionId())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had positionId changed from " + personEntry.getPositionId() + " to " + recordEntry.getPositionId());
+			}
+
 			personEntry.setPositionId(recordEntry.getPositionId());
 			changes = true;
 		}
 		
 		if (recordEntry.getPositionName() != null && !Objects.equals(personEntry.getPositionName(), recordEntry.getPositionName())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had positionName changed from " + personEntry.getPositionName() + " to " + recordEntry.getPositionName());
+			}
+
 			personEntry.setPositionName((StringUtils.hasLength(recordEntry.getPositionName())) ? recordEntry.getPositionName().trim() : "Ukendt");
 			changes = true;
 		}
 
 		if (recordEntry.getPositionShort() != null && !Objects.equals(personEntry.getPositionShort(), recordEntry.getPositionShort())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had positionShort changed from " + personEntry.getPositionShort() + " to " + recordEntry.getPositionShort());
+			}
+
 			personEntry.setPositionShort(recordEntry.getPositionShort());
 			changes = true;
 		}
 
 		if (recordEntry.getPositionDisplayName() != null && !Objects.equals(personEntry.getPositionDisplayName(), recordEntry.getPositionDisplayName())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had positionDisplayName changed from " + personEntry.getPositionDisplayName() + " to " + recordEntry.getPositionDisplayName());
+			}
+
 			personEntry.setPositionDisplayName(recordEntry.getPositionDisplayName());
 			changes = true;
 		}
 
 		if (recordEntry.getPositionTypeId() != null && !Objects.equals(personEntry.getPositionTypeId(), recordEntry.getPositionTypeId())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had positionTypeId changed from " + personEntry.getPositionTypeId() + " to " + recordEntry.getPositionTypeId());
+			}
+
 			personEntry.setPositionTypeId(recordEntry.getPositionTypeId());
 			changes = true;
 		}
 		
 		if (recordEntry.getPositionTypeName() != null && !Objects.equals(personEntry.getPositionTypeName(), recordEntry.getPositionTypeName())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had positionTypeName changed from " + personEntry.getPositionTypeName() + " to " + recordEntry.getPositionTypeName());
+			}
+
 			personEntry.setPositionTypeName(recordEntry.getPositionTypeName());
 			changes = true;
 		}
 		
 		if (recordEntry.getStartDate() != null && !Objects.equals(toLocalDate(personEntry.getStartDate()), toLocalDate(recordEntry.getStartDate()))) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had startDate changed from " + personEntry.getStartDate() + " to " + recordEntry.getStartDate());
+			}
+
 			personEntry.setStartDate(recordEntry.getStartDate());
 			changes = true;
 		}
 
 		if (recordEntry.getStopDate() != null && !Objects.equals(toLocalDate(personEntry.getStopDate()), toLocalDate(recordEntry.getStopDate()))) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had stopDate changed from " + personEntry.getStopDate() + " to " + recordEntry.getStopDate());
+			}
+
 			personEntry.setStopDate(recordEntry.getStopDate());
 			changes = true;
 		}
 		else if (recordEntry.getStopDate() == null && personEntry.getStopDate() != null) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had stopDate changed from " + personEntry.getStopDate() + " to null");
+			}
+
 			personEntry.setStopDate(null);
 			changes = true;
 		}
 
 		if (recordEntry.getWorkingHoursDenominator() != null && !Objects.equals(personEntry.getWorkingHoursDenominator(), recordEntry.getWorkingHoursDenominator())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had workingHoursDenominator changed from " + personEntry.getWorkingHoursDenominator() + " to " + recordEntry.getWorkingHoursDenominator());
+			}
+
 			personEntry.setWorkingHoursDenominator(recordEntry.getWorkingHoursDenominator());
 			changes = true;
 		}
 		
 		if (recordEntry.getWorkingHoursNumerator() != null && !Objects.equals(personEntry.getWorkingHoursNumerator(), recordEntry.getWorkingHoursNumerator())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had workingHoursNumerator changed from " + personEntry.getWorkingHoursNumerator() + " to " + recordEntry.getWorkingHoursNumerator());
+			}
+
 			personEntry.setWorkingHoursNumerator(recordEntry.getWorkingHoursNumerator());
 			changes = true;
 		}
 
 		if (personEntry.isDeleted() != recordEntry.isDeleted()) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had deleted changed from " + personEntry.isDeleted() + " to " + recordEntry.isDeleted());
+			}
+
 			personEntry.setDeleted(recordEntry.isDeleted());
 			changes = true;
 		}
@@ -692,6 +833,10 @@ public class PersonApi {
 					}
 					
 					for (AffiliationFunctionMapping function : recordEntry.getFunctions()) {
+						if (log.isDebugEnabled()) {
+							log.debug("Affiliation " + personEntry.getId() + " has a function added");
+						}
+
 						personEntry.getFunctions().add(function);
 					}
 					
@@ -712,6 +857,10 @@ public class PersonApi {
 						}
 
 						if (!found) {
+							if (log.isDebugEnabled()) {
+								log.debug("Affiliation " + personEntry.getId() + " has a function removed (case 0)");
+							}
+
 							personEntry.getFunctions().add(recordFunction);
 							changes = true;
 						}
@@ -730,6 +879,10 @@ public class PersonApi {
 						}
 						
 						if (!found) {
+							if (log.isDebugEnabled()) {
+								log.debug("Affiliation " + personEntry.getId() + " has a function removed (case 1)");
+							}
+
 							iterator.remove();
 							changes = true;
 						}
@@ -740,6 +893,10 @@ public class PersonApi {
 				// supplied empty set, so remove all
 				if (personEntry.getFunctions() != null && personEntry.getFunctions().size() > 0) {
 					for (Iterator<AffiliationFunctionMapping> iterator = personEntry.getFunctions().iterator(); iterator.hasNext();) {
+						if (log.isDebugEnabled()) {
+							log.debug("Affiliation " + personEntry.getId() + " has a function removed (case 2)");
+						}
+
 						iterator.next();
 						iterator.remove();
 					}
@@ -751,6 +908,10 @@ public class PersonApi {
 
 		if (recordEntry.getOrgUnit() != null) {
 			if (!recordEntry.getOrgUnit().getUuid().equals(personEntry.getOrgUnit().getUuid())) {
+				if (log.isDebugEnabled()) {
+					log.debug("Affiliation " + personEntry.getId() + " had orgUnitUuid changed from " + personEntry.getOrgUnit().getUuid() + " to " + recordEntry.getOrgUnit().getUuid());
+				}
+
 				personEntry.setOrgUnit(recordEntry.getOrgUnit());
 				changes = true;				
 			}
@@ -766,6 +927,10 @@ public class PersonApi {
 
 		// TODO: should probably not support changing this
 		if (recordEntry.getUuid() != null && !Objects.equals(personEntry.getUuid(), recordEntry.getUuid())) {
+			if (log.isDebugEnabled()) {
+				log.debug("Affiliation " + personEntry.getId() + " had uuid changed from " + personEntry.getUuid() + " to " + recordEntry.getUuid());
+			}
+
 			personEntry.setUuid(recordEntry.getUuid());
 			changes = true;
 		}
@@ -898,7 +1063,7 @@ public class PersonApi {
 			user.setActiveDirectoryDetails(details);
 			changes = true;
 		}
-
+		
 		// no reason to set change = true here - either we are in a very strange migration case (and then the migration should
 		// make sure this is set), or details was NULL above, so kombitUuid will also be null
 		if (!StringUtils.hasLength(details.getKombitUuid())) {
@@ -909,24 +1074,36 @@ public class PersonApi {
 			else {
 				// generate a uuid based on cvr+cpr+user_id+userType. This is to prevent uuid changes for
 				// municipalites that for some reason deletes and recreates user objects
-				var seed = sofdConfiguration.getCustomer().getCvr() + person.getCpr() + user.getUserId() + user.getUserType();
+				String seed = sofdConfiguration.getCustomer().getCvr() + person.getCpr() + user.getUserId() + user.getUserType();
 				details.setKombitUuid(UUID.nameUUIDFromBytes(seed.toLowerCase().getBytes()).toString());
 			}
 		}
 
 		// TODO: these booleans cannot be null, so we cannot avoid patching them - that is an issue
 		if (userRecord.getActiveDirectoryDetails().isPasswordLocked() && details.isPasswordLocked() == false) {
+			if (log.isDebugEnabled()) {
+				log.debug("User " + user.getId() + " has passwordLocked change from " + details.isPasswordLocked() + " to true");
+			}
+
 			changes = true;
 			details.setPasswordLocked(true);
 			details.setPasswordLockedDate(LocalDate.now());
 		}
 		else if (!userRecord.getActiveDirectoryDetails().isPasswordLocked() && details.isPasswordLocked() == true) {
+			if (log.isDebugEnabled()) {
+				log.debug("User " + user.getId() + " has passwordLocked change from " + details.isPasswordLocked() + " to false");
+			}
+
 			changes = true;
 			details.setPasswordLocked(false);
 			details.setPasswordLockedDate(null);
 		}
 
 		if (userRecord.getActiveDirectoryDetails().getWhenCreated() != null && !Objects.equals(userRecord.getActiveDirectoryDetails().getWhenCreated(), details.getWhenCreated())) {
+			if (log.isDebugEnabled()) {
+				log.debug("User " + user.getId() + " has whenCreated change from " + details.getWhenCreated() + " to " + userRecord.getActiveDirectoryDetails().getWhenCreated());
+			}
+
 			changes = true;
 			details.setWhenCreated(userRecord.getActiveDirectoryDetails().getWhenCreated());
 		}
@@ -939,6 +1116,10 @@ public class PersonApi {
 			}
 
 			if (!Objects.equals(newValue, details.getAccountExpireDate())) {
+				if (log.isDebugEnabled()) {
+					log.debug("User " + user.getId() + " has accountExpireDate change from " + details.getAccountExpireDate() + " to " + userRecord.getActiveDirectoryDetails().getAccountExpireDate());
+				}
+
 				changes = true;
 				details.setAccountExpireDate(userRecord.getActiveDirectoryDetails().getAccountExpireDate());
 			}
@@ -952,19 +1133,31 @@ public class PersonApi {
 			}
 
 			if (!Objects.equals(newValue, details.getPasswordExpireDate())) {
+				if (log.isDebugEnabled()) {
+					log.debug("User " + user.getId() + " has passwordExpireDate change from " + details.getPasswordExpireDate() + " to " + userRecord.getActiveDirectoryDetails().getPasswordExpireDate());
+				}
+
 				changes = true;
 				details.setPasswordExpireDate(userRecord.getActiveDirectoryDetails().getPasswordExpireDate());
 			}
 		}
 
 		if (userRecord.getActiveDirectoryDetails().getUpn() != null && !Objects.equals(userRecord.getActiveDirectoryDetails().getUpn(), details.getUpn())) {
+			if (log.isDebugEnabled()) {
+				log.debug("User " + user.getId() + " has upn change from " + details.getUpn() + " to " + userRecord.getActiveDirectoryDetails().getUpn());
+			}
+
 			changes = true;
-			details.setUpn(userRecord.getActiveDirectoryDetails().getUpn());
+			details.setUpn(StringUtils.hasText(userRecord.getActiveDirectoryDetails().getUpn()) ? userRecord.getActiveDirectoryDetails().getUpn() : null);
 		}
 
 		if (userRecord.getActiveDirectoryDetails().getTitle() != null && !Objects.equals(userRecord.getActiveDirectoryDetails().getTitle(), details.getTitle())) {
+			if (log.isDebugEnabled()) {
+				log.debug("User " + user.getId() + " has title change from " + details.getTitle() + " to " + userRecord.getActiveDirectoryDetails().getTitle());
+			}
+
 			changes = true;
-			details.setTitle(userRecord.getActiveDirectoryDetails().getTitle());
+			details.setTitle(StringUtils.hasText(userRecord.getActiveDirectoryDetails().getTitle()) ? userRecord.getActiveDirectoryDetails().getTitle() : null);
 		}
 
 		return changes;
