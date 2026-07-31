@@ -18,10 +18,12 @@ import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 
 import dk.digitalidentity.sofd.controller.mvc.dto.ClientActivityDTO;
+import dk.digitalidentity.sofd.security.RequireNoRole;
 import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.ClientService;
 import jakarta.servlet.http.HttpServletRequest;
 
+@RequireNoRole
 @Controller
 public class DefaultController implements ErrorController {
 	private ErrorAttributes errorAttributes = new DefaultErrorAttributes();

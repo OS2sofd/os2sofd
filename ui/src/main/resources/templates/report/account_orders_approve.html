@@ -40,7 +40,6 @@
 										<td th:text="#{__${order.orderType.messageId}__}"></td>
 										<td>
 											<a href="#" onclick="accountOrderDatatableService.approve(this);" th:attr="data-orderid=${order.id},data-personuuid=${order.personUuid}"><em class="fa fa-fw fa-check"></em></a>
-											<a href="#" onclick="accountOrderDatatableService.reject(this);" th:attr="data-orderid=${order.id}"><em class="fa fa-fw fa-times"></em></a>
 										</td>
 									</tr>
 								</tbody>
@@ -79,15 +78,11 @@
 		/*[+
 			var approveTitle = [[#{html.page.accountorders.approve.title}]];
 			var approveText = [[#{html.page.accountorders.approve.text}]];
-			
-			var rejectTitle = [[#{html.page.accountorders.reject.title}]];
-			var rejectText = [[#{html.page.accountorders.reject.text}]];
-		
+					
 			var changeStatusButtonConfirm = [[#{html.button.yes}]];
 			var changeStatusButtonCancel = [[#{html.button.no}]];
 			
 			var approveUrl = [[@{/ui/account/order/approve}]];
-			var rejectUrl = [[@{/ui/account/order/reject}]];
 			
 			var changeStatusErrorMsg = [[#{html.setting.update.msg.failed}]];
 			
@@ -248,49 +243,6 @@
 					if (isConfirm) {
 						$.ajax({
 							url: approveUrl,
-							headers: {
-								'X-CSRF-TOKEN': token
-							},
-							type: 'post',
-							contentType: 'application/json',
-							data: JSON.stringify({
-								id: orderId
-							}),
-							success: function(data, textStatus, jQxhr) {
-								location.reload();
-							},
-							error: function(jqXhr, textStatus, errorThrown) {
-								$.notify({
-									message: changeStatusErrorMsg
-								}, {
-									status: 'danger',
-									autoHideDelay: 4000
-								});
-							}
-						});
-					}
-				});
-			}
-			
-			this.reject = function(elem) {
-				var orderId = elem.dataset.orderid;
-				
-				swal({
-					html : true,
-					title : rejectTitle,
-					text : rejectText,
-					type : "warning",
-					showCancelButton : true,
-					confirmButtonColor : "#DD6B55",
-					confirmButtonText : changeStatusButtonConfirm,
-					cancelButtonText : changeStatusButtonCancel,
-					closeOnConfirm : true,
-					closeOnCancel : true
-				},
-				function(isConfirm) {
-					if (isConfirm) {
-						$.ajax({
-							url: rejectUrl,
 							headers: {
 								'X-CSRF-TOKEN': token
 							},

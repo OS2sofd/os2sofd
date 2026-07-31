@@ -6,6 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 @Retention(RetentionPolicy.RUNTIME)
+@RequireRoleAnnotation
 @PreAuthorize("hasRole('ROLE_USER_EDIT') or hasRole('ROLE_MANAGER')")
 public @interface RequireUserEditOrManager {
 

@@ -140,32 +140,7 @@ public class ApproveOrderController {
 		
 		return ResponseEntity.ok().build();
 	}
-	
-	@PostMapping("/ui/account/order/reject")
-	public ResponseEntity<?> rejectOrder(@RequestBody AccountOrderDTO body) {
-		AccountOrder accountOrder = accountOrderService.findById(body.getId());
-		if (accountOrder == null) {
-			return ResponseEntity.badRequest().body("Ukendt ordre");
-		}
 
-		Person person = personService.getByUuid(accountOrder.getPersonUuid());
-		if (person == null) {
-			return ResponseEntity.badRequest().body("Ukendt bruger");
-		}
-
-		boolean canAccessAllOrders = SecurityUtil.getUserRoles().contains(RoleConstants.USER_ROLE_EDIT);
-		Person loggedInPerson = personService.getLoggedInPerson();
-		if (!canAccessAllOrders && !canAccess(loggedInPerson, person, accountOrder)) {
-			return ResponseEntity.badRequest().body("Ingen adgang til kontoordre");
-		}
-		
-		accountOrder.setStatus(AccountOrderStatus.FAILED);
-		accountOrder.setMessage("Oprettelse afvist af " + PersonService.getName(loggedInPerson));
-		accountOrderService.save(accountOrder);
-		
-		return ResponseEntity.ok().build();
-	}
-	
 	private boolean canAccess(Person loggedInPerson, Person person, AccountOrder order) {
 		// first check if the currently logged in person is a manager of this person/affiliation
 		List<Person> managers = new ArrayList<>();
