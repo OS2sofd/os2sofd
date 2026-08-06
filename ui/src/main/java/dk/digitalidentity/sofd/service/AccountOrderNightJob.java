@@ -468,7 +468,7 @@ public class AccountOrderNightJob {
 		long daysToDeactivate = supportedUserType.getDaysToDeactivate() == 0 ? 0 : supportedUserType.getDaysToDeactivate() -1;
 		long daysToDelete = supportedUserType.getDaysToDelete() == 0 ? 0 : supportedUserType.getDaysToDelete() -1;
 
-		if (!supportedUserType.isDeactivateEnabled() && !supportedUserType.isDeleteEnabled() || !supportedUserType.isCleanupEnabled()) {
+		if (!supportedUserType.isDeactivateEnabled() && !supportedUserType.isDeleteEnabled() && !supportedUserType.isCleanupEnabled()) {
 			return null;
 		}
 
