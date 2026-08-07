@@ -7,6 +7,7 @@ import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 
 import dk.digitalidentity.sofd.dao.model.Profession;
+import dk.digitalidentity.sofd.dao.model.projection.ProfessionFieldCount;
 import dk.digitalidentity.sofd.dao.model.projection.ProfessionLookup;
 
 public interface ProfessionDao extends CrudRepository<Profession, Long> {
@@ -47,6 +48,51 @@ public interface ProfessionDao extends CrudRepository<Profession, Long> {
 			order by a.pay_grade
 			""")
 	List<String> getUniquePayGrades(@Param("organisationId") long organisationId);
+
+	@Query(nativeQuery = true, value = """
+			select
+			  a.position_name as fieldValue,
+			  count(*) as activeCount
+			from organisations org
+			inner join orgunits o on o.belongs_to = org.id and o.deleted = 0
+			inner join affiliations a on a.orgunit_uuid = o.uuid and a.deleted = 0
+			where
+			  org.id = :organisationId
+			  and (a.start_date is null or a.start_date <= curdate())
+			  and (a.stop_date is null or a.stop_date >= curdate())
+			group by a.position_name
+			""")
+	List<ProfessionFieldCount> getActivePositionNameCounts(@Param("organisationId") long organisationId);
+
+	@Query(nativeQuery = true, value = """
+			select
+			  a.position_type_name as fieldValue,
+			  count(*) as activeCount
+			from organisations org
+			inner join orgunits o on o.belongs_to = org.id and o.deleted = 0
+			inner join affiliations a on a.orgunit_uuid = o.uuid and a.deleted = 0
+			where
+			  org.id = :organisationId
+			  and (a.start_date is null or a.start_date <= curdate())
+			  and (a.stop_date is null or a.stop_date >= curdate())
+			group by a.position_type_name
+			""")
+	List<ProfessionFieldCount> getActivePositionTypeNameCounts(@Param("organisationId") long organisationId);
+
+	@Query(nativeQuery = true, value = """
+			select
+			  a.pay_grade as fieldValue,
+			  count(*) as activeCount
+			from organisations org
+			inner join orgunits o on o.belongs_to = org.id and o.deleted = 0
+			inner join affiliations a on a.orgunit_uuid = o.uuid and a.deleted = 0
+			where
+			  org.id = :organisationId
+			  and (a.start_date is null or a.start_date <= curdate())
+			  and (a.stop_date is null or a.stop_date >= curdate())
+			group by a.pay_grade
+			""")
+	List<ProfessionFieldCount> getActivePayGradeCounts(@Param("organisationId") long organisationId);
 
 	@Query(nativeQuery = true, value= """
 			select

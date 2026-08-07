@@ -4,6 +4,7 @@ import static org.apache.commons.io.FilenameUtils.wildcardMatch;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -21,6 +22,7 @@ import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Profession;
 import dk.digitalidentity.sofd.dao.model.enums.ProfessionMatchType;
+import dk.digitalidentity.sofd.dao.model.projection.ProfessionFieldCount;
 import dk.digitalidentity.sofd.dao.model.projection.ProfessionLookup;
 import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.model.ProfessionTranslation;
@@ -78,6 +80,27 @@ public class ProfessionService {
 
 		// fall through default
 		return professionDao.getUniquePositionNames(organisationId);
+	}
+
+	public Map<String, Long> getActiveAffiliationCounts(long organisationId) {
+		List<ProfessionFieldCount> counts;
+
+		switch (configuration.getModules().getProfessions().getField()) {
+			case PAY_GRADE:
+				counts = professionDao.getActivePayGradeCounts(organisationId);
+				break;
+			case POSITION_TYPE_NAME:
+				counts = professionDao.getActivePositionTypeNameCounts(organisationId);
+				break;
+			case POSITION_NAME:
+			default:
+				counts = professionDao.getActivePositionNameCounts(organisationId);
+				break;
+		}
+
+		return counts.stream()
+				.filter(c -> c.getFieldValue() != null)
+				.collect(Collectors.toMap(ProfessionFieldCount::getFieldValue, ProfessionFieldCount::getActiveCount));
 	}
 
 	public Profession save(Profession profession) {
@@ -218,36 +241,34 @@ public class ProfessionService {
 		List<ProfessionTranslation> translations = new ArrayList<ProfessionTranslation>();
 		List<String> allPositionNames = this.getUniquePositionNames(organisationId);
 		List<Profession> allProfessions = professionDao.findAll();
+		Map<String, Long> activeCounts = getActiveAffiliationCounts(organisationId);
 
 		for (String positionName : allPositionNames) {
 			List<Profession> matchingProfessions = allProfessions.stream()
 					.filter(p -> professionMatchesPosition(p, positionName, organisationId))
 					.toList();
 
+			ProfessionTranslation translation = new ProfessionTranslation();
+			translation.setPositionName(positionName);
+			translation.setActiveAffiliations(activeCounts.getOrDefault(positionName, 0L));
+
 			if (matchingProfessions.isEmpty()) {
-				ProfessionTranslation translation = new ProfessionTranslation();
-				translation.setPositionName(positionName);
 				translation.setMessage("Ingen stilling fundet i stillingskataloget");
-				translations.add(translation);
 			}
 			else if (matchingProfessions.size() == 1) {
-				ProfessionTranslation translation = new ProfessionTranslation();
-				translation.setPositionName(positionName);
 				translation.setMessage("Én stilling fundet i stillingskataloget");
-				
+
 				String match = matchingProfessions.stream().map(Profession::getName).findFirst().get();
 				translation.setTranslation(match);
-				translations.add(translation);
 			}
-			else if (matchingProfessions.size() > 1) {
-				ProfessionTranslation translation = new ProfessionTranslation();
-				translation.setPositionName(positionName);
+			else {
 				translation.setMessage("Flere fundne stillinger i stillingskataloget");
-				
+
 				String matches = matchingProfessions.stream().map(Profession::getName).collect(Collectors.joining(","));
 				translation.setTranslation(matches);
-				translations.add(translation);
 			}
+
+			translations.add(translation);
 		}
 
 		return translations;
