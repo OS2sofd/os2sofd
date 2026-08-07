@@ -58,6 +58,7 @@ import dk.digitalidentity.sofd.dao.model.enums.EndDate;
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.dao.model.enums.EventType;
 import dk.digitalidentity.sofd.dao.model.enums.NotificationType;
+import dk.digitalidentity.sofd.dao.model.enums.UsernameInfixType;
 import dk.digitalidentity.sofd.dao.model.mapping.PersonUserMapping;
 import dk.digitalidentity.sofd.log.AuditLogger;
 import dk.digitalidentity.sofd.service.model.UserAudRow;
@@ -1233,6 +1234,19 @@ public class AccountOrderService {
 		if (userType.getDependsOn() != null) {
 			boolean hasRequiredUserType = false;
 
+			// if the username of this userType is derived from the account it depends on, and this userType is
+			// managed per affiliation, then that account must belong to this very affiliation - otherwise no
+			// username can be generated, and ordering an account we cannot name serves no purpose
+			boolean requireAffiliationMatch = false;
+			if (!userType.isSingleUserMode()
+					&& userType.getUsernameInfix() == UsernameInfixType.SAME_AS_OTHER
+					&& StringUtils.hasLength(userType.getUsernameInfixValue())
+					&& userType.getUsernameInfixValue().matches("\\d+")) {
+
+				SupportedUserType infixUserType = supportedUserTypeService.findById(Long.parseLong(userType.getUsernameInfixValue()));
+				requireAffiliationMatch = infixUserType != null && Objects.equals(infixUserType.getKey(), userType.getDependsOn().getKey());
+			}
+
 			for (User existingUserAccount : affiliation.getPerson().onlyActiveUsers()) {
 				// do not associate substitute accounts according to configuration
 				if (!configuration.getModules().getAccountCreation().isLinkSubstituteADAccountsToExchange() && UserService.isSubstituteUser(existingUserAccount)) {
@@ -1240,6 +1254,15 @@ public class AccountOrderService {
 				}
 
 				if (existingUserAccount.getUserType().equals(userType.getDependsOn().getKey())) {
+
+					// same rule as UsernameGeneratorService applies when the username is copied from this account,
+					// an account linked to a different affiliation cannot supply the username for this one
+					if (requireAffiliationMatch
+							&& StringUtils.hasLength(existingUserAccount.getEmployeeId())
+							&& !Objects.equals(existingUserAccount.getEmployeeId(), affiliation.getEmployeeId())) {
+						continue;
+					}
+
 					hasRequiredUserType = true;
 					break;
 				}
