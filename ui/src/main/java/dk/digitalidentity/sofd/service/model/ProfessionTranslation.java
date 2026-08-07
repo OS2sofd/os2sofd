@@ -9,4 +9,5 @@ public class ProfessionTranslation {
     private String positionName;
     private String message;
     private String translation;
+    private long activeAffiliations;
 }

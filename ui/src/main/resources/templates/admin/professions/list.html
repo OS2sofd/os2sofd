@@ -76,8 +76,9 @@
                             <table id="translationTable" class="table table-striped">
                                 <thead>
                                 <tr>
-                                    <th class="col-md-4" th:text="#{html.page.professions.sourcePositionName}"></th>
-                                    <th class="col-md-4" th:text="#{html.page.professions.result}"></th>
+                                    <th class="col-md-3" th:text="#{html.page.professions.sourcePositionName}"></th>
+                                    <th class="col-md-2" th:text="#{html.page.professions.activeAffiliations}"></th>
+                                    <th class="col-md-3" th:text="#{html.page.professions.result}"></th>
                                     <th class="col-md-4" th:text="#{html.page.professions.translations}"></th>
                                 </tr>
                                 </thead>
@@ -576,6 +577,11 @@
                       data: 'positionName',
                       orderable: true,
                       searchable: true
+                    },
+                    {
+                      data: "activeAffiliations",
+                      orderable: true,
+                      searchable: false
                     },
                     {
                       data: "message",
