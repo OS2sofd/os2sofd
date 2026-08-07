@@ -1,4 +1,4 @@
-CREATE OR REPLACE ALGORITHM=TEMPTABLE VIEW view_odata_affiliation_test AS
+CREATE OR REPLACE ALGORITHM=TEMPTABLE VIEW view_odata_affiliation AS
   SELECT affiliations.id                         AS id,
          affiliations.uuid                       AS uuid,
          affiliations.master                     AS master,
