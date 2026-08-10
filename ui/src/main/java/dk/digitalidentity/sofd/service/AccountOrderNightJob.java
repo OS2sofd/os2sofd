@@ -395,7 +395,7 @@ public class AccountOrderNightJob {
 				// so an external user is closed when there are no more external affilations (and likewise for non-external users and employee-affiliations)
 				if (SupportedUserTypeService.isActiveDirectory(user.getUserType())) {
 					affiliations = affiliations.stream()
-							.filter(a -> a.getAffiliationType() == (user.getActiveDirectoryDetails().isExternal() ? AffiliationType.EXTERNAL : AffiliationType.EMPLOYEE))
+							.filter(a -> affiliationMatchesAccount(a, user.getActiveDirectoryDetails().isExternal()))
 							.collect(Collectors.toList());
 				}
 				
@@ -495,6 +495,17 @@ public class AccountOrderNightJob {
 		return offsetDays;
 	}
 	
+	/**
+	 * an external account is kept alive by external affiliations, and a non-external account by employee
+	 * affiliations - substitutes are treated as employees
+	 */
+	private boolean affiliationMatchesAccount(Affiliation affiliation, boolean isExternalAccount) {
+		return switch (affiliation.getAffiliationType()) {
+			case EXTERNAL -> isExternalAccount;
+			case EMPLOYEE, SUBSTITUTE -> !isExternalAccount;
+		};
+	}
+
 	private boolean shouldKeepAccountAlive(String userType, Affiliation affiliation) {
 		if (affiliation.getDeactivateAndDeleteRule() != AccountOrderDeactivateAndDeleteRule.KEEP_ALIVE) {
 			return false;
