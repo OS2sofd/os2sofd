@@ -6,6 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 @Retention(RetentionPolicy.RUNTIME)
+@RequireRoleAnnotation
 @PreAuthorize("hasRole('ROLE_USER_PERSON_CREATER') or hasRole('ROLE_WRITE_ACCESS') or hasRole('ROLE_USER_EDIT') or hasRole('ROLE_USER_EDIT_CONTACT_INFO')")
 public @interface RequirePersonCreaterOrDaoWriteAccess {
 

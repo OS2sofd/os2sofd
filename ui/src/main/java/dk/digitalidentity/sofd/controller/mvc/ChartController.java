@@ -5,6 +5,8 @@ import java.util.Comparator;
 import java.util.List;
 
 import dk.digitalidentity.sofd.dao.model.Organisation;
+import dk.digitalidentity.sofd.security.RequireNoRole;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,6 +20,7 @@ import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.service.ChartService;
 import dk.digitalidentity.sofd.service.OrgUnitService;
 
+@RequireNoRole
 @Controller
 public class ChartController {
 	
