@@ -9,10 +9,7 @@
 	<section>
 		<div class="content-wrapper">
 			<h3>
-				<a th:href="@{/ui/report/notifications}" class="btn btn-default">
-					<span><i class="fa fa-arrow-left"></i></span>
-				</a>
-
+				<div th:replace="~{fragments/backButton :: backButton}"></div>
 				<span th:text="#{html.navbar.report.notifications}"></span>
 			</h3>
 

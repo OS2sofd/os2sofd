@@ -203,19 +203,18 @@
 
 						return result;
 					}
-				},
-					{
-					data : 'affiliation',
+				}, {
+					data: 'affiliation',
 					render: function (data, type, row, meta) {
 						if (data == null) {
 							return '';
 						}
-						if (row.orgunitUuid != null){
-							return '<span>' + data + '</span><a href=' + ouUrl + row.orgunitUuid + ' title="Gå til enhed">&nbsp<em class="fa fa-fw fa-external-link" /></a>';
+						if (row.orgunitUuid != null) {
+							var link = ouUrl + row.orgunitUuid + '?backRef=person&backRefId=' + row.uuid;
+							return '<span>' + data + '</span><a href="' + link + '" title="Gå til enhed">&nbsp<em class="fa fa-fw fa-external-link" /></a>';
 						} else {
 							return '<span>' + data + '</span>';
 						}
-						
 					}
 				}, {
 					data : 'userIds',

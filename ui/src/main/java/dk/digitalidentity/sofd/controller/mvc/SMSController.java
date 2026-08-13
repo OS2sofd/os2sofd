@@ -49,6 +49,7 @@ import dk.digitalidentity.sofd.service.SmsLogService;
 import dk.digitalidentity.sofd.service.SupportedUserTypeService;
 import dk.digitalidentity.sofd.service.TemplateService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Slf4j
 @RequireSMSAccess
@@ -93,11 +94,12 @@ public class SMSController {
 	}
 
 	@GetMapping("/ui/sms/log/{id}")
-	public String smsLogRecipients(Model model, @PathVariable("id") Long id) {
+	public String smsLogRecipients(Model model, @PathVariable("id") Long id, @RequestParam(required = false, defaultValue = "smslog", value = "backRef") String backRef) {
 		Optional<SmsLog> logOptional = smsLogService.getById(id);
 
 		if (logOptional.isPresent()) {
 			model.addAttribute("log", logOptional.get());
+			model.addAttribute("backRef", backRef);
 		} else {
 			log.error("SMS Log not found.");
 			return "redirect:/ui/sms/log";

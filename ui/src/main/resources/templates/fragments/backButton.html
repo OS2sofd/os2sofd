@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<body>
+<th:block th:fragment="backButton" xmlns:th="http://www.thymeleaf.org">
+    <th:block th:if="${backRef != null}" th:switch="${backRef.toLowerCase()}">
+
+        <a th:case="'person'" class="btn btn-default masterTooltip"
+           th:href="@{/ui/person/view/{id}(id=${backRefId})}"
+           data-toggle="tooltip" data-placement="bottom" title="Tilbage til personen">
+            <em class="fa fa-fw fa-user backButton-icon"></em><em class="fa fa-arrow-left backButton-icon"></em>
+        </a>
+
+        <a th:case="'orgunit'" class="btn btn-default masterTooltip"
+           th:href="@{/ui/orgunit/view/{id}(id=${backRefId})}"
+           data-toggle="tooltip" data-placement="bottom" title="Tilbage til enheden">
+            <em class="fa fa-fw fa-sitemap backButton-icon"></em><em class="fa fa-arrow-left backButton-icon"></em>
+        </a>
+
+        <a th:case="'orgunittree'" class="btn btn-default masterTooltip"
+           th:href="@{/ui/orgunit}"
+           data-toggle="tooltip" data-placement="bottom" title="Tilbage til enhedstræet">
+            </em><em class="fa fa-fw fa-sitemap backButton-icon"></em><em class="fa fa-arrow-left backButton-icon"></em>
+        </a>
+
+        <a th:case="'affiliation'" class="btn btn-default masterTooltip"
+           th:href="@{/ui/affiliation/view/{id}(id=${backRefId})}"
+           data-toggle="tooltip" data-placement="bottom" title="Tilbage til tilhørsforholdet">
+            <em class="fa fa-fw fa-handshake-o backButton-icon"></em><em class="fa fa-arrow-left backButton-icon"></em>
+        </a>
+
+        <a th:case="'report'" class="btn btn-default masterTooltip"
+           th:href="@{/ui/report/reports}"
+           data-toggle="tooltip" data-placement="bottom" title="Tilbage til rapporten">
+            <em class="fa fa-fw fa-book backButton-icon"></em><em class="fa fa-arrow-left backButton-icon"></em>
+        </a>
+
+        <a th:case="'accountorders'" class="btn btn-default masterTooltip"
+           th:href="@{/ui/report/accountorders}"
+           data-toggle="tooltip" data-placement="bottom" title="Tilbage til kontobestillinger">
+            <em class="fa fa-fw fa-recycle backButton-icon"></em><em class="fa fa-arrow-left backButton-icon"></em>
+        </a>
+
+        <a th:case="'adaccount'" class="btn btn-default masterTooltip"
+           th:href="@{/ui/account/order/approve}"
+           data-toggle="tooltip" data-placement="bottom" title="Tilbage til godkendelser">
+            <em class="fa fa-fw fa-table backButton-icon"></em><em class="fa fa-arrow-left backButton-icon"></em>
+        </a>
+
+        <a th:case="'notifications'" class="btn btn-default masterTooltip"
+           th:href="@{/ui/report/notifications}"
+           data-toggle="tooltip" data-placement="bottom" title="Tilbage til notifikationer">
+            <em class="fa fa-fw fa-tasks backButton-icon"></em><em class="fa fa-arrow-left backButton-icon"></em>
+        </a>
+
+        <a th:case="'classifications'" class="btn btn-default masterTooltip"
+           th:href="@{/ui/classifications}"
+           data-toggle="tooltip" data-placement="bottom" title="Tilbage til klassifikationer">
+            <em class="fa fa-fw fa-list-alt backButton-icon"></em><em class="fa fa-arrow-left backButton-icon"></em>
+        </a>
+
+        <a th:case="'smslog'" class="btn btn-default masterTooltip"
+           th:href="@{/ui/sms/log}"
+           data-toggle="tooltip" data-placement="bottom" title="Tilbage til sms-loggen">
+            <em class="fa fa-fw fa-book backButton-icon"></em><em class="fa fa-arrow-left backButton-icon"></em>
+        </a>
+
+        <!-- fallback: unknown backRef-value -->
+        <a th:case="*" class="btn btn-default masterTooltip"
+           href="#" onclick="window.history.back(); return false;"
+           data-toggle="tooltip" data-placement="bottom" title="Tilbage til foregående side">
+            <em class="fa fa-fw fa-arrow-left backButton-icon"></em>
+        </a>
+    </th:block>
+</th:block>
+</body>
+</html>

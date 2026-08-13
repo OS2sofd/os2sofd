@@ -9,11 +9,7 @@
     <section>
         <div class="content-wrapper">
             <h3>
-                <a th:href="@{/ui/classifications}" class="btn btn-default">
-						<span>
-							<i class="fa fa-arrow-left"></i>
-						</span>
-                </a>
+                <div th:replace="~{fragments/backButton :: backButton}"></div>
                 <span th:text="${classification.name}"></span>
             </h3>
 

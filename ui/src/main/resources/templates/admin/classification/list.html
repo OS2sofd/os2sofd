@@ -27,7 +27,7 @@
 								<td th:text="${classification.identifier}"></td>
 								<td th:text="${classification.name}"></td>
 								<td>
-									<a th:href="@{/ui/classifications/{id}(id=${classification.identifier})}">
+									<a th:href="@{/ui/classifications/{id}(id=${classification.identifier}, backRef='classifications')}">
 										<em class="fa fa-fw fa-search"></em>
 									</a>
 								</td>

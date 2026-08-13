@@ -34,7 +34,7 @@
 															<td class="preformat wrap-text" style="-webkit-line-clamp: 5;" th:text="${log.message}"></td>
 															<td th:text="${#dates.format(log.timestamp, 'yyyy-MM-dd  HH:mm')}"></td>
 															<td>
-																<a th:href="@{/ui/sms/log/} + ${log.id}"><em class="fa fa-fw fa-search"></em></a>
+																<a th:href="@{/ui/sms/log/{id}(id=${log.id}, backRef='smslog')}"><em class="fa fa-fw fa-search"></em></a>
 															</td>
 														</tr>
 													</tbody>

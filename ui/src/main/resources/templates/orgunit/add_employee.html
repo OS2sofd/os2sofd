@@ -83,7 +83,7 @@
 					orderable: false,
 					searchable: false,
 					render: function (data, type, row, meta) {
-							return '<a href=' + url + orgunitUuid + '/' + data + '><em class="fa fa-fw fa-plus" /></a>';;
+							return '<a href=' + url + orgunitUuid + '/' + data + '?backRef=orgunittree' + '><em class="fa fa-fw fa-plus" /></a>';
 					}
 				}],
 				'paging':    true,
@@ -113,9 +113,9 @@
  			      'X-CSRF-TOKEN': token
  			   },
  			   type: 'post',
- 			   
+
  			   success: function(data, textStatus, jQxhr) {
- 				 window.location=redirectUrl + orgunitUuid;
+				   window.location = redirectUrl + orgunitUuid + '?backRef=orgunittree';
  			   },
  			   error: function(jQxhr, textStatus, errorThrown) {
  				  $.notify({

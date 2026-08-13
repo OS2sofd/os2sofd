@@ -48,7 +48,7 @@
 										<td th:text="${@supportedUserTypeService.getPrettyName(order.getUserType())}"></td>
 										<td th:text="#{__${order.status.messageId}__}"></td>
 										<td>
-											<a th:href="@{/ui/report/accountorders/} + ${order.id}"><em class="fa fa-fw fa-search"></em></a>
+											<a th:href="@{/ui/report/accountorders/{id}(id=${order.id}, backRef='accountorders')}"><em class="fa fa-fw fa-search"></em></a>
 											<a href="#" th:attr="data-orderid=${order.id}" onclick="deleteAccountOrder(this); return false;"><em class="fa fa-fw fa-times"></em></a>
 										</td>
 									</tr>

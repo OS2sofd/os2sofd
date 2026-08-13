@@ -9,11 +9,7 @@
 	<section>
 		<div class="content-wrapper">
 			<h3>
-				<th:block th:if="${backRef != null}">
-					<a onclick="window.history.back()" href="#" class="btn btn-default">
-						<span><i class="fa fa-arrow-left"></i></span>
-					</a>
-				</th:block>
+				<div th:replace="~{fragments/backButton :: backButton}"></div>
 				<span th:text="#{html.page.person.view.title}"></span>
 
 				<div id="buttonsMenu" style="position: absolute; right: 0; top: 0; margin-top:10px; margin-right: 20px;"></div>
@@ -256,7 +252,7 @@
 									<td>
 										<th:block th:if="${affiliation.getOrgUnit() != null}">
 											<th:block th:unless="${affiliation.getOrgUnit().deleted}">
-												<a th:href="@{/ui/orgunit/view/} + ${affiliation.getOrgUnit().uuid}" style="color: inherit; text-decoration: none;">
+												<a th:href="@{/ui/orgunit/view/{id}(id=${affiliation.getOrgUnit().uuid}, backRef='person', backRefId=${person.uuid})}" style="color: inherit; text-decoration: none;">
 													<span th:text="${affiliation.getOrgUnit().name}"></span>&nbsp;<em class="fa fa-external-link"></em>
 												</a>
 											</th:block>
@@ -268,7 +264,7 @@
 									<td>
 										<th:block th:if="${affiliation.getCalculatedOrgUnit() != null && affiliation.getCalculatedOrgUnit() != affiliation.getOrgUnit()}">
 											<th:block th:unless="${affiliation.getCalculatedOrgUnit().deleted}">
-												<a th:href="@{/ui/orgunit/view/} + ${affiliation.getCalculatedOrgUnit().uuid}" style="color: inherit; text-decoration: none;">
+												<a th:href="@{/ui/orgunit/view/{id}(id=${affiliation.getCalculatedOrgUnit().uuid}, backRef='person', backRefId=${person.uuid})}" style="color: inherit; text-decoration: none;">
 													<span th:text="${affiliation.getCalculatedOrgUnit().name}"></span>&nbsp;<em class="fa fa-external-link"></em>
 												</a>
 											</th:block>
@@ -295,13 +291,13 @@
 									<td th:text="${affiliation.affiliationType != null} ? #{__${affiliation.affiliationType.message}__} : 'Ukendt'"></td>
 									<td th:if="${@sofdConfiguration.getModules().getAffiliationWorkplaces().isEnabled()}" th:text="${not #lists.isEmpty(affiliation.workplaces)} ? ${#lists.size(affiliation.workplaces)} + ' arbejdssteder' : ''"></td>
 									<td>
-										<a th:href="@{/ui/affiliation/view/{id}?backRef=person(id=${affiliation.uuid})}"><em class="fa fa-fw fa-search"></em></a>
+										<a th:href="@{/ui/affiliation/view/{id}(id=${affiliation.uuid}, backRef='person', backRefId=${person.uuid})}"><em class="fa fa-fw fa-search"></em></a>
 										<th:block sec:authorize="hasRole('ROLE_USER_EDIT') OR hasRole('ROLE_USER_ADMIN')">
-											<a th:href="@{/ui/affiliation/view/{id}(id=${affiliation.uuid})}+'?edit=true&backRef=person'"><em class="fa fa-fw fa-pencil"></em></a>
+											<a th:href="@{/ui/affiliation/view/{id}(id=${affiliation.uuid}, edit=true, backRef='person', backRefId=${person.uuid})}"><em class="fa fa-fw fa-pencil"></em></a>
 											<a th:if="${affiliation.master == 'SOFD'}" onclick="deleteAffiliation(this);" th:attr="data-affiliationuuid=${affiliation.uuid}"><em style="cursor:pointer;" class="fa fa-fw fa-times"></em></a>
 										</th:block>
 										<th:block sec:authorize="!hasRole('ROLE_USER_EDIT') AND hasRole('ROLE_USER_PERSON_CREATER')" th:if="${affiliation.master == 'SOFD'} AND (${#lists.contains(constraintOUs, affiliation.orgUnit.uuid)} OR ${#lists.isEmpty(constraintOUs)})">
-											<a th:href="@{/ui/affiliation/view/{id}(id=${affiliation.uuid})}+'?edit=true&backref=person'"><em class="fa fa-fw fa-pencil"></em></a>
+											<a th:href="@{/ui/affiliation/view/{id}(id=${affiliation.uuid}, edit=true, backRef='person', backRefId=${person.uuid})}"><em class="fa fa-fw fa-pencil"></em></a>
 											<a th:if="${affiliation.master == 'SOFD'}" onclick="deleteAffiliation(this);" th:attr="data-affiliationuuid=${affiliation.uuid}"><em  style="cursor:pointer;" class="fa fa-fw fa-times"></em></a>
 										</th:block>
 									</td>

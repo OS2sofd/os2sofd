@@ -213,11 +213,14 @@
 						orderable: true,
 						searchable: true,
 						render: function (data, type, row, meta) {
-                            if (typesMap[row.notificationType] === 'Manuelle adviser') {
-                                return row.affectedEntityName + ' <a href=' + url + 'report/notifications/' + row.id + '><em class="fa fa-fw fa-external-link"></em></a>';
-                            } else {
-                                return row.affectedEntityName + ' <a href=' + url + row.affectedEntityType.toLowerCase() + '/view/' + row.affectedEntityUuid + '><em class="fa fa-fw fa-external-link"></em></a>';
-                            }
+							let link;
+							if (typesMap[row.notificationType] === 'Manuelle adviser') {
+								link = url + 'report/notifications/' + row.id + '?backRef=notifications';
+								return row.affectedEntityName + ' <a href="' + link + '"><em class="fa fa-fw fa-external-link"></em></a>';
+							} else {
+								link = url + row.affectedEntityType.toLowerCase() + '/view/' + row.affectedEntityUuid + '?backRef=notifications';
+								return row.affectedEntityName + ' <a href="' + link + '"><em class="fa fa-fw fa-external-link"></em></a>';
+							}
 						}
 					},
 					{
