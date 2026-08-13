@@ -5,6 +5,7 @@ import static dk.digitalidentity.sofd.util.NullChecker.getValue;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -263,15 +264,14 @@ public class ManagerService {
 				continue;
 			}
 
-			List<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+			Set<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
 			recipients.addAll(emailTemplateChildService.getRecipientsList(child.getRecipientsCC()));
 			recipients.addAll(emailTemplateChildService.getRecipientsList(child.getRecipientsBCC()));
 
-			if( !child.isOnlyManualRecipients())
-			{
-				if( managerPerson != null ) {
+			if (!child.isOnlyManualRecipients()) {
+				if (managerPerson != null) {
 					var managerOrSubstitutes = emailTemplateService.getManagerOrSubstitutes(child, managerPerson, orgUnit.getUuid());
-					for( var managerOrSubstitute : managerOrSubstitutes ) {
+					for (var managerOrSubstitute : managerOrSubstitutes) {
 						var email = PersonService.getEmail(managerOrSubstitute);
 						if( StringUtils.hasLength(email) ) {
 							recipients.add(email);

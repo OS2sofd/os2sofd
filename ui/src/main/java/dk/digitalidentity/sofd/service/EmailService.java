@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -98,13 +99,13 @@ public class EmailService {
 
 			if (templateChild != null) {
 				if (templateChild.getRecipientsCC() != null) {
-					List<String> recipients = emailTemplateChildService.getRecipientsList(templateChild.getRecipientsCC());
+					Set<String> recipients = emailTemplateChildService.getRecipientsList(templateChild.getRecipientsCC());
 					InternetAddress[] cc = emailTemplateChildService.convertRecipientsToAddresses(recipients);
 					msg.setRecipients(Message.RecipientType.CC, cc);
 				}
 
 				if (templateChild.getRecipientsBCC() != null) {
-					List<String> recipients = emailTemplateChildService.getRecipientsList(templateChild.getRecipientsBCC());
+					Set<String> recipients = emailTemplateChildService.getRecipientsList(templateChild.getRecipientsBCC());
 					InternetAddress[] bcc = emailTemplateChildService.convertRecipientsToAddresses(recipients);
 					msg.setRecipients(Message.RecipientType.BCC, bcc);
 				}
@@ -203,12 +204,12 @@ public class EmailService {
 
 			if (templateChild != null) {
 				if (templateChild.getRecipientsCC() != null) {
-					List<String> recipients = emailTemplateChildService.getRecipientsList(templateChild.getRecipientsCC());
+					Set<String> recipients = emailTemplateChildService.getRecipientsList(templateChild.getRecipientsCC());
 					request.message.ccRecipients = recipients.stream().map(this::toRecipient).toList();
 				}
 
 				if (templateChild.getRecipientsBCC() != null) {
-					List<String> recipients = emailTemplateChildService.getRecipientsList(templateChild.getRecipientsBCC());
+					Set<String> recipients = emailTemplateChildService.getRecipientsList(templateChild.getRecipientsBCC());
 					request.message.bccRecipients = recipients.stream().map(this::toRecipient).toList();
 				}
 

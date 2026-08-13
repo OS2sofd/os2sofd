@@ -3,6 +3,7 @@ package dk.digitalidentity.sofd.service;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -350,16 +352,23 @@ public class AccountOrderService {
 					logContext.append(", ").append("Enhed: ").append(orgUnitManager.getOrgUnit().getName());
 
 					// handle manual recipients
-					List<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
-					for( var recipient : recipients ) {
+					Set<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+					for (var recipient : recipients) {
 						var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 						var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 						emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
 					}
+
 					if (!child.isOnlyManualRecipients()) {
 						List<Person> personRecipients = emailTemplateService.getManagerOrSubstitutes(child, manager, orgUnitManager.getOrgunitUuid());
-						emailQueueService.queueEmail(title, message, new Date(), child, personRecipients, logContext.toString());
+						
+						// remove duplicates to avoid double sending
+						personRecipients = personRecipients.stream()
+							    .collect(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(Person::getUuid))))
+							    .stream()
+							    .toList();
 
+						emailQueueService.queueEmail(title, message, new Date(), child, personRecipients, logContext.toString());
 					}
 				}
 			}
@@ -1575,20 +1584,27 @@ public class AccountOrderService {
 									logContext.append(", ").append("Konto: ").append(order.getActualUserId());
 									logContext.append(", ").append("Enhed: ").append(managerResponse.getOrgUnit().getName());
 
-									List<String> manualRecpients = emailTemplateChildService.getRecipientsList(child.getRecipients());
-									for( var recipient : manualRecpients ) {
+									Set<String> manualRecpients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+									for (var recipient : manualRecpients) {
 										var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 										var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 										emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
 									}
-									if(!child.isOnlyManualRecipients()) {
+
+									if (!child.isOnlyManualRecipients()) {
 										List<Person> personRecipients = emailTemplateService.getManagerOrSubstitutes(child, manager, orgUnitUuid);
 										message = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(manager));
 										title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(manager));
+
+										// remove duplicates to avoid double sending
+										personRecipients = personRecipients.stream()
+											    .collect(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(Person::getUuid))))
+											    .stream()
+											    .toList();
+										
 										for (Person recipient : personRecipients) {
 											emailQueueService.queueEmail(recipient, title, message, child.getMinutesDelay(), child, logContext.toString());
 										}
-
 									}
 								}
 							}
@@ -1598,7 +1614,7 @@ public class AccountOrderService {
 						EmailTemplate template = emailTemplateService.findByTemplateType(EmailTemplateType.AD_CREATE_EMPLOYEE);
 						for (EmailTemplateChild child : template.getChildren()) {
 							if (child.isEnabled() && filterByEmployeeType(child, person, affiliation)) {
-								if( affiliation != null && !emailTemplateService.shouldIncludeOrgUnit(child,affiliation.getOrgUnit().getUuid()) ) {
+								if (affiliation != null && !emailTemplateService.shouldIncludeOrgUnit(child,affiliation.getOrgUnit().getUuid())) {
 									log.debug("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + (affiliation != null ? affiliation.getUuid() : "<null>") + ". The affiliation OU was filtered out.");
 									continue;
 								}
@@ -1654,10 +1670,11 @@ public class AccountOrderService {
 						EmailTemplate template = emailTemplateService.findByTemplateType(EmailTemplateType.EXCHANGE_CREATE_EMPLOYEE);
 						for (EmailTemplateChild child : template.getChildren()) {
 							if (child.isEnabled() && filterByEmployeeType(child, person, affiliation)) {
-								if( affiliation != null && !emailTemplateService.shouldIncludeOrgUnit(child,affiliation.getOrgUnit().getUuid()) ) {
+								if (affiliation != null && !emailTemplateService.shouldIncludeOrgUnit(child,affiliation.getOrgUnit().getUuid())) {
 									log.debug("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + (affiliation != null ? affiliation.getUuid() : "<null>") + ". The affiliation OU was filtered out.");
 									continue;
 								}
+
 								String message = child.getMessage();
 								message = message.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
 								message = message.replace(EmailTemplatePlaceholder.ACCOUNT_PLACEHOLDER.getPlaceholder(), order.getLinkedUserId());
@@ -1674,8 +1691,8 @@ public class AccountOrderService {
 								logContext.append(", ").append("Medarbejdernummer: ").append(affiliation.getEmployeeId());
 								logContext.append(", ").append("Konto: ").append(order.getActualUserId());
 
-								List<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
-								for( var recipient : recipients ) {
+								Set<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+								for (var recipient : recipients) {
 									var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 									var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 									emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
@@ -1712,8 +1729,8 @@ public class AccountOrderService {
 								logContext.append(", ").append("Medarbejder: ").append(PersonService.getName(person));
 								logContext.append(", ").append("Konto: ").append(order.getActualUserId());
 
-								List<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
-								for( var recipient : recipients ) {
+								Set<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+								for (var recipient : recipients) {
 									var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 									var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 									emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
@@ -1822,8 +1839,8 @@ public class AccountOrderService {
 								logContext.append(", ").append("Konto: ").append(order.getActualUserId());
 								logContext.append(", ").append("Enhed: ").append(managerResponse.getOrgUnit().getName());
 
-								List<String> manualRecipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
-								for( var recipient : manualRecipients ) {
+								Set<String> manualRecipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+								for (var recipient : manualRecipients) {
 									var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 									var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 									emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
@@ -1833,6 +1850,13 @@ public class AccountOrderService {
 									List<Person> personRecipients = emailTemplateService.getManagerOrSubstitutes(child, manager, orgUnitUuid);
 									message = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(manager));
 									title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(manager));
+									
+									// remove duplicates to avoid double sending
+									personRecipients = personRecipients.stream()
+										    .collect(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(Person::getUuid))))
+										    .stream()
+										    .toList();
+
 									for (Person recipient : personRecipients) {
 										emailQueueService.queueEmail(recipient, title, message, child.getMinutesDelay(), child, logContext.toString());
 									}
@@ -1875,20 +1899,27 @@ public class AccountOrderService {
                                     logContext.append(", ").append("Konto: ").append(order.getActualUserId());
                                     logContext.append(", ").append("Enhed: ").append(managerResponse.getOrgUnit().getName());
 
-                                    List<String> manualRecpients = emailTemplateChildService.getRecipientsList(child.getRecipients());
-                                    for( var recipient : manualRecpients ) {
+                                    Set<String> manualRecpients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+                                    for (var recipient : manualRecpients) {
                                         var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
                                         var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
                                         emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
                                     }
+
                                     if(!child.isOnlyManualRecipients()) {
                                         List<Person> personRecipients = emailTemplateService.getManagerOrSubstitutes(child, manager, orgUnitUuid);
                                         message = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(manager));
                                         title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(manager));
+                                        
+										// remove duplicates to avoid double sending
+										personRecipients = personRecipients.stream()
+											    .collect(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(Person::getUuid))))
+											    .stream()
+											    .toList();
+                                        
                                         for (Person recipient : personRecipients) {
                                             emailQueueService.queueEmail(recipient, title, message, child.getMinutesDelay(), child, logContext.toString());
                                         }
-
                                     }
                                 }
                             }
@@ -1950,8 +1981,8 @@ public class AccountOrderService {
 						logContext.append("Skabelon: ").append(child.getTitle());
 						logContext.append(", ").append("Medarbejder: ").append(PersonService.getName(person));
 
-						List<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
-						for( var manualRecipients : recipients ) {
+						Set<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+						for (var manualRecipients : recipients) {
 							var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), manualRecipients);
 							var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), manualRecipients);
 							emailQueueService.queueEmailToSystemMailbox(manualRecipients, recipientTitle, recipientMessage, 0, child, logContext.toString());
@@ -2010,7 +2041,7 @@ public class AccountOrderService {
 								logContext.append(", ").append("Konto: ").append(order.getActualUserId());
 								logContext.append(", ").append("Enhed: ").append(managerResponse.getOrgUnit().getName());
 
-								List<String> manualRecipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+								Set<String> manualRecipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
 								for (var recipient : manualRecipients) {
 									var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 									var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
@@ -2021,6 +2052,13 @@ public class AccountOrderService {
 									List<Person> recipients = emailTemplateService.getManagerOrSubstitutes(child, manager, orgUnitUuid);
 									message = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(manager));
 									title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(manager));
+									
+									// remove duplicates to avoid double sending
+									recipients = recipients.stream()
+										    .collect(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(Person::getUuid))))
+										    .stream()
+										    .toList();
+
 									for (Person recipient : recipients) {
 										emailQueueService.queueEmail(recipient, title, message, child.getMinutesDelay(), child, logContext.toString());
 									}
@@ -2052,8 +2090,6 @@ public class AccountOrderService {
 								continue;
 							}
 							
-							
-
 							String message = child.getMessage();
 							message = message.replace(EmailTemplatePlaceholder.EMPLOYEE_PLACEHOLDER.getPlaceholder(), PersonService.getName(person));
 							message = message.replace(EmailTemplatePlaceholder.ACCOUNT_PLACEHOLDER.getPlaceholder(), order.getActualUserId());
@@ -2070,8 +2106,8 @@ public class AccountOrderService {
 							logContext.append(", ").append("Konto: ").append(order.getActualUserId());
 							logContext.append(", ").append("Enhed: ").append(managerResponse.getOrgUnit().getName());
 
-							List<String> manualRecipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
-							for( var recipient : manualRecipients ) {
+							Set<String> manualRecipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+							for (var recipient : manualRecipients) {
 								var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 								var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 								emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
@@ -2081,6 +2117,13 @@ public class AccountOrderService {
 								List<Person> recipients = emailTemplateService.getManagerOrSubstitutes(child, manager, orgUnitUuid);
 								message = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(manager));
 								title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), PersonService.getName(manager));
+								
+								// remove duplicates to avoid double sending
+								recipients = recipients.stream()
+									    .collect(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(Person::getUuid))))
+									    .stream()
+									    .toList();
+
 								for (Person recipient : recipients) {
 									emailQueueService.queueEmail(recipient, title, message, child.getMinutesDelay(), child, logContext.toString());
 								}

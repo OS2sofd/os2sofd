@@ -6,11 +6,13 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -367,8 +369,8 @@ public class AffiliationService {
 			logContext.append(", ").append("Medarbejdernummer: ").append(affiliation.getEmployeeId());
 			logContext.append(", ").append("Enhed: ").append(affiliation.getCalculatedOrgUnit().getName());
 
-			List<String> manualRecipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
-			for( var recipient : manualRecipients ) {
+			Set<String> manualRecipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+			for (var recipient : manualRecipients) {
 				var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 				var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 				emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
@@ -384,6 +386,13 @@ public class AffiliationService {
 
 				message = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), managerResponse.getName());
 				title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), managerResponse.getName());
+				
+				// remove duplicates to avoid double sending
+				recipients = recipients.stream()
+					    .collect(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(Person::getUuid))))
+					    .stream()
+					    .toList();
+
 				for (Person recipient : recipients) {
 					emailQueueService.queueEmail(recipient, title, message, 0, child, logContext.toString());
 				}

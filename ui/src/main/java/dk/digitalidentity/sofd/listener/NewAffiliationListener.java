@@ -2,9 +2,12 @@ package dk.digitalidentity.sofd.listener;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -198,16 +201,24 @@ public class NewAffiliationListener implements ListenerAdapter {
 					logContext.append(", ").append("Enhed: ").append(managerResponse.getOrgUnit().getName());
 
 					// handle manual recipients
-					List<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
-					for( var recipient : recipients ) {
+					Set<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+					for (var recipient : recipients) {
 						var recipientMessage = messageReminder.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 						var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 						emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString());
 					}
+
 					// handle other recipients
 					if (!child.isOnlyManualRecipients()) {
 						List<Person> emailRecipients = getManagerOrSubstitutes(child, manager, affiliation.getCalculatedOrgUnit().getUuid());
 						emailRecipients.add(person);
+						
+						// remove duplicates to avoid double sending
+						emailRecipients = emailRecipients.stream()
+							    .collect(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(Person::getUuid))))
+							    .stream()
+							    .toList();
+						
 						emailQueueService.queueEmail(title, messageReminder, secondTts, child, emailRecipients, logContext.toString());
 
 					}
