@@ -321,7 +321,7 @@ public class PersonController {
     }
 
     @GetMapping("/ui/person/view/{uuid}")
-    public String view(Model model, @PathVariable("uuid") String uuid, @RequestParam(required = false, value = "backRef") String backRef) {
+    public String view(Model model, @PathVariable("uuid") String uuid, @RequestParam(required = false, value = "backRef") String backRef, @RequestParam(required = false, value = "backRefId") String backRefId) {
         Person person = personService.getByUuid(uuid);
         if (person == null) {
             return "redirect:/ui/person/";
@@ -362,6 +362,7 @@ public class PersonController {
         model.addAttribute("allUserTypes", supportedUserTypeService.findAll());
         model.addAttribute("functionTypes", functionTypeService.findAllAsDTO());
         model.addAttribute("backRef", backRef);
+        model.addAttribute("backRefId", backRefId);
         model.addAttribute("showChoosePrimeAD", personDTO.getUsers().stream().filter(user -> SupportedUserTypeService.isActiveDirectory(user.getUserType())).count() > 1);
         model.addAttribute("today", LocalDate.now().toString());
         model.addAttribute("constraintOUs", SecurityUtil.getOrgUnitUuidsConstraintFromPersonCreaterRole());
@@ -578,6 +579,8 @@ public class PersonController {
         List<RevisionId> revs = personService.getRevisionIds(uuid);
         model.addAttribute("revisions", revs);
         model.addAttribute("uuid", uuid);
+        model.addAttribute("backRef", "person");
+        model.addAttribute("backRefId", uuid);
 
         return "person/revision_list";
     }

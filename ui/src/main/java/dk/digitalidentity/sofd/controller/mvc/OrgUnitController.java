@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 
 import dk.digitalidentity.sofd.config.RoleConstants;
@@ -195,7 +196,7 @@ public class OrgUnitController {
 	}
 
 	@GetMapping(path = {"/ui/orgunit/view/{uuid}"})
-	public String view(Model model, @PathVariable("uuid") String uuid) throws Exception {
+	public String view(Model model, @PathVariable("uuid") String uuid, @RequestParam(required = false, value = "backRef") String backRef, @RequestParam(required = false, value = "backRefId") String backRefId) throws Exception {
 		OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
 		if (orgUnit == null) {
 			log.warn("No OrgUnit with uuid " + uuid);
@@ -217,6 +218,8 @@ public class OrgUnitController {
 		}
 		model.addAttribute("allKles", kleDTOs);
 		model.addAttribute("tags", tags);
+		model.addAttribute("backRef", backRef);
+		model.addAttribute("backRefId", backRefId);
 		model.addAttribute("orgUnit", orgUnit);
 		model.addAttribute("inheritedEan", "1234567890");
 		model.addAttribute("postAddresses", OrgUnitService.getPosts(orgUnit));
@@ -291,7 +294,7 @@ public class OrgUnitController {
 
 	@RequireControllerWriteAccess
 	@GetMapping("/ui/orgunit/view/{uuid}/addemployee")
-	public String addEmployee(Model model, @PathVariable("uuid") String uuid) throws Exception {
+	public String addEmployee(Model model, @PathVariable("uuid") String uuid, @RequestParam(required = false, value = "backRef") String backRef) throws Exception {
 		OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
 		if (orgUnit == null) {
 			log.warn("No OrgUnit with uuid " + uuid);
@@ -299,13 +302,14 @@ public class OrgUnitController {
 		}
 
 		model.addAttribute("orgUnit", orgUnit);
+		model.addAttribute("backRef", backRef);
 
 		return "orgunit/add_employee";
 	}
 
 	@RequireControllerWriteAccess
 	@GetMapping("/ui/orgunit/affiliation/{orgUnitUuid}/{personUuid}")
-	public String newAffiliation(Model model, @PathVariable("orgUnitUuid") String orgUnitUuid, @PathVariable("personUuid") String personUuid) {
+	public String newAffiliation(Model model, @PathVariable("orgUnitUuid") String orgUnitUuid, @PathVariable("personUuid") String personUuid, @RequestParam(required = false, value = "backRef") String backRef) {
 		OrgUnit orgUnit = orgUnitService.getByUuid(orgUnitUuid);
 		if (orgUnit == null) {
 			log.warn("No OrgUnit with uuid " + orgUnitUuid);
@@ -318,13 +322,14 @@ public class OrgUnitController {
 		model.addAttribute("affiliationDTO", affiliationDTO);
 		model.addAttribute("personUUID", personUuid);
 		model.addAttribute("orgUnit", orgUnit);
+		model.addAttribute("backRef", backRef);
 
 		return "orgunit/new_affiliation";
 	}
 
 	@RequireControllerWriteAccess
 	@PostMapping("/ui/orgunit/affiliation")
-	public String createNewAffiliation(Model model, @ModelAttribute("personUUID") String personUUID, @Valid @ModelAttribute("affiliationDTO") AffiliationDTO affiliationDTO, BindingResult bindingResult) {
+	public String createNewAffiliation(Model model, @ModelAttribute("personUUID") String personUUID, @Valid @ModelAttribute("affiliationDTO") AffiliationDTO affiliationDTO, @RequestParam(required = false, value = "backRef") String backRef, BindingResult bindingResult) {
 		OrgUnit ou = orgUnitService.getByUuid(affiliationDTO.getOrgUnitUuid());
 		if (ou == null) {
 			log.warn("Could not find orgUnit with uuid " + affiliationDTO.getOrgUnitUuid() + " while assigning new affiliation");
@@ -337,6 +342,7 @@ public class OrgUnitController {
 			model.addAttribute("affiliationDTO", affiliationDTO);
 			model.addAttribute("personUUID", personUUID);
 			model.addAttribute("orgUnit", ou);
+			model.addAttribute("backRef", backRef);
 
 			return "orgunit/new_affiliation";
 		}
@@ -345,7 +351,7 @@ public class OrgUnitController {
 		if (person == null) {
 			log.warn("Could not find person with uuid " + personUUID + " while assigning new affiliation");
 
-			return "redirect:/ui/orgunit/view/" + affiliationDTO.getOrgUnitUuid() + "/addemployee";
+			return "redirect:/ui/orgunit/view/" + affiliationDTO.getOrgUnitUuid() + "/addemployee"  + (backRef != null ? "?backRef=" + backRef : "");
 		}
 
 		addAffiliationFromDTO(affiliationDTO, person, ou);
@@ -362,11 +368,11 @@ public class OrgUnitController {
 
 		auditLogger.log(person.getUuid(), EntityType.PERSON, EventType.AFFILIATION_CREATED, PersonService.getName(person), logMessage.toString());
 
-		return "redirect:/ui/orgunit/view/" + affiliationDTO.getOrgUnitUuid();
+		return "redirect:/ui/orgunit/view/" + affiliationDTO.getOrgUnitUuid() + (backRef != null ? "?backRef=" + backRef : "");
 	}
 
 	@GetMapping("/ui/orgunit/view/{uuid}/addemployees")
-	public String addEmployees(Model model, @PathVariable("uuid") String uuid) throws Exception {
+	public String addEmployees(Model model, @PathVariable("uuid") String uuid, @RequestParam(required = false, value = "backRef") String backRef) throws Exception {
 		OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
 		if (orgUnit == null) {
 			log.warn("No OrgUnit with uuid " + uuid);
@@ -376,6 +382,7 @@ public class OrgUnitController {
 
 		model.addAttribute("orgUnits", orgUnitService.getAllTree());
 		model.addAttribute("orgUnit", orgUnit);
+		model.addAttribute("backRef", backRef);
 
 		return "orgunit/add_employees";
 	}

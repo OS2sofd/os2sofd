@@ -10,6 +10,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -30,10 +31,11 @@ public class ClassificationController {
 
     @RequireReadAccess
     @GetMapping("/{identifier}")
-    public String viewClassification(@PathVariable String identifier, Model model) {
+    public String viewClassification(@PathVariable String identifier, Model model, @RequestParam(required = false, defaultValue = "classifications", value = "backRef") String backRef) {
         try {
             ClassificationWithItemsDTO classification = classificationService.getClassificationByIdentifier(identifier);
             model.addAttribute("classification", classification);
+            model.addAttribute("backRef", backRef);
             return "admin/classification/view";
         } catch (IllegalArgumentException ex) {
             return "redirect:/ui/classifications?error=notfound";

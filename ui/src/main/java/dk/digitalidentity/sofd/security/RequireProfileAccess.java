@@ -6,7 +6,6 @@ import java.lang.annotation.RetentionPolicy;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 @Retention(RetentionPolicy.RUNTIME)
-@RequireRoleAnnotation
 @PreAuthorize("hasRole('ROLE_MODULE_PROFILE')")
 public @interface RequireProfileAccess {
 

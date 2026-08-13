@@ -48,7 +48,7 @@ public class AffiliationController {
 	}
 
 	@GetMapping("/ui/affiliation/view/{uuid}")
-	public String view(Model model, @PathVariable("uuid") String uuid, @RequestParam(required = false, defaultValue = "orgUnit", value = "backRef") String backRef, @RequestParam(required = false, defaultValue = "false", value = "edit") boolean isEdit) throws Exception {
+	public String view(Model model, @PathVariable("uuid") String uuid, @RequestParam(required = false, defaultValue = "orgUnit", value = "backRef") String backRef, @RequestParam(required = false, value = "backRefId") String backRefId, @RequestParam(required = false, defaultValue = "false", value = "edit") boolean isEdit) throws Exception {
 		Affiliation affiliation = affiliationService.findByUuid(uuid);
 		List<OrgUnit> orgUnits = orgUnitService.getAll();
 		if (affiliation == null) {
@@ -67,6 +67,7 @@ public class AffiliationController {
 
 		model.addAttribute("isEdit", isEdit);
 		model.addAttribute("backRef", backRef);
+		model.addAttribute("backRefId", backRefId);
 		model.addAttribute("affiliation", affiliation);
 		model.addAttribute("ous", orgUnitService.getAllTree());
 		model.addAttribute("ousNoTree", orgUnits);

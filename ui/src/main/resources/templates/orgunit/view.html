@@ -9,11 +9,7 @@
 		<section>
 			<div class="content-wrapper">
 				<h3>
-					<a th:href="@{/ui/orgunit}" class="btn btn-default">
-						<span>
-							<i class="fa fa-arrow-left"></i>
-						</span>
-					</a>
+					<div th:replace="~{fragments/backButton :: backButton}"></div>
 					<span th:text="#{html.page.orgunit.view.title}"></span>
 					<th:block th:if="${(orgUnit != null && @securityUtil.canEditOrgUnit(orgUnit.uuid)) || orgUnit == null}">
 						<div sec:authorize="hasRole('ROLE_USER_EDIT')" id="buttonsMenu" style="position: absolute; right: 0; top: 0; margin-top:10px; margin-right: 20px;"></div>
@@ -159,7 +155,7 @@
                                                 </td>
                                                 <td th:text="${employee.employmentTermsText}"></td>
                                                 <td>
-                                                    <a th:href="@{/ui/person/view/{id}(id=${employee.uuid})}">
+													<a th:href="@{/ui/person/view/{id}(id=${employee.uuid}, backRef='orgunit', backRefId=${orgUnit.uuid})}">
                                                         <em class="fa fa-search"></em>
                                                     </a>
                                                 </td>

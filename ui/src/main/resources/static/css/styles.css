@@ -89,3 +89,7 @@ li.bold {
     font-family: 'Arial', sans-serif;
     font-size: 12px;
 }
+
+.backButton-icon {
+	color: #fff;
+}

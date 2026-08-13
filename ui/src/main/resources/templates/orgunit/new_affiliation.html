@@ -86,7 +86,7 @@
 									<div class="form-group">
 										<div class="col-sm-offset-2 col-sm-10">
 											<button type="submit" style="margin-right: 5px;" class="btn btn-lg btn-primary col-xs-2"  th:text="#{html.control.button.save}"></button>
-											<a th:href="@{'/ui/orgunit/view/' + ${orgUnit.uuid} + '/addemployee'}" style="margin-right: 5px;" class="btn btn-lg btn-danger col-xs-2" th:text="#{html.control.button.cancel}"></a>
+											<a th:href="@{'/ui/orgunit/view/' + ${orgUnit.uuid} + '/addemployee' + '?backRef=orgunittree'}" style="margin-right: 5px;" class="btn btn-lg btn-danger col-xs-2" th:text="#{html.control.button.cancel}"></a>
 										</div>
 									</div>
 								</form>

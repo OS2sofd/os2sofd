@@ -14,12 +14,10 @@ import dk.digitalidentity.sofd.controller.mvc.admin.dto.LoginForm;
 import dk.digitalidentity.sofd.dao.model.SOFDAccount;
 import dk.digitalidentity.sofd.dao.model.enums.EventType;
 import dk.digitalidentity.sofd.log.AuditLogger;
-import dk.digitalidentity.sofd.security.RequireNoRole;
 import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.SOFDAccountService;
 
 @Controller
-@RequireNoRole
 public class LocalLoginController {
 
 	@Autowired

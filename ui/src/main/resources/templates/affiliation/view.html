@@ -9,18 +9,7 @@
 	<section>
 		<div class="content-wrapper">
 			<h3>
-				<th:block th:switch="${backRef}">
-					<a th:case="'person'" th:href="@{/ui/person/view/{id}(id=${affiliation.person.uuid})}" class="btn btn-default">
-						<span>
-							<i class="fa fa-arrow-left"></i>
-						</span>
-					</a>
-					<a th:case="*" th:href="@{/ui/orgunit/view/{id}(id=${affiliation.orgUnit.uuid})}" class="btn btn-default">
-						<span>
-							<i class="fa fa-arrow-left"></i>
-						</span>
-					</a>
-				</th:block>
+				<div th:replace="~{fragments/backButton :: backButton}"></div>
 				<span th:text="#{html.page.affiliation.view.title}"></span>
 
 				<div id="buttonsMenu" style="position: absolute; right: 0; top: 0; margin-top:10px; margin-right: 20px;">

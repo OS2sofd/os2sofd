@@ -64,7 +64,7 @@ div .affix {
 			initOrgUnitTree(orgUnits);
 			
 			$("#orgUnitTreeHierarchy").on("select_node.jstree", function(e, data) {
-				$( "#addLink" ).attr("href", addUrl + orgUnitUuid + "/" + data.node.id );
+				$( "#addLink" ).attr("href", addUrl + orgUnitUuid + "/" + data.node.id + "?backRef=orgunittree");
 			});
 		});
 

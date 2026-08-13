@@ -9,9 +9,7 @@
 	<section>
 		<div class="content-wrapper">
 			<h3>
-				<a th:href="@{/ui/person/view/}+${uuid}" class="btn btn-default">
-					<span><i class="fa fa-arrow-left"></i></span>
-				</a>
+				<div th:replace="~{fragments/backButton :: backButton}"></div>
 				<span th:text="#{html.page.person.view.revision.title}"></span>
 			</h3>
 			<div class="panel panel-default">

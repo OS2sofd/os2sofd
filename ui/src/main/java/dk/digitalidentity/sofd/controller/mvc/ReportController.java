@@ -136,7 +136,7 @@ public class ReportController {
 	}
 	
 	@GetMapping("/ui/report/accountorders/{id}")
-	public String accountOrder(Model model, @PathVariable("id") long id) {
+	public String accountOrder(Model model, @PathVariable("id") long id, @RequestParam(required = false, defaultValue = "accountorders", value = "backRef") String backRef) {
 		AccountOrder order = accountOrderService.findById(id);
 		if (order == null) {
 			return "redirect:/ui/report/accountorders";
@@ -152,6 +152,7 @@ public class ReportController {
 		AccountOrderDTO orderDTO = new AccountOrderDTO(order, person);
 		
 		model.addAttribute("order", orderDTO);
+		model.addAttribute("backRef", backRef);
 		
 		return "report/accountorderView";
 	}
@@ -358,13 +359,14 @@ public class ReportController {
 	}
 	
 	@GetMapping(path = "/ui/report/notifications/{id}")
-	public String viewNotification(Model model, @PathVariable("id") long id) {
+	public String viewNotification(Model model, @PathVariable("id") long id, @RequestParam(required = false, defaultValue = "notifications", value = "backRef") String backRef) {
 		Notification adminTask = adminTasksService.findById(id);
 		if (adminTask == null) {
 			return "redirect:/ui/report/notifications";
 		}
 
 		model.addAttribute("notification", adminTask);
+		model.addAttribute("backRef", backRef);
 
 		return "report/notificationView";
 	}
