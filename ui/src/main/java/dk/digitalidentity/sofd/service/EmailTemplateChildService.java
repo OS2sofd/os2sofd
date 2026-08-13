@@ -1,7 +1,9 @@
 package dk.digitalidentity.sofd.service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -47,12 +49,12 @@ public class EmailTemplateChildService {
 		return (List<EmailTemplateChild>) emailTemplateChildDao.findAll();
 	}
 	
-	public List<String> getRecipientsList(String templateRecipients) {
-		List<String> recipients = new ArrayList<String>();
-		if( templateRecipients != null )
-		{
+	public Set<String> getRecipientsList(String templateRecipients) {
+		Set<String> recipients = new HashSet<String>();
+
+		if (templateRecipients != null) {
 			for (String recipient : templateRecipients.split(";")) {
-				if(StringUtils.hasLength(recipient)) {
+				if (StringUtils.hasLength(recipient)) {
 					recipients.add(recipient.trim());
 				}
 			}
@@ -61,7 +63,7 @@ public class EmailTemplateChildService {
 		return recipients;
 	}
 
-	public InternetAddress[] convertRecipientsToAddresses(List<String> recipients) {
+	public InternetAddress[] convertRecipientsToAddresses(Set<String> recipients) {
 		List<InternetAddress> result = new ArrayList<>();
 
 		for (String recipient : recipients) {

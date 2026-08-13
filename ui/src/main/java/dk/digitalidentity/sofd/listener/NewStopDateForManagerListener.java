@@ -2,6 +2,7 @@ package dk.digitalidentity.sofd.listener;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,11 +73,12 @@ public class NewStopDateForManagerListener implements ListenerAdapter {
 				continue;
 			}
 
-			List<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+			Set<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
 			if (recipients.isEmpty()) {
 				continue;
 			}
-			if( !emailTemplateService.shouldIncludeOrgUnit(child,affiliation.getCalculatedOrgUnit().getUuid()) ) {
+
+			if (!emailTemplateService.shouldIncludeOrgUnit(child,affiliation.getCalculatedOrgUnit().getUuid())) {
 				log.debug("Not sending email for email template child with id " + child.getId() + " for affiliation with uuid " + (affiliation != null ? affiliation.getUuid() : "<null>") + ". The affiliation OU was filtered out.");
 				continue;
 			}

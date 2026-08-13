@@ -2,6 +2,7 @@ package dk.digitalidentity.sofd.service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -88,7 +89,7 @@ public class FunctionAssignmentService {
 				logContext.append(", ").append("Funktion: ").append(assignment.getFunction().getName());
 				logContext.append(", ").append("Enhed: ").append(assignment.getAffiliation().getCalculatedOrgUnit().getName());
 
-				List<String> manualRecipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+				Set<String> manualRecipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
 				for (var recipient : manualRecipients) {
 					if (StringUtils.hasLength(recipient)) {
 						var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
@@ -144,7 +145,7 @@ public class FunctionAssignmentService {
 				logContext.append(", ").append("Funktion: ").append(assignment.getFunction().getName());
 				logContext.append(", ").append("Enhed: ").append(assignment.getAffiliation().getCalculatedOrgUnit().getName());
 
-				List<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+				Set<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
 				for( var recipient : recipients ) {
 					var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 					var recipientTitle = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);

@@ -3,6 +3,7 @@ package dk.digitalidentity.sofd.listener;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -141,8 +142,8 @@ public class NewAffiliationNotifyManagerListener implements ListenerAdapter {
 
 				Person manager = managerResponse.getManager();
 				if (child.isOnlyManualRecipients()) {
-					List<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
-					for( var recipient : recipients ) {
+					Set<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+					for (var recipient : recipients) {
 						sendNewAffiliationEmailOnlyManualRecipients(child, simpleDateFormat, affiliation, manager, recipient, managerResponse);
 					}
 				}

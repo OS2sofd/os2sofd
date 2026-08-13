@@ -52,6 +52,12 @@
 							<em class="fa fa-fw fa-cogs"></em>
 							<span th:text="#{html.navbar.sub.admin}"></span>
 						</a>
+
+						<a sec:authorize="hasRole('ROLE_USER_CHART_EDITOR') and !hasRole('ROLE_USER_ADMIN')"
+						   th:href="@{/ui/admin/chart/list}">
+							<em class="fa fa-fw fa-cogs"></em>
+							<span th:text="#{html.navbar.sub.admin}"></span>
+						</a>
 					</li>
 					
 					<li sec:authorize="hasRole('ROLE_MODULE_PROFILE')" th:class="${subpage == 'profile'} ? 'bold' : ''">

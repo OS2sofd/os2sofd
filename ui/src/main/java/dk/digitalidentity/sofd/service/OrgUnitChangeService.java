@@ -3,6 +3,7 @@ package dk.digitalidentity.sofd.service;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,7 +83,7 @@ public class OrgUnitChangeService {
 				continue;
 			}
 
-			List<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+			Set<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
 			if (recipients.isEmpty()) {
 				continue;
 			}

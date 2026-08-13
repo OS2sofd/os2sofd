@@ -1046,8 +1046,8 @@ public class PersonService {
 		logContext.append(", ").append("Konto: ").append(userId);
 
 		// handle manual recipients
-		List<String> recipients = emailTemplateChildService.getRecipientsList(templateChild.getRecipients());
-		for( var recipient : recipients ) {
+		Set<String> recipients = emailTemplateChildService.getRecipientsList(templateChild.getRecipients());
+		for (var recipient : recipients) {
 			var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 			var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 			emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, templateChild, logContext.toString());

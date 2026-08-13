@@ -1,6 +1,7 @@
 package dk.digitalidentity.sofd.listener;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,14 +102,14 @@ public class OrgUnitManagerChangesListener implements ListenerAdapter {
 					logContext.append("Skabelon: ").append(child.getTitle());
 					logContext.append(", ").append("Enhed: ").append(orgUnit.getName());
 
-					List<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
-					for( var recipient : recipients ) {
+					Set<String> recipients = emailTemplateChildService.getRecipientsList(child.getRecipients());
+					for (var recipient : recipients) {
 						var recipientMessage = message.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 						var recipientTitle = title = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), recipient);
 						emailQueueService.queueEmailToSystemMailbox(recipient, recipientTitle, recipientMessage, 0, child, logContext.toString() );
 					}
 
-					if( child.isOnlyManualRecipients()) {
+					if (child.isOnlyManualRecipients()) {
 						continue;
 					}
 
@@ -123,11 +124,8 @@ public class OrgUnitManagerChangesListener implements ListenerAdapter {
 						var newManagerTitle = title.replace(EmailTemplatePlaceholder.RECEIVER_PLACEHOLDER.getPlaceholder(), newManagerName);
 						emailQueueService.queueEmail(newManager, newManagerTitle, newManagerMessage, 0, child, logContext.toString());
 					}
-
 				}
 			}
 		}
-
-		
 	}
 }
