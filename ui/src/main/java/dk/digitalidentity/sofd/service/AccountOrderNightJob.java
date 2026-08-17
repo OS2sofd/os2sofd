@@ -303,6 +303,7 @@ public class AccountOrderNightJob {
 		}
 
 		Set<String> organisations = configuration.getScheduled().getAccountOrderGeneration().getOrganisations();
+		boolean separateExternalAccounts = configuration.getScheduled().getAccountOrderGeneration().isSeparateExternalAccounts();
 
 		// find orderable usertypes
 		List<SupportedUserType> orderableUserTypesAsObjects = supportedUserTypeService.findAll().stream()
@@ -393,7 +394,7 @@ public class AccountOrderNightJob {
 
 				// for AD users, we should match affiliationType (EXTERNAL or EMPLOYEE) with type of user (external or not),
 				// so an external user is closed when there are no more external affilations (and likewise for non-external users and employee-affiliations)
-				if (SupportedUserTypeService.isActiveDirectory(user.getUserType())) {
+				if (separateExternalAccounts && SupportedUserTypeService.isActiveDirectory(user.getUserType())) {
 					affiliations = affiliations.stream()
 							.filter(a -> affiliationMatchesAccount(a, user.getActiveDirectoryDetails().isExternal()))
 							.collect(Collectors.toList());
@@ -420,6 +421,13 @@ public class AccountOrderNightJob {
 					}
 
 					delete = !(foundMatchingAffiliation);
+				}
+
+				// when externals are not handled as a separate lane, the master/organisation setup only decides what can
+				// trigger orders, not whether a person is still attached to the organisation - so an account is only
+				// closed when the person has no affiliations left that would keep it alive
+				if (delete && !separateExternalAccounts && hasAffiliationKeepingAccountAlive(person, user.getUserType())) {
+					delete = false;
 				}
 
 				if (delete) {
@@ -495,6 +503,16 @@ public class AccountOrderNightJob {
 		return offsetDays;
 	}
 	
+	/**
+	 * unlike the affiliations used to decide which account belongs to which affiliation, this ignores the configured
+	 * masters, organisations and affiliation types - any affiliation that is still running, and that is not ruled out
+	 * by the orgunit setup, means the person is still attached and their accounts should stay open
+	 */
+	private boolean hasAffiliationKeepingAccountAlive(Person person, String userType) {
+		return AffiliationService.notStoppedAffiliations(person.getAffiliations()).stream()
+				.anyMatch(a -> shouldKeepAccountAlive(userType, a));
+	}
+
 	/**
 	 * an external account is kept alive by external affiliations, and a non-external account by employee
 	 * affiliations - substitutes are treated as employees

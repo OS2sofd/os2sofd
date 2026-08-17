@@ -937,11 +937,13 @@ public class AccountOrderService {
 		}
 
 		Set<String> organisations = configuration.getScheduled().getAccountOrderGeneration().getOrganisations();
+		boolean separateExternalAccounts = configuration.getScheduled().getAccountOrderGeneration().isSeparateExternalAccounts();
 
 		affiliations = affiliations.stream()
 			.filter(a ->
 				masters.contains(a.getMaster()) &&
-				(a.getAffiliationType().equals(AffiliationType.EMPLOYEE) || a.getAffiliationType().equals(AffiliationType.EXTERNAL)) &&
+				(a.getAffiliationType().equals(AffiliationType.EMPLOYEE)
+					|| (separateExternalAccounts && a.getAffiliationType().equals(AffiliationType.EXTERNAL))) &&
 				organisations.contains(a.getCalculatedOrgUnit().getBelongsTo().getShortName()) &&
 				a.getPerson().isDisableAccountOrdersCreate() == false &&
 				a.getDeactivateAndDeleteRule() == AccountOrderDeactivateAndDeleteRule.KEEP_ALIVE
@@ -1099,7 +1101,8 @@ public class AccountOrderService {
 						// vikXXXX accounts are skipped when it comes to IdM processes
 						!UserService.isSubstituteUser(u) &&
 						// external accounts are only matched for external affiliations
-						(u.getActiveDirectoryDetails() != null && u.getActiveDirectoryDetails().isExternal() == isExternalAffiliation) &&
+						(!configuration.getScheduled().getAccountOrderGeneration().isSeparateExternalAccounts()
+							|| (u.getActiveDirectoryDetails() != null && u.getActiveDirectoryDetails().isExternal() == isExternalAffiliation)) &&
 						// accounts linked a specific affiliation, will only ever get taken into account for that affiliation
 						(u.getEmployeeId() == null || Objects.equals(u.getEmployeeId(), employeeId))
 					).collect(Collectors.toList());
@@ -1360,6 +1363,15 @@ public class AccountOrderService {
 			return false;
 		}
 
+		// unless externals are handled as a separate lane, they do not take part in the IdM processes at all.
+		// note that we use allMatch instead of filtering the externals out of the list, because the list is used
+		// by a lambda further down and therefore cannot be reassigned - and every caller passes in exactly one
+		// affiliation anyway, so the two are equivalent in practice
+		if (!configuration.getScheduled().getAccountOrderGeneration().isSeparateExternalAccounts()
+				&& affiliations.stream().allMatch(a -> a.getAffiliationType() == AffiliationType.EXTERNAL)) {
+			return false;
+		}
+
 		// extract person and the list of existing active users of the relevant type
 		Person person = affiliations.get(0).getPerson();
 		List<User> existingUsers = person.onlyActiveUsers().stream().filter(u -> Objects.equals(u.getUserType(), userType)).collect(Collectors.toList());
@@ -1370,7 +1382,7 @@ public class AccountOrderService {
 		}
 
 		// external AD users should match external affiliations (and employee affiliations should match non-external users), so they do not block each other
-		if (SupportedUserTypeService.isActiveDirectory(userType)) {
+		if (configuration.getScheduled().getAccountOrderGeneration().isSeparateExternalAccounts() && SupportedUserTypeService.isActiveDirectory(userType)) {
 			existingUsers = existingUsers.stream().filter(u -> {
 				return affiliations.stream().anyMatch(a ->
 					a.getAffiliationType().equals(AffiliationType.EXTERNAL) && u.getActiveDirectoryDetails().isExternal() ||

@@ -20,6 +20,9 @@ public class AccountOrderGeneration {
 	// optional list - if available, do pre-validation on OPUS accounts before creation to ensure they start with one of these
 	private Set<String> opusOptionalPrefix;
 
+	@FeatureDocumentation(name = "Adskilt håndtering af eksterne konti", description = "Når slået til, kan eksterne tilhørsforhold udløse deres egen AD-konto, og en konto holdes kun i live af tilhørsforhold af samme type. Når slået fra, udløser kun medarbejder-tilhørsforhold kontobestillinger, en eksisterende konto blokerer nye, og ethvert aktivt tilhørsforhold holder kontoen i live")
+	private boolean separateExternalAccounts = false;
+
 	private Set<String> organisations = new HashSet<>(Set.of("ADMORG"));
 	private boolean ignoreDeleteOrdersIfNoAffiliations = true;
 	private AccountOrderDeactivateAndDeleteRule affiliationDeactivateAndDeleteRuleDefault = AccountOrderDeactivateAndDeleteRule.KEEP_ALIVE;
