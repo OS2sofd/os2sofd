@@ -36,6 +36,7 @@ import dk.digitalidentity.sofd.security.RequirePersonCreaterOrControllerWriteAcc
 import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.OrgUnitService;
 import dk.digitalidentity.sofd.service.PersonService;
+import dk.digitalidentity.sofd.util.DateConverter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -229,11 +230,15 @@ public class AffiliationRestController {
 		}
 
 		if (dto.startDate.isAfter(dto.stopDate)) {
-			return new ResponseEntity<>("Startdatoen skal være efter stopdatoen", HttpStatus.BAD_REQUEST);
+			return new ResponseEntity<>("Startdatoen skal være før stopdatoen", HttpStatus.BAD_REQUEST);
 		}
 
 		if (isOverlap(dto.startDate, dto.stopDate, affiliation.getWorkplaces())) {
 			return new ResponseEntity<>("Den valgte periode for arbejdsstedet overlapper med perioden for en af de andre arbejdssteder", HttpStatus.BAD_REQUEST);
+		}
+
+		if (isOutsideAffiliationPeriod(dto.startDate, dto.stopDate, affiliation)) {
+			return new ResponseEntity<>("Den valgte periode for arbejdsstedet rækker ud over tilhørsforholdets periode", HttpStatus.BAD_REQUEST);
 		}
 
 		Workplace workplace = new Workplace();
@@ -268,6 +273,21 @@ public class AffiliationRestController {
 		personService.save(person);
 
 		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
+	public boolean isOutsideAffiliationPeriod(LocalDate startDate, LocalDate stopDate, Affiliation affiliation) {
+		LocalDate affiliationStartDate = DateConverter.toLocalDate(affiliation.getStartDate());
+		LocalDate affiliationStopDate = DateConverter.toLocalDate(affiliation.getStopDate());
+
+		if (affiliationStartDate != null && startDate.isBefore(affiliationStartDate)) {
+			return true;
+		}
+
+		if (affiliationStopDate != null && stopDate.isAfter(affiliationStopDate)) {
+			return true;
+		}
+
+		return false;
 	}
 
 	public boolean isOverlap(LocalDate startDate, LocalDate stopDate, List<Workplace> otherWorkplaces) {
