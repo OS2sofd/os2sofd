@@ -651,11 +651,31 @@ public class UsernameGeneratorService {
                 usernameTemplateItem.setUsernameTemplateVariableType(UsernameTemplateVariableType.fromVariableName(formatVariable));
                 usernameTemplateItem.setParameter(formatParameter);
                 usernameTemplateItem.setUppercase(Character.isUpperCase(formatVariable.charAt(0)));
+                usernameTemplateItem.setUseCprName(configuration.getModules().getAccountCreation().isUseCprNameForUsernameGenerator());
                 templateItems.add(usernameTemplateItem);
             } catch (Exception e) {
                 log.warn("Failed to parse username template variable '" + formatVariable + "' for userType '" + userType.getKey() + "', ignoring it");
             }
         }
+
+		// resolve the name permutations once, and drop the ones that are bad words. Filtering here means a
+		// blocked permutation does not eat attempts, and that we do not ask the database about the same
+		// permutation once per attempt
+		for (var templateItem : templateItems) {
+			if (templateItem.getUsernameTemplateVariableType() != UsernameTemplateVariableType.NAMESEQUENCE) {
+				continue;
+			}
+
+			var nameSequenceValues = templateItem.getNameSequenceValues(templateItem.getSourceName(person));
+			nameSequenceValues.removeIf(value -> reservedUsernameDao.isBadWord(value) != 0);
+
+			if (nameSequenceValues.isEmpty()) {
+				log.warn("No usable name permutations for " + person.getUuid() + " / " + userType.getKey() + " - either they are all bad words, or the name/parameter could not be used");
+				return null;
+			}
+
+			templateItem.setNameSequenceValues(nameSequenceValues);
+		}
 
 		// if the SERIAL is part of the variables we allow lots of attempts as it will just increment the serial until it finds a valid username
 		// we do not allow unlimited...in case someone attempts to make SERIAL-only template...

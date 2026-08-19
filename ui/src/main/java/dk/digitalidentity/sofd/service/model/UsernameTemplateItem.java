@@ -5,6 +5,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -24,8 +25,15 @@ import lombok.Setter;
 public class UsernameTemplateItem {
     private UsernameTemplateVariableType usernameTemplateVariableType;
     private boolean uppercase;
+    // mirrors sofd.modules.account-creation.use-cpr-name-for-username-generator, so the template path
+    // honours the same setting as the affixial path and does not let a chosen name drive the username
+    private boolean useCprName;
     private String separator = ".";
     private String parameter;
+
+    // name permutations resolved up front by UsernameGeneratorService, so bad word permutations can be
+    // filtered away once instead of being regenerated (and rejected) on every attempt
+    private List<String> nameSequenceValues;
 
     public String getValue(Person person, Affiliation affiliation, AtomicInteger remainingPermutations) {
 
@@ -39,7 +47,7 @@ public class UsernameTemplateItem {
             case ALLSURNAMES -> getLengthLimitedValue(String.join(".", person.getSurname().trim().split("\\s+")));
             case FULLNAME -> getLengthLimitedValue(person.getFirstname() + " " + person.getSurname());
             case CHOSENNAME -> getLengthLimitedValue(PersonService.getName(person));
-            case NAMESEQUENCE -> getNameSequence(PersonService.getName(person), remainingPermutations);
+            case NAMESEQUENCE -> getNameSequence(getSourceName(person), remainingPermutations);
             case LETTERS -> getLengthLimitedPermutation("abcdefghijklmnopqrstuvwxyz", remainingPermutations);
             case RANDOMLETTERS -> getRandomPermutation("abcdefghijklmnopqrstuvwxyz", remainingPermutations);
             case NUMBERS -> getLengthLimitedPermutation("0123456789", remainingPermutations);
@@ -51,7 +59,41 @@ public class UsernameTemplateItem {
         return isUppercase() ? result.toUpperCase() : result.toLowerCase();
     }
 
+    /**
+     * The name the generator derives permutations from. {kaldenavn} is deliberately left out of this,
+     * as that variable is an explicit request for the chosen name.
+     */
+    public String getSourceName(Person person) {
+        return useCprName ? PersonService.getCprName(person) : PersonService.getName(person);
+    }
+
     private String getNameSequence(String fullName, AtomicInteger remainingPermutations) {
+        var permutations = (nameSequenceValues != null) ? nameSequenceValues : getNameSequenceValues(fullName);
+        if (permutations.isEmpty()) {
+            return "";
+        }
+
+        // mixed radix counter: the permutation varies fastest, so all permutations are tried without a
+        // serial before any of them is tried with one. Clamping to the last permutation instead would
+        // hand every remaining attempt to that single permutation, and a bad word on it would then block
+        // all of them, leaving the person without a username even though the other permutations were free.
+        var index = remainingPermutations.get() % permutations.size();
+        remainingPermutations.set(remainingPermutations.get() / permutations.size());
+
+        return permutations.get(index);
+    }
+
+    /**
+     * The name permutations for this item, in preference order (exact length before shorter ones). Public
+     * so UsernameGeneratorService can resolve them once per generation and filter out bad words before the
+     * attempt loop runs. Returns an empty list if this is not a name sequence item, or if the parameter or
+     * the name cannot be used.
+     */
+    public List<String> getNameSequenceValues(String fullName) {
+        if (usernameTemplateVariableType != UsernameTemplateVariableType.NAMESEQUENCE) {
+            return new ArrayList<>();
+        }
+
         try {
             // Parse multiple length limits from parameter (e.g., "4,5,6")
             var lengthLimits = new ArrayList<Integer>();
@@ -63,7 +105,7 @@ public class UsernameTemplateItem {
             }
 
             if (lengthLimits.isEmpty()) {
-                return "";
+                return new ArrayList<>();
             }
 
             var nameParts = Arrays.stream(Transliteration.transliterate(fullName, null).toLowerCase().split("\\s+"))
@@ -78,11 +120,9 @@ public class UsernameTemplateItem {
                 generatePermutationsForLength(nameParts, lengthLimit, permutations);
             }
 
-            var index = Math.min(remainingPermutations.get(), permutations.size() - 1);
-            remainingPermutations.addAndGet(-index);
-            return new ArrayList<>(permutations).get(index);
+            return new ArrayList<>(permutations);
         } catch (Exception e) {
-            return "";
+            return new ArrayList<>();
         }
     }
 
