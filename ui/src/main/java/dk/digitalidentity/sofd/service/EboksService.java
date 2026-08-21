@@ -81,6 +81,14 @@ public class EboksService {
 			return false;
 		}
 
+		// Digital Post silently discards messages where the subject contains a colon (it replies 200 OK,
+		// but nothing is ever sent), so we filter it out here as the subject comes from the templates
+		if (subject != null && subject.contains(":")) {
+			String filteredSubject = subject.replace(":", "").replaceAll("\\s+", " ").trim();
+			log.warn("Subject contains a colon, which is not supported by Digital Post. Changed subject from '" + subject + "' to '" + filteredSubject + "'");
+			subject = filteredSubject;
+		}
+
 		RestTemplate restTemplate = new RestTemplate();
 		String resourceUrl = configuration.getIntegrations().getEboks().getUrl();
 
