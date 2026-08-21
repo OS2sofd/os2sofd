@@ -401,20 +401,20 @@ public class AccountOrderApiController {
 
 				if ((dto.getStatus().equals(AccountOrderStatus.CREATED) || dto.getStatus().equals(AccountOrderStatus.REACTIVATED)) && SupportedUserTypeService.isActiveDirectory(userType)) {
 
-					// check if we need to set employeeId
-					if (StringUtils.hasLength(accountOrder.getEmployeeId())) {
-						// see if user was already created in SOFD (happens in some cases if Event Dispatcher is faster than Account Agent notify call)
-						var existingUser = userService.findByUserIdAndUserType(accountOrder.getActualUserId(),SupportedUserTypeService.getActiveDirectoryUserType());
-						if (existingUser != null) {
+					// see if user was already created in SOFD (happens in some cases if Event Dispatcher is faster than Account Agent notify call)
+					var existingUser = userService.findByUserIdAndUserType(accountOrder.getActualUserId(),SupportedUserTypeService.getActiveDirectoryUserType());
+					if (existingUser != null) {
+						// check if we need to set employeeId
+						if (StringUtils.hasLength(accountOrder.getEmployeeId())) {
 							existingUser.setEmployeeId(accountOrder.getEmployeeId());
-
-							// if this is an AD account, we also copy the external flag to the account from the order
-							if (existingUser.getActiveDirectoryDetails() != null) {
-								existingUser.getActiveDirectoryDetails().setExternal(accountOrder.isExternal());
-							}
-
-							userService.save(existingUser);
 						}
+
+						// if this is an AD account, we also copy the external flag to the account from the order
+						if (existingUser.getActiveDirectoryDetails() != null) {
+							existingUser.getActiveDirectoryDetails().setExternal(accountOrder.isExternal());
+						}
+
+						userService.save(existingUser);
 					}
 
 					// check if any account orders depend on this account order being created

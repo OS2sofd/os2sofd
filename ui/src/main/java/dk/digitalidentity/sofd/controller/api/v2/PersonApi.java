@@ -198,7 +198,17 @@ public class PersonApi {
 		}
 		
 		personService.deleteExistingDuplicateUsers(person, record.getUuid());
-		person = personService.save(record.toPerson(null, seedPrefix, externalDefaultInheritPrivileges));
+
+		Person personToSave = record.toPerson(null, seedPrefix, externalDefaultInheritPrivileges);
+
+		// lookup matching account order for newly created users, and copy relevant information to those
+		if (personToSave.getUsers() != null) {
+			for (PersonUserMapping mapping : personToSave.getUsers()) {
+				copyAccountOrderFields(mapping);
+			}
+		}
+
+		person = personService.save(personToSave);
 
 		return new ResponseEntity<>(new PersonApiRecord(person), HttpStatus.CREATED);
 	}
@@ -532,9 +542,13 @@ public class PersonApi {
 			if (personCollection == null || personCollection.size() == 0) {
 				if (personCollection == null) {
 					setCollectionMethod.invoke(person, new ArrayList<T>());
+					personCollection = (Collection<T>) getCollectionMethod.invoke(person);
 				}
 
 				for (T recordEntry : recordCollection) {
+					// lookup matching account order for newly created users, and copy relevant information to those
+					copyAccountOrderFields(recordEntry);
+
 					personCollection.add(recordEntry);
 				}
 				
@@ -579,17 +593,7 @@ public class PersonApi {
 					if (!found) {
 
 						// lookup matching account order for newly created users, and copy relevant information to those
-						if (recordEntry.getEntity() instanceof User recordUser) {
-							List<AccountOrder> matchingAccountOrders = accountOrderService.findOrder(SupportedUserTypeService.getActiveDirectoryUserType(), AccountOrderType.CREATE, AccountOrderStatus.CREATED, recordUser.getUserId());
-							if (matchingAccountOrders != null && matchingAccountOrders.size() > 0) {
-								AccountOrder accountOrder = matchingAccountOrders.get(0);
-								
-								recordUser.setEmployeeId(accountOrder.getEmployeeId());
-								if (recordUser.getActiveDirectoryDetails() != null) {
-									recordUser.getActiveDirectoryDetails().setExternal(accountOrder.isExternal());
-								}
-							}
-						}
+						copyAccountOrderFields(recordEntry);
 
 						personCollection.add(recordEntry);
 						changes = true;
@@ -623,6 +627,30 @@ public class PersonApi {
 		}
 
 		return changes;
+	}
+
+	/**
+	 * if a user was ordered through SOFD, the account order knows things about the account that the
+	 * agent delivering the account does not (employeeId and the external flag), so we copy those from
+	 * the order to the account. Note that this is only ever done when the account is added to SOFD -
+	 * afterwards SOFD is the master of these two fields, and they are not patched again.
+	 */
+	private void copyAccountOrderFields(MappedEntity recordEntry) {
+		if (!(recordEntry.getEntity() instanceof User recordUser)) {
+			return;
+		}
+
+		List<AccountOrder> matchingAccountOrders = accountOrderService.findOrder(SupportedUserTypeService.getActiveDirectoryUserType(), AccountOrderType.CREATE, AccountOrderStatus.CREATED, recordUser.getUserId());
+		if (matchingAccountOrders == null || matchingAccountOrders.isEmpty()) {
+			return;
+		}
+
+		AccountOrder accountOrder = matchingAccountOrders.get(0);
+
+		recordUser.setEmployeeId(accountOrder.getEmployeeId());
+		if (recordUser.getActiveDirectoryDetails() != null) {
+			recordUser.getActiveDirectoryDetails().setExternal(accountOrder.isExternal());
+		}
 	}
 
 	private boolean patchAffiliationEntityFields(Affiliation personEntry, Affiliation recordEntry) {
