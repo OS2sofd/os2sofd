@@ -73,8 +73,8 @@ public interface PersonDao extends JpaRepository<Person, String>, JpaSpecificati
 					or ad.kombit_uuid = :query
 					or p.firstname like concat(:query,'%')
 					or p.surname like concat(:query,'%')
-					or p.chosen_name like concat(:query,'%')
-					or concat (p.firstname,' ',p.surname) like concat(:query,'%')
+					or p.chosen_name like concat(replace(:query,' ','%'),'%')
+					or concat(p.firstname,' ',p.surname) like concat(replace(:query,' ','%'),'%')
 					or u.user_id like concat(:query,'%')
 					or trim(leading '0' from a.employee_id) = trim(leading '0' from :query)
 					or (:cprAccess and p.cpr like concat(:query,'%'))
