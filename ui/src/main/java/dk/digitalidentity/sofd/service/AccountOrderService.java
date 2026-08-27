@@ -923,6 +923,7 @@ public class AccountOrderService {
 	 * - master must be from configured set of masters that can trigger IdM orders
 	 * - referenced OrgUnit must be in an Organisation that can trigger IdM orders
 	 * - neither person nor affiliation may have IdM orders disabled for create orders
+	 * - the affiliation may not be a substitute, as those have their own lane and never take part in the IdM logic
 	 */
 	public List<Affiliation> filterAffiliationsForCreateOrders(List<Affiliation> affiliations) {
 		Set<String> masters;
@@ -937,13 +938,13 @@ public class AccountOrderService {
 		}
 
 		Set<String> organisations = configuration.getScheduled().getAccountOrderGeneration().getOrganisations();
-		boolean separateExternalAccounts = configuration.getScheduled().getAccountOrderGeneration().isSeparateExternalAccounts();
 
 		affiliations = affiliations.stream()
 			.filter(a ->
 				masters.contains(a.getMaster()) &&
-				(a.getAffiliationType().equals(AffiliationType.EMPLOYEE)
-					|| (separateExternalAccounts && a.getAffiliationType().equals(AffiliationType.EXTERNAL))) &&
+				// note that externals are not filtered out here - whether they get an account of their own, or are
+				// handled in the employee lane, is decided by isHandledAsExternalAccount() further down
+				a.getAffiliationType() != AffiliationType.SUBSTITUTE &&
 				organisations.contains(a.getCalculatedOrgUnit().getBelongsTo().getShortName()) &&
 				a.getPerson().isDisableAccountOrdersCreate() == false &&
 				a.getDeactivateAndDeleteRule() == AccountOrderDeactivateAndDeleteRule.KEEP_ALIVE
@@ -953,6 +954,16 @@ public class AccountOrderService {
 		affiliations = AffiliationService.notStoppedAffiliations(affiliations);
 
 		return affiliations;
+	}
+
+	/**
+	 * an external affiliation only gets an account of its own when that has been enabled - when it has not, it is
+	 * handled in the same lane as employee affiliations, and on the exact same terms (which is how the IdM logic
+	 * worked before the separate lane was introduced)
+	 */
+	private boolean isHandledAsExternalAccount(Affiliation affiliation) {
+		return affiliation.getAffiliationType() == AffiliationType.EXTERNAL
+				&& configuration.getScheduled().getAccountOrderGeneration().isSeparateExternalAccounts();
 	}
 
 	private List<AccountOrder> getAccountsToCreate(List<Affiliation> affiliations, boolean takeExistingOrdersIntoConsideration, OrgUnitAccountOrder rules, boolean doNotLogRequester) {
@@ -1005,9 +1016,9 @@ public class AccountOrderService {
 						.getPerson()
 						.getAffiliations()
 						.stream()
-						// only look at those already marked as relevant, only those with an actual startDate (so we can sort), and finally of the given type (EMPLOYEE/EXTERNAL),
-						// so we ensure that we run once for each of the two types that we support IdM on
-						.filter(a -> relevantAffiliationIds.contains(a.getId()) && a.getStartDate() != null && potentialAffiliation.getAffiliationType() == a.getAffiliationType())
+						// only look at those already marked as relevant, only those with an actual startDate (so we can sort), and finally
+						// those in the same lane, so we ensure that we run once for each of the lanes that we support IdM on
+						.filter(a -> relevantAffiliationIds.contains(a.getId()) && a.getStartDate() != null && isHandledAsExternalAccount(potentialAffiliation) == isHandledAsExternalAccount(a))
 						.sorted((a1, a2) -> a1.getStartDate().compareTo(a2.getStartDate()))
 						.findFirst()
 						.orElse(null);
@@ -1021,36 +1032,42 @@ public class AccountOrderService {
 					log.debug("Looking at affilation " + affiliation.getId());
 				}
 
-				// when running in singleUserMode, we do not need to inspect each affiliation for a given Person, the first one
-				// encountered is fine (as we will in fact find the SAME affiliation to look at for each iteration)
+				// kept as an exhaustive switch rather than an if, so a new AffiliationType becomes a compile error
+				// here instead of silently slipping into the IdM logic
 				switch (affiliation.getAffiliationType()) {
 					case EMPLOYEE:
-						if (userType.isSingleUserMode() && seenEmployeePersonUuids.contains(potentialAffiliation.getPerson().getUuid())) {
-							
-							if (log.isDebugEnabled()) {
-								log.debug("In single-user mode, and the person has already been handled " + affiliation.getPerson().getUuid());
-							}
-							
-							continue;
-						}
-
-						seenEmployeePersonUuids.add(potentialAffiliation.getPerson().getUuid());
-						break;
 					case EXTERNAL:
-						if (seenExternalPersonUuids.contains(potentialAffiliation.getPerson().getUuid())) {
-							
-							if (log.isDebugEnabled()) {
-								log.debug("External account, and the person has already been handled " + affiliation.getPerson().getUuid());
-							}
-							
-							continue;
-						}
-
-						seenExternalPersonUuids.add(potentialAffiliation.getPerson().getUuid());
 						break;
 					case SUBSTITUTE:
 						log.error("SUBSTITUTE affiliation types should not be included in IdM logic for person " + affiliation.getPerson().getUuid());
 						continue;
+				}
+
+				// when running in singleUserMode, we do not need to inspect each affiliation for a given Person, the first one
+				// encountered is fine (as we will in fact find the SAME affiliation to look at for each iteration)
+				if (isHandledAsExternalAccount(affiliation)) {
+					if (seenExternalPersonUuids.contains(potentialAffiliation.getPerson().getUuid())) {
+						
+						if (log.isDebugEnabled()) {
+							log.debug("External account, and the person has already been handled " + affiliation.getPerson().getUuid());
+						}
+						
+						continue;
+					}
+
+					seenExternalPersonUuids.add(potentialAffiliation.getPerson().getUuid());
+				}
+				else {
+					if (userType.isSingleUserMode() && seenEmployeePersonUuids.contains(potentialAffiliation.getPerson().getUuid())) {
+						
+						if (log.isDebugEnabled()) {
+							log.debug("In single-user mode, and the person has already been handled " + affiliation.getPerson().getUuid());
+						}
+						
+						continue;
+					}
+
+					seenEmployeePersonUuids.add(potentialAffiliation.getPerson().getUuid());
 				}
 
 				// wait until prerequisites are in place
@@ -1228,7 +1245,9 @@ public class AccountOrderService {
 						existingDisabledUser != null);
 
 					if (SupportedUserTypeService.isActiveDirectory(userType.getKey())) {
-						accountOrder.setExternal(affiliation.getAffiliationType() == AffiliationType.EXTERNAL);
+						// when externals do not have a lane of their own, the accounts we create for them are
+						// ordinary accounts, and should not be flagged as external in AD
+						accountOrder.setExternal(isHandledAsExternalAccount(affiliation));
 					}
 					
 					accountOrdersResult.add(accountOrder);
@@ -1360,15 +1379,6 @@ public class AccountOrderService {
 	private boolean shouldOrderAccountOfType(String userType, List<Affiliation> affiliations, boolean ignoreExistingAccounts, OrgUnitAccountOrder alternativeRules) {
 
 		if (affiliations == null || affiliations.size() == 0) {
-			return false;
-		}
-
-		// unless externals are handled as a separate lane, they do not take part in the IdM processes at all.
-		// note that we use allMatch instead of filtering the externals out of the list, because the list is used
-		// by a lambda further down and therefore cannot be reassigned - and every caller passes in exactly one
-		// affiliation anyway, so the two are equivalent in practice
-		if (!configuration.getScheduled().getAccountOrderGeneration().isSeparateExternalAccounts()
-				&& affiliations.stream().allMatch(a -> a.getAffiliationType() == AffiliationType.EXTERNAL)) {
 			return false;
 		}
 
