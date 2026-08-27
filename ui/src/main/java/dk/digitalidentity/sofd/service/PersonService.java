@@ -468,7 +468,8 @@ public class PersonService {
 				}
 
 				// if the person does not have any ACTIVE users, and does not have any prime affiliations (i.e. no ACTIVE affiliations), then flip the delete flag
-				boolean shouldBeDeleted = !isActive(person);
+				// note that we apply a 30 day threshold (true parameter in isActive check), to keep them non-deleted up to 30 days after their affiliation ended
+				boolean shouldBeDeleted = !isActive(person, true);
 				if (shouldBeDeleted && !person.isDeleted()) {
 					person.getSubstitutes().clear();
 					person.setDeleted(true);
@@ -478,7 +479,7 @@ public class PersonService {
 					person.setDeleted(false);
 					changes = true;
 				}
-	
+
 				if (changes) {
 					saveCounter++;
 					person.setLastChanged();
@@ -1555,10 +1556,16 @@ public class PersonService {
 
 	// if a person has at least one active/future affiliation OR at least one active user, the person is active
 	public boolean isActive(Person person) {
-		Date thisMorning = Date.from(LocalDate.now().atTime(0, 0, 1).atZone(ZoneId.systemDefault()).toInstant());
-		
+		return isActive(person, false);
+	}
+
+	public boolean isActive(Person person, boolean thirtyDayThreshold) {
+		Date cutOff = (thirtyDayThreshold)
+			? Date.from(LocalDate.now().minusDays(30).atTime(0, 0, 1).atZone(ZoneId.systemDefault()).toInstant())
+			: Date.from(LocalDate.now().atTime(0, 0, 1).atZone(ZoneId.systemDefault()).toInstant());
+
 		boolean activeUsers = person.getUsers() != null && person.getUsers().stream().filter(u -> u.getUser().isDisabled() == false).count() > 0;
-		boolean activeAffiliations = person.getAffiliations() != null && person.getAffiliations().stream().anyMatch(a -> a.getStopDate() == null || a.getStopDate().after(thisMorning));
+		boolean activeAffiliations = person.getAffiliations() != null && person.getAffiliations().stream().anyMatch(a -> a.getStopDate() == null || a.getStopDate().after(cutOff));
 		
 		return activeUsers || activeAffiliations;
 	}
