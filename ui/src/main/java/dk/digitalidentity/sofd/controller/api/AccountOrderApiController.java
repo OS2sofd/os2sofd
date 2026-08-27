@@ -409,8 +409,10 @@ public class AccountOrderApiController {
 							existingUser.setEmployeeId(accountOrder.getEmployeeId());
 						}
 
-						// if this is an AD account, we also copy the external flag to the account from the order
-						if (existingUser.getActiveDirectoryDetails() != null) {
+						// the external flag is only copied when the order actually created the account - on a REACTIVATE
+						// the account already existed, and SOFD is the master of the flag from that point on. Copying it
+						// there would let an order clear the flag on an account that really is external
+						if (dto.getStatus().equals(AccountOrderStatus.CREATED) && existingUser.getActiveDirectoryDetails() != null) {
 							existingUser.getActiveDirectoryDetails().setExternal(accountOrder.isExternal());
 						}
 
