@@ -36,8 +36,10 @@ public class WorkplaceService {
 	@Transactional
 	public void findWorkplaceModifications() {
 		LocalDate today = LocalDate.now();
+		// a workplace is active from startDate to stopDate, both inclusive, so the day where the calculated
+		// orgunit actually changes is startDate for a period that begins, and stopDate + 1 for a period that ends
 		List<Workplace> startedWorkplaces = workplaceDao.findByStartDate(today);
-		List<Workplace> stoppedWorkplaces = workplaceDao.findByStopDate(today);
+		List<Workplace> stoppedWorkplaces = workplaceDao.findByStopDate(today.minusDays(1));
 		List<Person> changedPeople = startedWorkplaces.stream().map(w -> w.getAffiliation().getPerson()).collect(Collectors.toList());
 		changedPeople.addAll(stoppedWorkplaces.stream().map(w -> w.getAffiliation().getPerson()).collect(Collectors.toList()));
 
