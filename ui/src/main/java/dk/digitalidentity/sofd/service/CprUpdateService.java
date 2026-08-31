@@ -128,6 +128,12 @@ public class CprUpdateService {
 							}
 						});
 					}
+					
+					if (p.getSubstitutes() != null) {
+						p.getSubstitutes().forEach(s -> {
+							s.getContext();
+						});
+					}
 		        }
 		    );
 
