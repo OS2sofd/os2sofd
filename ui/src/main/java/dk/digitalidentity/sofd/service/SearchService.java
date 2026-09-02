@@ -326,7 +326,7 @@ public class SearchService {
 				List<OrgUnit> orgUnitSearchResult = orgUnitService.searchOrgUnits(query);
 				for (OrgUnit orgunit : orgUnitSearchResult) {
 					Map<String, String> result = new HashMap<>();
-					result.put("name", orgunit.getSourceName() +  " (Enhed)");
+					result.put("name", orgunit.getEntityName() +  " (Enhed)");
 					result.put("url", "/ui/orgunit/view/" + orgunit.getUuid());
 					results.add(result);
 				}

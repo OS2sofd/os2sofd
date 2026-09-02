@@ -113,6 +113,9 @@ public class AccountOrder {
 	@ManyToOne
 	@JoinColumn(name = "trigger_affiliation_id")
 	private Affiliation triggerAffiliation;
+	
+	@Column
+	private boolean triggerReactivateAfterCreate;
 
 	// used for removing duplicate order entries in AccountOrderService
     public boolean logicalEquals(AccountOrder other) {

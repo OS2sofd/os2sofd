@@ -117,15 +117,18 @@ public interface OrgUnitDao extends JpaRepository<OrgUnit, String> {
 				select o.* from orgunits o
 				left outer join ean on ean.orgunit_uuid = o.`uuid`
 				where
-					o.uuid like concat(:query,'%')
-					or o.master_id like concat(:query,'%')
-					or o.name like concat(:query,'%')
-					or o.shortname like concat(:query,'%')
-					or o.display_name like concat(:query,'%')
-					or o.source_name like concat(:query,'%')
-					or o.pnr like concat(:query,'%')
-					or o.cvr like concat(:query,'%')
-					or ean.`number` like concat(:query,'%')
+					o.deleted = 0
+					and (
+						o.uuid like concat(:query,'%')
+						or o.master_id like concat(:query,'%')
+						or o.name like concat('%',:query,'%')
+						or o.shortname like concat('%',:query,'%')
+						or o.display_name like concat('%',:query,'%')
+						or o.source_name like concat('%',:query,'%')
+						or o.pnr like concat(:query,'%')
+						or o.cvr like concat(:query,'%')
+						or ean.`number` like concat(:query,'%')
+					)
 				group by o.uuid
 				order by ifnull(o.display_name,o.name)
 				limit 20
