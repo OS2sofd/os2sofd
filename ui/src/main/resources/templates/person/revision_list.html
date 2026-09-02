@@ -177,7 +177,8 @@
 		let r = revisions[index];
 		let versionNumber = index + 1;
 		let versionCount = revisions.length;
-		let changedDate = moment(new Date(r.lastChanged)).format(f);
+		// lastChanged is epoch milliseconds in UTC, moment renders it in the browsers local timezone
+		let changedDate = moment(Number(r.lastChanged)).format(f);
 		let changedBy = r.auditorName;
 		let revision = r.rev;
 		let result = `<span style='display:inline-block;width:100px;'><b>${title}: </b></span>Version <b>${versionNumber}</b> af ${versionCount}. `;
