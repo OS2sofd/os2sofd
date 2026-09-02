@@ -346,6 +346,11 @@ public class AccountOrderController {
 				triggerAffiliation,
 				false);
 		
+		// manual orders should set this flag, so we will trigger a REACTIVATE order if the account was created in disabled state.
+		// Note that this does not does happen automatically unless the person is employed in an OU that triggers AD creation, so
+		// to ensure that they DO get enabled, we set this trigger-flag to be handled in the notify() method in AccountOrderApiController
+		accountOrder.setTriggerReactivateAfterCreate(true);
+		
 		if (SupportedUserTypeService.isActiveDirectory(supportedUserType.getKey()) && order.isExternal()) {
 			accountOrder.setExternal(true);
 		}

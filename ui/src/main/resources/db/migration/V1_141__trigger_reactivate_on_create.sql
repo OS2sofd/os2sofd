@@ -1,0 +1,1 @@
+ALTER TABLE account_orders ADD COLUMN trigger_reactivate_after_create BOOLEAN NOT NULL DEFAULT 0;

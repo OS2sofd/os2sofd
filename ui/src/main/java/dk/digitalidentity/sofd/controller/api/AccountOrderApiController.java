@@ -402,7 +402,7 @@ public class AccountOrderApiController {
 				if ((dto.getStatus().equals(AccountOrderStatus.CREATED) || dto.getStatus().equals(AccountOrderStatus.REACTIVATED)) && SupportedUserTypeService.isActiveDirectory(userType)) {
 
 					// see if user was already created in SOFD (happens in some cases if Event Dispatcher is faster than Account Agent notify call)
-					var existingUser = userService.findByUserIdAndUserType(accountOrder.getActualUserId(),SupportedUserTypeService.getActiveDirectoryUserType());
+					User existingUser = userService.findByUserIdAndUserType(accountOrder.getActualUserId(),SupportedUserTypeService.getActiveDirectoryUserType());
 					if (existingUser != null) {
 						// check if we need to set employeeId
 						if (StringUtils.hasLength(accountOrder.getEmployeeId())) {
@@ -445,6 +445,43 @@ public class AccountOrderApiController {
 						}
 
 						accountOrderService.save(orderDependingOn);
+					}
+					
+					// special case - if the accountOrder is a CREATE and there is a trigger to create a REACTIVATE automatically afterwards,
+					// we will do so now - checking if it is needed, and if it already exists
+					if (SupportedUserTypeService.isActiveDirectory(userType) && dto.getStatus().equals(AccountOrderStatus.CREATED) && accountOrder.isTriggerReactivateAfterCreate()) {
+						SupportedUserType adRules = supportedUserTypeService.findByKey(accountOrder.getUserType());
+
+						if (adRules.isCreateAsDisabled()) {
+							Person person = personService.getByUuid(accountOrder.getPersonUuid());
+							if (person != null) {
+								List<AccountOrder> pendingOrders = accountOrderService.getPendingOrders(person);
+								
+								// if there are no existing pending orders for REACTIVATING this account, then create one
+								if (pendingOrders.stream()
+										.noneMatch(po ->
+											po.getUserType().equals(SupportedUserTypeService.getActiveDirectoryUserType()) &&
+											po.getOrderType().equals(AccountOrderType.REACTIVATE) &&
+											Objects.equals(po.getRequestedUserId(), accountOrder.getActualUserId())
+									)) {
+								
+									AccountOrder reactivateOrder = new AccountOrder();
+									reactivateOrder.setActivationTimestamp(new Date());
+									reactivateOrder.setExternal(accountOrder.isExternal());
+									reactivateOrder.setManual(accountOrder.isManual());
+									reactivateOrder.setModifiedTimestamp(new Date());
+									reactivateOrder.setOrderedTimestamp(new Date());
+									reactivateOrder.setOrderType(AccountOrderType.REACTIVATE);
+									reactivateOrder.setPersonUuid(accountOrder.getPersonUuid());
+									reactivateOrder.setRequestedUserId(accountOrder.getActualUserId());
+									reactivateOrder.setStatus(AccountOrderStatus.PENDING);
+									reactivateOrder.setTriggerAffiliation(accountOrder.getTriggerAffiliation());
+									reactivateOrder.setUserType(accountOrder.getUserType());
+									
+									accountOrderService.save(accountOrder);
+								}
+							}
+						}
 					}
 				}
 				// for AD/Exchange, we should use this to trigger the creation of the CLEANUP job
