@@ -1,0 +1,1 @@
+ALTER TABLE account_orders_aud ADD COLUMN trigger_reactivate_after_create BOOLEAN NULL;

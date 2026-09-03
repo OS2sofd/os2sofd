@@ -183,13 +183,17 @@ public interface PersonDao extends JpaRepository<Person, String>, JpaSpecificati
 
 	<S extends Person> List<S> findByDeletedFalse();
 
+	// NEVER convert the timestamp to a datetime here. Any conversion in SQL depends on either a hardcoded
+	// offset (breaks twice a year when daylight saving time shifts) or on the timezone of the database
+	// connection (which we do not control). The raw value is epoch milliseconds in UTC, and the browser
+	// converts it to the users local time when rendering.
 	@Query(nativeQuery = true, value = """
-    SELECT pa.rev AS rev, 
+    SELECT pa.rev AS rev,
            r.auditor_name as auditorName,
-           CONVERT_TZ(TIMESTAMPADD(SECOND, r.timestamp/1000, '1970-01-01 00:00:00'), '+00:00', '+01:00') as lastChanged 
-    FROM persons_aud pa 
-    JOIN revisions r ON r.id = pa.rev 
-    WHERE pa.uuid = ?1 
+           r.timestamp as lastChanged
+    FROM persons_aud pa
+    JOIN revisions r ON r.id = pa.rev
+    WHERE pa.uuid = ?1
     ORDER BY r.id
     """)
 	List<RevisionId> getRevisionIds(String id);

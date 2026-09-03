@@ -1,11 +1,10 @@
 package dk.digitalidentity.sofd.dao.model;
 
-import java.util.Date;
-
 public interface RevisionId {
 	Integer getRev();
 
-	Date getLastChanged();
+	// epoch milliseconds (UTC), converted to local time by the browser
+	Long getLastChanged();
 
 	String getAuditorName();
 }
