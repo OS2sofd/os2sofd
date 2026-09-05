@@ -231,7 +231,10 @@ public class SyncService {
 	public Collection<ADGridPerson> getADGridPersons(boolean includeUniloginUsers, boolean includeSchoolADUsers) {
 		String query = adGridPersonQuery;
 
-		if (!configuration.getIntegrations().getRoleCatalogue().isIncludeDisabled()) {
+		// everyone in this dataset has an active or future affiliation (view_syncservice_users filters on stop_date),
+		// so includeDisabledWithAffiliation lets disabled accounts through here without also opening up the allAD
+		// dataset, where people who have stopped would show up
+		if (!configuration.getIntegrations().getRoleCatalogue().isIncludeDisabled() && !configuration.getIntegrations().getRoleCatalogue().isIncludeDisabledWithAffiliation()) {
 			query += " AND disabled = 0 ";
 		}
 		
