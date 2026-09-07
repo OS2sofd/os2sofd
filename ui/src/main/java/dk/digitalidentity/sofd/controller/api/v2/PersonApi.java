@@ -230,20 +230,23 @@ public class PersonApi {
 				return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 			}
 			
-			boolean existingPersonActive = personService.isActive(person);
+			// we gate on the stored flag rather than a computed isActive(person), because the flag is what an API
+			// client can see, and it decides whether to call us by looking at it. the gate and the flag have to
+			// agree, or we reject calls a well-behaved client had no way of knowing to skip
+			boolean existingPersonDeleted = person.isDeleted();
 			long existingPersonUserCount = PersonService.getUsers(person).size();
 			long existingPersonAffiliationCount = affiliationCount(person);
 			boolean changes = patch(person, record);
 
 			if (changes) {
 
-				// existing inactive persons MUST be activated for us to want to store the change, with two exceptions.
-				// removing a user or an affiliation from an inactive person is a real change that does not reactivate
+				// existing deleted persons MUST be activated for us to want to store the change, with two exceptions.
+				// removing a user or an affiliation from a deleted person is a real change that does not reactivate
 				// anyone, and refusing it would leave the client with no way to ever clean up after itself - it would
 				// recompute the same removal and resend it on every run, forever
 				long patchedPersonUserCount = PersonService.getUsers(person).size();
 				long patchedPersonAffiliationCount = affiliationCount(person);
-				if (!existingPersonActive && !personService.isActive(person, true)
+				if (existingPersonDeleted && !personService.isActive(person, true)
 						&& existingPersonUserCount == patchedPersonUserCount
 						&& existingPersonAffiliationCount == patchedPersonAffiliationCount) {
 					Client client = SecurityUtil.getClient();
@@ -418,10 +421,9 @@ public class PersonApi {
 			}
 		}
 
-		// if there are changes, flip any delete flag
-		if (changes) {
-			person.setDeleted(false);
-		}
+		// the delete flag belongs to AbstractBeforeSaveInterceptor, which recomputes it on every
+		// PersonService.save. do not set it here - a value set on the way in is either overwritten, or read by
+		// the interceptor as a state transition that did not happen, which clears the person's substitutes
 
 		return changes;
 	}
