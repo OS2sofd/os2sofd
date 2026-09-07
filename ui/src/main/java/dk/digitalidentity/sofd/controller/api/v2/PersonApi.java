@@ -232,13 +232,20 @@ public class PersonApi {
 			
 			boolean existingPersonActive = personService.isActive(person);
 			long existingPersonUserCount = PersonService.getUsers(person).size();
+			long existingPersonAffiliationCount = affiliationCount(person);
 			boolean changes = patch(person, record);
 
 			if (changes) {
 
-				// existing inactive persons MUST be activated for us to want to store the change
+				// existing inactive persons MUST be activated for us to want to store the change, with two exceptions.
+				// removing a user or an affiliation from an inactive person is a real change that does not reactivate
+				// anyone, and refusing it would leave the client with no way to ever clean up after itself - it would
+				// recompute the same removal and resend it on every run, forever
 				long patchedPersonUserCount = PersonService.getUsers(person).size();
-				if (!existingPersonActive && !personService.isActive(person, true) && existingPersonUserCount == patchedPersonUserCount) {
+				long patchedPersonAffiliationCount = affiliationCount(person);
+				if (!existingPersonActive && !personService.isActive(person, true)
+						&& existingPersonUserCount == patchedPersonUserCount
+						&& existingPersonAffiliationCount == patchedPersonAffiliationCount) {
 					Client client = SecurityUtil.getClient();
 					// TODO: logging as ERROR might be overkill, change it to WARN at a later point, but we want to find any potential clients that are misbehaving
 					log.error("Client " + (client != null ? client.getName() : "<unknown client>") + " attempted to patch an inactive person without activating : " + PersonService.getName(person) + " / " + PersonService.maskCpr(person.getCpr()));
@@ -260,6 +267,10 @@ public class PersonApi {
 			// let Spring map the exception to a HTTP 500
 			throw ex;
 		}
+	}
+
+	private static long affiliationCount(Person person) {
+		return (person.getAffiliations() != null) ? person.getAffiliations().size() : 0;
 	}
 
 	private boolean patch(Person person, PersonApiRecord personRecord) throws Exception {
