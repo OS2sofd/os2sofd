@@ -86,7 +86,10 @@ public class AbstractBeforeSaveInterceptor {
 	private ModificationHistoryService modificationHistoryService;
 
 	@Autowired
-	ProfessionService professionService;
+	private ProfessionService professionService;
+	
+	@Autowired
+	private PersonService personService;
 
 	@Transactional
 	public void handleSavePerson(Person person) {
@@ -216,8 +219,7 @@ public class AbstractBeforeSaveInterceptor {
 		// re-evaluate the slettemarkeret (deleted) flag based on the freshly recomputed prime affiliation
 		// and current users. Mirrors the logic in PersonService.setPrimeAffiliationPrimeUserAndDeleted so
 		// that manager-initiated edits don't have to wait for the nightly cron.
-		boolean shouldBeDeleted = (person.getUsers() == null || person.getUsers().isEmpty())
-				&& (person.getAffiliations() == null || person.getAffiliations().stream().noneMatch(Affiliation::isPrime));
+		boolean shouldBeDeleted = personService.isActive(person, true);
 		if (shouldBeDeleted && !person.isDeleted()) {
 			if (person.getSubstitutes() != null) {
 				person.getSubstitutes().clear();
