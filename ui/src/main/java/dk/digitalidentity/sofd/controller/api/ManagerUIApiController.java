@@ -133,20 +133,26 @@ public class ManagerUIApiController {
 
 		for (SubstituteOrgUnitAssignment assignment : substituteOrgUnitAssignmentService.findBySubstitute(person)) {
 			if (Objects.equals("GLOBAL", assignment.getContext().getIdentifier()) || Objects.equals("SOFD", assignment.getContext().getIdentifier()) || Objects.equals(configuration.getModules().getManagerUI().getManagerUISubstituteContextIdentifier(), assignment.getContext().getIdentifier())) {
-				LoginContextDTO match = contexts.stream().filter(c -> c.getRole().equals(LoginContextRole.SUBSTITUTE) && assignment.getOrgUnit().getManager() != null && assignment.getOrgUnit().getManager().getManager() != null && c.getUuid().equals(assignment.getOrgUnit().getManager().getManager().getUuid())).findAny().orElse(null);				if (match == null) {
-					LoginContextDTO dto = new LoginContextDTO();
-					// Null checking through the chain of calls to prevent NPE in further code
-					String name = ((assignment.getOrgUnit() == null ? null : assignment.getOrgUnit()) == null ? null : assignment.getOrgUnit().getManager()) == null ? null : assignment.getOrgUnit().getManager().getManager() == null ? null : PersonService.getName(assignment.getOrgUnit().getManager().getManager());
-					dto.setName(name);
-					dto.setRole(LoginContextRole.SUBSTITUTE);
-					dto.setUuid(name == null ? null : assignment.getOrgUnit().getManager().getManager().getUuid());
-					dto.setOuUuids(name == null ? null : assignment.getOrgUnit().getUuid());
+				OrgUnit orgUnit = assignment.getOrgUnit();
+				Person manager = (orgUnit == null || orgUnit.getManager() == null) ? null : orgUnit.getManager().getManager();
 
-					contexts.add(dto);
-				}
-				else {
-					if (!match.getOuUuids().contains(assignment.getOrgUnit().getUuid())) {
-						match.setOuUuids(match.getOuUuids() + "," + assignment.getOrgUnit().getUuid());
+				// an orgunit without a manager cannot produce a login context, but we still need to handle
+				// any inherited assignments below, so we just skip the context part here
+				if (manager != null) {
+					LoginContextDTO match = contexts.stream().filter(c -> c.getRole().equals(LoginContextRole.SUBSTITUTE) && manager.getUuid().equals(c.getUuid())).findAny().orElse(null);
+					if (match == null) {
+						LoginContextDTO dto = new LoginContextDTO();
+						dto.setName(PersonService.getName(manager));
+						dto.setRole(LoginContextRole.SUBSTITUTE);
+						dto.setUuid(manager.getUuid());
+						dto.setOuUuids(orgUnit.getUuid());
+
+						contexts.add(dto);
+					}
+					else {
+						if (!match.getOuUuids().contains(orgUnit.getUuid())) {
+							match.setOuUuids(match.getOuUuids() + "," + orgUnit.getUuid());
+						}
 					}
 				}
 
@@ -175,14 +181,15 @@ public class ManagerUIApiController {
 	}
 
 	private void handleContextRecursive(OrgUnit currentOU, List<LoginContextDTO> contexts) {
-		if( currentOU.getManager() != null)
-		{
-			LoginContextDTO match = contexts.stream().filter(c -> c.getRole().equals(LoginContextRole.SUBSTITUTE) && c.getUuid().equals(currentOU.getManager().getManager().getUuid())).findAny().orElse(null);
+		if (currentOU.getManager() != null && currentOU.getManager().getManager() != null) {
+			Person manager = currentOU.getManager().getManager();
+
+			LoginContextDTO match = contexts.stream().filter(c -> c.getRole().equals(LoginContextRole.SUBSTITUTE) && manager.getUuid().equals(c.getUuid())).findAny().orElse(null);
 			if (match == null) {
 				LoginContextDTO dto = new LoginContextDTO();
-				dto.setName(PersonService.getName(currentOU.getManager().getManager()));
+				dto.setName(PersonService.getName(manager));
 				dto.setRole(LoginContextRole.SUBSTITUTE);
-				dto.setUuid(currentOU.getManager().getManager().getUuid());
+				dto.setUuid(manager.getUuid());
 				dto.setOuUuids(currentOU.getUuid());
 
 				contexts.add(dto);
