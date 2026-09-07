@@ -238,7 +238,7 @@ public class PersonApi {
 
 				// existing inactive persons MUST be activated for us to want to store the change
 				long patchedPersonUserCount = PersonService.getUsers(person).size();
-				if (!existingPersonActive && !personService.isActive(person) && existingPersonUserCount == patchedPersonUserCount) {
+				if (!existingPersonActive && !personService.isActive(person, true) && existingPersonUserCount == patchedPersonUserCount) {
 					Client client = SecurityUtil.getClient();
 					// TODO: logging as ERROR might be overkill, change it to WARN at a later point, but we want to find any potential clients that are misbehaving
 					log.error("Client " + (client != null ? client.getName() : "<unknown client>") + " attempted to patch an inactive person without activating : " + PersonService.getName(person) + " / " + PersonService.maskCpr(person.getCpr()));
