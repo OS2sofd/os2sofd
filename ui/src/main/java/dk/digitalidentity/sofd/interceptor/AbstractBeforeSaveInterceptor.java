@@ -219,7 +219,7 @@ public class AbstractBeforeSaveInterceptor {
 		// re-evaluate the slettemarkeret (deleted) flag based on the freshly recomputed prime affiliation
 		// and current users. Mirrors the logic in PersonService.setPrimeAffiliationPrimeUserAndDeleted so
 		// that manager-initiated edits don't have to wait for the nightly cron.
-		boolean shouldBeDeleted = personService.isActive(person, true);
+		boolean shouldBeDeleted = !personService.isActive(person, true);
 		if (shouldBeDeleted && !person.isDeleted()) {
 			if (person.getSubstitutes() != null) {
 				person.getSubstitutes().clear();
