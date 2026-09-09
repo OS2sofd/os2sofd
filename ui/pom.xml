@@ -111,7 +111,7 @@
                 <dependency>
                         <groupId>dk.digitalidentity</groupId>
                         <artifactId>reporter</artifactId>
-			<version>1.0.7</version>
+			<version>1.0.10</version>
                 </dependency>
 
 		<dependency>
