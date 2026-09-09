@@ -138,11 +138,12 @@ public class AccountOrderNightJob {
 								(existingOrder.getStatus().equals(AccountOrderStatus.PENDING) ||
 								 existingOrder.getStatus().equals(AccountOrderStatus.PENDING_APPROVAL) ||
 								 existingOrder.getStatus().equals(AccountOrderStatus.BLOCKED) ||
-								 existingOrder.getActivationTimestamp().after(fiveDaysAgo)) &&
+								 existingOrder.getModifiedTimestamp().after(fiveDaysAgo)) &&
 								Objects.equals(newOrder.getEmployeeId(), existingOrder.getEmployeeId()) &&
 								newOrder.getUserType().equals(existingOrder.getUserType()) &&
 								Objects.equals(newOrder.getActivationTimestamp(), existingOrder.getActivationTimestamp()) &&
-								!(existingOrder.getStatus().isCompletedStatus() && (SupportedUserTypeService.isActiveDirectory(existingOrder.getUserType()) || SupportedUserTypeService.isExchange(existingOrder.getUserType())))
+								!(existingOrder.getStatus().isCompletedStatus() &&
+								(SupportedUserTypeService.isActiveDirectory(existingOrder.getUserType()) || SupportedUserTypeService.isExchange(existingOrder.getUserType())))
 						);
 
 				if (noMatch) {
