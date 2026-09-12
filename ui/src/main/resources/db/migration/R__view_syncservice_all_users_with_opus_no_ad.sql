@@ -13,7 +13,7 @@ LEFT JOIN (
     JOIN users u ON u.id = pu.user_id AND u.disabled IS FALSE and (u.user_type = 'ACTIVE_DIRECTORY' OR u.user_type = 'ACTIVE_DIRECTORY_SCHOOL')
 ) ad ON ad.person_uuid = p.uuid
 WHERE
-    a.master='OPUS' AND
+    (a.master='OPUS' OR a.master LIKE 'SD-%') AND
     a.employee_id IS NOT NULL AND
     ad.id IS NULL AND
     (a.start_date IS NULL OR a.start_date <= (CURDATE() + INTERVAL 5 DAY)) AND
