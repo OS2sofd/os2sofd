@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.task;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -19,6 +21,7 @@ public class ClearPendingApprovalCountTask {
     private SofdConfiguration configuration;
 
     @Scheduled(cron = "${cron.clearPendingApprovalCount.task: 0 */5 * * * *}")
+    @WarnIfSlowerThan
     public void clearPendingApprovalCount() {
         if (configuration.getIntegrations().getOs2ilm().isEnabled()) {
             log.debug("Clearing pending approval count");

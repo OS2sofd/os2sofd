@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.service;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -810,6 +812,7 @@ public class AccountOrderService {
 
 	// run every 30 minutes
 	@Scheduled(fixedRate = 1000 * 60 * 30)
+	@WarnIfSlowerThan
 	public void cacheClearTask() {
 		log.debug("cacheClearTask");
 		self.cacheClear();

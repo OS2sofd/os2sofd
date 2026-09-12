@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.task;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.AffiliationService;
@@ -21,6 +23,7 @@ public class NewlyActiveAffiliationPrimeTask {
 	private SofdConfiguration configuration;
 
 	@Scheduled(cron = "0 #{new java.util.Random().nextInt(60)} 3 * * ?")
+	@WarnIfSlowerThan
 	public void processChanges() {
 		if (!configuration.getScheduled().isEnabled()) {
 			log.debug("Scheduled jobs are disabled on this instance");

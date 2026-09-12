@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.service;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import static org.apache.commons.io.FilenameUtils.wildcardMatch;
 
 import java.util.ArrayList;
@@ -55,6 +57,7 @@ public class ProfessionService {
 	}
 
 	@Scheduled(fixedRate = 1 * 60 * 60 * 1000)
+	@WarnIfSlowerThan
 	public void resetProfessionCacheTask() {
 		log.debug("resetProfessionCacheTask");
 		self.resetProfessionCache();

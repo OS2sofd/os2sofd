@@ -385,7 +385,7 @@
 							</a>
 						</li>
 
-						<li th:class="${page == 'students'} ? 'active' : ''" th:if="${@sofdConfiguration.getModules().getStudents().isEnabled() == true}">
+						<li th:class="${page == 'students'} ? 'active' : ''" th:if="${@sofdConfiguration.getModules().getStudents().isEnabled() == true and @sofdConfiguration.getModules().getStudents().isStudentListEnabled() == true}">
 							<a th:href="@{/ui/student}">
 								<em class="fa fa-graduation-cap"></em>
 								<span th:text="#{html.navbar.students}"></span>

@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.task;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,6 +19,7 @@ public class OrgUnitChangeTask {
     private OrgUnitChangeService orgUnitChangeService;
 
     @Scheduled(cron = "0 0 18 ? * *")
+    @WarnIfSlowerThan
     public void processOrgUnitChanges() {
     	log.info("processOrgUnitChanges");
     	

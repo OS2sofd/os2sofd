@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.service;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -474,6 +476,7 @@ public class AffiliationService {
 	
 	// runs one minute past midnight
 	@Scheduled(cron = "1 0 0 * * ?")
+	@WarnIfSlowerThan
 	public void generateTodayAndYesterday() {
 		log.debug("generateTodayAndYesterday");
 		_today = null;

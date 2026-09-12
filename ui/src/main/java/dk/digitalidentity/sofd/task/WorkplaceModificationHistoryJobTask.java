@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.task;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,6 +24,7 @@ public class WorkplaceModificationHistoryJobTask {
 
 	// run every night
 	@Scheduled(cron = "0 #{new java.util.Random().nextInt(60)} 1 * * ?")
+	@WarnIfSlowerThan
 	public void processWorkplaceModifications() {
 		if (!configuration.getModules().getAffiliationWorkplaces().isEnabled()) {
 			return;

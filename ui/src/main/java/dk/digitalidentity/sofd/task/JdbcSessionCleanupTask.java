@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.task;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -19,6 +21,7 @@ public class JdbcSessionCleanupTask {
     private SofdConfiguration sofdConfiguration;
     
     @Scheduled(cron = "#{new java.util.Random().nextInt(60)} #{new java.util.Random().nextInt(10)}/10 * * * ?")
+    @WarnIfSlowerThan
     public void cleanupJdbcSessions() {
     	if (sofdConfiguration.getScheduled().isEnabled()) {
     		sessionRepository.cleanUpExpiredSessions();

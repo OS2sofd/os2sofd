@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.task;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import java.util.Random;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +39,7 @@ public class NotificationGenerationTask {
 	}
 
 	@Scheduled(cron = "${cron.notification.task:#{T(dk.digitalidentity.sofd.task.NotificationGenerationTask).fuzzedNotificationCron()}}")
+	@WarnIfSlowerThan
 	public void processChanges() {
 		if (!configuration.getScheduled().isEnabled()) {
 			return;

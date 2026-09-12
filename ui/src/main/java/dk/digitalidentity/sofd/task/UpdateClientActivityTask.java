@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.task;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.Date;
@@ -33,6 +35,7 @@ public class UpdateClientActivityTask {
 
 	// run every hour
 	@Scheduled(cron = "0 #{new java.util.Random().nextInt(60)} * * * ?")
+	@WarnIfSlowerThan
 	@Transactional(rollbackFor = Exception.class)
 	public void updateTimestamps() {
 		if (!configuration.getScheduled().isEnabled()) {
@@ -54,6 +57,7 @@ public class UpdateClientActivityTask {
 	
 	// run every hour
 	@Scheduled(cron = "0 0 * * * ?")
+	@WarnIfSlowerThan
 	@Transactional(rollbackFor = Exception.class)
 	public void checkForActivity() {
 		if (!configuration.getScheduled().isEnabled()) {

@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.task;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -27,6 +29,7 @@ public class OS2syncTask {
 
 	// run once every minute
 	@Scheduled(cron = "#{new java.util.Random().nextInt(60)} 0/1 * * * ?")
+	@WarnIfSlowerThan
 	public void processChanges() {
 		if (configuration.getScheduled().isEnabled() && configuration.getIntegrations().getOs2sync().isEnabled()) {
 			Long lastRun = settingService.getLongValueByKey(CustomerSetting.LAST_STSSYNC_RUN);

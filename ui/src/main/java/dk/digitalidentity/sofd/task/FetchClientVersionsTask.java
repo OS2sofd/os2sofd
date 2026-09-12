@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.task;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,6 +24,7 @@ public class FetchClientVersionsTask {
 	
 	// run every hour
 	@Scheduled(fixedDelay = 60 * 60 * 1000)
+	@WarnIfSlowerThan
 	//@Scheduled(fixedDelay = 10 * 1000)
 	public void fetchClientVersions() {
 		if (!configuration.getScheduled().isEnabled()) {

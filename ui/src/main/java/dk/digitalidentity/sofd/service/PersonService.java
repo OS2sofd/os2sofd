@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.service;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -269,6 +271,7 @@ public class PersonService {
 	}
 
     @Scheduled(fixedRate = 60 * 60 * 1000)
+    @WarnIfSlowerThan
     public void resetActivePersonCacheTask() {
     	log.debug("resetActivePersonCacheTask");
     	self.resetActivePersonCache();

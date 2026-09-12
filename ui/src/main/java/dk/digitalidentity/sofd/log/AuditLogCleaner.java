@@ -27,6 +27,7 @@ public class AuditLogCleaner {
 
 	// run every night at 04:??
 	@Scheduled(cron = "0 #{new java.util.Random().nextInt(60)} 4 * * ?")
+	@WarnIfSlowerThan
 	public void cleanupAuditLogs() {
 		if (!configuration.getScheduled().isEnabled()) {
 			log.info("Scheduled jobs are disabled on this instance");

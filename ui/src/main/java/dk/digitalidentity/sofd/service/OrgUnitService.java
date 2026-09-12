@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.service;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -273,6 +275,7 @@ public class OrgUnitService {
 	}
 
 	@Scheduled(fixedRate = 60 * 60 * 1000)
+	@WarnIfSlowerThan
 	public void resetActiveOrgUnitCacheTask() {
 		log.debug("resetActiveOrgUnitCacheTask");
 		self.resetActiveOrgUnitCache();

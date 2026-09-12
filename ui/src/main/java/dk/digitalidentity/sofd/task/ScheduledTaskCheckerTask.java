@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.task;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -21,6 +23,7 @@ public class ScheduledTaskCheckerTask {
 	private SettingService settingService;
 
     @Scheduled(cron = "0 0 3 ? * *")
+    @WarnIfSlowerThan
     public void flagScheduledTasksRunning() {
     	
     	// normal check - only runs on SOFD #1
@@ -32,6 +35,7 @@ public class ScheduledTaskCheckerTask {
     }
     
     @Scheduled(cron = "0 0 4 ? * *")
+    @WarnIfSlowerThan
     public void checkScheduledTasksRunning() {
     	
     	// reverse check - only runs on SOFD #2

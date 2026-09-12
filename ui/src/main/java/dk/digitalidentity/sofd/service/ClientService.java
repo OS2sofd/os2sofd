@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.service;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,6 +64,7 @@ public class ClientService {
 
 	// run every 10 minutes
 	@Scheduled(fixedRate = 1000 * 60 * 10)
+	@WarnIfSlowerThan
 	public void cacheClearTask() {
 		log.debug("cacheClearTask");
 		self.cacheClear();

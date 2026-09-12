@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.task;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.service.ProfessionService;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,7 @@ public class ProfessionUpdateTask {
 
 	// run every hour
 	@Scheduled(fixedDelay = 60 * 60 * 1000, initialDelay = 5 * 1000)
+	@WarnIfSlowerThan
 	public void processProfessions() {
 		if (!configuration.getScheduled().isEnabled()) {
 			log.debug("Scheduled jobs are disabled on this instance");

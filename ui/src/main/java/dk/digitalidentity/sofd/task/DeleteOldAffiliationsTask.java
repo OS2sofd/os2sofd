@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.task;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -21,6 +23,7 @@ public class DeleteOldAffiliationsTask {
 	private AffiliationService affiliationService;
 	
 	@Scheduled(cron = "0 35 8 * * ?")
+	@WarnIfSlowerThan
 	public void deleteOldAffiliations() {
 		if (!configuration.getScheduled().isEnabled()) {
 			log.debug("Scheduled jobs are disabled on this instance");

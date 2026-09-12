@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.task;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -26,6 +28,7 @@ public class UpdateLatestVersionTask {
 
 	// check for a new version once per hour
 	@Scheduled(initialDelay = 1000, fixedDelay = 60 * 60 * 1000)
+	@WarnIfSlowerThan
 	public void updateLatestVersion() {
 		log.debug("updateLatestVersion");
 
@@ -42,6 +45,7 @@ public class UpdateLatestVersionTask {
 	}
 
 	@Scheduled(cron = "0 0 6 ? * *")
+	@WarnIfSlowerThan
 	public void verifyAutoUpdateStatus() {
 		log.debug("verifyAutoUpdateStatus");
 

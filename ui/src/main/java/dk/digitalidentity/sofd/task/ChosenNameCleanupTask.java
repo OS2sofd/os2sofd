@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.task;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -23,6 +25,7 @@ public class ChosenNameCleanupTask {
 
 	// run once per day
 	@Scheduled(fixedDelay = 24 * 60 * 60 * 1000)
+	@WarnIfSlowerThan
 	@Transactional
 	public void cleanupChosenNames() {
 		if (!configuration.getScheduled().isEnabled() || !configuration.getModules().getPerson().isResetChosenNameWhenInactive()) {

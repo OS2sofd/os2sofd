@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.service;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -76,6 +78,7 @@ public class RoleCatalogueService {
 	
 	// every 2 hours, we wipe the cache
 	@Scheduled(fixedDelay = 2 * 60 * 60 * 1000)
+	@WarnIfSlowerThan
 	public void cleanupCache() {
 		log.debug("cleanupCache");
 		self.wipeCache();

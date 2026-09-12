@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.task;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -21,6 +23,7 @@ public class HistoricalReportsOnOrgUnitsTask {
 	private HistoricalReportsOnOrgUnitsService historicalReportsOnOrgUnitsService;
 
 	@Scheduled(cron = "${cron.historicalreportsonorgunits.task:0 0 0 1 * ?}")
+	@WarnIfSlowerThan
 	public void generateOrgunitReport() {
 		if (!configuration.getScheduled().isEnabled()) {
 			log.debug("Scheduled jobs are disabled on this instance");

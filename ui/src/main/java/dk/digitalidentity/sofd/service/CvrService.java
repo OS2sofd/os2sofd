@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.service;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -364,6 +366,7 @@ public class CvrService {
 	}
 	
 	@Scheduled(fixedRate = 60 * 60 * 1000)
+	@WarnIfSlowerThan
     public void resetCvrSearchResultCacheTask() {
 		log.debug("resetCvrSearchResultCacheTask");
     	self.resetCvrSearchResultCache();

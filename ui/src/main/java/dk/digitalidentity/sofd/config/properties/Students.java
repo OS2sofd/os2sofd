@@ -10,4 +10,7 @@ public class Students {
 
 	@FeatureDocumentation(name = "Indlæs elever", description = "Indlæs elever fra AD")
 	private boolean enabled;
+
+	@FeatureDocumentation(name = "Vis skoleelever", description = "Vis menupunktet Skoleelever under Organisation")
+	private boolean studentListEnabled = true;
 }

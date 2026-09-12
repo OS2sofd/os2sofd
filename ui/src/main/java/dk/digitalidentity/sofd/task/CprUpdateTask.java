@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.task;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import java.util.Calendar;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +34,7 @@ public class CprUpdateTask {
     }
 
     @Scheduled(cron = "0 #{new java.util.Random().nextInt(60)} 21 * * ?")
+    @WarnIfSlowerThan
     public void updateFromCpr() {
         if (!configuration.getScheduled().isEnabled() || !configuration.getScheduled().getCprSync().isEnabled()) {
             log.debug("Scheduled update of addresses are disabled on this instance");
@@ -49,6 +52,7 @@ public class CprUpdateTask {
     }
 
     @Scheduled(cron = "${cron.cpr.badstate:0 #{new java.util.Random().nextInt(60)} 3 * * ?}")
+    @WarnIfSlowerThan
     public void updateBadStates() {
         if (!configuration.getScheduled().isEnabled() || !configuration.getScheduled().getCprSync().isEnabled()) {
             log.debug("Scheduled update of addresses are disabled on this instance");

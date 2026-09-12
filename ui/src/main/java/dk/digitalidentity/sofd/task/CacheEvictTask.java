@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.task;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,6 +19,7 @@ public class CacheEvictTask {
 	private EmailTemplateService emailTemplateService;
 
     @Scheduled(fixedDelay = 15 * 60 * 1000)
+    @WarnIfSlowerThan
     public void every15Minutes() {
     	emailTemplateService.resetEmailTemplateCache();
     }

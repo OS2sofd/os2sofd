@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.task;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Collections;
@@ -52,6 +54,7 @@ public class PwdReminderTask {
 	
 	// Run every 15 minutes, checking for rules to be executed
 	@Scheduled(fixedDelay = 15 * 60 * 1000)
+	@WarnIfSlowerThan
 	@Transactional
 	public void sendPwdReminders() {
 		if (!configuration.getScheduled().isEnabled() || !configuration.getModules().getSmsGateway().isPwdReminderEnabled()) {

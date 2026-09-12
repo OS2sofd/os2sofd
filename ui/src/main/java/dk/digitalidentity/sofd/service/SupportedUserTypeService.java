@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.service;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -58,6 +60,7 @@ public class SupportedUserTypeService {
 	
 	// run every 30 seconds
 	@Scheduled(fixedRate = 1000 * 30)
+	@WarnIfSlowerThan
 	public void cacheClearTask() {
 		log.debug("cacheClearTask");
 		self.cacheClear();

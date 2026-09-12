@@ -27,6 +27,7 @@ public class SecurityLogCleaner {
 
 	// run thrice every night, totaling 75.000 records
 	@Scheduled(cron = "0 #{new java.util.Random().nextInt(60)} 2,3,4 * * ?")
+	@WarnIfSlowerThan
 	public void cleanupAuditLogs() {
 		if (!configuration.getScheduled().isEnabled()) {
 			log.info("Scheduled jobs are disabled on this instance");

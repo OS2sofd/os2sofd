@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.service;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -50,6 +52,7 @@ public class KleService {
 	
 	// 4 hour cache should be enough to ensure solid performance
 	@Scheduled(fixedRate = 4 * 60 * 60 * 1000)
+	@WarnIfSlowerThan
 	public void resetKleCacheTask() {
 		log.info("Resetting KLE");
 		self.resetKleCache();

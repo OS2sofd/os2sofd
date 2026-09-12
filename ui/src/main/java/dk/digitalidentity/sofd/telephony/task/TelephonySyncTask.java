@@ -1,5 +1,7 @@
 package dk.digitalidentity.sofd.telephony.task;
 
+import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,6 +24,7 @@ public class TelephonySyncTask {
 	
 	// run once every minute from 05:00 to 23:00
 	@Scheduled(cron = "0 0/1 5-23 * * *")
+	@WarnIfSlowerThan
 	public void deltaSync() throws Exception {
 		if (!configuration.getScheduled().isEnabled() || !configuration.getModules().getTelephony().isEnabled()) {
 			return;
@@ -37,6 +40,7 @@ public class TelephonySyncTask {
 
 	// run 03:10 every night (TODO: randomize once we have Spring Boot 2.x)
 	@Scheduled(cron = "0 10 3 * * *")
+	@WarnIfSlowerThan
 	//@Scheduled(fixedDelay = 60 * 60 * 1000)
 	public void fullSync() throws Exception {
 		if (!configuration.getScheduled().isEnabled() || !configuration.getModules().getTelephony().isEnabled()) {
