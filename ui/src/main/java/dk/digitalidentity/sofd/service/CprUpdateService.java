@@ -11,6 +11,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -86,6 +87,8 @@ public class CprUpdateService {
 		}
 	}
 	
+	// made it async so it does not block - be aware that this MAY cause deadlocks
+	@Async
 	public void updatePersonsWithLastCprDigit(String digit) {
 		Authentication authentication = SecurityUtil.getLoginSession();
 		try {
