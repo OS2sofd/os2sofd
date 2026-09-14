@@ -40,6 +40,8 @@ import dk.digitalidentity.sofd.dao.model.ContactPlace;
 import dk.digitalidentity.sofd.dao.model.FkOrgUuid;
 import dk.digitalidentity.sofd.dao.model.Kle;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
+import dk.digitalidentity.sofd.dao.model.OrgUnitTag;
+import dk.digitalidentity.sofd.dao.model.Organisation;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Phone;
 import dk.digitalidentity.sofd.dao.model.Post;
@@ -127,7 +129,7 @@ public class OS2SyncService {
 
 		log.info("Peforming cleanup of orgunits in FK Organisation");
 
-		var admOrg = organisationService.getAdmOrg();
+		Organisation admOrg = organisationService.getAdmOrg();
 
 		// read all OrgUnits from FK Organisation
 		List<FKOU> fkOrgUnits;
@@ -182,15 +184,15 @@ public class OS2SyncService {
 		headers.add("Accept", "application/json");
 		headers.setContentType(MediaType.APPLICATION_JSON);
 
-		var kombitUuids = userService.getAllKombitUuids();
+		List<String> kombitUuids = userService.getAllKombitUuids();
 		// failsafe
-		var failsafeThreshold = 1000;
-		if( kombitUuids.size() < failsafeThreshold ) {
+		int failsafeThreshold = 1000;
+		if (kombitUuids.size() < failsafeThreshold) {
 			log.info("Amount of kombitUuids was less than expected (" + failsafeThreshold + ") - not running cleanup");
 			return;
 		}
 
-		var request = new HttpEntity<>(kombitUuids, headers);
+		HttpEntity<List<String>> request = new HttpEntity<>(kombitUuids, headers);
 		ResponseEntity<String> response = restTemplate.exchange(configuration.getIntegrations().getOs2sync().getUserCleanupUrl(), HttpMethod.POST, request, String.class);
 		
 		if (response.getStatusCode().value() != 200) {
@@ -207,7 +209,7 @@ public class OS2SyncService {
 			head = 0L;
 		}
 
-		var admOrg = organisationService.getAdmOrg();
+		Organisation admOrg = organisationService.getAdmOrg();
 
 		List<ContactPlace> allContactPlaces = (configuration.getModules().getContactPlaces().isEnabled()) ? contactPlaceService.findAll() : null;
 
@@ -268,8 +270,7 @@ public class OS2SyncService {
 		SyncResult syncResult = syncService.getModificationHistory(lastRun, EntityType.ORGUNIT.toString());
 		Set<String> uuids = syncResult.getUuids().stream().map(w -> w.getUuid()).collect(Collectors.toSet());
 		Set<String> doNotTransferToFKOrgUuids = orgUnitService.getDoNotTransferToFKOrgUuids();
-		var admOrg = organisationService.getAdmOrg();
-
+		Organisation admOrg = organisationService.getAdmOrg();
 
 		List<ContactPlace> allContactPlaces = null;
 		if (uuids.size() > 0 && configuration.getModules().getContactPlaces().isEnabled()) {
@@ -810,10 +811,10 @@ public class OS2SyncService {
 		}
 		else {
 			// check if the OrgUnits are tagged with losId or losValue and use those tag values (ie. Odsherred)
-			var losIdTag = orgUnit.getTags().stream().filter(t -> t.getTag().getTagType() == TagType.LOSID).findFirst().orElse(null);
+			OrgUnitTag losIdTag = orgUnit.getTags().stream().filter(t -> t.getTag().getTagType() == TagType.LOSID).findFirst().orElse(null);
 			losId = losIdTag == null ? null : losIdTag.getCustomValue();
 
-			var losValueTag = orgUnit.getTags().stream().filter(t -> t.getTag().getTagType() == TagType.LOSVALUE).findFirst().orElse(null);
+			OrgUnitTag losValueTag = orgUnit.getTags().stream().filter(t -> t.getTag().getTagType() == TagType.LOSVALUE).findFirst().orElse(null);
 			losValue = losValueTag == null ? null : losValueTag.getCustomValue();
 		}
 
@@ -830,9 +831,9 @@ public class OS2SyncService {
 			User managerUser = null;
 
 			// check if a user is mapped to an affiliation in the current OrgUnit
-			for (var user : users) {
+			for (User user : users) {
 				if (StringUtils.hasText(user.getEmployeeId())) {
-					for (var affiliation : orgUnit.getManager().getManager().getAffiliations()) {
+					for (Affiliation affiliation : orgUnit.getManager().getManager().getAffiliations()) {
 						if (affiliation.getEmployeeId().equalsIgnoreCase(user.getEmployeeId()) && affiliation.getOrgUnit().getUuid().equalsIgnoreCase(orgUnit.getUuid())) {
 							managerUser = user;
 							break;
