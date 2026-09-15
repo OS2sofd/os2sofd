@@ -1006,30 +1006,11 @@ public class AccountOrderService {
 						.collect(Collectors.toList());				
 			}
 
-			Set<Long> relevantAffiliationIds = relevantAffiliations.stream().map(a -> a.getId()).collect(Collectors.toSet());
 			Set<String> seenEmployeePersonUuids = new HashSet<String>();
 			Set<String> seenExternalPersonUuids = new HashSet<String>();
 			boolean isExchange = SupportedUserTypeService.isExchange(userType.getKey());
 
-			for (Affiliation potentialAffiliation : relevantAffiliations) {
-
-				final Affiliation affiliation = (!userType.isSingleUserMode())
-					? potentialAffiliation
-					: potentialAffiliation
-						.getPerson()
-						.getAffiliations()
-						.stream()
-						// only look at those already marked as relevant, only those with an actual startDate (so we can sort), and finally
-						// those in the same lane, so we ensure that we run once for each of the lanes that we support IdM on
-						.filter(a -> relevantAffiliationIds.contains(a.getId()) && a.getStartDate() != null && isHandledAsExternalAccount(potentialAffiliation) == isHandledAsExternalAccount(a))
-						.sorted((a1, a2) -> a1.getStartDate().compareTo(a2.getStartDate()))
-						.findFirst()
-						.orElse(null);
-
-				if (affiliation == null) {
-					log.error("A sorted non-empty list of affiliations returned null when picking the first - might mean they have NULL start-date for person " + potentialAffiliation.getPerson().getUuid());
-					continue;
-				}
+			for (Affiliation affiliation : relevantAffiliations) {
 
 				if (log.isDebugEnabled()) {
 					log.debug("Looking at affilation " + affiliation.getId());
@@ -1046,10 +1027,10 @@ public class AccountOrderService {
 						continue;
 				}
 
-				// when running in singleUserMode, we do not need to inspect each affiliation for a given Person, the first one
-				// encountered is fine (as we will in fact find the SAME affiliation to look at for each iteration)
+				// if we have already created an accountOrder for this person this round through (always for external, and in singleUserMode for employees),
+				// then we just abort early
 				if (isHandledAsExternalAccount(affiliation)) {
-					if (seenExternalPersonUuids.contains(potentialAffiliation.getPerson().getUuid())) {
+					if (seenExternalPersonUuids.contains(affiliation.getPerson().getUuid())) {
 						
 						if (log.isDebugEnabled()) {
 							log.debug("External account, and the person has already been handled " + affiliation.getPerson().getUuid());
@@ -1057,11 +1038,9 @@ public class AccountOrderService {
 						
 						continue;
 					}
-
-					seenExternalPersonUuids.add(potentialAffiliation.getPerson().getUuid());
 				}
 				else {
-					if (userType.isSingleUserMode() && seenEmployeePersonUuids.contains(potentialAffiliation.getPerson().getUuid())) {
+					if (userType.isSingleUserMode() && seenEmployeePersonUuids.contains(affiliation.getPerson().getUuid())) {
 						
 						if (log.isDebugEnabled()) {
 							log.debug("In single-user mode, and the person has already been handled " + affiliation.getPerson().getUuid());
@@ -1069,8 +1048,6 @@ public class AccountOrderService {
 						
 						continue;
 					}
-
-					seenEmployeePersonUuids.add(potentialAffiliation.getPerson().getUuid());
 				}
 
 				// wait until prerequisites are in place
@@ -1189,6 +1166,14 @@ public class AccountOrderService {
 				}
 				
 				if (generateOrder) {
+					// mark the person as "seen", so we do not create any additional accountOrders unless running in non-singleUserMode
+					if (isHandledAsExternalAccount(affiliation)) {
+						seenExternalPersonUuids.add(affiliation.getPerson().getUuid());
+					}
+					else {
+						seenEmployeePersonUuids.add(affiliation.getPerson().getUuid());
+					}
+
 					User existingDisabledUser = null;
 
 					if (SupportedUserTypeService.isActiveDirectory(userType.getKey())) {
