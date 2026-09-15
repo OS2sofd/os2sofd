@@ -36,4 +36,7 @@ public class Email {
 
 	@JsonIgnore
 	private String secret;
+	
+	@JsonIgnore
+	private long port = 25;
 }
