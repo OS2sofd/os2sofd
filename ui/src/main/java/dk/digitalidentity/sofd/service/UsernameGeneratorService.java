@@ -69,12 +69,16 @@ public class UsernameGeneratorService {
 	private AccountOrderService accountOrderService;
 
 	public String getUsername(Person person, String employeeId, String userType, String linkedUserId, Affiliation affiliation) {
+		return getUsername(person, employeeId, userType, linkedUserId, affiliation, false);
+	}
+
+	public String getUsername(Person person, String employeeId, String userType, String linkedUserId, Affiliation affiliation, boolean forceNewUsername) {
 		String userId = null;
-		
+
 		if (configuration.getModules().getAccountCreation().isReservationEnabled()) {
 			ReservedUsername reservedUsername = null;
 			try {
-				reservedUsername = getReservedUsername(person, employeeId, userType);
+				reservedUsername = getReservedUsername(person, employeeId, userType, forceNewUsername);
 			}
 			catch (Exception ex) {
 				log.error("Failed to generate username reservation for " + person.getUuid() + " / " + employeeId + " / " + userType);
@@ -176,11 +180,11 @@ public class UsernameGeneratorService {
 		return userId;
 	}
 	
-	private ReservedUsername getReservedUsername(Person person, String employeeId, String userType) {
-		return getReservedUsername(person, employeeId, userType, true);
+	private ReservedUsername getReservedUsername(Person person, String employeeId, String userType, boolean forceNewUsername) {
+		return getReservedUsername(person, employeeId, userType, forceNewUsername, true);
 	}
 
-	private ReservedUsername getReservedUsername(Person person, String employeeId, String userType, boolean firstTry) {
+	private ReservedUsername getReservedUsername(Person person, String employeeId, String userType, boolean forceNewUsername, boolean firstTry) {
 		ReservedUsername reservedUsername = null;
 		
 		SupportedUserType supportedUserType = supportedUserTypeService.findByKey(userType);
@@ -215,9 +219,18 @@ public class UsernameGeneratorService {
 		if (reservedUsername != null && SupportedUserTypeService.isActiveDirectory(userType)) {
 			User user = userService.findByUserIdAndUserType(reservedUsername.getUserId(), userType);
 			
-			if (user != null && !user.isDisabled()) {
+			// a disabled account still occupies the userId in AD, so the reserved username is only reusable
+			// for a caller that is willing to reactivate that account. Callers that always create new accounts
+			// (forceNewUsername) get a freshly generated username instead, otherwise they are handed a userId
+			// that already exists in AD and the creation fails
+			if (user != null && (!user.isDisabled() || forceNewUsername)) {
 				var affiliation = person.getAffiliations().stream().filter(a -> a.getEmployeeId().equalsIgnoreCase(employeeId)).findFirst().orElse(new Affiliation());
 				String generatedUsername = generateUsername(supportedUserType, affiliation, person, reservedUsernameDao.findByPersonUuid(person.getUuid()), null);
+				if (generatedUsername == null) {
+					log.warn("Reserved username '" + reservedUsername.getUserId() + "' is taken by an existing account, and generating a replacement failed for " + person.getUuid() + " / " + userType);
+					return null;
+				}
+
 				ReservedUsername username = new ReservedUsername();
 				username.setEmployeeId(employeeId);
 				username.setUserId(generatedUsername);
@@ -231,7 +244,7 @@ public class UsernameGeneratorService {
 		if ((reservedUsername == null && firstTry)) {
 			reserveUsernames(person);
 			
-			reservedUsername = getReservedUsername(person, employeeId, userType, false);
+			reservedUsername = getReservedUsername(person, employeeId, userType, forceNewUsername, false);
 		}
 		
 		return reservedUsername;

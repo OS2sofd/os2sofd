@@ -87,7 +87,8 @@ public class AccountOrderApiController {
 			@RequestParam("personUuid") String personUuid,
 			@RequestParam("userType") String userType,
 			@RequestParam(value = "employeeId", required = false) String employeeId,
-	        @RequestParam(value = "linkedUserId", required = false) String linkedUserId) {
+	        @RequestParam(value = "linkedUserId", required = false) String linkedUserId,
+	        @RequestParam(value = "forceNewUsername", required = false, defaultValue = "false") boolean forceNewUsername) {
 
 		Person person = personService.getByUuid(personUuid);
 		if (person == null) {
@@ -105,7 +106,7 @@ public class AccountOrderApiController {
 			return new ResponseEntity<>(new ErrorDTO(code, message), HttpStatus.BAD_REQUEST);
 		}
 
-		String userId = usernameGeneratorService.getUsername(person, employeeId, userType, linkedUserId,null);
+		String userId = usernameGeneratorService.getUsername(person, employeeId, userType, linkedUserId, null, forceNewUsername);
 
 		if (userId == null) {
 			log.warn("Failed to generate username");
