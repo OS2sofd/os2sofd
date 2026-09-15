@@ -28,6 +28,7 @@
 					<additionalClasspathElements>
 						<additionalClasspathElement>${basedir}/config</additionalClasspathElement>
 					</additionalClasspathElements>
+					<jvmArguments>-Xmx512M</jvmArguments>
 				</configuration>
 			</plugin>
 
