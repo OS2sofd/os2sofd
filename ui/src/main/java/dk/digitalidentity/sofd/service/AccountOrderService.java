@@ -927,6 +927,7 @@ public class AccountOrderService {
 	 * - referenced OrgUnit must be in an Organisation that can trigger IdM orders
 	 * - neither person nor affiliation may have IdM orders disabled for create orders
 	 * - the affiliation may not be a substitute, as those have their own lane and never take part in the IdM logic
+	 * - the affiliation must have a startDate, as the activation date on the resulting order is derived from it
 	 */
 	public List<Affiliation> filterAffiliationsForCreateOrders(List<Affiliation> affiliations) {
 		Set<String> masters;
@@ -956,6 +957,19 @@ public class AccountOrderService {
 
 		affiliations = AffiliationService.notStoppedAffiliations(affiliations);
 
+		// the activation date on a create/reactivate order is computed from the startDate, so an affiliation
+		// without one cannot be used - log it, as it points at bad data from the master system
+		affiliations = affiliations.stream()
+			.filter(a -> {
+				if (a.getStartDate() == null) {
+					log.error("Affiliation " + a.getId() + " has no startDate, skipping it in the IdM create logic for person " + a.getPerson().getUuid());
+					return false;
+				}
+
+				return true;
+			})
+			.collect(Collectors.toList());
+
 		return affiliations;
 	}
 
@@ -982,6 +996,15 @@ public class AccountOrderService {
 		if (affiliations.size() == 0) {
 			return accountOrdersResult;
 		}
+
+		// the loops below stop at the first affiliation that actually triggers an order, and that affiliation decides
+		// the activation date, the employeeId and which OrgUnit supplies the approval/offset rules. Sorting on startDate
+		// makes that choice deterministic, and ensures we pick the earliest employment, so the account exists in time.
+		// The filtering above guarantees a non-null startDate. Note that the sublists computed per userType below are
+		// all derived from this list through order-preserving operations, so one sort here is enough
+		affiliations = affiliations.stream()
+				.sorted((a1, a2) -> a1.getStartDate().compareTo(a2.getStartDate()))
+				.collect(Collectors.toList());
 
 		for (SupportedUserType userType : supportedUserTypeService.findAll()) {
 			if (!userType.isCanOrder() || !userType.isCreateEnabled()) {
