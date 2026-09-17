@@ -15,4 +15,9 @@ public class SubstituteAssignmentDTO {
 	private ManagerSubstitutePersonDTO substitute;
 	private List<OUConstraintDTO> constraintOrgUnits;
 	private boolean orgUnitAssignment = false;
+
+	// set on assignments that live on an orgUnit above the ones the person manages, and are inherited
+	// down to them - they belong to a manager further up, and cannot be edited by this person
+	private boolean inherited = false;
+	private String inheritedFrom;
 }

@@ -263,13 +263,12 @@ public class SubstituteApiController {
 			result.add(dto);
 		}
 
-		// handle orgUnit substitutes
+		// handle orgUnit substitutes. Only the orgUnits where this person is the registered manager count
+		// (direct or inherited) - manager inheritance already stops at an orgUnit that has a manager of its
+		// own, so substitutes belonging to a manager further down are not picked up here
 		Map<String, List<SubstituteOrgUnitAssignment>> assignmentMap = new HashMap<>();
-		List<OrgUnit> managedOrgUnits = new ArrayList<>();
-		List<String> addedUuids = new ArrayList<>();
-		for (OrgUnit orgUnit : orgUnitService.getAllWhereManagerIs(person)) {
-			addInheritedManagedOrgUnitsRecursive(managedOrgUnits, addedUuids, orgUnit);
-		}
+		List<OrgUnit> managedOrgUnits = orgUnitService.getAllWhereManagerIs(person);
+		List<String> addedUuids = managedOrgUnits.stream().map(OrgUnit::getUuid).collect(Collectors.toList());
 
 		for (OrgUnit ou : managedOrgUnits) {
 			for (SubstituteOrgUnitAssignment assignment : ou.getSubstitutes()) {
@@ -295,10 +294,58 @@ public class SubstituteApiController {
 
 			result.add(dto);
 		}
-		
+
+		// handle orgUnit substitutes placed above the managed orgUnits, and inherited down to them. They
+		// belong to a manager further up the hierarchy, so they are flagged as read-only for this person
+		Map<Long, SubstituteAssignmentDTO> inheritedAssignments = new HashMap<>();
+		for (OrgUnit orgUnit : orgUnitService.getAllWhereManagerIs(person)) {
+			addInheritedSubstitutesRecursive(orgUnit.getParent(), addedUuids, inheritedAssignments);
+		}
+		result.addAll(inheritedAssignments.values());
+
 		return new ResponseEntity<>(result, HttpStatus.OK);
 	}
-	
+
+	private void addInheritedSubstitutesRecursive(OrgUnit parent, List<String> managedOrgUnitUuids, Map<Long, SubstituteAssignmentDTO> inheritedAssignments) {
+		if (parent == null) {
+			return;
+		}
+
+		// assignments on an orgUnit the person manages are already returned as ordinary (editable) assignments
+		if (!managedOrgUnitUuids.contains(parent.getUuid())) {
+			for (SubstituteOrgUnitAssignment assignment : parent.getSubstitutes()) {
+				if (!assignment.getContext().isInheritOrgUnitAssignments()) {
+					continue;
+				}
+
+				if (inheritedAssignments.containsKey(assignment.getId())) {
+					continue;
+				}
+
+				SubstituteAssignmentDTO dto = new SubstituteAssignmentDTO();
+				dto.setId(assignment.getId());
+				dto.setSubstituteContextId(assignment.getContext().getId());
+				dto.setSubstituteContextName(assignment.getContext().getName());
+				dto.setOrgUnitAssignment(true);
+				dto.setInherited(true);
+				dto.setInheritedFrom(parent.getName());
+
+				List<OUConstraintDTO> constraintOrgUnits = new ArrayList<>();
+				constraintOrgUnits.add(OUConstraintDTO.builder().name(parent.getName()).uuid(parent.getUuid()).assignmentId(assignment.getId()).build());
+				dto.setConstraintOrgUnits(constraintOrgUnits);
+
+				ManagerSubstitutePersonDTO substitute = new ManagerSubstitutePersonDTO();
+				substitute.setName(PersonService.getName(assignment.getSubstitute()));
+				substitute.setUuid(assignment.getSubstitute().getUuid());
+				dto.setSubstitute(substitute);
+
+				inheritedAssignments.put(assignment.getId(), dto);
+			}
+		}
+
+		addInheritedSubstitutesRecursive(parent.getParent(), managedOrgUnitUuids, inheritedAssignments);
+	}
+
 	@GetMapping("/api/substitutes/contexts")
 	public ResponseEntity<?> getSubstituteContexts() {
 		List<SubstituteContextDTO> result = new ArrayList<>();
@@ -331,12 +378,11 @@ public class SubstituteApiController {
 			return new ResponseEntity<>("Person with uuid " + uuid + " was not found", HttpStatus.NOT_FOUND);
 		}
 
-		// include the ous, where the person is indirect manager (even if that ou has another manager)
-		List<String> addedUuids = new ArrayList<>();
-		List<OUConstraintDTO> managedOrgUnits = new ArrayList<>();
-		for (OrgUnit orgUnit : orgUnitService.getAllWhereManagerIs(person)) {
-			addManagedOrgUnitsRecursive(addedUuids, managedOrgUnits, orgUnit);
-		}
+		// only the orgUnits where the person is the registered manager (direct or inherited) - a substitute
+		// cannot be assigned to an orgUnit that has a manager of its own
+		List<OUConstraintDTO> managedOrgUnits = orgUnitService.getAllWhereManagerIs(person).stream()
+				.map(ou -> OUConstraintDTO.builder().name(ou.getName()).uuid(ou.getUuid()).build())
+				.collect(Collectors.toList());
 
 		return new ResponseEntity<>(managedOrgUnits, HttpStatus.OK);
 	}
@@ -366,11 +412,7 @@ public class SubstituteApiController {
 		if (context.isSupportsConstraints() && dto.getConstraintOrgUnitUuids() != null) {
 			List<OrgUnit> orgUnits = orgUnitService.getByUuid(dto.getConstraintOrgUnitUuids());
 
-			// include the ous, where the person is indirect manager (even if that ou has another manager)
-			List<String> managedOrgUnitUuids = new ArrayList<>();
-			for (OrgUnit orgUnit : orgUnitService.getAllWhereManagerIs(person)) {
-				addManagedOrgUnitsRecursive(managedOrgUnitUuids, orgUnit);
-			}
+			List<String> managedOrgUnitUuids = orgUnitService.getAllWhereManagerIs(person).stream().map(OrgUnit::getUuid).collect(Collectors.toList());
 
 			for (OrgUnit orgUnit : orgUnits) {
 				if (managedOrgUnitUuids.contains(orgUnit.getUuid())) {
@@ -438,15 +480,12 @@ public class SubstituteApiController {
 			return new ResponseEntity<>("SubstituteAssignment with id " + assignmentId + " was not found", HttpStatus.NOT_FOUND);
 		}
 
-		// include the ous, where the person is indirect manager (even if that ou has another manager)
-		List<String> managedOrgUnitUuids = new ArrayList<>();
-		for (OrgUnit orgUnit : orgUnitService.getAllWhereManagerIs(assignment.getPerson())) {
-			addManagedOrgUnitsRecursive(managedOrgUnitUuids, orgUnit);
-		}
+		List<String> managedOrgUnitUuids = orgUnitService.getAllWhereManagerIs(assignment.getPerson()).stream().map(OrgUnit::getUuid).collect(Collectors.toList());
 
+		List<String> requestedOUUuids = dto.constraintOUUuids() != null ? dto.constraintOUUuids() : new ArrayList<>();
 		List<String> existingOUUuids = assignment.getConstraintMappings().stream().map(c -> c.getOrgUnit().getUuid()).collect(Collectors.toList());
-		if (assignment.getContext().isSupportsConstraints() && dto.constraintOUUuids() != null) {
-			List<OrgUnit> orgUnits = orgUnitService.getByUuid(dto.constraintOUUuids());
+		if (assignment.getContext().isSupportsConstraints()) {
+			List<OrgUnit> orgUnits = orgUnitService.getByUuid(requestedOUUuids);
 
 			for (OrgUnit orgUnit : orgUnits) {
 				if (!existingOUUuids.contains(orgUnit.getUuid()) && managedOrgUnitUuids.contains(orgUnit.getUuid())) {
@@ -457,8 +496,14 @@ public class SubstituteApiController {
 				}
 			}
 		}
-		
-		List<SubstituteAssignmentOrgUnitMapping> toDelete = assignment.getConstraintMappings().stream().filter(c -> !dto.constraintOUUuids().contains(c.getOrgUnit().getUuid())).collect(Collectors.toList());
+
+		// only constraints on orgUnits the person manages can be removed here. Constraints on other orgUnits
+		// are not shown to the person (and cannot be re-added), so their absence from the request is not a
+		// request to delete them
+		List<SubstituteAssignmentOrgUnitMapping> toDelete = assignment.getConstraintMappings().stream()
+				.filter(c -> managedOrgUnitUuids.contains(c.getOrgUnit().getUuid()))
+				.filter(c -> !requestedOUUuids.contains(c.getOrgUnit().getUuid()))
+				.collect(Collectors.toList());
 		assignment.getConstraintMappings().removeAll(toDelete);
 		
 		assignment = substituteAssignmentService.save(assignment);
@@ -505,38 +550,6 @@ public class SubstituteApiController {
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
-	private void addManagedOrgUnitsRecursive(List<String> addedUuids, List<OUConstraintDTO> managedOrgUnits, OrgUnit current) {
-		if (!addedUuids.contains(current.getUuid())) {
-			managedOrgUnits.add(OUConstraintDTO.builder().name(current.getName()).uuid(current.getUuid()).build());
-			addedUuids.add(current.getUuid());
-		}
-
-		for (OrgUnit child : current.getChildren()) {
-			addManagedOrgUnitsRecursive(addedUuids, managedOrgUnits, child);
-		}
-	}
-
-	private void addManagedOrgUnitsRecursive(List<String> addedUuids, OrgUnit current) {
-		if (!addedUuids.contains(current.getUuid())) {
-			addedUuids.add(current.getUuid());
-		}
-
-		for (OrgUnit child : current.getChildren()) {
-			addManagedOrgUnitsRecursive(addedUuids, child);
-		}
-	}
-
-	private void addInheritedManagedOrgUnitsRecursive(List<OrgUnit> orgUnits, List<String> addedUuids, OrgUnit current) {
-		if (!addedUuids.contains(current.getUuid())) {
-			addedUuids.add(current.getUuid());
-			orgUnits.add(current);
-		}
-
-		for (OrgUnit child : current.getChildren()) {
-			addInheritedManagedOrgUnitsRecursive(orgUnits, addedUuids, child);
-		}
-	}
-	
 	private User personGetPrimeUser(Person person) {
 		return PersonService.getUsers(person).stream()
 				.filter(u -> SupportedUserTypeService.isActiveDirectory(u.getUserType()) && u.isPrime())
