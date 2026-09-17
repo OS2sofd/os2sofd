@@ -89,7 +89,9 @@ public interface PersonDao extends JpaRepository<Person, String>, JpaSpecificati
 	List<Person> findTop10ByCprStartingWith(String prefix);
 
 	Person findByUuid(String uuid);
-	
+
+	List<Person> findByUuidIn(Set<String> uuids);
+
 	@Modifying
 	@Query(nativeQuery = true, value = "DELETE FROM persons WHERE uuid IN ?1")
 	void deleteByUuid(Set<String> uuids);

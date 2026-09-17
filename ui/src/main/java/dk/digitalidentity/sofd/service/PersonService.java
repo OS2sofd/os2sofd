@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -177,6 +178,15 @@ public class PersonService {
 
 	public Person getByUuid(String uuid) {
 		return personDao.findByUuid(uuid);
+	}
+
+	// for callers that would otherwise call getByUuid in a loop
+	public Map<String, Person> getByUuids(Set<String> uuids) {
+		if (uuids.isEmpty()) {
+			return Map.of();
+		}
+
+		return personDao.findByUuidIn(uuids).stream().collect(Collectors.toMap(Person::getUuid, p -> p));
 	}
 
 	public Person findByCpr(String cpr) {

@@ -3,8 +3,10 @@ package dk.digitalidentity.sofd.controller.mvc;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -65,10 +67,14 @@ public class ApproveOrderController {
 
 		Person loggedInPerson = personService.getLoggedInPerson();
 
+		// one lookup rather than one per order, as several orders can point at the same person
+		Map<String, Person> persons = personService.getByUuids(
+				adAccountOrders.stream().map(AccountOrder::getPersonUuid).collect(Collectors.toSet()));
+
 		// convert to DTO
 		List<AccountOrderDTO> dtos = new ArrayList<>();
 		for (AccountOrder order : adAccountOrders) {
-			Person person = personService.getByUuid(order.getPersonUuid());
+			Person person = persons.get(order.getPersonUuid());
 			if (person == null) {
 				log.warn("Could not find person with uuid: " + order.getPersonUuid());
 				continue;

@@ -26,45 +26,46 @@
 										<th class="col-md-1" th:text="#{html.control.operations}"></th>
 									</tr>
 								</thead>
-					
-								<tbody>
-									<tr th:each="order : ${orders}">
-										<td th:text="${#dates.format(order.activationTimestamp, 'yyyy-MM-dd HH:mm')}"></td>
-										<td>
-											<a th:href="@{/ui/person/view/} + ${order.personUuid} + '?backRef=adaccount'" style="color: inherit; text-decoration: none;">
-												<span th:text="${order.personName}"></span>
-												&nbsp;
-												<em class="fa fa-external-link"></em>
-											</a>
-										</td>
-										<td th:text="${order.triggerAffiliation}"></td>
-										<td th:text="${order.userId}"></td>
-										
-										<td th:if="${order.orderType == T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderType).EXPIRE and order.endDate == null}"
-											th:text="#{html.enum.accountOrderStatus.expireReverse}"></td>
-										<td th:unless="${order.orderType == T(dk.digitalidentity.sofd.dao.model.enums.AccountOrderType).EXPIRE and order.endDate == null}"
-											th:text="#{__${order.orderType.messageId}__}"></td>
-										
-										<td th:text="${@supportedUserTypeService.getPrettyName(order.getUserType())}"></td>
-										<td th:text="#{__${order.status.messageId}__}"></td>
-										<td>
-											<a th:href="@{/ui/report/accountorders/{id}(id=${order.id}, backRef='accountorders')}"><em class="fa fa-fw fa-search"></em></a>
-											<a href="#" th:attr="data-orderid=${order.id}" onclick="deleteAccountOrder(this); return false;"><em class="fa fa-fw fa-times"></em></a>
-										</td>
-									</tr>
-								</tbody>
-								<tfoot>
+
+								<tfoot style="display: table-row-group">
 									<tr>
-										<th th:text="#{html.page.accountorders.activationTime}"></th>
-										<th th:text="#{html.page.accountorders.personName}"></th>
-										<th th:text="#{html.page.accountorders.triggerAffiliation}"></th>
-										<th th:text="#{html.page.accountorders.userId}"></th>
-										<th th:text="#{html.page.accountorders.orderType}"></th>
-										<th th:text="#{html.page.accountorders.userType}"></th>
-										<th th:text="#{html.page.accountorders.status}"></th>
-										<th class="disabled"></th>
+										<td class="select-filter">
+											<select id="windowFilter" class="form-control input-sm" style="width: 100%;">
+												<option value="" th:text="#{html.page.accountorders.filter.showall}"></option>
+												<option value="P1W" th:text="#{html.page.accountorders.window.week1}"></option>
+												<option value="P2W" th:text="#{html.page.accountorders.window.week2}"></option>
+												<option value="P1M" th:text="#{html.page.accountorders.window.month1}"></option>
+												<option value="P3M" th:text="#{html.page.accountorders.window.month3}"></option>
+												<option value="P1Y" th:text="#{html.page.accountorders.window.year1}"></option>
+											</select>
+										</td>
+										<td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" th:placeholder="#{html.datatables.search}" /></td>
+										<td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" th:placeholder="#{html.datatables.search}" /></td>
+										<td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" th:placeholder="#{html.datatables.search}" /></td>
+										<td class="select-filter">
+											<select id="orderTypeFilter" class="form-control input-sm" style="width: 100%;">
+												<option value="" th:text="#{html.page.accountorders.filter.showall}"></option>
+												<option th:each="entry : ${orderTypes}" th:value="${entry.key}" th:text="${entry.value}"></option>
+											</select>
+										</td>
+										<td class="select-filter">
+											<select id="userTypeFilter" class="form-control input-sm" style="width: 100%;">
+												<option value="" th:text="#{html.page.accountorders.filter.showall}"></option>
+												<option th:each="entry : ${userTypes}" th:value="${entry.key}" th:text="${entry.value}"></option>
+											</select>
+										</td>
+										<td class="select-filter">
+											<select id="statusFilter" class="form-control input-sm" style="width: 100%;">
+												<option value="" th:text="#{html.page.accountorders.filter.showall}"></option>
+												<option th:each="entry : ${statuses}" th:value="${entry.key}" th:text="${entry.value}"></option>
+											</select>
+										</td>
+										<td>&nbsp;</td>
 									</tr>
 								</tfoot>
+
+								<tbody>
+								</tbody>
 							</table>
 						</div>
 					</div>
@@ -74,108 +75,164 @@
 	</div>
 
 	<nav th:replace="~{fragments/footer :: footer}"></nav>
-	
-	<script th:replace="~{fragments/datatables :: datatables(autoLoad=false) }"></script>
-	
+
 	<script th:inline="javascript">
 		/*<![CDATA[*/
-		var token = $("meta[name='_csrf']").attr("content");
-		var table;
 
-		var accountOrderDatatableService;
-		$(document).ready(function () {
-			accountOrderDatatableService = new AccountOrderDatatableService();
-			accountOrderDatatableService.init();
-		});
+		/*[+
+			var searchTxt = [[#{html.datatables.search}]];
+			var dropdownTxt = [[#{html.datatables.dropdown}]];
+			var infoDefaultTxt = [[#{html.datatables.info.default}]];
+			var infoEmptyTxt = [[#{html.datatables.info.empty}]];
+			var infoFilteredTxt = [[#{html.datatables.info.filtered}]];
+			var prevTxt = [[#{html.datatables.prev}]];
+			var nextTxt = [[#{html.datatables.next}]];
 
-		function AccountOrderDatatableService() {
-			this.init = function() {
-				accountOrderDatatableService.addSearchBoxes();
-				accountOrderDatatableService.initDataTable();
-			}
-
-			this.addSearchBoxes = function() {
-				// Add searchbox based on column title to each footer
-				$('#listTable tfoot th').each( function () {
-					if (!$(this).hasClass('disabled')) {
-						var title = $(this).text();
-						$(this).html('<input class="form-control" style="width:100%;" type="text" placeholder="Søg i '+title+'" />');
-					}
-				});
-			}
-
-			this.initDataTable = function() {
-				// Initialize with searchfunction
-				table = $('#listTable').DataTable({
-					"bDestroy":  true,
-					'paging':    paging,
-					'ordering':  true,
-					'stateSave': true,
-					'info':      true,
-					'pageLength':25,
-					'initComplete': function () {
-						// Apply the search
-						this.api().columns().every( function () {
-							var that = this;
-
-							$( 'input', this.footer() ).on('keyup change clear', function () {
-								if (that.search() !== this.value) {
-									that.search(this.value).draw();
-								}
-							});
-						});
-
-						// Put the footer under the header
-						var r = $('#listTable tfoot tr');
-						r.find('th').each(function(){
-							$(this).css('padding', 8);
-						});
-						$('#listTable thead').append(r);
-					},
-					'language': {
-						"search":	   searchTxt,
-						"lengthMenu":   dropdownTxt,
-						"info":		 infoDefaultTxt,
-						"zeroRecords":  infoEmptyTxt,
-						"infoEmpty":	"",
-						"infoFiltered": infoFilteredTxt,
-						"paginate": {
-							"next": nextTxt,
-							"previous": prevTxt
-						}
-					}
-				});
-				
-				// restore state
-				var state = table.state.loaded();
-				if (state) {
-					table.columns().eq(0).each(function(colIdx) {
-						var colSearch = state.columns[colIdx].search;
-					
-						if (colSearch.search) {
-							$('input', table.column(colIdx).footer()).val(colSearch.search);
-						}
-					});
-
-					table.draw();
-				}
-
-				table.order([0, 'desc']).draw();
-			}
-		}
-
-		function deleteAccountOrder(elem) {
-			var orderId = $(elem).data('orderid');
-			
-			/*[+
+			var ajaxUrl = [[@{/rest/accountorder/list}]];
 			var deleteURL = [[@{/rest/accountorder/delete}]];
+			var personUrl = [[@{/ui/person/view/}]];
+			var orderUrl = [[@{/ui/report/accountorders/}]];
+
 			var removeTitle = [[#{html.page.accountorders.delete.title}]];
 			var removeText = [[#{html.page.accountorders.delete.text}]];
 			var removeButtonConfirm = [[#{html.button.delete}]];
 			var removeButtonCancel = [[#{html.button.cancel}]];
 			var deleteErrorMsg = [[#{html.page.accountorders.delete.error}]];
-			+]*/
-			
+		+]*/
+
+		var token = $("meta[name='_csrf']").attr("content");
+		var currentTable;
+
+		$(document).ready(function() {
+			loadDataTable();
+		});
+
+		var escapeHtml = $.fn.dataTable.render.text().display;
+
+		function loadDataTable() {
+			currentTable = $('#listTable').DataTable({
+				'destroy': true,
+				'ajax': {
+					'contentType': 'application/json',
+					'url': ajaxUrl,
+					'type': 'POST',
+					'headers': {
+						'X-CSRF-TOKEN': token
+					},
+					'data': function(d) {
+						return JSON.stringify(d);
+					}
+				},
+				'serverSide': true,
+				'columns': [
+					{
+						data: 'activationTimestamp',
+						render: $.fn.dataTable.render.text()
+					},
+					{
+						data: 'personName',
+						render: function (data, type, row, meta) {
+							return '<a href="' + personUrl + row.personUuid + '?backRef=adaccount" style="color: inherit; text-decoration: none;">' +
+								   escapeHtml(data) + '&nbsp;<em class="fa fa-external-link"></em></a>';
+						}
+					},
+					{
+						data: 'triggerAffiliation',
+						render: $.fn.dataTable.render.text()
+					},
+					{
+						data: 'userId',
+						render: $.fn.dataTable.render.text()
+					},
+					{
+						data: 'orderType',
+						render: $.fn.dataTable.render.text()
+					},
+					{
+						data: 'userType',
+						render: $.fn.dataTable.render.text()
+					},
+					{
+						data: 'status',
+						render: $.fn.dataTable.render.text()
+					},
+					{
+						data: 'id',
+						orderable: false,
+						searchable: false,
+						render: function (data, type, row, meta) {
+							return '<a href="' + orderUrl + data + '?backRef=accountorders"><em class="fa fa-fw fa-search"></em></a>' +
+								   '<a href="#" data-orderid="' + data + '" onclick="deleteAccountOrder(this); return false;"><em class="fa fa-fw fa-times"></em></a>';
+						}
+					}
+				],
+				'paging':    true,
+				'ordering':  true,
+				'stateSave': true,
+				'info':      true,
+				'order':     [0, 'desc'],
+				'pageLength': 25,
+				// default the activation window to two weeks ahead, so the teardown orders scheduled months
+				// out do not bury everything else. A saved state overrides this, so a chosen window sticks
+				'searchCols': [ { 'search': 'P2W' }, null, null, null, null, null, null, null ],
+				'language': {
+					"search":	   searchTxt,
+					"lengthMenu":   dropdownTxt,
+					"info":		 infoDefaultTxt,
+					"zeroRecords":  infoEmptyTxt,
+					"infoEmpty":	"",
+					"infoFiltered": infoFilteredTxt,
+					"paginate": {
+						"next": nextTxt,
+						"previous": prevTxt
+					}
+				}
+			});
+
+			// show whatever search each column ended up with, whether that came from searchCols above or
+			// from a saved state. No redraw, DataTables has already applied them to the first request
+			currentTable.columns().every(function() {
+				var search = this.search();
+
+				if (search) {
+					$('input, select', this.footer()).val(search);
+				}
+			});
+
+			// apply the free-text filters, debounced so typing a name is one request once you stop rather
+			// than one per keystroke. Not DataTables' own throttle helper, as that fires on the leading
+			// edge too, and the single-character search is the most expensive one to run
+			$.each($('.input-filter', currentTable.table().footer()), function() {
+				var column = currentTable.column($(this).index());
+				var timer;
+
+				$('input', this).on('keyup change', function () {
+					var value = this.value;
+
+					clearTimeout(timer);
+					timer = setTimeout(function() {
+						if (column.search() !== value) {
+							column.search(value).draw();
+						}
+					}, 400);
+				});
+			});
+
+			// apply the dropdown filters
+			$.each($('.select-filter', currentTable.table().footer()), function() {
+				var column = currentTable.column($(this).index());
+
+				$('select', this).on('change', function () {
+					if (column.search() !== this.value) {
+						column.search(this.value).draw();
+					}
+				});
+			});
+		}
+
+		function deleteAccountOrder(elem) {
+			var orderId = $(elem).data('orderid');
+
 			swal({
 				html : true,
 				title : removeTitle,
@@ -199,7 +256,7 @@
 						contentType: 'application/json',
 						data: JSON.stringify({ orderId: orderId }),
 						success: function( data, textStatus, jQxhr ){
-							location.reload(true);
+							currentTable.ajax.reload(null, false);
 						},
 						error: function( jqXhr, textStatus, errorThrown ){
 							$.notify({

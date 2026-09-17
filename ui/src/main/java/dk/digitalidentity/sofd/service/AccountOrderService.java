@@ -399,10 +399,6 @@ public class AccountOrderService {
 		return accountOrderDao.findByStatusIn(statuses);
 	}
 
-	public List<AccountOrder> findByStatusNotIn(Set<AccountOrderStatus> statuses) {
-		return accountOrderDao.findByStatusNotIn(statuses);
-	}
-
 	public List<AccountOrder> findAllCreateAndReactivateOrders() {
 		return accountOrderDao.findByOrderTypeIn(AccountOrderType.CREATE, AccountOrderType.REACTIVATE);
 	}

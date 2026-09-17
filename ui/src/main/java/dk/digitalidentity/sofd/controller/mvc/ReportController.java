@@ -2,14 +2,12 @@ package dk.digitalidentity.sofd.controller.mvc;
 
 import java.net.URLEncoder;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
@@ -43,7 +41,9 @@ import dk.digitalidentity.sofd.dao.model.AccountOrderApproved;
 import dk.digitalidentity.sofd.dao.model.Notification;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Setting;
+import dk.digitalidentity.sofd.dao.model.SupportedUserType;
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderStatus;
+import dk.digitalidentity.sofd.dao.model.enums.AccountOrderType;
 import dk.digitalidentity.sofd.dao.model.enums.CustomerSetting;
 import dk.digitalidentity.sofd.dao.model.enums.ReportType;
 import dk.digitalidentity.sofd.security.RequireControllerWriteAccess;
@@ -55,6 +55,7 @@ import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.service.ReportService;
 import dk.digitalidentity.sofd.service.S3Service;
 import dk.digitalidentity.sofd.service.SettingService;
+import dk.digitalidentity.sofd.service.SupportedUserTypeService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -91,24 +92,37 @@ public class ReportController {
 	@Autowired
 	private SettingService settingService;
 
-	@GetMapping("/ui/report/accountorders")
-	public String accountOrders(Model model) {
-		List<AccountOrder> adAccountOrders = accountOrderService.findByStatusNotIn(Set.of(AccountOrderStatus.PENDING_APPROVAL));
-		adAccountOrders.sort(Comparator.comparing(AccountOrder::getStatus));
+	@Autowired
+	private SupportedUserTypeService supportedUserTypeService;
 
-		List<AccountOrderDTO> dtos = new ArrayList<>();
-		for (AccountOrder order : adAccountOrders) {
-			Person person = personService.getByUuid(order.getPersonUuid());
-			if (person == null) {
-				log.warn("Could not find person with uuid: " + order.getPersonUuid());
+	// the orders themselves are fetched by the datatable through /rest/accountorder/list, so all we
+	// supply here are the values for the filter-dropdowns in the table footer
+	@GetMapping("/ui/report/accountorders")
+	public String accountOrders(Model model, Locale locale) {
+		Map<String, String> orderTypes = new LinkedHashMap<>();
+		for (AccountOrderType orderType : AccountOrderType.values()) {
+			orderTypes.put(orderType.toString(), messageSource.getMessage(orderType.getMessageId(), null, locale));
+		}
+
+		Map<String, String> statuses = new LinkedHashMap<>();
+		for (AccountOrderStatus status : AccountOrderStatus.values()) {
+			// orders awaiting approval have their own report, and are filtered away in the rest endpoint
+			if (AccountOrderStatus.PENDING_APPROVAL.equals(status)) {
 				continue;
 			}
-			
-			dtos.add(new AccountOrderDTO(order, person));
+
+			statuses.put(status.toString(), messageSource.getMessage(status.getMessageId(), null, locale));
 		}
-		
-		model.addAttribute("orders", dtos);
-		
+
+		Map<String, String> userTypes = new LinkedHashMap<>();
+		for (SupportedUserType userType : supportedUserTypeService.findAll()) {
+			userTypes.put(userType.getKey(), userType.getName());
+		}
+
+		model.addAttribute("orderTypes", orderTypes);
+		model.addAttribute("statuses", statuses);
+		model.addAttribute("userTypes", userTypes);
+
 		return "report/accountorders";
 	}
 	

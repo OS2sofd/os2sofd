@@ -15,7 +15,6 @@ import dk.digitalidentity.sofd.dao.model.enums.AccountOrderType;
 public interface AccountOrderDao extends CrudRepository<AccountOrder, Long> {
 
 	List<AccountOrder> findAll();
-	List<AccountOrder> findByStatusNotIn(Set<AccountOrderStatus> statuses);
 	List<AccountOrder> findByStatusIn(Set<AccountOrderStatus> statuses);
 
 	AccountOrder findById(long id);

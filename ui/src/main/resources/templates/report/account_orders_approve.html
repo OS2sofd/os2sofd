@@ -49,7 +49,7 @@
 										<th th:text="#{html.page.accountorders.personName}"></th>
 										<th th:text="#{html.page.accountorders.triggerAffiliation}"></th>
 										<th th:text="#{html.page.accountorders.userId}"></th>
-										<th th:text="#{html.page.accountorders.orderType}"></th>
+										<th class="select-filter" th:text="#{html.page.accountorders.orderType}"></th>
 										<th class="disabled"></th>
 									</tr>
 								</tfoot>
@@ -81,6 +81,8 @@
 					
 			var changeStatusButtonConfirm = [[#{html.button.yes}]];
 			var changeStatusButtonCancel = [[#{html.button.no}]];
+
+			var showAllTxt = [[#{html.page.accountorders.filter.showall}]];
 			
 			var approveUrl = [[@{/ui/account/order/approve}]];
 			
@@ -166,11 +168,11 @@
 			}
 
 			this.addSearchBoxes = function() {
-				// Add searchbox based on column title to each footer
+				// Add searchbox based on column title to each footer. Columns marked select-filter get a
+				// dropdown instead, built in initComplete once the data is known
 				$('#listTable tfoot th').each( function () {
-					if (!$(this).hasClass('disabled')) {
-						var title = $(this).text();
-						$(this).html('<input class="form-control" style="width:100%;" type="text" placeholder="Søg i '+title+'" />');
+					if (!$(this).hasClass('disabled') && !$(this).hasClass('select-filter')) {
+						$(this).html('<input type="text" class="form-control input-sm" style="width: 100%;" placeholder="' + searchTxt + '" />');
 					}
 				});
 			}
@@ -195,10 +197,34 @@
 							});
 						});
 
+						// Build a dropdown for the columns that hold a fixed set of values, from the values
+						// actually present, so it stays right whichever order types turn up.
+						// Note the column is found by the footer cell's position, not by a column selector
+						// on the class, as that matches the header cell rather than the footer one
+						var api = this.api();
+						$('#listTable tfoot th.select-filter').each( function () {
+							var column = api.column($(this).index());
+							var select = $('<select class="form-control input-sm" style="width: 100%;"><option value="">' + showAllTxt + '</option></select>')
+								.appendTo($(this).empty())
+								.on('change', function () {
+									// anchored, so "Kontoudløb" does not also match "Fjern kontoudløb"
+									var value = $(this).val();
+									column.search(value ? '^' + $.fn.dataTable.util.escapeRegex(value) + '$' : '', true, false).draw();
+								});
+
+							column.data().unique().sort().each( function (value) {
+								if (value) {
+									select.append('<option value="' + value + '">' + value + '</option>');
+								}
+							});
+						});
+
 						// Put the footer under the header
 						var r = $('#listTable tfoot tr');
 						r.find('th').each(function(){
-							$(this).css('padding', 8);
+							// these are th cells rather than td, so the filter controls inside them inherit
+							// bold unless told otherwise
+							$(this).css({ 'padding': 8, 'font-weight': 'normal' });
 						});
 						$('#listTable thead').append(r);
 					},
