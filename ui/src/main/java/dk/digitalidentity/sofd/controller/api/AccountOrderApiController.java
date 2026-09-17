@@ -479,7 +479,7 @@ public class AccountOrderApiController {
 									reactivateOrder.setTriggerAffiliation(accountOrder.getTriggerAffiliation());
 									reactivateOrder.setUserType(accountOrder.getUserType());
 									
-									accountOrderService.save(accountOrder);
+									accountOrderService.save(reactivateOrder);
 								}
 							}
 						}
