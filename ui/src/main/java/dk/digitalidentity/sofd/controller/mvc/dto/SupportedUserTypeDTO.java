@@ -19,6 +19,7 @@ public class SupportedUserTypeDTO {
 	private long daysBeforeToCreate;
 	private boolean createAsDisabled;
 	private long daysToReactivate;
+	private boolean skipReactivationOfFormerAccounts;
 	private String key;
 	private String name;
 	private long dependsOn;

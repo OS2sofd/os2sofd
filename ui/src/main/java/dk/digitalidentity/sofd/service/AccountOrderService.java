@@ -234,7 +234,10 @@ public class AccountOrderService {
 					return order;
 				}
 				else {
-					String userId = usernameGeneratorService.getUsername(person, order.getEmployeeId(), userType.getKey(), order.getLinkedUserId(), order.getTriggerAffiliation());
+					// a userType that skips reactivation of former accounts must not be handed a reserved username
+					// that one of those accounts is still occupying in AD, as the agent would then fail on a
+					// duplicate account
+					String userId = usernameGeneratorService.getUsername(person, order.getEmployeeId(), userType.getKey(), order.getLinkedUserId(), order.getTriggerAffiliation(), userType.isSkipReactivationOfFormerAccounts());
 
 					if (userId != null) {
 						// for orders of type EXCHANGE we do not want the user-id to contain the email domain,
@@ -427,6 +430,17 @@ public class AccountOrderService {
         Date deleteSuccessful = cal.getTime();
         Date deleteFailed = cal.getTime();
 
+		// a completed CREATE order is the only record of which affiliation ordered a given account, and
+		// findAwaitingDeferredActivation needs that record for as long as the account it created is waiting to be
+		// activated. Deleting it while a REACTIVATE is still pending would make the generation treat the waiting
+		// account as one from an earlier employment, and order yet another account alongside it
+		Set<String> accountsAwaitingReactivation = orders.stream()
+				.filter(o -> Objects.equals(o.getOrderType(), AccountOrderType.REACTIVATE)
+						&& o.getStatus().isPendingStatus()
+						&& StringUtils.hasLength(o.getRequestedUserId()))
+				.map(o -> accountKey(o.getPersonUuid(), o.getUserType(), o.getRequestedUserId()))
+				.collect(Collectors.toSet());
+
 		Set<Long> toDeleteIds = new HashSet<>();
 		for (AccountOrder order : orders) {
 			switch (order.getStatus()) {
@@ -438,7 +452,12 @@ public class AccountOrderService {
 				case REACTIVATED:
 				case CLEANEDUP:
 					if (order.getModifiedTimestamp().before(deleteSuccessful)) {
-						toDeleteIds.add(order.getId());
+						if (isAwaitedByAPendingReactivate(order, accountsAwaitingReactivation)) {
+							log.info("Keeping order past retention window, as a REACTIVATE is still pending on " + order.getActualUserId() + ": " + order.getId() + " / " + order.getUserType() + " / " + order.getPersonUuid());
+						}
+						else {
+							toDeleteIds.add(order.getId());
+						}
 					}
 					break;
 				case PENDING_APPROVAL:
@@ -466,6 +485,10 @@ public class AccountOrderService {
 			grew = false;
 			for (AccountOrder order : orders) {
 				if (toDeleteIds.contains(order.getId())) {
+					continue;
+				}
+				// the cascade must not undo the retention exception above
+				if (isAwaitedByAPendingReactivate(order, accountsAwaitingReactivation)) {
 					continue;
 				}
 				AccountOrder dependsOn = order.getDependsOn();
@@ -497,6 +520,33 @@ public class AccountOrderService {
 			}
 			accountOrderDao.delete(order);
 		}
+	}
+
+	/**
+	 * True when this is a completed CREATE order whose account has a REACTIVATE order still waiting to run, which is
+	 * the deferred activation ("udskudt aktivering") flow mid-flight. Such an order has to outlive the ordinary
+	 * retention window, as {@link #findAwaitingDeferredActivation} reads it on every nightly generation run.
+	 */
+	private boolean isAwaitedByAPendingReactivate(AccountOrder order, Set<String> accountsAwaitingReactivation) {
+		if (!Objects.equals(order.getOrderType(), AccountOrderType.CREATE)
+				|| !Objects.equals(order.getStatus(), AccountOrderStatus.CREATED)
+				|| !StringUtils.hasLength(order.getActualUserId())) {
+
+			return false;
+		}
+
+		return accountsAwaitingReactivation.contains(accountKey(order.getPersonUuid(), order.getUserType(), order.getActualUserId()));
+	}
+
+	// AD treats sAMAccountName as case insensitive, and the nightly job already matches orders against users
+	// that way (AccountOrderNightJob uses getUserIdLowerCase), so casing must never decide whether SOFD
+	// recognises an account it created itself
+	private static boolean sameUserId(String one, String other) {
+		return StringUtils.hasLength(one) && StringUtils.hasLength(other) && one.equalsIgnoreCase(other);
+	}
+
+	private static String accountKey(String personUuid, String userType, String userId) {
+		return personUuid + "/" + userType + "/" + userId.toLowerCase();
 	}
 
 	public AccountOrder cleanupAccountOrder(Person person, String userType, String userIdToCleanup, Date activationTime) {
@@ -1200,9 +1250,24 @@ public class AccountOrderService {
 						// does the user have a non-substitute disabled account,
 						//                      matching external/non-external attribute between user/affiliation,
 						//                      not associated with any affiliation, or affiliated with this specific affiliation?
-						existingDisabledUser = disabledUsers.stream()
-								.findFirst()
-								.orElse(null);
+						if (userType.isSkipReactivationOfFormerAccounts()) {
+
+							// this userType leaves former accounts deactivated, so the only account we may reactivate
+							// is one that this very affiliation had created in disabled state by deferred activation.
+							// Without such an account the person gets a brand new one. Note that we pick that account
+							// out of all the disabled ones rather than inspecting whichever one happens to come first,
+							// as a person can easily have both a former account and one waiting to be activated
+							existingDisabledUser = findAwaitingDeferredActivation(disabledUsers, affiliation, userType);
+
+							if (existingDisabledUser == null && !disabledUsers.isEmpty() && log.isDebugEnabled()) {
+								log.debug("Leaving all " + disabledUsers.size() + " disabled accounts alone for affiliation " + affiliation.getId() + ", as " + userType.getKey() + " skips reactivation of former accounts");
+							}
+						}
+						else {
+							existingDisabledUser = disabledUsers.stream()
+									.findFirst()
+									.orElse(null);
+						}
 					}
 					
 					int createOffset = (int) userType.getDaysBeforeToCreate();
@@ -1263,6 +1328,33 @@ public class AccountOrderService {
 		}
 
 		return accountOrdersResult;
+	}
+
+	/**
+	 * Picks out the disabled account that is waiting to be activated by deferred activation ("udskudt aktivering"),
+	 * meaning the one created by a completed CREATE order that this very affiliation triggered. Every other disabled
+	 * account on the person is a former account, created for an employment that has since ended, and those are left
+	 * alone when the userType skips reactivation of former accounts.
+	 */
+	// package private so the discriminator can be unit tested on its own
+	User findAwaitingDeferredActivation(List<User> disabledUsers, Affiliation affiliation, SupportedUserType userType) {
+		if (disabledUsers.isEmpty() || !userType.isCreateAsDisabled()) {
+			return null;
+		}
+
+		List<AccountOrder> completedCreateOrders = accountOrderDao.findByPersonUuidAndOrderTypeAndStatusAndUserType(
+				affiliation.getPerson().getUuid(),
+				AccountOrderType.CREATE,
+				AccountOrderStatus.CREATED,
+				userType.getKey());
+
+		return disabledUsers.stream()
+				.filter(u -> completedCreateOrders.stream()
+						.anyMatch(o -> sameUserId(o.getActualUserId(), u.getUserId())
+								&& o.getTriggerAffiliation() != null
+								&& Objects.equals(o.getTriggerAffiliation().getUuid(), affiliation.getUuid())))
+				.findFirst()
+				.orElse(null);
 	}
 
 	private boolean hasRequiredOtherAccount(SupportedUserType userType, Affiliation affiliation) {

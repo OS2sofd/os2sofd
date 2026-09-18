@@ -111,6 +111,8 @@ public class UserTypeRestController {
 				userType.setCreateAsDisabled(false);
 				userType.setDaysBeforeToReactivate(0);
 			}
+
+			userType.setSkipReactivationOfFormerAccounts(supportedUserTypeDTO.isSkipReactivationOfFormerAccounts());
 		}
 
 		userType.setUsernameType(supportedUserTypeDTO.getUsernameType());

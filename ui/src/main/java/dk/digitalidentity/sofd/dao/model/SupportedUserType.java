@@ -53,6 +53,9 @@ public class SupportedUserType {
 	private long daysBeforeToReactivate;
 
 	@Column
+	private boolean skipReactivationOfFormerAccounts;
+
+	@Column
 	private long daysToDeactivate;
 	
 	@Column

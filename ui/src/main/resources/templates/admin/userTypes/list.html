@@ -72,6 +72,7 @@
 											data-deleteEnabled=${userType.deleteEnabled},
 											data-createEnabled=${userType.createEnabled},
 											data-createasdisabled=${userType.createAsDisabled},
+											data-skipreactivationofformeraccounts=${userType.skipReactivationOfFormerAccounts},
 											data-usernameType=${userType.usernameType},
 											data-usernameTemplateString=${userType.usernameTemplateString}">
 											
@@ -195,6 +196,20 @@
 
 						<div class="form-group reactivateBlock">
 							<div class="col-sm-offset-1 col-sm-10"><p><i th:text="#{html.setting.usertype.reactivateDescription}" /></p></div>
+						</div>
+
+						<div class="form-group reactivateBlock">
+							<label th:utext="#{html.setting.usertype.skipReactivationOfFormerAccounts}" class="col-sm-3 control-label"></label>
+							<div class="checkbox c-checkbox col-sm-1" style="padding-left: 25px">
+								<label>
+									<input id="skipReactivationOfFormerAccounts" type="checkbox"/>
+									<span class="fa fa-check"></span>
+								</label>
+							</div>
+						</div>
+
+						<div class="form-group reactivateBlock">
+							<div class="col-sm-offset-1 col-sm-10"><p><i th:text="#{html.setting.usertype.skipReactivationOfFormerAccountsDescription}" /></p></div>
 						</div>
 						
 						<div class="form-group">
@@ -588,6 +603,7 @@
 		var suffixExternalValue = elem.attr('data-suffixexternalvalue');
 		var createEnabled = elem.attr('data-createEnabled');
 		var createAsDisabled = elem.attr('data-createasdisabled');
+		var skipReactivationOfFormerAccounts = elem.attr('data-skipreactivationofformeraccounts');
 		var deleteEnabled = elem.attr('data-deleteEnabled');
 		var deactivateEnabled = elem.attr('data-deactivateEnabled');
 		var cleanupEnabled = elem.attr('data-cleanupEnabled');
@@ -606,6 +622,7 @@
 		$('#userTypeSingleUser').prop("checked", (singleUserMode === 'true'));
 		$('#createEnabled').prop("checked", (createEnabled === 'true'));
 		$('#createAsDisabledEnabled').prop("checked", (createAsDisabled === 'true'));
+		$('#skipReactivationOfFormerAccounts').prop("checked", (skipReactivationOfFormerAccounts === 'true'));
 		$('#deleteEnabled').prop("checked", (deleteEnabled === 'true'));
 		$('#deactivateEnabled').prop("checked", (deactivateEnabled === 'true'));
 		$('#cleanupEnabled').prop("checked", (cleanupEnabled === 'true'));
@@ -690,6 +707,7 @@
 		$("#infixStrategyValue").val("5");
 		$('#createEnabled').prop("checked", false);
 		$('#createAsDisabled').prop("checked", false);
+		$('#skipReactivationOfFormerAccounts').prop("checked", false);
 		$('#deleteEnabled').prop("checked", false);
 		$('#deactivateEnabled').prop("checked", false);
 		$('#cleanupEnabled').prop("checked", false);
@@ -714,6 +732,7 @@
 		var singleUserMode = $('#userTypeSingleUser').prop("checked");
 		var createEnabled = $('#createEnabled').prop("checked");
 		var createAsDisabled = $('#createAsDisabledEnabled').prop("checked");
+		var skipReactivationOfFormerAccounts = $('#skipReactivationOfFormerAccounts').prop("checked");
 		var deleteEnabled = $('#deleteEnabled').prop("checked");
 		var deactivateEnabled = $('#deactivateEnabled').prop("checked");
 		var cleanupEnabled = $('#cleanupEnabled').prop("checked");
@@ -766,6 +785,7 @@
 				'suffixExternalValue': suffixExternalValue,
 				'createEnabled': createEnabled,
 				'createAsDisabled': createAsDisabled,
+				'skipReactivationOfFormerAccounts': skipReactivationOfFormerAccounts,
 				'deactivateEnabled': deactivateEnabled,
 				'cleanupEnabled': cleanupEnabled,
 				'deleteEnabled': deleteEnabled,

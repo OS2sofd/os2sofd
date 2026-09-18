@@ -1,0 +1,1 @@
+ALTER TABLE supported_user_types ADD COLUMN skip_reactivation_of_former_accounts BOOLEAN NOT NULL DEFAULT 0 AFTER days_before_to_reactivate;
