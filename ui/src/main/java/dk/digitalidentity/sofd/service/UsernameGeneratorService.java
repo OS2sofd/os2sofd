@@ -73,9 +73,21 @@ public class UsernameGeneratorService {
 	}
 
 	public String getUsername(Person person, String employeeId, String userType, String linkedUserId, Affiliation affiliation, boolean forceNewUsername) {
+		return getUsername(person, employeeId, userType, linkedUserId, affiliation, forceNewUsername, null);
+	}
+
+	/**
+	 * @param externalOverride null means "decide from the affiliation type", TRUE/FALSE forces the username to be generated
+	 *                         as an external/internal account regardless of the affiliation type (used by API callers)
+	 */
+	public String getUsername(Person person, String employeeId, String userType, String linkedUserId, Affiliation affiliation, boolean forceNewUsername, Boolean externalOverride) {
 		String userId = null;
 
 		if (configuration.getModules().getAccountCreation().isReservationEnabled()) {
+			if (externalOverride != null) {
+				log.warn("Ignoring external=" + externalOverride + " for " + person.getUuid() + " / " + userType + " because username reservation is enabled, and the reserved username was generated from the affiliation type");
+			}
+
 			ReservedUsername reservedUsername = null;
 			try {
 				reservedUsername = getReservedUsername(person, employeeId, userType, forceNewUsername);
@@ -109,7 +121,7 @@ public class UsernameGeneratorService {
 				return null;
 			}
 			
-			userId = generateUsername(supportedUserType, affiliation, person, new ArrayList<>(),linkedUserId);
+			userId = generateUsername(supportedUserType, affiliation, person, new ArrayList<>(), linkedUserId, externalOverride);
 			if (userId == null) {
 				log.warn("Generation not possible for " + person.getUuid());
 				return null;
@@ -225,7 +237,7 @@ public class UsernameGeneratorService {
 			// that already exists in AD and the creation fails
 			if (user != null && (!user.isDisabled() || forceNewUsername)) {
 				var affiliation = person.getAffiliations().stream().filter(a -> a.getEmployeeId().equalsIgnoreCase(employeeId)).findFirst().orElse(new Affiliation());
-				String generatedUsername = generateUsername(supportedUserType, affiliation, person, reservedUsernameDao.findByPersonUuid(person.getUuid()), null);
+				String generatedUsername = generateUsername(supportedUserType, affiliation, person, reservedUsernameDao.findByPersonUuid(person.getUuid()), null, null);
 				if (generatedUsername == null) {
 					log.warn("Reserved username '" + reservedUsername.getUserId() + "' is taken by an existing account, and generating a replacement failed for " + person.getUuid() + " / " + userType);
 					return null;
@@ -443,7 +455,7 @@ public class UsernameGeneratorService {
 					}
 				}
 
-				String generatedUsername = generateUsername(userType, affiliation, person, reservedUsernames, null);
+				String generatedUsername = generateUsername(userType, affiliation, person, reservedUsernames, null, null);
 				
 				// infix default value is "" - if it is null, the generator failed
 				if (generatedUsername == null) {
@@ -463,23 +475,38 @@ public class UsernameGeneratorService {
 		}
 	}
 	
-	private String generateUsername(SupportedUserType userType, Affiliation affiliation, Person person, List<ReservedUsername> reservedUsernames, String linkedUserId) {
+	private String generateUsername(SupportedUserType userType, Affiliation affiliation, Person person, List<ReservedUsername> reservedUsernames, String linkedUserId, Boolean externalOverride) {
 		if (!person.hasName()) {
 			log.warn("Did not generate username for person with uuid " + person.getUuid() + " because the person has no name.");
 			return null;
 		}
 
+		boolean external = isExternal(affiliation, externalOverride);
+
         return switch (userType.getUsernameType()) {
             case AFFIXIAL -> {
-                yield generateUsernameAffixial(userType,affiliation,person,reservedUsernames,linkedUserId);
+                yield generateUsernameAffixial(userType, affiliation, person, reservedUsernames, linkedUserId, external);
             }
             case TEMPLATE -> {
-                yield generateUsernameFromStringTemplate(userType,affiliation,person);
+                yield generateUsernameFromStringTemplate(userType, affiliation, person, external);
             }
         };
 	}
 
-	private String generateUsernameAffixial(SupportedUserType userType, Affiliation affiliation, Person person, List<ReservedUsername> reservedUsernames, String linkedUserId) {
+	/**
+	 * an account is generated as "external" if the caller explicitly asked for it, or (when the caller did not say)
+	 * if the affiliation it is generated for is an external affiliation. Both the affixial model (external prefix/suffix)
+	 * and the template model (external template) use this to pick between the internal and external naming rule
+	 */
+	private static boolean isExternal(Affiliation affiliation, Boolean externalOverride) {
+		if (externalOverride != null) {
+			return externalOverride;
+		}
+
+		return affiliation != null && affiliation.getAffiliationType() == AffiliationType.EXTERNAL;
+	}
+
+	private String generateUsernameAffixial(SupportedUserType userType, Affiliation affiliation, Person person, List<ReservedUsername> reservedUsernames, String linkedUserId, boolean external) {
 		String prefix = "";
 		String optionalPrefix = null;
 		switch (userType.getUsernamePrefix()) {
@@ -490,7 +517,7 @@ public class UsernameGeneratorService {
 				prefix = LocalDate.now().format(DateTimeFormatter.ofPattern("ddMM"));
 				break;
 			case VALUE:
-				if (affiliation.getAffiliationType() == AffiliationType.EXTERNAL && StringUtils.hasText(userType.getUsernamePrefixExternalValue())) {
+				if (external && StringUtils.hasText(userType.getUsernamePrefixExternalValue())) {
 					prefix = userType.getUsernamePrefixExternalValue().trim();
 					optionalPrefix = StringUtils.hasText(userType.getUsernamePrefixValue()) ? userType.getUsernamePrefixValue().trim() : null;
 				}
@@ -509,7 +536,7 @@ public class UsernameGeneratorService {
 				suffix = LocalDate.now().format(DateTimeFormatter.ofPattern("ddMM"));
 				break;
 			case VALUE:
-				if (affiliation.getAffiliationType() == AffiliationType.EXTERNAL && userType.getUsernameSuffixExternalValue() != null && !userType.getUsernameSuffixExternalValue().isBlank()) {
+				if (external && userType.getUsernameSuffixExternalValue() != null && !userType.getUsernameSuffixExternalValue().isBlank()) {
 					suffix = userType.getUsernameSuffixExternalValue().trim();
 				}
 				else {
@@ -651,9 +678,31 @@ public class UsernameGeneratorService {
 	}
 
 	public String generateUsernameFromStringTemplate(SupportedUserType userType, Affiliation affiliation, Person person) {
+		return generateUsernameFromStringTemplate(userType, affiliation, person, isExternal(affiliation, null));
+	}
+
+	/**
+	 * picks the template to use: the external template when generating for an external account and it is filled in,
+	 * otherwise the ordinary template. Same rule as the external prefix/suffix in the affixial model
+	 */
+	private static String getUsernameTemplate(SupportedUserType userType, boolean external) {
+		if (external && StringUtils.hasText(userType.getUsernameTemplateExternalString())) {
+			return userType.getUsernameTemplateExternalString();
+		}
+
+		return userType.getUsernameTemplateString();
+	}
+
+	public String generateUsernameFromStringTemplate(SupportedUserType userType, Affiliation affiliation, Person person, boolean external) {
 		String result = null;
+		var template = getUsernameTemplate(userType, external);
+		if (!StringUtils.hasText(template)) {
+			log.warn("No username template configured for userType '" + userType.getKey() + "'");
+			return null;
+		}
+
 		var templatePattern = Pattern.compile("\\{([^:\\}]+)(?::([^}]+))?\\}");
-		var templateMatcher = templatePattern.matcher(userType.getUsernameTemplateString());
+		var templateMatcher = templatePattern.matcher(template);
 
 		var templateItems = new ArrayList<UsernameTemplateItem>();
 		while (templateMatcher.find()) {

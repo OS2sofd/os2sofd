@@ -88,7 +88,8 @@ public class AccountOrderApiController {
 			@RequestParam("userType") String userType,
 			@RequestParam(value = "employeeId", required = false) String employeeId,
 	        @RequestParam(value = "linkedUserId", required = false) String linkedUserId,
-	        @RequestParam(value = "forceNewUsername", required = false, defaultValue = "false") boolean forceNewUsername) {
+	        @RequestParam(value = "forceNewUsername", required = false, defaultValue = "false") boolean forceNewUsername,
+	        @RequestParam(value = "external", required = false) Boolean external) {
 
 		Person person = personService.getByUuid(personUuid);
 		if (person == null) {
@@ -106,7 +107,9 @@ public class AccountOrderApiController {
 			return new ResponseEntity<>(new ErrorDTO(code, message), HttpStatus.BAD_REQUEST);
 		}
 
-		String userId = usernameGeneratorService.getUsername(person, employeeId, userType, linkedUserId, null, forceNewUsername);
+		// external is optional: when omitted the generator decides from the affiliation type, when supplied it forces the
+		// internal/external naming rule (external prefix/suffix or external template) regardless of the affiliation
+		String userId = usernameGeneratorService.getUsername(person, employeeId, userType, linkedUserId, null, forceNewUsername, external);
 
 		if (userId == null) {
 			log.warn("Failed to generate username");

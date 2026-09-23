@@ -106,6 +106,9 @@ public class SupportedUserType {
 	private String usernameTemplateString;
 
 	@Column
+	private String usernameTemplateExternalString;
+
+	@Column
 	private boolean deactivateEnabled;
 
 	@Column

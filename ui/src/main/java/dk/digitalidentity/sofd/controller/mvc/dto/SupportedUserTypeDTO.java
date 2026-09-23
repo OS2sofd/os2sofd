@@ -34,6 +34,7 @@ public class SupportedUserTypeDTO {
 	private String prefixExternalValue;
 	private String suffixExternalValue;
 	private String usernameTemplateString;
+	private String usernameTemplateExternalString;
 	private boolean deactivateEnabled;
 	private boolean cleanupEnabled;
 	private boolean deleteEnabled;

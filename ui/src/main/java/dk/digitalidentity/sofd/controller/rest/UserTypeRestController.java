@@ -125,6 +125,7 @@ public class UserTypeRestController {
 		userType.setUsernameSuffixValue(supportedUserTypeDTO.getSuffixValue());
 		userType.setUsernameSuffixExternalValue(supportedUserTypeDTO.getSuffixExternalValue());
 		userType.setUsernameTemplateString(supportedUserTypeDTO.getUsernameTemplateString());
+		userType.setUsernameTemplateExternalString(supportedUserTypeDTO.getUsernameTemplateExternalString());
 		
 		
 		// if we set the username to match another usertype, we should depend on it, effectively overwriting any other choices
