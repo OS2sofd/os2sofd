@@ -105,6 +105,15 @@ public class SecurityUtil {
 		return name;
 	}
 
+	// the person an API client acts on behalf of (from the OnBehalfOf header), null for users and for clients that did not supply it
+	public static String getOnBehalfOf() {
+		if (isClientLoggedIn()) {
+			return ((ClientToken) SecurityContextHolder.getContext().getAuthentication()).getOnBehalfOf();
+		}
+
+		return null;
+	}
+
 	public static Client getClient() {
 		Client client = null;
 

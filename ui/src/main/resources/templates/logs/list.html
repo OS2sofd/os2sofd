@@ -36,9 +36,10 @@
 									<tr>
 										<th class="col-md-2" th:text="#{html.page.log.timestamp}"></th>
 										<th class="col-md-1" th:text="#{html.page.log.auditor}"></th>
+										<th class="col-md-1" th:text="#{html.page.log.client}"></th>
 										<th class="col-md-2" th:text="#{html.page.log.event}"></th>
 										<th class="col-md-2" th:text="#{html.page.log.target}"></th>
-										<th class="col-md-4" th:text="#{html.page.log.message}"></th>
+										<th class="col-md-3" th:text="#{html.page.log.message}"></th>
 										<th class="col-md-1" th:text="#{html.control.operations}"></th>
 									</tr>
 								</thead>
@@ -63,6 +64,14 @@
 			var infoDefaultTxt = [[#{html.datatables.info.default}]];
 			var infoEmptyTxt = [[#{html.datatables.info.empty}]];
 			var infoFilteredTxt = [[#{html.datatables.info.filtered}]];
+
+			// audit log values come from users and API clients, so never let DataTables inject them as HTML
+			function escapeHtml(data) {
+				if (data == null) {
+					return "";
+				}
+				return $('<div/>').text(String(data)).html();
+			}
 			var prevTxt = [[#{html.datatables.prev}]];
 			var nextTxt = [[#{html.datatables.next}]];
 			var ajaxUrl = [[@{/rest/auditlog/list}]]
@@ -105,20 +114,26 @@
 						return moment(new Date(data)).format("YYYY-MM-DD HH:mm")
 					}
 				}, {
-					data : 'userId'
+					data : 'userId',
+					render: escapeHtml
 				}, {
-					data : 'eventType'
+					data : 'clientName',
+					render: escapeHtml
+				}, {
+					data : 'eventType',
+					render: escapeHtml
 				}, {
 					data : 'entityName',
 					render: function (data, type, row, meta) {
 						if (data == null) {
 							return "";
 						} else {
-							return data + ' (' + row.entityType + ')';
+							return escapeHtml(data) + ' (' + escapeHtml(row.entityType) + ')';
 						}
 					}
 				}, {
-					data : 'message'
+					data : 'message',
+					render: escapeHtml
 				},
 				{
 					data : 'id',

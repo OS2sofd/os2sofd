@@ -32,6 +32,9 @@ public class AuditLog {
 	@Column(nullable = false, name = "user_id")
 	private String userId;
 
+	@Column(nullable = true)
+	private String clientName;
+
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
 	private EntityType entityType;

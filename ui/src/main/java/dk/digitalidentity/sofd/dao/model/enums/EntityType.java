@@ -17,7 +17,8 @@ public enum EntityType {
 	ACCOUNT_ORDER("html.enum.entityType.accountOrder"),
 	EMAIL_TEMPLATE("html.enum.entityType.mailTemplate"),
 	SETTING("html.enum.entityType.setting"),
-    Manual_Notification("html.enum.entityType.manualNotification")
+    Manual_Notification("html.enum.entityType.manualNotification"),
+	FUNCTION_ASSIGNMENT("html.enum.entityType.functionAssignment")
     ;
 
 	

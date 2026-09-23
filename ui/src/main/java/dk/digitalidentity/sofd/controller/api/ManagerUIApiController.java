@@ -44,10 +44,12 @@ import dk.digitalidentity.sofd.dao.model.SubstituteAssignment;
 import dk.digitalidentity.sofd.dao.model.SubstituteOrgUnitAssignment;
 import dk.digitalidentity.sofd.dao.model.User;
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderStatus;
+import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.dao.model.enums.EventType;
 import dk.digitalidentity.sofd.dao.model.enums.LeaveReason;
 import dk.digitalidentity.sofd.dao.model.enums.OrgUnitManagerSource;
 import dk.digitalidentity.sofd.log.AuditLogger;
+import dk.digitalidentity.sofd.log.AuditMessages;
 import dk.digitalidentity.sofd.security.RequireDaoWriteAccess;
 import dk.digitalidentity.sofd.service.AccountOrderApprovedService;
 import dk.digitalidentity.sofd.service.AccountOrderService;
@@ -280,7 +282,7 @@ public class ManagerUIApiController {
 		return new ResponseEntity<>(result, HttpStatus.OK);
 	}
 
-	private record EditAffiliationDTO(long id, String position, String positionDisplayName, Date startDate, Date stopDate, String internalReference) {}
+	private record EditAffiliationDTO(long id, String position, String positionDisplayName, Date startDate, Date stopDate, String internalReference, String reason) {}
 	@PostMapping("/api/manager/{uuid}/affiliations/edit")
 	public ResponseEntity<?> editAffiliation(@PathVariable String uuid, @RequestBody EditAffiliationDTO editAffiliationDTO) {
 		Person manager = personService.getByUuid(uuid);
@@ -295,33 +297,45 @@ public class ManagerUIApiController {
 		Person updatePerson = personService.findbyAffiliationId(editAffiliationDTO.id);
 		var updateAffiliation = updatePerson.getAffiliations().stream().filter(a -> a.getId() == editAffiliationDTO.id()).findFirst().orElse(null);
 
-		boolean changes = false;
-		if (!Objects.equals(updateAffiliation.getPositionName(), editAffiliationDTO.position())) {
-			updateAffiliation.setPositionName((StringUtils.hasLength(editAffiliationDTO.position())) ? editAffiliationDTO.position().trim() : "Ukendt");
-			changes = true;
+		List<String> changes = new ArrayList<>();
+		String newPositionName = (StringUtils.hasText(editAffiliationDTO.position())) ? editAffiliationDTO.position().trim() : "Ukendt";
+		if (!Objects.equals(updateAffiliation.getPositionName(), newPositionName)) {
+			changes.add(AuditMessages.describeChange("Stillingsbetegnelse", updateAffiliation.getPositionName(), newPositionName));
+			updateAffiliation.setPositionName(newPositionName);
 		}
 
 		if (!Objects.equals(updateAffiliation.getPositionDisplayName(), editAffiliationDTO.positionDisplayName())) {
+			changes.add(AuditMessages.describeChange("Alternativ stillingsbetegnelse", updateAffiliation.getPositionDisplayName(), editAffiliationDTO.positionDisplayName()));
 			updateAffiliation.setPositionDisplayName(editAffiliationDTO.positionDisplayName());
-			changes = true;
 		}
 
 		if (!Objects.equals(updateAffiliation.getStopDate(), editAffiliationDTO.stopDate())) {
+			changes.add("Stopdato ændret fra " + AuditMessages.dateOrNotSet(updateAffiliation.getStopDate()) + " til " + AuditMessages.dateOrNotSet(editAffiliationDTO.stopDate()));
 			updateAffiliation.setStopDate(editAffiliationDTO.stopDate());
-			changes = true;
 		}
 
 		if (!Objects.equals(updateAffiliation.getInternalReference(), editAffiliationDTO.internalReference())) {
+			changes.add(AuditMessages.describeChange("Intern reference", updateAffiliation.getInternalReference(), editAffiliationDTO.internalReference()));
 			updateAffiliation.setInternalReference(editAffiliationDTO.internalReference());
-			changes = true;
 		}
 
-		if (changes) {
+		if (!changes.isEmpty()) {
 			personService.save(updatePerson);
+
+			StringBuilder message = new StringBuilder();
+			message.append("Tilhørsforhold ").append(updateAffiliation.getPositionName()).append(" i ").append(updateAffiliation.getCalculatedOrgUnit().getName());
+			message.append(" ændret på ").append(PersonService.getName(updatePerson)).append(" (").append(updatePerson.getCprMaskSuffix()).append("). ");
+			message.append(String.join(". ", changes)).append(".");
+			if (StringUtils.hasText(editAffiliationDTO.reason())) {
+				message.append(" Begrundelse: ").append(editAffiliationDTO.reason().trim());
+			}
+
+			auditLogger.log(updatePerson.getUuid(), EntityType.PERSON, EventType.AFFILIATION_CHANGED, PersonService.getName(updatePerson), message.toString());
 		}
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
+
 
 	public record EditLeaveDTO(String uuid, boolean paused, @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy") Date startDate, @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy") Date stopDate, LeaveReason reason, String reasonText, boolean disableAccountOrders, boolean expireAccounts) {}
 	@PostMapping("/api/manager/{uuid}/leave/edit")
@@ -401,12 +415,12 @@ public class ManagerUIApiController {
 
 		String message;
 		if (match.getLeave() == null) {
-			message = "Pausemarkering fjernet via OS2sofd lederside";
+			message = "Pausemarkering fjernet";
 		}
 		else {
 			var startDato = match.getLeave().getStartDate() != null ? new SimpleDateFormat("yyyy-MM-dd").format(match.getLeave().getStartDate()) : "ingen";
 			var stopDato = match.getLeave().getStopDate() != null ? new SimpleDateFormat("yyyy-MM-dd").format(match.getLeave().getStopDate()) : "ingen";
-			message = "Pausemarkering oprettet/redigere via OS2sofd lederside. Startdato: " + startDato + ", slutdato: " + stopDato;
+			message = "Pausemarkering oprettet/redigeret. Startdato: " + startDato + ", slutdato: " + stopDato;
 		}
 
 		auditLogger.log(match, EventType.PERSON_CHANGED, message);
@@ -454,19 +468,30 @@ public class ManagerUIApiController {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 
+		// the person may have been deleted since the order was created, and then there is nothing to approve
+		Person orderedPerson = personService.getByUuid(order.getPersonUuid());
+		if (orderedPerson == null) {
+			return new ResponseEntity<>("Could not find person with uuid " + order.getPersonUuid(), HttpStatus.BAD_REQUEST);
+		}
+
 		//changes accountOrderStatus and saves order
 		order.setStatus(AccountOrderStatus.PENDING);
 		accountOrderService.save(order);
 
 		//Logging
+		String personName = PersonService.getName(orderedPerson);
+
 		AccountOrderApproved approval = new AccountOrderApproved();
 		approval.setApprovedTts(LocalDateTime.now());
 		approval.setApproverName(PersonService.getName(manager));
 		approval.setApproverUuid(manager.getUuid());
-		approval.setPersonName(PersonService.getName(personService.getByUuid(order.getPersonUuid())));
+		approval.setPersonName(personName);
 		approval.setPersonUuid(order.getPersonUuid());
 		approval.setUserId(order.getRequestedUserId());
 		accountOrderApprovedService.save(approval);
+
+		String message = "Kontoordre (" + order.getUserType() + ", " + AuditMessages.valueOrNotSet(order.getRequestedUserId()) + ") for " + personName + " godkendt af " + PersonService.getName(manager) + ".";
+		auditLogger.log(order.getPersonUuid(), EntityType.ACCOUNT_ORDER, EventType.SAVE, personName, message);
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
@@ -494,10 +519,19 @@ public class ManagerUIApiController {
 	public ResponseEntity<?> setOrgUnitManager(@RequestBody SetOrgUnitManagerDto setOrgUnitManagerDto ) {
 		try {
 			var orgUnit = orgUnitService.getByUuid(setOrgUnitManagerDto.orgUnitUuid);
+			if (orgUnit == null) {
+				return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+			}
+
+			String previousManager = (orgUnit.getManager() != null) ? orgUnit.getManager().getName() : null;
+
 			var changed = managerService.editSelectedManager(orgUnit, setOrgUnitManagerDto.managerUuid);
 			if( changed ) {
 				orgUnitService.save(orgUnit);
 				orgUnitService.forceUpdateChildren(orgUnit);
+
+				String message = "Leder på enheden " + orgUnit.getName() + " ændret fra " + AuditMessages.valueOrNotSet(previousManager) + " til " + AuditMessages.valueOrNotSet(effectiveManagerName(orgUnit)) + ".";
+				auditLogger.log(orgUnit.getUuid(), EntityType.ORGUNIT, EventType.ORGUNIT_MANAGER_CHANGED, orgUnit.getEntityName(), message);
 			}
 			return new ResponseEntity<>(HttpStatus.OK);
 		}
@@ -516,6 +550,25 @@ public class ManagerUIApiController {
 		)).toList();
 
 		return new ResponseEntity<>(result, HttpStatus.OK);
+	}
+
+	// the manager table is recomputed in the database on save, but the loaded OrgUnit still carries the old row, so the
+	// effective manager after a change is derived the same way the database does it: selected, then imported, then inherited
+	private String effectiveManagerName(OrgUnit orgUnit) {
+		String managerUuid = orgUnit.getSelectedManagerUuid();
+		if (managerUuid == null) {
+			managerUuid = orgUnit.getImportedManagerUuid();
+		}
+		if (managerUuid == null && orgUnit.getParent() != null && orgUnit.getParent().getManager() != null) {
+			managerUuid = orgUnit.getParent().getManager().getManagerUuid();
+		}
+		if (managerUuid == null) {
+			return null;
+		}
+
+		Person manager = personService.getByUuid(managerUuid);
+
+		return (manager != null) ? PersonService.getName(manager) : null;
 	}
 
 	private boolean isAffiliationEditableByManager(Person manager, long affiliationId) {

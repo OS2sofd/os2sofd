@@ -16,7 +16,9 @@ public enum EventType {
 	USER_DELETED("html.enum.eventType.userDeleted"), 
 	AFFILIATION_CREATED("html.enum.eventType.affiliationCreated"),
 	PERSON_CHANGED("html.enum.eventType.personChanged"),
-	RERUN("html.enum.eventType.rerun");
+	RERUN("html.enum.eventType.rerun"),
+	AFFILIATION_CHANGED("html.enum.eventType.affiliationChanged"),
+	ORGUNIT_MANAGER_CHANGED("html.enum.eventType.orgUnitManagerChanged");
 
 	private String message;
 	

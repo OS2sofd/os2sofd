@@ -31,6 +31,9 @@ public class AuditLogView {
 	@Column
 	private String userId;
 
+	@Column
+	private String clientName;
+
 	@Enumerated(EnumType.STRING)
 	@Column
 	private EntityType entityType;

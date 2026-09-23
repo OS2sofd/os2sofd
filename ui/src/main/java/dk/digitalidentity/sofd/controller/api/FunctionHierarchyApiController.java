@@ -35,7 +35,11 @@ import dk.digitalidentity.sofd.dao.model.FacetValue;
 import dk.digitalidentity.sofd.dao.model.Function;
 import dk.digitalidentity.sofd.dao.model.FunctionAssignment;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
+import dk.digitalidentity.sofd.dao.model.enums.EntityType;
+import dk.digitalidentity.sofd.dao.model.enums.EventType;
 import dk.digitalidentity.sofd.dao.model.enums.FacetType;
+import dk.digitalidentity.sofd.log.AuditLogger;
+import dk.digitalidentity.sofd.log.AuditMessages;
 import dk.digitalidentity.sofd.security.RequireDaoWriteAccess;
 import dk.digitalidentity.sofd.security.RequireReadAccess;
 import dk.digitalidentity.sofd.service.AffiliationService;
@@ -59,6 +63,9 @@ public class FunctionHierarchyApiController {
 	
 	@Autowired
 	private FunctionAssignmentService functionAssignmentService;
+
+	@Autowired
+	private AuditLogger auditLogger;
 	
 	@Autowired
 	private AffiliationService affiliationService;
@@ -262,9 +269,12 @@ public class FunctionHierarchyApiController {
 			functionAssignment.getFacetValues().add(facetValue);
 		}
 		
-		functionAssignmentService.save(functionAssignment);
+		functionAssignment = functionAssignmentService.save(functionAssignment);
 		
 		log.info("Created new functionAssignment");
+
+		auditLogger.log(String.valueOf(functionAssignment.getId()), EntityType.FUNCTION_ASSIGNMENT, EventType.SAVE, PersonService.getName(affiliation.getPerson()),
+				describeAssignment(functionAssignment) + " oprettet. " + describeDates(functionAssignment) + ".");
 		
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
@@ -281,15 +291,16 @@ public class FunctionHierarchyApiController {
 			return new ResponseEntity<>("Startdatoen skal være før stopdatoen.", HttpStatus.BAD_REQUEST);
 		}
 
-		boolean changes = false;
+		boolean facetChanges = false;
+		List<String> changeDescriptions = new ArrayList<>();
 		
 		if (!Objects.equals(functionAssignment.getStartDate(),dto.getStartDate())) {
-			changes = true;
+			changeDescriptions.add("Startdato ændret fra " + AuditMessages.dateOrNotSet(functionAssignment.getStartDate()) + " til " + AuditMessages.dateOrNotSet(dto.getStartDate()));
 			functionAssignment.setStartDate(dto.getStartDate());
 		}
 		
 		if (!Objects.equals(functionAssignment.getStopDate(),dto.getStopDate())) {
-			changes = true;
+			changeDescriptions.add("Stopdato ændret fra " + AuditMessages.dateOrNotSet(functionAssignment.getStopDate()) + " til " + AuditMessages.dateOrNotSet(dto.getStopDate()));
 			functionAssignment.setStopDate(dto.getStopDate());
 		}
 		
@@ -344,7 +355,7 @@ public class FunctionHierarchyApiController {
 				facetValue.setFunctionAssignment(functionAssignment);
 				functionAssignment.getFacetValues().add(facetValue);
 				
-				changes = true;
+				facetChanges = true;
 			} else {
 				
 				// update
@@ -360,7 +371,7 @@ public class FunctionHierarchyApiController {
 				if (facet.getType().equals(FacetType.FREETEXT)) {
 					if (!facetValueToUpdate.getText().equals(facetValueDTO.getText())) {
 						facetValueToUpdate.setText(facetValueDTO.getText());
-						changes = true;
+						facetChanges = true;
 					}
 				} else if (facet.getType().equals(FacetType.LIST)) {
 					if (facetValueToUpdate.getFacetListItem() == null || !facetValueToUpdate.getFacetListItem().getText().equals(facetValueDTO.getFacetListItem())) {
@@ -370,7 +381,7 @@ public class FunctionHierarchyApiController {
 							continue;
 						}
 						facetValueToUpdate.setFacetListItem(item);
-						changes = true;
+						facetChanges = true;
 					}
 				} else if (facet.getType().equals(FacetType.ORG)) {
 					List<String> existingOUs = facetValueToUpdate.getOrgUnits().stream().map(o -> o.getUuid()).collect(Collectors.toList());
@@ -382,7 +393,7 @@ public class FunctionHierarchyApiController {
 								continue;
 							}
 							facetValueToUpdate.getOrgUnits().add(ou);
-							changes = true;
+							facetChanges = true;
 						}
 					}
 					
@@ -391,14 +402,14 @@ public class FunctionHierarchyApiController {
 				    while (iterator.hasNext()) {
 				    	temp = (OrgUnit) iterator.next();
 				    	if (!facetValueDTO.getFacetValueOrgunitUuids().contains(temp.getUuid())) {
-				    		changes = true;
+				    		facetChanges = true;
 				    		iterator.remove();
 				    	}
 				    }
 				} else if (facet.getType().equals(FacetType.EMPLOYEE)) {
 					if (!StringUtils.hasLength(facetValueDTO.getFacetValueAffiliationUuid()) && facetValueToUpdate.getAffiliation() != null) {
 						facetValueToUpdate.setAffiliation(null);
-						changes = true;
+						facetChanges = true;
 					} else if ((facetValueToUpdate.getAffiliation() == null && StringUtils.hasLength(facetValueDTO.getFacetValueAffiliationUuid())) || (StringUtils.hasLength(facetValueDTO.getFacetValueAffiliationUuid()) && !facetValueDTO.getFacetValueAffiliationUuid().equals(facetValueToUpdate.getAffiliation().getUuid()))) {
 						Affiliation facetAffiliation = affiliationService.findByUuid(facetValueDTO.getFacetValueAffiliationUuid());
 						if (facetAffiliation == null) {
@@ -406,12 +417,12 @@ public class FunctionHierarchyApiController {
 							continue;
 						}
 						facetValueToUpdate.setAffiliation(facetAffiliation);
-						changes = true;
+						facetChanges = true;
 					}
 				} else if (facet.getType().equals(FacetType.FOLLOW_UP_DATE)) {
 					if (!Objects.equals(facetValueToUpdate.getDate(),facetValueDTO.getDate())) {
 						facetValueToUpdate.setDate(facetValueDTO.getDate());
-						changes = true;
+						facetChanges = true;
 					}
 				} else {
 					log.warn("Unknown facet type " + facet.getType() + " on facet with id " + facet.getId() + " when editing facetValue for functionAssignment with id " + functionAssignment.getId() + ". Will not edit this facetValue.");
@@ -428,14 +439,21 @@ public class FunctionHierarchyApiController {
 	    while (iterator.hasNext()) {
 	    	temp = (FacetValue) iterator.next();
 	    	if (!facetIds.contains(temp.getFacet().getId())) {
-	    		changes = true;
+	    		facetChanges = true;
 	    		iterator.remove();
 	    	}
 	    }
 		
-		if (changes) {
+		if (facetChanges) {
+			changeDescriptions.add("Facetværdier ændret");
+		}
+
+		if (!changeDescriptions.isEmpty()) {
 			functionAssignmentService.save(functionAssignment);
 			log.info("Updated funtionAssignment with id " + id);
+
+			auditLogger.log(String.valueOf(functionAssignment.getId()), EntityType.FUNCTION_ASSIGNMENT, EventType.SAVE, PersonService.getName(functionAssignment.getAffiliation().getPerson()),
+					describeAssignment(functionAssignment) + " ændret. " + String.join(". ", changeDescriptions) + ".");
 		}
 		
 		return new ResponseEntity<>(HttpStatus.OK);
@@ -449,13 +467,29 @@ public class FunctionHierarchyApiController {
 			return new ResponseEntity<>("Funktionstildeling med id " + id + " findes ikke.", HttpStatus.NOT_FOUND);
 		}
 		
+		String message = describeAssignment(functionAssignment) + " slettet. " + describeDates(functionAssignment) + ".";
+		String personName = PersonService.getName(functionAssignment.getAffiliation().getPerson());
+
 		functionAssignmentService.delete(functionAssignment);
 		
 		log.info("Deleted funtionAssignment with id " + id);
+
+		auditLogger.log(String.valueOf(id), EntityType.FUNCTION_ASSIGNMENT, EventType.DELETE, personName, message);
 		
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 	
+	private static String describeAssignment(FunctionAssignment functionAssignment) {
+		Affiliation affiliation = functionAssignment.getAffiliation();
+		String orgUnitName = (affiliation.getCalculatedOrgUnit() != null) ? affiliation.getCalculatedOrgUnit().getName() : "ukendt enhed";
+
+		return "Funktionstildeling " + functionAssignment.getFunction().getName() + " til " + PersonService.getName(affiliation.getPerson()) + " (" + affiliation.getPositionName() + " i " + orgUnitName + ")";
+	}
+
+	private static String describeDates(FunctionAssignment functionAssignment) {
+		return "Startdato: " + AuditMessages.dateOrNotSet(functionAssignment.getStartDate()) + ", stopdato: " + AuditMessages.dateOrNotSet(functionAssignment.getStopDate());
+	}
+
 	@GetMapping(value = "/api/functionhierarchy/search/person")
 	public ResponseEntity<?> searchPerson(@RequestParam("query") String term, @RequestParam String ous) {
 		List<String> ouUuids = Arrays.asList(ous.split(","));

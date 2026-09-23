@@ -14,6 +14,7 @@ import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.web.servlet.View;
 
+import dk.digitalidentity.sofd.controller.mvc.datatables.dao.model.dto.AuditLogDTO;
 import dk.digitalidentity.sofd.dao.model.AuditLog;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -63,11 +64,12 @@ public class AuditLogXlsView implements View {
 	
 				createCell(dataRow, 0, dateFormatter.format(log.getTimestamp()), null);
 				createCell(dataRow, 1, log.getUserId(), null);
-				createCell(dataRow, 2, eventType, null);
-				createCell(dataRow, 3, entityType, null);
-				createCell(dataRow, 4, log.getEntityId(), null);
-				createCell(dataRow, 5, log.getEntityName(), null);
-				createCell(dataRow, 6, log.getMessage(), null);
+				createCell(dataRow, 2, AuditLogDTO.clientNameOrCore(log.getClientName()), null);
+				createCell(dataRow, 3, eventType, null);
+				createCell(dataRow, 4, entityType, null);
+				createCell(dataRow, 5, log.getEntityId(), null);
+				createCell(dataRow, 6, log.getEntityName(), null);
+				createCell(dataRow, 7, log.getMessage(), null);
 			}
 	
 			format(sheet);
@@ -84,11 +86,13 @@ public class AuditLogXlsView implements View {
 		sheet.autoSizeColumn(4);
 		sheet.autoSizeColumn(5);
 		sheet.autoSizeColumn(6);
+		sheet.autoSizeColumn(7);
 	}
 
 	private void createHeader(Workbook workbook, Sheet sheet, ResourceBundleMessageSource messageSource, Locale locale) {
 		String hTimestamp = messageSource.getMessage("xls.auditlog.timestamp", null, locale);
 		String hUserId = messageSource.getMessage("xls.auditlog.userId", null, locale);
+		String hClient = messageSource.getMessage("xls.auditlog.client", null, locale);
 		String hEventType = messageSource.getMessage("xls.auditlog.eventType", null, locale);
 		String hEntityType = messageSource.getMessage("xls.auditlog.entityType", null, locale);
 		String hEntityId = messageSource.getMessage("xls.auditlog.entityId", null, locale);
@@ -104,11 +108,12 @@ public class AuditLogXlsView implements View {
 		Row header = sheet.createRow(0);
 		createCell(header, 0, hTimestamp, headerStyle);
 		createCell(header, 1, hUserId, headerStyle);
-		createCell(header, 2, hEventType, headerStyle);
-		createCell(header, 3, hEntityType, headerStyle);
-		createCell(header, 4, hEntityId, headerStyle);
-		createCell(header, 5, hEntityName, headerStyle);
-		createCell(header, 6, hMessage, headerStyle);
+		createCell(header, 2, hClient, headerStyle);
+		createCell(header, 3, hEventType, headerStyle);
+		createCell(header, 4, hEntityType, headerStyle);
+		createCell(header, 5, hEntityId, headerStyle);
+		createCell(header, 6, hEntityName, headerStyle);
+		createCell(header, 7, hMessage, headerStyle);
 	}
 
 	private static void createCell(Row header, int column, String value, CellStyle style) {

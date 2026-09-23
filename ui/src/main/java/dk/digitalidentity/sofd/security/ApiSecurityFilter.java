@@ -41,6 +41,7 @@ public class ApiSecurityFilter implements Filter {
 		// we are using a custom header instead of Authorization because the Authorization header plays very badly with the SAML filter
 		String authHeader = request.getHeader("ApiKey");
 		String versionHeader = request.getHeader("ClientVersion");
+		String onBehalfOf = sanitizeOnBehalfOf(request.getHeader("OnBehalfOf"));
 		
 		// accept our own custom TlsVersion header first (from middleware that forwards information from local agent),
 		// and then fallback to load balancer header
@@ -104,12 +105,29 @@ public class ApiSecurityFilter implements Filter {
 			
 			ClientToken token = new ClientToken(client.getName(), client.getApiKey(), authorities);
 			token.setClient(client);
+			token.setOnBehalfOf(onBehalfOf);
 
 			SecurityContextHolder.getContext().setAuthentication(token);
 			filterChain.doFilter(servletRequest, servletResponse);
 		} else {
 			unauthorized(response, "Missing ApiKey header", authHeader);
 		}
+	}
+
+	// the header is informational (who the integration acts on behalf of) and ends up in the audit log,
+	// so strip control and markup characters (a user id never contains them) and cap it to the size of the
+	// audit_log.user_id column. The audit log pages escape on output as well, this is defence in depth
+	private static String sanitizeOnBehalfOf(String value) {
+		if (!StringUtils.hasLength(value)) {
+			return null;
+		}
+
+		String cleaned = value.replaceAll("[\\p{Cntrl}<>]", "").trim();
+		if (cleaned.isEmpty()) {
+			return null;
+		}
+
+		return (cleaned.length() > 128) ? cleaned.substring(0, 128) : cleaned;
 	}
 
 	private static void unauthorized(HttpServletResponse response, String message, String authHeader) throws IOException {

@@ -24,6 +24,7 @@ public class AuditLogDTO {
 	private String entityType;
 	private String eventType;
 	private String userId;
+	private String clientName;
 	private String message;
 
 	public AuditLogDTO(AuditLogView auditlog, MessageSource messageSource, Locale locale) {
@@ -33,6 +34,7 @@ public class AuditLogDTO {
 		this.entityType = messageSource.getMessage(auditlog.getEntityType().getMessage(), null, locale);
 		this.eventType = messageSource.getMessage(auditlog.getEventType().getMessage(), null, locale);
 		this.userId = auditlog.getUserId();
+		this.clientName = clientNameOrCore(auditlog.getClientName());
 		this.message = StringUtils.abbreviate(auditlog.getMessage(), 200);
 	}
 	
@@ -43,6 +45,12 @@ public class AuditLogDTO {
 		this.entityType = messageSource.getMessage(auditlog.getEntityType().getMessage(), null, locale);
 		this.eventType = messageSource.getMessage(auditlog.getEventType().getMessage(), null, locale);
 		this.userId = auditlog.getUserId();
+		this.clientName = clientNameOrCore(auditlog.getClientName());
 		this.message = auditlog.getMessage();
+	}
+
+	// entries without an API client were made in OS2sofd itself (a logged in user or a background task)
+	public static String clientNameOrCore(String clientName) {
+		return StringUtils.isNotBlank(clientName) ? clientName : "OS2sofd";
 	}
 }
