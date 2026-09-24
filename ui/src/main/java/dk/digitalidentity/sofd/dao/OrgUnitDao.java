@@ -113,6 +113,51 @@ public interface OrgUnitDao extends JpaRepository<OrgUnit, String> {
 		""")
 	Set<String> getDoNotTransferToFKOrgUuids();
 
+	interface EffectiveAffiliationDurationRule {
+		String getUuid();
+		String getName();
+		String getRule();
+		Integer getMaxDays();
+	}
+
+	// walks up from the given orgunit and returns the nearest ancestor (or the orgunit itself) with a rule other than INHERIT
+	@Query(nativeQuery = true, value = """
+		with recursive cte as
+		(
+			select
+				o.uuid,
+				o.parent_uuid,
+				o.name,
+				o.affiliation_duration_rule,
+				o.affiliation_max_days,
+				0 as depth
+			from orgunits o
+			where
+				o.uuid = :uuid
+			union all
+			select
+				p.uuid,
+				p.parent_uuid,
+				p.name,
+				p.affiliation_duration_rule,
+				p.affiliation_max_days,
+				c.depth + 1
+			from orgunits p
+			inner join cte c on c.parent_uuid = p.uuid
+		)
+		select
+			uuid as uuid,
+			name as name,
+			affiliation_duration_rule as rule,
+			affiliation_max_days as maxDays
+		from cte
+		where
+			affiliation_duration_rule <> 'INHERIT'
+		order by depth
+		limit 1
+		""")
+	EffectiveAffiliationDurationRule getEffectiveAffiliationDurationRule(@Param("uuid") String uuid);
+
 	@Query(nativeQuery = true, value = """
 				select o.* from orgunits o
 				left outer join ean on ean.orgunit_uuid = o.`uuid`

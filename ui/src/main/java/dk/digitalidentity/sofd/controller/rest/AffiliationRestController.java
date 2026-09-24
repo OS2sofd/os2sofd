@@ -34,6 +34,7 @@ import dk.digitalidentity.sofd.log.AuditLogger;
 import dk.digitalidentity.sofd.security.RequireControllerWriteAccess;
 import dk.digitalidentity.sofd.security.RequirePersonCreaterOrControllerWriteAccess;
 import dk.digitalidentity.sofd.security.SecurityUtil;
+import dk.digitalidentity.sofd.service.AffiliationDurationService;
 import dk.digitalidentity.sofd.service.OrgUnitService;
 import dk.digitalidentity.sofd.service.PersonService;
 import dk.digitalidentity.sofd.util.DateConverter;
@@ -42,6 +43,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RestController
 public class AffiliationRestController {
+
+	@Autowired
+	private AffiliationDurationService affiliationDurationService;
 
 	@Autowired
 	private AuditLogger auditLogger;
@@ -193,6 +197,14 @@ public class AffiliationRestController {
 		if(Objects.equals(null, orgUnit)) {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
+
+		if ("SOFD".equals(affiliation.getMaster())) {
+			String durationError = affiliationDurationService.validate(orgUnit, affiliation.getStartDate(), body.stopDate);
+			if (durationError != null) {
+				return new ResponseEntity<>(durationError, HttpStatus.BAD_REQUEST);
+			}
+		}
+
 		affiliation.setOrgUnit(orgUnit);
 		affiliation.setStopDate(body.stopDate);
 		affiliation.setAffiliationType(body.affiliationType);

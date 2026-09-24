@@ -3,6 +3,7 @@ package dk.digitalidentity.sofd.controller.rest.model;
 import java.util.List;
 
 import dk.digitalidentity.sofd.dao.model.OrgUnitTag;
+import dk.digitalidentity.sofd.dao.model.enums.AffiliationDurationRule;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
@@ -50,6 +51,10 @@ public class OrgUnitCoreInfo {
 	private boolean doNotTransferToFKOrg;
 
 	private boolean blockUpdate;
+
+	private AffiliationDurationRule affiliationDurationRule;
+
+	private Integer affiliationMaxDays;
 
     private boolean inheritAddressFromParent;
 

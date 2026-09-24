@@ -96,6 +96,7 @@
 													<span class="fa fa-calendar"></span>
 												</span>
 											</div>
+											<span id="durationRuleHint" class="help-block" style="display: none; color: #d9534f;"></span>
 											<div th:if="${#fields.hasErrors('stopDate')}" class="input-group">
 												<ul class="error">
 													<li th:each="err : ${#fields.errors('stopDate')}" th:text="${err}"></li>
@@ -207,6 +208,7 @@
 		}
 	</style>
 
+	<script th:replace="~{affiliation/fragments/duration_rule :: durationRuleScript(startPickerId='startDatePicker', stopPickerId='stopDatePicker', hintId='durationRuleHint')}"></script>
 	<script th:inline="javascript">
 	/*<![CDATA[*/
 	
@@ -228,6 +230,7 @@
 		
 		$("document").ready(function() {
 			autoCompleteService = new AutoCompleteService();
+			applyAffiliationDurationRule($('#realOrgUnitUuid').val());
 			
 			if (showError) {
 				$.notify({
@@ -295,6 +298,7 @@
 				$('#realOrgUnitUuid').val(selectedOU.id);
 				$('#orgUnitName').val(selectedOU.text);
 				$('#modal-ou').modal('hide');
+				applyAffiliationDurationRule(selectedOU.id);
 				
 				autoCompleteService.init(selectedOU.id);
 			}

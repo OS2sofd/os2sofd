@@ -6,6 +6,7 @@ import dk.digitalidentity.sofd.controller.mvc.dto.PostDTO;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.enums.AffiliationType;
+import dk.digitalidentity.sofd.service.AffiliationDurationService;
 import dk.digitalidentity.sofd.service.OrgUnitService;
 import dk.digitalidentity.sofd.service.PersonService;
 
@@ -28,6 +29,9 @@ public class CreatePersonDTOValidator implements Validator {
 
 	@Autowired
 	private OrgUnitService orgUnitService;
+
+	@Autowired
+	private AffiliationDurationService affiliationDurationService;
 
 	@Override
 	public boolean supports(Class<?> aClass) {
@@ -110,6 +114,12 @@ public class CreatePersonDTOValidator implements Validator {
 
 			if (affiliationDTO.getAffiliationType().equals(AffiliationType.EXTERNAL) && stopDate == null) {
 				errors.rejectValue("affiliation.stopDate", "mvc.errors.affiliation.stopdate");
+			}
+			else if (orgUnit != null) {
+				String durationError = affiliationDurationService.validate(orgUnit, affiliationDTO.getStartDate(), affiliationDTO.getStopDate());
+				if (durationError != null) {
+					errors.rejectValue("affiliation.stopDate", "mvc.errors.affiliation.stopdate.duration", durationError);
+				}
 			}
 		}
 		

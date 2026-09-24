@@ -145,6 +145,15 @@
 				</div>
 			</div>
 		</fieldset>
+
+		<fieldset th:if="${session.SESSION_FUTURE_DATE} == null">
+			<div class="row">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.affiliationDurationRule}"></label>
+				<div class="col-sm-9">
+					<input class="form-control" readonly="readonly" th:value="${#messages.msg(effectiveDurationRule.rule().getMessage())} + (${effectiveDurationRule.rule().name()} == 'MAX_DAYS' ? ' (' + ${effectiveDurationRule.maxDays()} + ' ' + #{html.entity.orgunit.affiliationDurationRule.days} + ')' : '') + (${effectiveDurationRule.isInherited(orgUnit)} ? ', ' + #{html.entity.orgunit.affiliationDurationRule.inheritedFrom} + ' ' + ${effectiveDurationRule.sourceOrgUnitName()} : '')" />
+				</div>
+			</div>
+		</fieldset>
 	</div>
 
 	<div class="hidden" th:if="${deletable}">

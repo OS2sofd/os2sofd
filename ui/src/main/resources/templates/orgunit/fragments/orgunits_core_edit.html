@@ -195,6 +195,37 @@
 				</div>
 			</div>
 		</fieldset>
+
+		<!-- not part of the future changes mechanism, so hidden entirely while a future date is active -->
+		<fieldset th:if="${session.SESSION_FUTURE_DATE} == null">
+			<div class="row">
+				<label class="col-sm-3 control-label">
+					<a tabindex="0" class="hintPopovers" data-toggle="popover" data-trigger="focus" data-placement="right" th:attr="data-content=#{html.entity.orgunit.affiliationDurationRule.hint},title=#{html.entity.orgunit.affiliationDurationRule}" style="text-decoration: none;">
+						<em style="color: black;" class="fa fa-fw fa-question"></em>
+					</a>
+					<span th:text="#{html.entity.orgunit.affiliationDurationRule}"></span>
+				</label>
+				<div class="col-sm-9">
+					<select id="affiliationDurationRule" class="form-control" onchange="affiliationDurationRuleChanged()">
+						<option th:each="rule : ${T(dk.digitalidentity.sofd.dao.model.enums.AffiliationDurationRule).values()}"
+								th:value="${rule}"
+								th:selected="${orgUnit.affiliationDurationRule} == ${rule}"
+								th:text="#{__${rule.getMessage()}__}">
+						</option>
+					</select>
+					<span id="affiliationDurationRuleInherited" class="help-block" th:style="${orgUnit.affiliationDurationRule.name()} == 'INHERIT' ? '' : 'display: none;'"
+						  th:text="#{html.entity.orgunit.affiliationDurationRule.effective} + ': ' + ${#messages.msg(effectiveDurationRule.rule().getMessage())} + (${effectiveDurationRule.rule().name()} == 'MAX_DAYS' ? ' (' + ${effectiveDurationRule.maxDays()} + ' ' + #{html.entity.orgunit.affiliationDurationRule.days} + ')' : '') + (${effectiveDurationRule.isInherited(orgUnit)} ? ', ' + #{html.entity.orgunit.affiliationDurationRule.inheritedFrom} + ' ' + ${effectiveDurationRule.sourceOrgUnitName()} : '')"></span>
+				</div>
+			</div>
+
+			<div class="row" id="affiliationMaxDaysRow" th:style="${orgUnit.affiliationDurationRule.name()} == 'MAX_DAYS' ? '' : 'display: none;'">
+				<label class="col-sm-3 control-label" th:text="#{html.entity.orgunit.affiliationMaxDays}"></label>
+				<div class="col-sm-9">
+					<input id="affiliationMaxDays" type="number" min="1" th:value="${orgUnit.affiliationMaxDays}" class="form-control" />
+					<span class="validationMessage" id="affiliationMaxDays-validationMessage" style="color: red; display: none;"></span>
+				</div>
+			</div>
+		</fieldset>
 	</div>
 	
 	<div class="hidden">
@@ -214,6 +245,15 @@
 	</div>
 	<script th:replace="~{orgunit/fragments/orgunit_tree :: orgUnitTreeScript(configObj='ouJSTreeSelectParentConfig')}"></script>
 	<script th:replace="~{orgunit/fragments/searchPnrModal :: searchPnrModalScript(streetId=street, postalCodeId=postalCode, cityId=city, pnrId=pnr, nameId=name, shortNameId=shortname)}"></script>
+	<script type="text/javascript">
+		$('.hintPopovers').popover({ container: 'body' });
+
+		function affiliationDurationRuleChanged() {
+			var rule = $('#affiliationDurationRule').val();
+			$('#affiliationMaxDaysRow').toggle(rule == 'MAX_DAYS');
+			$('#affiliationDurationRuleInherited').toggle(rule == 'INHERIT');
+		}
+	</script>
 	<script th:inline="javascript" type="text/javascript">
 		/*<![CDATA[*/
 	

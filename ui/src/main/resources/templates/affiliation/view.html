@@ -115,6 +115,7 @@
 													<span class="fa fa-calendar"></span>
 												</span>
 											</div>
+											<span id="durationRuleHint" class="help-block" style="display: none; color: #d9534f;"></span>
 										</div>
 									</div>
 								</fieldset>
@@ -275,6 +276,7 @@
 <script th:replace="~{orgunit/fragments/orgunit_tree :: orgUnitTreeScript(configObj='ouJSTreeConfig')}"></script>
 <script th:replace="~{affiliation/fragments/workplaces :: workplaceListScript(affiliationUuid = ${affiliation.uuid}, workplaceOus = ${ous}, tablePlaceholderId = 'workplaces_menu .content')}"></script>
 <script th:replace="~{fragments/datatables :: datatables(autoLoad=false) }"></script>
+<script th:replace="~{affiliation/fragments/duration_rule :: durationRuleScript(startPickerId='startDatePicker', stopPickerId='stopDatePicker', hintId='durationRuleHint')}"></script>
 
 
 
@@ -423,6 +425,7 @@
 				fields[i].setAttribute('readonly', 'readonly')
 				fields[i].disabled = true;
 			}
+			$('#durationRuleHint').hide();
 		} else {
 			document.getElementById('doNotTransferToFKOrgCheckbox').disabled = true;
 			document.getElementById('deactivateAndDeleteRule').disabled = true;
@@ -440,6 +443,7 @@
 			$("#OrgUnit").removeAttr('readonly')
 			$("#OrgUnit").css('background-color', '#fff')
 			$("#OrgUnit").bind('focus', chooseOU)
+			applyAffiliationDurationRule($('#OrgUnitUuid').val());
 			
 			
 		} else {
@@ -526,11 +530,12 @@
 			},
 			error: function(response) {
 
+				// the server returns a readable message when the stop date breaks the duration rule of the orgunit
 				$.notify({
-					message: failMsg
+					message: (response.status == 400 && response.responseText) ? response.responseText : failMsg
 				}, {
 					status: 'danger',
-					autoHideDelay: 4000
+					autoHideDelay: 6000
 				});
 			},
 			success: function(response) {
@@ -563,6 +568,7 @@
 				$('#OrgUnitUuid').val(selectedOU.id);
 				$('#OrgUnit').val(selectedOU.text);
 				$('#modal-ou').modal('hide');
+				applyAffiliationDurationRule(selectedOU.id);
 			}
 
 			if(ouType === 'alt') {

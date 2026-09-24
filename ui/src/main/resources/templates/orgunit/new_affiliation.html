@@ -63,6 +63,41 @@
 										</div>
 									</div>
 
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.startDate}"></label>
+										<div class="col-sm-8">
+											<div class="input-group date" id="startDatePicker">
+												<input th:field="*{startDate}" class="form-control" />
+												<span class="input-group-addon">
+													<span class="fa fa-calendar"></span>
+												</span>
+											</div>
+											<div th:if="${#fields.hasErrors('startDate')}" class="input-group">
+												<ul class="error">
+													<li th:each="err : ${#fields.errors('startDate')}" th:text="${err}"></li>
+												</ul>
+											</div>
+										</div>
+									</div>
+
+									<div class="form-group">
+										<label class="col-sm-2 control-label" th:text="#{html.entity.affiliation.stopDate}"></label>
+										<div class="col-sm-8">
+											<div class="input-group date" id="stopDatePicker">
+												<input th:field="*{stopDate}" class="form-control" />
+												<span class="input-group-addon">
+													<span class="fa fa-calendar"></span>
+												</span>
+											</div>
+											<span id="durationRuleHint" class="help-block" style="display: none; color: #d9534f;"></span>
+											<div th:if="${#fields.hasErrors('stopDate')}" class="input-group">
+												<ul class="error">
+													<li th:each="err : ${#fields.errors('stopDate')}" th:text="${err}"></li>
+												</ul>
+											</div>
+										</div>
+									</div>
+
 									<div sec:authorize="hasRole('ROLE_MODULE_ACCOUNT_CREATION')" id="inheritDiv" class="form-group" th:style="${affiliationDTO.inheritPrivilegesFromOU} == true ? '' : 'display: none;'">
 										<label class="col-sm-2 control-label">
 											<a tabindex="0" class="hintPopovers" data-toggle="popover" data-trigger="focus" data-placement="right" th:attr="data-content=#{html.page.person.new.hint.inherit},title=#{html.page.person.new.inherit}" style="text-decoration: none;">
@@ -113,6 +148,7 @@
 		}
 	</style>
 
+	<script th:replace="~{affiliation/fragments/duration_rule :: durationRuleScript(startPickerId='startDatePicker', stopPickerId='stopDatePicker', hintId='durationRuleHint')}"></script>
 	<script th:inline="javascript">
 	/*<![CDATA[*/
 	
@@ -130,6 +166,18 @@
 			autoCompleteService.init();
 			
 			$("#orgUnitUuid").val(ouUuid);
+
+			$('#stopDatePicker').datetimepicker({
+				format: 'YYYY-MM-DD'
+			});
+
+			// start date defaults to today, unless the form is being redisplayed with a value
+			$('#startDatePicker').datetimepicker({
+				format: 'YYYY-MM-DD',
+				defaultDate: $('#startDate').val() ? false : new Date()
+			});
+
+			applyAffiliationDurationRule(ouUuid);
 			$("#ouName").val(ouName);
 		});
 		

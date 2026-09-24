@@ -17,6 +17,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
+import dk.digitalidentity.sofd.dao.model.enums.AffiliationDurationRule;
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPhoneMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPostMapping;
@@ -29,6 +30,8 @@ import dk.digitalidentity.sofd.serializer.LocalExtensionsSerializer;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -165,6 +168,15 @@ public class OrgUnit implements Loggable {
 
 	@Column
 	private boolean blockUpdate;
+
+	// max duration of manually created (SOFD) affiliations, inherited down the tree when INHERIT
+	@Column
+	@Enumerated(EnumType.STRING)
+	@NotNull
+	private AffiliationDurationRule affiliationDurationRule = AffiliationDurationRule.INHERIT;
+
+	@Column
+	private Integer affiliationMaxDays;
 
 	@BatchSize(size = 100)
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, mappedBy = "orgUnit")

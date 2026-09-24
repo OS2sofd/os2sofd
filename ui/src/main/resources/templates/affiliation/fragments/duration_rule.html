@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+	Restricts the stop date picker to the maximum affiliation duration configured on the selected orgunit.
+	Server side validation in AffiliationDurationService remains the source of truth, this only saves the user a round trip.
+	Parameters: ids of the start/stop datetimepicker wrappers and of the element that shows the hint text.
+-->
+<th:block th:fragment="durationRuleScript(startPickerId, stopPickerId, hintId)" xmlns:th="http://www.thymeleaf.org">
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		/*[+
+			var durationRuleRestUrl = [[@{/rest/orgunit}]];
+			var durationRuleStartPickerId = [[${startPickerId}]];
+			var durationRuleStopPickerId = [[${stopPickerId}]];
+			var durationRuleHintId = [[${hintId}]];
+			var durationRuleMsgRequired = [[#{html.page.affiliation.durationRule.stopDateRequired}]];
+			var durationRuleMsgLatest = [[#{html.page.affiliation.durationRule.latestStopDate}]];
+			var durationRuleMsgMaxDays = [[#{html.page.affiliation.durationRule.maxDays}]];
+			var durationRuleMsgDays = [[#{html.entity.orgunit.affiliationDurationRule.days}]];
+			var durationRuleMsgInheritedFrom = [[#{html.page.affiliation.durationRule.inheritedFrom}]];
+		+]*/
+
+		var currentDurationRule = null;
+
+		function applyAffiliationDurationRule(ouUuid) {
+			if (!ouUuid) {
+				currentDurationRule = null;
+				renderAffiliationDurationRule();
+				return;
+			}
+
+			$.get(durationRuleRestUrl + "/" + ouUuid + "/affiliationDurationRule", function(rule) {
+				currentDurationRule = rule;
+				renderAffiliationDurationRule();
+			});
+		}
+
+		function renderAffiliationDurationRule() {
+			var stopPicker = $('#' + durationRuleStopPickerId).data('DateTimePicker');
+			var startPicker = $('#' + durationRuleStartPickerId).data('DateTimePicker');
+			var hint = $('#' + durationRuleHintId);
+
+			if (!stopPicker) {
+				return;
+			}
+
+			if (currentDurationRule == null || currentDurationRule.rule == 'NO_LIMIT') {
+				stopPicker.maxDate(false);
+				hint.hide().text('');
+				return;
+			}
+
+			var source = currentDurationRule.inherited ? ' (' + durationRuleMsgInheritedFrom + ' ' + currentDurationRule.sourceOrgUnitName + ')' : '';
+
+			if (currentDurationRule.rule == 'MAX_DAYS') {
+				// the window is measured from the later of start date and today, mirroring the server side rule
+				var from = moment().startOf('day');
+				var start = startPicker ? startPicker.date() : null;
+				if (start && start.isAfter(from)) {
+					from = start.clone().startOf('day');
+				}
+				var latest = from.add(currentDurationRule.maxDays, 'days');
+
+				// never touch an existing value that already breaks the rule (the picker would snap it to maxDate), let the save fail instead
+				var current = stopPicker.date();
+				if (current && current.isAfter(latest)) {
+					stopPicker.maxDate(false);
+				}
+				else {
+					stopPicker.maxDate(latest);
+				}
+				hint.text(durationRuleMsgLatest + ' ' + latest.format('YYYY-MM-DD') + ' (' + durationRuleMsgMaxDays + ' ' + currentDurationRule.maxDays + ' ' + durationRuleMsgDays + ')' + source).show();
+			}
+			else {
+				stopPicker.maxDate(false);
+				hint.text(durationRuleMsgRequired + source).show();
+			}
+		}
+
+		$(document).ready(function() {
+			$('#' + durationRuleStartPickerId).on('dp.change', function() {
+				renderAffiliationDurationRule();
+			});
+		});
+		/*]]>*/
+	</script>
+</th:block>
+</body>
+</html>

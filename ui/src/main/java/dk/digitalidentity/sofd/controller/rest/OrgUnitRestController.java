@@ -51,6 +51,7 @@ import dk.digitalidentity.sofd.dao.model.Post;
 import dk.digitalidentity.sofd.dao.model.Profession;
 import dk.digitalidentity.sofd.dao.model.Tag;
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderDeactivateAndDeleteRule;
+import dk.digitalidentity.sofd.dao.model.enums.AffiliationDurationRule;
 import dk.digitalidentity.sofd.dao.model.enums.AccountOrderRule;
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.dao.model.enums.EventType;
@@ -60,6 +61,7 @@ import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPrimaryKleMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitSecondaryKleMapping;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitTertiaryKleMapping;
 import dk.digitalidentity.sofd.log.AuditLogger;
+import dk.digitalidentity.sofd.service.AffiliationDurationService;
 import dk.digitalidentity.sofd.security.RequireAdminAccess;
 import dk.digitalidentity.sofd.security.RequireControllerWriteAccess;
 import dk.digitalidentity.sofd.security.RequireLosAdminAccess;
@@ -90,6 +92,9 @@ public class OrgUnitRestController {
 	
 	@Autowired
 	private OrgUnitService orgUnitService;
+
+	@Autowired
+	private AffiliationDurationService affiliationDurationService;
 
 	@Autowired
 	private FunctionTypeService functionTypeService;
@@ -346,6 +351,21 @@ public class OrgUnitRestController {
 		return new ResponseEntity<>(accountOrders, HttpStatus.OK);
 	}
 
+	record AffiliationDurationRuleDTO(String rule, Integer maxDays, boolean stopDateRequired, String sourceOrgUnitName, boolean inherited) {}
+
+	// used by the affiliation forms to restrict the stop date picker before the user hits the server side validation
+	@GetMapping("/rest/orgunit/{uuid}/affiliationDurationRule")
+	public HttpEntity<?> getAffiliationDurationRule(@PathVariable("uuid") String uuid) {
+		OrgUnit orgUnit = orgUnitService.getByUuid(uuid);
+		if (orgUnit == null) {
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+		}
+
+		var effective = affiliationDurationService.resolve(orgUnit);
+
+		return new ResponseEntity<>(new AffiliationDurationRuleDTO(effective.rule().name(), effective.maxDays(), effective.isStopDateRequired(), effective.sourceOrgUnitName(), effective.isInherited(orgUnit)), HttpStatus.OK);
+	}
+
 	@RequireControllerWriteAccess
 	@PostMapping("/rest/orgunit/{uuid}/update/coreInfo")
 	public HttpEntity<?> updateCoreInformation(@PathVariable("uuid") String uuid, @RequestBody @Valid OrgUnitCoreInfo coreInfoDTO, BindingResult bindingResult) throws Exception {
@@ -357,6 +377,12 @@ public class OrgUnitRestController {
 		if (orgUnit == null) {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
+
+		if (coreInfoDTO.getAffiliationDurationRule() == AffiliationDurationRule.MAX_DAYS && (coreInfoDTO.getAffiliationMaxDays() == null || coreInfoDTO.getAffiliationMaxDays() <= 0)) {
+			bindingResult.rejectValue("affiliationMaxDays", "invalid", "Skal være et positivt antal dage");
+			return new ResponseEntity<>(bindingResult.getAllErrors(), HttpStatus.BAD_REQUEST);
+		}
+
 		try {
 			orgUnitService.updateCoreInformation(orgUnit, coreInfoDTO);
 		}

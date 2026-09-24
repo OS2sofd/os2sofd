@@ -54,6 +54,7 @@ import dk.digitalidentity.sofd.dao.model.Phone;
 import dk.digitalidentity.sofd.dao.model.Post;
 import dk.digitalidentity.sofd.dao.model.SupportedUserType;
 import dk.digitalidentity.sofd.dao.model.User;
+import dk.digitalidentity.sofd.dao.model.enums.AffiliationDurationRule;
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.dao.model.mapping.OrgUnitPostMapping;
 import dk.digitalidentity.sofd.security.SecurityUtil;
@@ -668,6 +669,21 @@ public class OrgUnitService {
 		if (!Objects.equals(orgUnit.isBlockUpdate(), coreInfoDTO.isBlockUpdate())) {
 			orgUnit.setBlockUpdate(coreInfoDTO.isBlockUpdate());
 			changes = true;
+		}
+
+		if (coreInfoDTO.getAffiliationDurationRule() != null) {
+			AffiliationDurationRule rule = coreInfoDTO.getAffiliationDurationRule();
+			Integer maxDays = (rule == AffiliationDurationRule.MAX_DAYS) ? coreInfoDTO.getAffiliationMaxDays() : null;
+
+			if (rule == AffiliationDurationRule.MAX_DAYS && (maxDays == null || maxDays <= 0)) {
+				throw new IllegalArgumentException("affiliationMaxDays must be a positive number when rule is MAX_DAYS");
+			}
+
+			if (!Objects.equals(orgUnit.getAffiliationDurationRule(), rule) || !Objects.equals(orgUnit.getAffiliationMaxDays(), maxDays)) {
+				orgUnit.setAffiliationDurationRule(rule);
+				orgUnit.setAffiliationMaxDays(maxDays);
+				changes = true;
+			}
 		}
 
 

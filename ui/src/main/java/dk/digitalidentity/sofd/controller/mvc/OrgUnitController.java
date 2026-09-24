@@ -21,7 +21,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -59,6 +61,8 @@ import dk.digitalidentity.sofd.security.RequireControllerWriteAccess;
 import dk.digitalidentity.sofd.security.RequireReadAccess;
 import dk.digitalidentity.sofd.security.SecurityUtil;
 import dk.digitalidentity.sofd.service.AccountOrderService;
+import dk.digitalidentity.sofd.controller.validation.AffiliationDTOValidator;
+import dk.digitalidentity.sofd.service.AffiliationDurationService;
 import dk.digitalidentity.sofd.service.AffiliationService;
 import dk.digitalidentity.sofd.service.FunctionTypeService;
 import dk.digitalidentity.sofd.service.KleService;
@@ -82,6 +86,17 @@ import lombok.extern.slf4j.Slf4j;
 @RequireReadAccess
 @Controller
 public class OrgUnitController {
+
+	@Autowired
+	private AffiliationDTOValidator affiliationDTOValidator;
+
+	@Autowired
+	private AffiliationDurationService affiliationDurationService;
+
+	@InitBinder("affiliationDTO")
+	public void initAffiliationBinder(WebDataBinder binder) {
+		binder.setValidator(affiliationDTOValidator);
+	}
 
 	@Autowired
 	private OrgUnitService orgUnitService;
@@ -329,7 +344,7 @@ public class OrgUnitController {
 
 	@RequireControllerWriteAccess
 	@PostMapping("/ui/orgunit/affiliation")
-	public String createNewAffiliation(Model model, @ModelAttribute("personUUID") String personUUID, @Valid @ModelAttribute("affiliationDTO") AffiliationDTO affiliationDTO, @RequestParam(required = false, value = "backRef") String backRef, BindingResult bindingResult) {
+	public String createNewAffiliation(Model model, @ModelAttribute("personUUID") String personUUID, @Valid @ModelAttribute("affiliationDTO") AffiliationDTO affiliationDTO, BindingResult bindingResult, @RequestParam(required = false, value = "backRef") String backRef) {
 		OrgUnit ou = orgUnitService.getByUuid(affiliationDTO.getOrgUnitUuid());
 		if (ou == null) {
 			log.warn("Could not find orgUnit with uuid " + affiliationDTO.getOrgUnitUuid() + " while assigning new affiliation");
@@ -675,6 +690,7 @@ public class OrgUnitController {
 
 		model.addAttribute("orgUnit", orgUnit);
 		model.addAttribute("doNotTransferInherited", !orgUnit.isDoNotTransferToFkOrg() && orgUnitService.getDoNotTransferToFKOrgUuids().contains(orgUnit.getUuid()));
+		model.addAttribute("effectiveDurationRule", affiliationDurationService.resolve(orgUnit));
 
 		if (type.equals("edit")) {
 			// filter children of selected ou to prevent recursive reference
@@ -780,9 +796,17 @@ public class OrgUnitController {
 			affiliation.setInheritPrivileges(affiliationDTO.isInheritPrivilegesFromOU());
 		}
 
-		if (StringUtils.hasLength(affiliationDTO.getStopDate())) {
-			SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+		SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+		if (StringUtils.hasLength(affiliationDTO.getStartDate())) {
+			try {
+				affiliation.setStartDate(formatter.parse(affiliationDTO.getStartDate()));
+			}
+			catch (ParseException ex) {
+				log.warn("Failed to parse: " + affiliationDTO.getStartDate());
+			}
+		}
 
+		if (StringUtils.hasLength(affiliationDTO.getStopDate())) {
 			try {
 				Date stopDate = formatter.parse(affiliationDTO.getStopDate());
 				affiliation.setStopDate(stopDate);

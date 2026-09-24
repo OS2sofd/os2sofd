@@ -304,6 +304,9 @@
 	.row {
 		margin-bottom: 5px;
 	}
+	.popover {
+		max-width: 450px;
+	}
 	.control-label {
 		margin-top: 5px;
 		text-align: right;
@@ -596,6 +599,10 @@
 			// fix checkbox
 			data.doNotTransferToFKOrg = $("#doNotTransferToFKOrgCheckbox").is(':checked');
 			data.blockUpdate = $("#blockUpdateCheckbox").is(':checked');
+
+			// affiliation duration rule (fields are absent while a future date is active, which leaves the rule untouched)
+			data.affiliationDurationRule = $("#affiliationDurationRule").val() || null;
+			data.affiliationMaxDays = parseInt($("#affiliationMaxDays").val()) || null;
 
 			$('.validationMessage').hide();
 
