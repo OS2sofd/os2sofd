@@ -58,6 +58,7 @@ import dk.digitalidentity.sofd.dao.paginator.PersonPage;
 import dk.digitalidentity.sofd.dao.paginator.PersonPaginator;
 import dk.digitalidentity.sofd.service.model.SyncResult;
 import dk.digitalidentity.sofd.service.os2sync.dto.FKOU;
+import dk.digitalidentity.sofd.service.transliteration.Transliteration;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -455,27 +456,18 @@ public class OS2SyncService {
 		// find name (FK Organisation requires that it starts with a normal character (a-z or æøå)
 		String nameValue = (person.getChosenName() != null) ? person.getChosenName() : (person.getFirstname() + " " + person.getSurname());
 		if (nameValue != null && nameValue.length() > 0) {
-			boolean done = false;
+			char c = nameValue.toLowerCase().charAt(0);
 
-			do {
-				char c = nameValue.toLowerCase().charAt(0);
-				if ((c >= 'a' && c <= 'z') ||
-				    (c == 'æ') || (c == 'ø') || (c == 'å')) {
-			    	done = true;
-			    }
-				
-				if (!done) {
-					if (nameValue.length() > 1) {
-						nameValue = nameValue.substring(1);
-					}
-					else {
-						nameValue = null;
-						done = true;
-					}
-				}
-			} while (!done);
+			if ((c >= 'a' && c <= 'z') || (c == 'æ') || (c == 'ø') || (c == 'å')) {
+				; // all ok
+		    }
+			else {
+				String translitaratedNameValue = Transliteration.transliterateAcceptDanish(nameValue, null);
+
+				nameValue = translitaratedNameValue.charAt(0) + nameValue.substring(1);
+			}
 		}
-		
+
 		if (!StringUtils.hasText(nameValue)) {
 			nameValue = "Tomt navn";
 		}

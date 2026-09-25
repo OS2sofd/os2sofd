@@ -7,6 +7,46 @@ import java.util.List;
 // Code copied from https://github.com/micshome/transliteration/blob/master/src/main/java/me/saitov/libs/transliteration/Transliteration.java
 public class Transliteration {
 
+	public static String transliterateAcceptDanish(String input, Character separator) {
+		Character ascii;
+		separator = separator == null ? '?' : separator;
+		input = ucs2decode(input);
+		String strNew = "";
+
+		for (Character ord : input.toCharArray()) {
+			if (ord > 0xffff) {
+				strNew += separator;
+				continue;
+			}
+			
+			char c = ord.charValue();			
+			if (c == 'Æ' || c == 'æ' ||
+				c == 'Ø' || c == 'ø' || 
+				c == 'Å' || c == 'å') {
+				strNew += c;
+			}
+			else {
+				Character bank = (char) (ord >> 8);
+
+				if (ReplacementData.codemap.get(bank) == null) {
+					ReplacementData.codemap.put(bank, new Character[256]);
+					Arrays.fill(ReplacementData.codemap.get(bank), separator);
+				}
+				
+				ord = (char) (0xff & ord);
+				ascii = ReplacementData.codemap.get(bank)[ord];
+	
+				if (ascii == null) {
+					ascii = separator;
+				}
+				
+				strNew += ascii;
+			}
+		}
+
+		return strNew;
+	}
+
 	public static String transliterate(String input, Character separator) {
 		Character ascii;
 		separator = separator == null ? '?' : separator;
