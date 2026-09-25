@@ -39,4 +39,7 @@ public class Email {
 	
 	@JsonIgnore
 	private long port = 25;
+	
+	@JsonIgnore
+	private String protocol = "smtp";
 }
