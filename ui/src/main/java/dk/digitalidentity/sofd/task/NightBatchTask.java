@@ -111,7 +111,7 @@ public class NightBatchTask {
 
 	// all jobs should be scheduled to run between 00:00 and 11:59
 	@Scheduled(cron = "0 * 0-11 * * ?")
-	@WarnIfSlowerThan
+	@WarnIfSlowerThan(millis = 2 * 60 * 1000)
 	public void exectuteBatchJobs() {
 		for (BatchJob batchJob : batchJobs) {
 			if (batchJob.shouldRun()) {

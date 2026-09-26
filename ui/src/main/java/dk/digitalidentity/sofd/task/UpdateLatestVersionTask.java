@@ -44,7 +44,7 @@ public class UpdateLatestVersionTask {
 		}
 	}
 
-	@Scheduled(cron = "0 0 6 ? * *")
+	@Scheduled(cron = "0 0 6 ? * WED")
 	@WarnIfSlowerThan
 	public void verifyAutoUpdateStatus() {
 		log.debug("verifyAutoUpdateStatus");

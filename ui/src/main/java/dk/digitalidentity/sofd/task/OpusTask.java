@@ -25,7 +25,7 @@ public class OpusTask {
 
 	// run once every 2 minutes
 	@Scheduled(cron = "0 0/2 * * * ?")
-	@WarnIfSlowerThan
+	@WarnIfSlowerThan(millis = 2 * 60 * 1000)
 	@Transactional(rollbackFor = Exception.class)
 	public void handleOrders() {
 		if (configuration.getScheduled().isEnabled() && configuration.getModules().getAccountCreation().getOpusHandler().isEnabled()) {
@@ -37,7 +37,7 @@ public class OpusTask {
 	
 	// run every midday (11-12)
 	@Scheduled(cron = "${cron.opus.email:0 #{new java.util.Random().nextInt(60)} 11 * * ?}")
-	@WarnIfSlowerThan
+	@WarnIfSlowerThan(millis = 3 * 60 * 1000)
 	public void updateEmails() {
 		if (configuration.getScheduled().isEnabled() && configuration.getModules().getAccountCreation().getOpusHandler().isUpdateEmailWithoutIdM()) {
 			log.info("Running OPUS bulk email update task");
