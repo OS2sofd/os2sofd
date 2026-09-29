@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import dk.digitalidentity.sofd.config.SofdConfiguration;
 import dk.digitalidentity.sofd.dao.model.AccountOrder;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
+import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.OrgUnitAccountOrder;
 import dk.digitalidentity.sofd.dao.model.OrgUnitAccountOrderType;
 import dk.digitalidentity.sofd.dao.model.Person;
@@ -287,7 +288,51 @@ public class AccountOrderNightJob {
 		log.info("Completed nightly job");
 	}
 	
+	/**
+	 * preview for the orgunit rule editor: the DEACTIVATE orders the nightly job would generate for the persons
+	 * attached to the orgunit if the given rules were saved, minus those it would generate with the current rules
+	 */
+	public List<AccountOrder> getAccountsToDeactivate(OrgUnit orgUnit, OrgUnitAccountOrder alternativeRules) {
+		if (configuration.getModules().getAccountCreation().isIdmHandledExternally()) {
+			return new ArrayList<>();
+		}
+
+		Map<String, Person> persons = new HashMap<>();
+		for (Affiliation affiliation : AffiliationService.notStoppedAffiliations(affiliationService.findByCalculatedOrgUnit(orgUnit))) {
+			Person person = affiliation.getPerson();
+			if (person != null && !person.isDeleted()) {
+				persons.put(person.getUuid(), person);
+			}
+		}
+
+		if (persons.isEmpty()) {
+			return new ArrayList<>();
+		}
+
+		Map<String, OrgUnitAccountOrder> ruleOverrides = new HashMap<>();
+		ruleOverrides.put(orgUnit.getUuid(), alternativeRules);
+
+		List<AccountOrder> withNewRules = getAccountsToDeleteDeactivate(new ArrayList<>(persons.values()), true, ruleOverrides);
+		List<AccountOrder> withCurrentRules = getAccountsToDeleteDeactivate(new ArrayList<>(persons.values()), true, null);
+
+		return withNewRules.stream()
+				.filter(order -> order.getOrderType() == AccountOrderType.DEACTIVATE)
+				.filter(order -> withCurrentRules.stream().noneMatch(existing ->
+						existing.getOrderType() == AccountOrderType.DEACTIVATE &&
+						Objects.equals(existing.getPersonUuid(), order.getPersonUuid()) &&
+						Objects.equals(existing.getUserType(), order.getUserType()) &&
+						Objects.equals(existing.getRequestedUserId(), order.getRequestedUserId())))
+				.collect(Collectors.toList());
+	}
+
 	private List<AccountOrder> getAccountsToDeleteDeactivate(List<Person> persons, boolean respectDeleteDays) {
+		return getAccountsToDeleteDeactivate(persons, respectDeleteDays, null);
+	}
+
+	/**
+	 * ruleOverrides (orgunit uuid to rules) replaces the stored orgunit rules for those orgunits, used for previews
+	 */
+	private List<AccountOrder> getAccountsToDeleteDeactivate(List<Person> persons, boolean respectDeleteDays, Map<String, OrgUnitAccountOrder> ruleOverrides) {
 		List<AccountOrder> accountDeletesResult = new ArrayList<>();
 
 		// read settings
@@ -390,7 +435,7 @@ public class AccountOrderNightJob {
 				affiliations = AffiliationService.notStoppedAffiliations(affiliations);
 
 				// filter out affiliations according to orgunit account order delete/deactivate rules
-				affiliations = CollectionUtils.emptyIfNull(affiliations).stream().filter(a -> shouldKeepAccountAlive(user.getUserType(),a)).collect(Collectors.toList());
+				affiliations = CollectionUtils.emptyIfNull(affiliations).stream().filter(a -> shouldKeepAccountAlive(user.getUserType(), a, ruleOverrides)).collect(Collectors.toList());
 
 				// for AD users, we should match affiliationType (EXTERNAL or EMPLOYEE) with type of user (external or not),
 				// so an external user is closed when there are no more external affilations (and likewise for non-external users and employee-affiliations)
@@ -426,7 +471,7 @@ public class AccountOrderNightJob {
 				// when externals are not handled as a separate lane, the master/organisation setup only decides what can
 				// trigger orders, not whether a person is still attached to the organisation - so an account is only
 				// closed when the person has no affiliations left that would keep it alive
-				if (delete && !separateExternalAccounts && hasAffiliationKeepingAccountAlive(person, user.getUserType())) {
+				if (delete && !separateExternalAccounts && hasAffiliationKeepingAccountAlive(person, user.getUserType(), ruleOverrides)) {
 					delete = false;
 				}
 
@@ -508,9 +553,9 @@ public class AccountOrderNightJob {
 	 * masters, organisations and affiliation types - any affiliation that is still running, and that is not ruled out
 	 * by the orgunit setup, means the person is still attached and their accounts should stay open
 	 */
-	private boolean hasAffiliationKeepingAccountAlive(Person person, String userType) {
+	private boolean hasAffiliationKeepingAccountAlive(Person person, String userType, Map<String, OrgUnitAccountOrder> ruleOverrides) {
 		return AffiliationService.notStoppedAffiliations(person.getAffiliations()).stream()
-				.anyMatch(a -> shouldKeepAccountAlive(userType, a));
+				.anyMatch(a -> shouldKeepAccountAlive(userType, a, ruleOverrides));
 	}
 
 	/**
@@ -524,12 +569,15 @@ public class AccountOrderNightJob {
 		};
 	}
 
-	private boolean shouldKeepAccountAlive(String userType, Affiliation affiliation) {
+	private boolean shouldKeepAccountAlive(String userType, Affiliation affiliation, Map<String, OrgUnitAccountOrder> ruleOverrides) {
 		if (affiliation.getDeactivateAndDeleteRule() != AccountOrderDeactivateAndDeleteRule.KEEP_ALIVE) {
 			return false;
 		}
 
-		OrgUnitAccountOrder accountOrderSettings = accountOrderService.getAccountOrderSettings(affiliation.getCalculatedOrgUnit(), false);
+		OrgUnit orgUnit = affiliation.getCalculatedOrgUnit();
+		OrgUnitAccountOrder accountOrderSettings = (ruleOverrides != null && ruleOverrides.containsKey(orgUnit.getUuid()))
+				? ruleOverrides.get(orgUnit.getUuid())
+				: accountOrderService.getAccountOrderSettings(orgUnit, false);
 		OrgUnitAccountOrderType accountOrderType = accountOrderSettings.getTypes().stream().filter(t -> t.getUserType().equalsIgnoreCase(userType)).findFirst().orElse(null);
 		if (accountOrderType != null) {
             return switch (accountOrderType.getDeactivateAndDeleteRule()) {

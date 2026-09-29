@@ -6,8 +6,8 @@
 		<thead>
 			<th class="col-md-2" th:text="#{html.page.orgunit.view.accountorders.usertype.name}"></th>
 			<th th:if="${@sofdConfiguration.getModules().getAccountCreation().isAccountOrderApprove() == true}" class="col-md-1" th:text="#{html.page.orgunit.view.accountorders.usertype.requires_approval}"></th>
-			<th class="col-md-4" th:text="#{html.page.orgunit.view.accountorders.usertype.rule}"></th>
-			<th class="col-md-2" th:text="#{html.page.orgunit.view.accountorders.usertype.deactivate_and_delete_rule}"></th>
+			<th class="col-md-3" th:text="#{html.page.orgunit.view.accountorders.usertype.rule}"></th>
+			<th class="col-md-3"><span th:text="#{html.page.orgunit.view.accountorders.usertype.deactivate_and_delete_rule}"></span> <i class="fa fa-question-circle rule-help" data-toggle="tooltip" data-placement="top" th:title="#{html.page.orgunit.view.accountorders.usertype.deactivate_and_delete_rule.help}"></i></th>
 			<th class="col-md-3" th:text="#{html.page.orgunit.view.accountorders.usertype.overrule_days}"></th>
 		</thead>
 
@@ -111,10 +111,17 @@
 	
 	<script type="text/javascript">
 		$("document").ready(function() {
+			$('.rule-help').tooltip();
+
 			const checkboxes = document.getElementsByClassName('localRuleCheckbox');
 			for (let i = 0; i < checkboxes.length; i++) {
 				handleLocalRulesChange(checkboxes[i], false);
 			}
+
+			// lock the keep-alive rule for rows with automatic ordering, same as when the rule is changed
+			$('#accountOrderTable').find('> tbody > tr > td > select#rule').each(function() {
+				handleTypeEventChange(this);
+			});
 		});
 
 		function handleLocalRulesChange(elem, initCall) {

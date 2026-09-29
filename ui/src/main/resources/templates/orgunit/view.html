@@ -349,7 +349,9 @@
 
 			var tooltipTxt = [[#{html.entity.person.master}]];
 
-			var confirmRulesTitleTxt = [[#{html.page.orgunit.edit.rules.title}]]
+			var confirmRulesTitleTxt = [[#{html.page.orgunit.edit.rules.title}]];
+			var confirmRulesCreatesTxt = [[#{html.page.orgunit.edit.rules.creates}]];
+			var confirmRulesDeactivatesTxt = [[#{html.page.orgunit.edit.rules.deactivates}]];
 			var yesButtonTxt = [[#{html.button.yes}]];
 			var noButtonTxt = [[#{html.button.no}]];
 
@@ -401,6 +403,8 @@
 
 		var managedTitleService, substituteService, eanService;
 		$("document").ready(function() {
+			$('.rule-help').tooltip();
+
 			managedTitleService = new ManagedTitleService();
 			managedTitleService.init();
 			
@@ -657,7 +661,9 @@
 		}
 
 		function loadViewAccountOrderTab() {
-			$('#order_accounts_menu').load(url + "/orderAccounts/" + uuid + "/view");
+			$('#order_accounts_menu').load(url + "/orderAccounts/" + uuid + "/view", function() {
+				$('.rule-help').tooltip();
+			});
 		}
 
 		function saveAccountOrder() {
@@ -717,13 +723,24 @@
 				contentType: "application/json; charset=utf-8"
 			}).done(function (data) {
 				var keys = 0;
-				var alertMsg = '<ul style="list-style: none; padding-left: 0px;">';
-				for (var key in data.result) {
-					keys++;
+				var alertMsg = '';
 
-					alertMsg += '<li>' + data.result[key] + ' ' + key + '</li>';
+				var sections = [
+					{ label: confirmRulesCreatesTxt, counts: data.result },
+					{ label: confirmRulesDeactivatesTxt, counts: data.deactivations }
+				];
+
+				for (var i = 0; i < sections.length; i++) {
+					var sectionMsg = '';
+					for (var key in sections[i].counts) {
+						keys++;
+						sectionMsg += '<li>' + sections[i].counts[key] + ' ' + key + '</li>';
+					}
+
+					if (sectionMsg.length > 0) {
+						alertMsg += '<b>' + sections[i].label + '</b><ul style="list-style: none; padding-left: 0px;">' + sectionMsg + '</ul>';
+					}
 				}
-				alertMsg += "</ul>";
 
 				if (keys > 0) {
 					swal({

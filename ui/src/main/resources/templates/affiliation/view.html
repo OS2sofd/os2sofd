@@ -190,7 +190,7 @@
 										</div>
 									</div>
 									<div class="form-group">
-										<label class="col-sm-3 control-label" th:text="#{html.entity.affiliation.deactivateAndDeleteRule}"></label>
+										<label class="col-sm-3 control-label"><span th:text="#{html.entity.affiliation.deactivateAndDeleteRule}"></span> <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right" th:title="#{html.entity.affiliation.deactivateAndDeleteRule.help}"></i></label>
 										<div class="col-sm-9">
 											<select id="deactivateAndDeleteRule" class="form-control core-editable	" disabled="disabled">
 
@@ -334,6 +334,7 @@
 	}
 
 	$("document").ready(function() {
+		$('[data-toggle="tooltip"]').tooltip();
 		$("#kle_performing_menu .content").load(url + "viewKLE/" + uuid + "/KlePrimary");
 		$("#kle_interest_menu .content").load(url + "viewKLE/" + uuid + "/KleSecondary");
 

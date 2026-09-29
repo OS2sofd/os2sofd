@@ -9,4 +9,5 @@ import lombok.Setter;
 @Setter
 public class TryAccountOrderRulesResult {
 	private Map<String, Long> result;
+	private Map<String, Long> deactivations;
 }

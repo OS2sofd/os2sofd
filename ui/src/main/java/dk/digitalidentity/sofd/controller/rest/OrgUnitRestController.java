@@ -67,6 +67,7 @@ import dk.digitalidentity.sofd.security.RequireControllerWriteAccess;
 import dk.digitalidentity.sofd.security.RequireLosAdminAccess;
 import dk.digitalidentity.sofd.security.RequireReadAccess;
 import dk.digitalidentity.sofd.security.RequireWriteContactInfoAccess;
+import dk.digitalidentity.sofd.service.AccountOrderNightJob;
 import dk.digitalidentity.sofd.service.AccountOrderService;
 import dk.digitalidentity.sofd.service.FunctionTypeService;
 import dk.digitalidentity.sofd.service.OrgUnitService;
@@ -101,6 +102,9 @@ public class OrgUnitRestController {
 
 	@Autowired
 	private AccountOrderService accountOrderService;
+
+	@Autowired
+	private AccountOrderNightJob accountOrderNightJob;
 
 	@Autowired
 	private SupportedUserTypeService supportedUserTypeService;
@@ -326,15 +330,25 @@ public class OrgUnitRestController {
 			}
 		}
 
-		Map<String, Long> prettyMap = new HashMap<>();
+		Map<String, Long> deactivations = new HashMap<>();
+		for (AccountOrder order : accountOrderNightJob.getAccountsToDeactivate(orgUnit, accountOrders)) {
+			deactivations.merge(order.getUserType(), 1L, Long::sum);
+		}
 
 		// translate to prettier messages
-		for (String key : result.getResult().keySet()) {
-			prettyMap.put(supportedUserTypeService.getPrettyName(key), result.getResult().get(key));
-		}
-		result.setResult(prettyMap);
+		result.setResult(toPrettyUserTypeNames(result.getResult()));
+		result.setDeactivations(toPrettyUserTypeNames(deactivations));
 
 		return new ResponseEntity<>(result, HttpStatus.OK);
+	}
+
+	private Map<String, Long> toPrettyUserTypeNames(Map<String, Long> countByUserType) {
+		Map<String, Long> prettyMap = new HashMap<>();
+		for (String key : countByUserType.keySet()) {
+			prettyMap.put(supportedUserTypeService.getPrettyName(key), countByUserType.get(key));
+		}
+
+		return prettyMap;
 	}
 
 	@RequireAdminAccess

@@ -3,6 +3,7 @@ package dk.digitalidentity.sofd.service;
 import dk.digitalidentity.sofd.log.WarnIfSlowerThan;
 
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.context.MessageSource;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -98,6 +100,9 @@ public class AccountOrderService {
 
 	@Autowired
 	private SupportedUserTypeService supportedUserTypeService;
+
+	@Autowired
+	private MessageSource messageSource;
 
 	@Autowired
 	private OrgUnitService orgUnitService;
@@ -714,18 +719,22 @@ public class AccountOrderService {
 	public OrgUnitAccountOrder setAccountOrderSettings(OrgUnit orgUnit, OrgUnitAccountOrder accountOrders, boolean override) {
 		OrgUnitAccountOrder originalOrder = getAccountOrderSettings(orgUnit, true);
 		boolean changes = false;
+		List<String> changeDescriptions = new ArrayList<>();
 
 		for (OrgUnitAccountOrderType originalType : originalOrder.getTypes()) {
 			for (OrgUnitAccountOrderType type : accountOrders.getTypes()) {
 				if (originalType.getUserType().equals(type.getUserType())) {
 					AccountOrderRule oldRule = originalType.getRule();
+					String prettyUserType = supportedUserTypeService.getPrettyName(type.getUserType());
 
 					if (!type.getRule().equals(originalType.getRule())) {
+						changeDescriptions.add(prettyUserType + ": regel for oprettelse ændret fra '" + message(originalType.getRule().getMessage()) + "' til '" + message(type.getRule().getMessage()) + "'");
 						originalType.setRule(type.getRule());
 						changes = true;
 					}
 					
 					if (type.isLocalRules() != originalType.isLocalRules()) {
+						changeDescriptions.add(prettyUserType + ": overstyring af globale frister " + (type.isLocalRules() ? "slået til" : "slået fra"));
 						originalType.setLocalRules(type.isLocalRules());
 						changes = true;
 					}
@@ -741,11 +750,13 @@ public class AccountOrderService {
 						}
 						
 						if (type.getDaysBeforeToCreate() != originalType.getDaysBeforeToCreate()) {
+							changeDescriptions.add(prettyUserType + ": dage før oprettelse ændret fra " + originalType.getDaysBeforeToCreate() + " til " + type.getDaysBeforeToCreate());
 							originalType.setDaysBeforeToCreate(type.getDaysBeforeToCreate());
 							changes = true;
 						}
 						
 						if (type.getDaysBeforeToReactivate() != originalType.getDaysBeforeToReactivate()) {
+							changeDescriptions.add(prettyUserType + ": dage før genaktivering ændret fra " + originalType.getDaysBeforeToReactivate() + " til " + type.getDaysBeforeToReactivate());
 							originalType.setDaysBeforeToReactivate(type.getDaysBeforeToReactivate());
 							changes = true;
 						}
@@ -761,11 +772,13 @@ public class AccountOrderService {
 					}
 
 					if (!type.getDeactivateAndDeleteRule().equals(originalType.getDeactivateAndDeleteRule())) {
+						changeDescriptions.add(prettyUserType + ": tilhørsforhold holder konti aktive ændret fra '" + message(originalType.getDeactivateAndDeleteRule().getMessage()) + "' til '" + message(type.getDeactivateAndDeleteRule().getMessage()) + "'");
 						originalType.setDeactivateAndDeleteRule(type.getDeactivateAndDeleteRule());
 						changes = true;
 					}
 
 					if (type.isRequiresApproval() != originalType.isRequiresApproval()) {
+						changeDescriptions.add(prettyUserType + ": kræver godkendelse " + (type.isRequiresApproval() ? "slået til" : "slået fra"));
 						originalType.setRequiresApproval(type.isRequiresApproval());
 						changes = true;
 					}
@@ -775,11 +788,13 @@ public class AccountOrderService {
 							for (OrgUnitAccountOrderTypePosition positionRule : type.getPositions()) {
 								if (originalPositionRule.getPositionName().equals(positionRule.getPositionName())) {
 									if (!originalPositionRule.getRule().equals(positionRule.getRule())) {
+										changeDescriptions.add(prettyUserType + ", stilling '" + positionRule.getPositionName() + "': regel for oprettelse ændret fra '" + message(originalPositionRule.getRule().getMessage()) + "' til '" + message(positionRule.getRule().getMessage()) + "'");
 										originalPositionRule.setRule(positionRule.getRule());
 										changes = true;
 									}
 
 									if (originalPositionRule.isRequiresApproval() != positionRule.isRequiresApproval()) {
+										changeDescriptions.add(prettyUserType + ", stilling '" + positionRule.getPositionName() + "': kræver godkendelse " + (positionRule.isRequiresApproval() ? "slået til" : "slået fra"));
 										originalPositionRule.setRequiresApproval(positionRule.isRequiresApproval());
 										changes = true;
 									}
@@ -801,7 +816,10 @@ public class AccountOrderService {
 
 		if (changes || override) {
 			originalOrder = orgUnitAccountOrderDao.save(originalOrder);
-			auditLogger.log(orgUnit.getEntityId(),orgUnit.getEntityType(), EventType.SAVE, orgUnit.getEntityName(),"Bestillingsregler opdateret");
+			String auditMessage = changeDescriptions.isEmpty()
+					? "Bestillingsregler gemt uden ændringer"
+					: "Bestillingsregler opdateret: " + String.join("; ", changeDescriptions);
+			auditLogger.log(orgUnit.getEntityId(), orgUnit.getEntityType(), EventType.SAVE, orgUnit.getEntityName(), auditMessage);
 
 			// trigger ordering new accounts if needed
 			List<AccountOrder> orderAccounts = getAccountsToCreate(affiliationService.findByCalculatedOrgUnit(orgUnit), true, originalOrder, true);
@@ -811,6 +829,10 @@ public class AccountOrderService {
 		}
 
 		return originalOrder;
+	}
+
+	private String message(String key) {
+		return messageSource.getMessage(key, null, key, Locale.of("da"));
 	}
 
 	public OrgUnitAccountOrder getAccountOrderSettings(OrgUnit orgUnit, boolean bypassCache) {
