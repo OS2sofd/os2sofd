@@ -1000,8 +1000,16 @@ public class UsernameGeneratorService {
         String[] splittedName = splitName(transliteratedName, includeMiddleName);
 
         String rootName = "";
-        for (String split : splittedName)
-		{
+        for (String split : splittedName) {
+
+        	// remove any existing dots (double-dots not allowed in emails)
+        	split = split.replace(".", "");
+
+        	// if we now have an empty string, just skip it
+        	if (!StringUtils.hasText(split)) {
+        		continue;
+        	}
+
 			if (rootName.length() > 0) {
 				rootName += ".";
 			}
