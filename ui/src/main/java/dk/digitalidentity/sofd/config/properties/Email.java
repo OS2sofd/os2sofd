@@ -38,7 +38,7 @@ public class Email {
 	private String secret;
 	
 	@JsonIgnore
-	private long port = 25;
+	private long port = 587;
 	
 	@JsonIgnore
 	private String protocol = "smtp";

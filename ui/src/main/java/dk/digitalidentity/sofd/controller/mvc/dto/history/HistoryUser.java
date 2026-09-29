@@ -1,5 +1,6 @@
 package dk.digitalidentity.sofd.controller.mvc.dto.history;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import dk.digitalidentity.sofd.dao.model.User;
@@ -22,6 +23,8 @@ public class HistoryUser {
 	@JsonSerialize(using = LocalExtensionsSerializer.class)
 	@JsonDeserialize(using = LocalExtensionsDeserializer.class)
 	private String localExtensions;
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	private Boolean external;
 
 
 	public HistoryUser(User user) {
@@ -34,5 +37,6 @@ public class HistoryUser {
 		this.prime = user.isPrime();
 		this.disabled = user.isDisabled();
 		this.localExtensions = user.getLocalExtensions();
+		this.external = user.getActiveDirectoryDetails() != null ? user.getActiveDirectoryDetails().isExternal() : null;
 	}
 }
