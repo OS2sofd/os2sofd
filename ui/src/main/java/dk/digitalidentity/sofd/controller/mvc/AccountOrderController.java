@@ -459,6 +459,10 @@ public class AccountOrderController {
 				triggerAffiliation,
 				false);
 
+		// same as the single-order flow above: manual orders are not followed by an automatic REACTIVATE when the OU has no
+		// AD rule, so flag the order to have notify() in AccountOrderApiController reactivate an account created as disabled
+		adAccountOrder.setTriggerReactivateAfterCreate(true);
+
 		accountOrderService.save(adAccountOrder);
 		
 		AccountOrder exchangeAccountOrder = accountOrderService.createOrReactivateAccountOrder(
