@@ -463,6 +463,10 @@ public class AccountOrderController {
 		// AD rule, so flag the order to have notify() in AccountOrderApiController reactivate an account created as disabled
 		adAccountOrder.setTriggerReactivateAfterCreate(true);
 
+		if (order.isExternal()) {
+			adAccountOrder.setExternal(true);
+		}
+
 		accountOrderService.save(adAccountOrder);
 		
 		AccountOrder exchangeAccountOrder = accountOrderService.createOrReactivateAccountOrder(
