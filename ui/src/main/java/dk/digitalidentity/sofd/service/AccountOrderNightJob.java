@@ -229,6 +229,12 @@ public class AccountOrderNightJob {
 					continue;
 				}
 
+				// CLEANUP orders are created when the agent reports a DEACTIVATE order as done, not by this job,
+				// so there is never a generated order to match them against - leave them alone
+				if (existingOrder.getOrderType() == AccountOrderType.CLEANUP) {
+					continue;
+				}
+
 				// skip cleanup on non-pending
 				if (existingOrder.getStatus() != AccountOrderStatus.PENDING && existingOrder.getStatus() != AccountOrderStatus.PENDING_APPROVAL) {
 					continue;
