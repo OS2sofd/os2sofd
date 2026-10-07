@@ -490,6 +490,9 @@ public class PersonService {
 				}
 				else if (!shouldBeDeleted && person.isDeleted()) {
 					person.setDeleted(false);
+
+					// force a fresh authorization code lookup on the next run, as the person has been inactive for a while
+					person.setHasUpdatedAuthorizationCode(false);
 					changes = true;
 				}
 

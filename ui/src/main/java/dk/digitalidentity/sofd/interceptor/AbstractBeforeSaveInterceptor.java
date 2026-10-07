@@ -227,6 +227,9 @@ public class AbstractBeforeSaveInterceptor {
 			person.setDeleted(true);
 		} else if (!shouldBeDeleted && person.isDeleted()) {
 			person.setDeleted(false);
+
+			// force a fresh authorization code lookup on the next run, as the person has been inactive for a while
+			person.setHasUpdatedAuthorizationCode(false);
 		}
 
 		// do this last! reading the professions from database apparently flushes the person to database before our interceptor is done
