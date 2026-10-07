@@ -2299,6 +2299,19 @@ public class AccountOrderService {
 		cal.add(Calendar.DATE, -intDays);
 		Date xDaysBefore = cal.getTime();
 
+		// a REACTIVATE that follows a recent CREATE on the same account is just the account being enabled after
+		// being created in disabled state - the manager was already notified on the CREATE. We check the orders
+		// rather than the audit table below, because the agent reports the order before it syncs the user state
+		if (order.getStatus() == AccountOrderStatus.REACTIVATED) {
+			boolean recentlyCreated = accountOrderDao.findByUserTypeAndOrderTypeAndStatusAndActualUserId(order.getUserType(), AccountOrderType.CREATE, AccountOrderStatus.CREATED, order.getActualUserId())
+					.stream()
+					.anyMatch(o -> o.getModifiedTimestamp() != null && o.getModifiedTimestamp().after(xDaysBefore));
+
+			if (recentlyCreated) {
+				return true;
+			}
+		}
+
 		// if the user does not exist, no recent enabling is the case
 		User user = userService.findByUserIdAndUserType(order.getActualUserId(), order.getUserType());
 		if (user == null) {
