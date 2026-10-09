@@ -153,7 +153,7 @@ public class PrimeService {
 									(Objects.equals(a1.getWorkingHoursNumerator(),a2.getWorkingHoursNumerator()) ?
 										tryCompareAsNumber(a1.getEmployeeId(),a2.getEmployeeId())
 									:
-										a1.getWorkingHoursNumerator().compareTo(a2.getWorkingHoursNumerator()))
+										Objects.compare(a1.getWorkingHoursNumerator(), a2.getWorkingHoursNumerator(), Comparator.nullsFirst(Double::compareTo)))
 							:
 									preferredPrimeEmploymentTerms != null ?
 										Objects.compare(preferredPrimeEmploymentTerms.equalsIgnoreCase(a2.getEmploymentTerms()), preferredPrimeEmploymentTerms.equalsIgnoreCase(a1.getEmploymentTerms()), new BooleanComparator(true))
