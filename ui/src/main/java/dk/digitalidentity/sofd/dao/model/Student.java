@@ -40,6 +40,9 @@ public class Student {
 	@Column(nullable = true, length = 10)
 	private String cpr;
 
+	@Column(nullable = true, length = 64)
+	private String className;
+
 	@NotAudited
 	@ElementCollection
 	@CollectionTable(name = "student_institution_numbers", joinColumns = @JoinColumn(name = "student_id"))

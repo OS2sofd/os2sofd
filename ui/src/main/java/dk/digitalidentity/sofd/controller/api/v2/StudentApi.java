@@ -242,7 +242,12 @@ public class StudentApi {
 			student.setCpr(studentFromRecord.getCpr());
 			changes = true;
 		}
-		
+
+		if (studentFromRecord.getClassName() != null && !Objects.equals(studentFromRecord.getClassName(), student.getClassName())) {
+			student.setClassName(studentFromRecord.getClassName());
+			changes = true;
+		}
+
 		// due to the way patching works, it is not possible "null" a collection using the PATCH operation,
 		// an empty collection must be supplied to "empty" it.
 		if (studentFromRecord.getInstitutionNumbers() != null) {

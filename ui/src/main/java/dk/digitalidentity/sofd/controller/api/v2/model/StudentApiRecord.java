@@ -32,6 +32,9 @@ public class StudentApiRecord extends BaseRecord {
 	@NotNull
 	private String name;
 
+	@Size(max = 64)
+	private String className;
+
 	private Boolean disabled;
 	private List<String> institutionNumbers;
 
@@ -46,6 +49,7 @@ public class StudentApiRecord extends BaseRecord {
 		this.username = student.getUserId();
 		this.name = student.getName();
 		this.disabled = student.isDisabled();
+		this.className = student.getClassName();
 		this.institutionNumbers = student.getInstitutionNumbers();
 	}
 
@@ -63,6 +67,7 @@ public class StudentApiRecord extends BaseRecord {
 		student.setUserId(username);
 		student.setName(name);
 		student.setDisabled(disabled != null ? disabled : false);
+		student.setClassName(className);
 
 		if (institutionNumbers != null) {
 			student.setInstitutionNumbers(new ArrayList<>());
