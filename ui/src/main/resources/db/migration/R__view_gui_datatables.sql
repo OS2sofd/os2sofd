@@ -92,6 +92,7 @@ CREATE OR REPLACE VIEW view_datatables_students AS SELECT
     s.name,
     s.disabled,
     s.user_id,
+    s.class_name,
     GROUP_CONCAT(sin.institution_number) AS institution_numbers
   FROM student s
   LEFT JOIN student_institution_numbers sin ON s.id = sin.student_id

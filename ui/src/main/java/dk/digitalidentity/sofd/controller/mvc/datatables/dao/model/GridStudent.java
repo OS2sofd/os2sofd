@@ -25,6 +25,9 @@ public class GridStudent {
 	private String name;
 
 	@Column
+	private String className;
+
+	@Column
 	private boolean disabled;
 
 	@Column
