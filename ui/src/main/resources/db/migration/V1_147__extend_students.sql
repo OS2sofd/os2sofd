@@ -1,2 +1,2 @@
 ALTER TABLE student ADD COLUMN class_name VARCHAR(64) NULL;
-ALTER TALBE student_aud ADD COLUMN class_name VARCHAR(64) NULL;
+ALTER TABLE student_aud ADD COLUMN class_name VARCHAR(64) NULL;
