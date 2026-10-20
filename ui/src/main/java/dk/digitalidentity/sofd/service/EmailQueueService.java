@@ -240,6 +240,13 @@ public class EmailQueueService {
 				emailQueueDao.delete(email);
 				continue;
 			}
+
+			if (!templateChild.isEnabled()) {
+				log.warn("Not sending email with title " + email.getTitle() + ". Email template child with id " + templateChild.getId() + " was disabled after email was queued");
+				emailQueueDao.delete(email);
+				continue;
+			}
+
 			templateChild.forceLoadAttachments();
 			List<Attachment> attachments = (templateChild != null && templateChild.getAttachments() != null && templateChild.getAttachments().size() > 0) ? templateChild.getAttachments() : null;
 			
