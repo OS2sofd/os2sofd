@@ -6,7 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import dk.digitalidentity.sofd.dao.TagsDao;
+import dk.digitalidentity.sofd.dao.model.AccountOrder;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
+import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.OrgUnitTag;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Tag;
@@ -54,5 +56,30 @@ public class TagsService {
 		}
 		
 		return null;
+	}
+
+	// looks up the tag on the orgunit of the affiliation that triggered the order (same orgunit the approval flow uses),
+	// falling back to the persons primary affiliation for orders without a trigger affiliation
+	public boolean hasTagOnAccountOrderOrgUnit(AccountOrder order, Person person, String tagValue) {
+		Tag tag = tagsDao.findByValue(tagValue);
+		if (tag == null) {
+			return false;
+		}
+
+		Affiliation affiliation = order.getTriggerAffiliation();
+		if (affiliation == null && person != null) {
+			affiliation = person.getAffiliations().stream().filter(a -> a.isPrime()).findFirst().orElse(null);
+		}
+
+		if (affiliation == null) {
+			return false;
+		}
+
+		OrgUnit orgUnit = affiliation.getCalculatedOrgUnit();
+		if (orgUnit == null) {
+			return false;
+		}
+
+		return orgUnit.getTags().stream().anyMatch(t -> t.getTag().getId() == tag.getId());
 	}
 }
