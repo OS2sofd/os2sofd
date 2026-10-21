@@ -27,7 +27,7 @@
 
 										<div class="col-sm-8">
 											<select class="form-control m-b col-sm-8" id="templateDropdown" th:disabled="${!isNew}">
-												<option th:each="template : ${templates}" th:value="${template.id}" th:text="#{__${template.templateTypeText}__}" th:attr="data-template=${template.emailTemplateType}"></option>
+												<option th:each="template : ${templates}" th:value="${template.id}" th:text="#{__${template.templateTypeText}__}" th:attr="data-template=${template.emailTemplateType},data-eboks=${template.emailTemplateType.eboks}"></option>
 											</select>
 										</div>
 									</div>
@@ -324,7 +324,6 @@
 	/*[+
 		var addChildUrl = [[@{/ui/admin/mailtemplates/addchild/}]];
 		var restUrl = [[@{/rest/mailtemplates}]];
-		var eboksTemplate = [[${template.emailTemplateType.eboks}]];
 		var baseUrl = [[@{/}]];
 		var msgSuccess = [[#{html.page.email_template.success}]];
 		var msgFail = [[#{html.page.email_template.failure}]];
@@ -561,6 +560,7 @@
 			// Get the file input and validate filename (Digital Post rejects special characters in filenames)
 			let fileInput = $('#uploadFileForm input[type="file"]')[0];
 			let filename = fileInput.files[0].name;
+			let eboksTemplate = $("#templateDropdown option:selected").attr('data-eboks') === 'true';
 
 			if (eboksTemplate && /[^a-zA-ZæøåÆØÅ0-9_\-.]/.test(filename)) {
 				$.notify({
