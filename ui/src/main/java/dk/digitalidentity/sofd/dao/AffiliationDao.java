@@ -48,6 +48,29 @@ public interface AffiliationDao extends CrudRepository<Affiliation, Long> {
 			""", nativeQuery = true)
 	Long countByOrgUnitAndActiveRecursive(String orgUnitUuid);
 
+	// persons with a not-stopped affiliation whose calculated orgunit is the given orgunit or any of its
+	// non-deleted children (same subtree as OrgUnitDao.findDescendantUuids)
+	@Query(value = """
+			WITH RECURSIVE cte AS (
+				SELECT o.uuid, o.parent_uuid FROM orgunits o WHERE uuid = ?1
+				UNION ALL
+				SELECT o.uuid, o.parent_uuid FROM orgunits o INNER JOIN cte on cte.uuid = o.parent_uuid WHERE o.deleted = 0
+			)
+			SELECT DISTINCT a.person_uuid
+			FROM affiliations a
+			INNER JOIN persons p ON p.uuid = a.person_uuid
+			LEFT JOIN affiliations_workplaces aw ON
+				aw.affiliation_id = a.id
+				AND aw.start_date <= curdate()
+				AND aw.stop_date >= curdate()
+			WHERE
+				a.deleted = 0
+				AND p.deleted = 0
+				AND (a.stop_date IS NULL OR a.stop_date >= curdate())
+				AND COALESCE(aw.orgunit_uuid, a.alt_orgunit_uuid, a.orgunit_uuid) IN (SELECT uuid FROM cte)
+			""", nativeQuery = true)
+	Set<String> findNotStoppedPersonUuidsByOrgUnitRecursive(String orgUnitUuid);
+
 	@Query(value = "SELECT a.* FROM affiliations a LEFT JOIN (SELECT orgunit_uuid, affiliation_id FROM affiliations_workplaces aw WHERE aw.start_date <= curdate() AND aw.stop_date >= curdate()) workplace ON workplace.affiliation_id = a.id WHERE COALESCE(workplace.orgunit_uuid, a.alt_orgunit_uuid, a.orgunit_uuid) = ?1 AND deleted = 0 AND (stop_date IS NULL OR CAST(stop_date AS DATE) >= CAST(CURRENT_TIMESTAMP AS DATE))", nativeQuery = true)
 	List<Affiliation> findByCalculatedOrgUnitAndActive(String orgUnitUuid);
 

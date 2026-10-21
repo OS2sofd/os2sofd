@@ -142,8 +142,9 @@ public class OS2SyncService {
 			return;
 		}
 
-		// read all OrgUnits from SOFD Core (active only)
-		List<OrgUnit> sofdOrgUnits = orgUnitService.getAll().stream().filter(o -> !o.isDeleted() && !o.isDoNotTransferToFkOrg()).toList();
+		// read all OrgUnits from SOFD Core (active only, and not excluded from FK Organisation either directly or through a parent)
+		Set<String> doNotTransferToFKOrgUuids = orgUnitService.getDoNotTransferToFKOrgUuids();
+		List<OrgUnit> sofdOrgUnits = orgUnitService.getAll().stream().filter(o -> !o.isDeleted() && !doNotTransferToFKOrgUuids.contains(o.getUuid())).toList();
 
 		// read contactPlaces
 		List<ContactPlace> allContactPlaces = (configuration.getModules().getContactPlaces().isEnabled()) ? contactPlaceService.findAll() : null;
@@ -400,7 +401,7 @@ public class OS2SyncService {
 		log.debug("Updating " + person.getUuid());
 		
 		List<Affiliation> activeAffiliations = AffiliationService.notStoppedAffiliations(person.getAffiliations()).stream()
-			.filter(a -> a.getOrgUnit().getBelongsTo().getId() == admOrgId && a.isDoNotTransferToFkOrg() == false && !doNotTransferToFKOrgUuids.contains(a.getOrgUnit().getUuid()))
+			.filter(a -> a.getCalculatedOrgUnit().getBelongsTo().getId() == admOrgId && a.isDoNotTransferToFkOrg() == false && !doNotTransferToFKOrgUuids.contains(a.getCalculatedOrgUnit().getUuid()))
 			.collect(Collectors.toList());
 
 		// no active affiliations, just map it to a delete event instead

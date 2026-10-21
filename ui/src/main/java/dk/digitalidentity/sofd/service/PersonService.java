@@ -52,7 +52,6 @@ import dk.digitalidentity.sofd.dao.model.AccountOrder;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.EmailTemplate;
 import dk.digitalidentity.sofd.dao.model.EmailTemplateChild;
-import dk.digitalidentity.sofd.dao.model.ModificationHistory;
 import dk.digitalidentity.sofd.dao.model.Notification;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.OrgUnitManager;
@@ -679,15 +678,7 @@ public class PersonService {
 	public void hardDeletePersons(List<Person> entities) {
 		Set<String> personUuids = entities.stream().map(p -> p.getUuid()).collect(Collectors.toSet());
 
-		for (String uuid : personUuids) {
-			ModificationHistory modificationHistory = new ModificationHistory();
-			modificationHistory.setEntity(EntityType.PERSON);
-			modificationHistory.setUuid(uuid);
-			modificationHistory.setChanged(new Date());
-			modificationHistory.setChangeType(ChangeType.DELETE);
-
-			modificationHistoryService.insert(modificationHistory);
-		}
+		modificationHistoryService.insertAll(EntityType.PERSON, personUuids, ChangeType.DELETE);
 
 		personDao.deleteByUuid(personUuids);
 	}

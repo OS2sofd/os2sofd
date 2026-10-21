@@ -2,7 +2,6 @@ package dk.digitalidentity.sofd.service;
 
 import dk.digitalidentity.sofd.dao.WorkplaceDao;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
-import dk.digitalidentity.sofd.dao.model.ModificationHistory;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.Workplace;
 import dk.digitalidentity.sofd.dao.model.enums.EntityType;
@@ -16,8 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -43,14 +42,8 @@ public class WorkplaceService {
 		List<Person> changedPeople = startedWorkplaces.stream().map(w -> w.getAffiliation().getPerson()).collect(Collectors.toList());
 		changedPeople.addAll(stoppedWorkplaces.stream().map(w -> w.getAffiliation().getPerson()).collect(Collectors.toList()));
 
-		for (Person changedPerson : changedPeople) {
-			ModificationHistory modificationHistory = new ModificationHistory();
-			modificationHistory.setUuid(changedPerson.getUuid());
-			modificationHistory.setChanged(new Date());
-			modificationHistory.setEntity(EntityType.PERSON);
-			modificationHistory.setChangeType(ChangeType.UPDATE);
-			modificationHistoryService.insert(modificationHistory);
-		}
+		Set<String> changedPersonUuids = changedPeople.stream().map(Person::getUuid).collect(Collectors.toSet());
+		modificationHistoryService.insertAll(EntityType.PERSON, changedPersonUuids, ChangeType.UPDATE);
 	}
 
 	public List<Workplace> findAll() {

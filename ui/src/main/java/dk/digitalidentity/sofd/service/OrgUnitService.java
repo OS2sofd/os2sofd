@@ -45,7 +45,6 @@ import dk.digitalidentity.sofd.dao.OrgUnitDao;
 import dk.digitalidentity.sofd.dao.OrgUnitTypeDao;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.Ean;
-import dk.digitalidentity.sofd.dao.model.ModificationHistory;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.OrgUnitType;
 import dk.digitalidentity.sofd.dao.model.Organisation;
@@ -660,10 +659,11 @@ public class OrgUnitService {
 			shouldUpdateChildren = true;
 		}
 
+		// note that a change to the fk org transfer setting (also through moving to another parent) is
+		// handled by the save interceptor, which re-syncs children and affiliated persons as needed
 		if (!Objects.equals(orgUnit.isDoNotTransferToFkOrg(), coreInfoDTO.isDoNotTransferToFKOrg())) {
 			orgUnit.setDoNotTransferToFkOrg(coreInfoDTO.isDoNotTransferToFKOrg());
 			changes = true;
-			shouldUpdateChildren = true;
 		}
 
 		if (!Objects.equals(orgUnit.isBlockUpdate(), coreInfoDTO.isBlockUpdate())) {
@@ -829,7 +829,7 @@ public class OrgUnitService {
 			log.trace("Saving orgunit " + orgUnit.getUuid() + ", selectedManager: " + orgUnit.getSelectedManagerUuid() + ", importedManager: " + orgUnit.getImportedManagerUuid());
 			self.save(orgUnit);
 
-			// if changes was made to the fk org transfer setting we also need to update children to respect inheritance
+			// if the manager was changed we also need to update children to respect inheritance
 			if (shouldUpdateChildren) {
 				self.forceUpdateChildren(orgUnit);
 			}
@@ -890,6 +890,11 @@ public class OrgUnitService {
 
 	public OrgUnitType findTypeByKey(String key) {
 		return orgUnitTypeDao.findByKey(key);
+	}
+
+	// true when the user has picked a future date in the UI, so saves are recorded as future changes instead of applied
+	public static boolean isOperatingInFuture() {
+		return getFutureDateFromSession() != null;
 	}
 
 	private static Date getFutureDateFromSession() {
@@ -994,13 +999,7 @@ public class OrgUnitService {
 	}
 
 	public void delete(OrgUnit orgUnit) {
-		ModificationHistory modificationHistory = new ModificationHistory();
-		modificationHistory.setEntity(EntityType.ORGUNIT);
-		modificationHistory.setUuid(orgUnit.getUuid());
-		modificationHistory.setChanged(new Date());
-		modificationHistory.setChangeType(ChangeType.DELETE);
-
-		modificationHistoryService.insert(modificationHistory);
+		modificationHistoryService.insert(EntityType.ORGUNIT, orgUnit.getUuid(), ChangeType.DELETE);
 
 		orgUnitDao.delete(orgUnit);
 	}
@@ -1037,18 +1036,45 @@ public class OrgUnitService {
 	}
 
 	public void forceUpdateChildren(OrgUnit orgUnit) {
-		if( orgUnit.getChildren() == null ) {
-			return;
+		List<String> descendantUuids = orgUnitDao.findDescendantUuids(orgUnit.getUuid());
+
+		modificationHistoryService.insertAll(EntityType.ORGUNIT, descendantUuids, ChangeType.UPDATE);
+	}
+
+	// triggers a re-sync of every person with a not-stopped affiliation in this orgunit or any of its children,
+	// so OS2sync can add or remove them from FK Organisation when the (inherited) fk org transfer setting changes
+	public void forceUpdateAffiliatedPersons(OrgUnit orgUnit) {
+		Set<String> personUuids = affiliationService.findNotStoppedPersonUuidsByOrgUnitRecursive(orgUnit);
+
+		modificationHistoryService.insertAll(EntityType.PERSON, personUuids, ChangeType.UPDATE);
+	}
+
+	// the effective setting, taking inheritance from parents into account. Works on the in-memory
+	// object graph, so it can be used on unsaved changes. Mirrors OrgUnitDao.getDoNotTransferToFKOrgUuids,
+	// which never reaches orgunits below a deleted ancestor, so those count as not excluded here as well.
+	// Always walks the full chain, so every parent proxy is initialized as a side effect
+	public static boolean isExcludedFromFkOrg(OrgUnit orgUnit) {
+		boolean excluded = false;
+		boolean belowDeleted = false;
+		Set<String> visited = new HashSet<>();
+
+		for (OrgUnit ou = orgUnit; ou != null; ou = ou.getParent()) {
+			// guard against a parent cycle in the data, which would otherwise hang the save
+			if (!visited.add(ou.getUuid())) {
+				log.warn("Parent cycle detected in orgunit hierarchy at " + ou.getUuid());
+				break;
+			}
+
+			if (ou.isDeleted()) {
+				belowDeleted = true;
+			}
+
+			if (ou.isDoNotTransferToFkOrg()) {
+				excluded = true;
+			}
 		}
-		orgUnit.getChildren().stream().filter(o -> !o.isDeleted()).forEach(child -> {
-			ModificationHistory modificationHistory = new ModificationHistory();
-			modificationHistory.setEntity(EntityType.ORGUNIT);
-			modificationHistory.setUuid(child.getUuid());
-			modificationHistory.setChanged(new Date());
-			modificationHistory.setChangeType(ChangeType.UPDATE);
-			modificationHistoryService.insert(modificationHistory);
-			forceUpdateChildren(child);
-		});
+
+		return excluded && !belowDeleted;
 	}
 
 	public List<OrgUnit> searchOrgUnits(String query) {

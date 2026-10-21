@@ -113,6 +113,18 @@ public interface OrgUnitDao extends JpaRepository<OrgUnit, String> {
 		""")
 	Set<String> getDoNotTransferToFKOrgUuids();
 
+	// uuids of all non-deleted orgunits below the given orgunit (the orgunit itself is not included)
+	@Query(nativeQuery = true, value = """
+		with recursive orgcte as
+		(
+			select o.uuid from orgunits o where o.uuid = ?1
+			union all
+			select o.uuid from orgunits o inner join orgcte p on p.uuid = o.parent_uuid where o.deleted = 0
+		)
+		select uuid from orgcte where uuid <> ?1;
+		""")
+	List<String> findDescendantUuids(String orgUnitUuid);
+
 	interface EffectiveAffiliationDurationRule {
 		String getUuid();
 		String getName();

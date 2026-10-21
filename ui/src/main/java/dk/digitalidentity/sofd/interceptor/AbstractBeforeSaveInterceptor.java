@@ -25,7 +25,6 @@ import dk.digitalidentity.sofd.dao.OrgUnitTypeDao;
 import dk.digitalidentity.sofd.dao.PersonDao;
 import dk.digitalidentity.sofd.dao.model.AccountOrder;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
-import dk.digitalidentity.sofd.dao.model.ModificationHistory;
 import dk.digitalidentity.sofd.dao.model.OrgUnit;
 import dk.digitalidentity.sofd.dao.model.OrgUnitType;
 import dk.digitalidentity.sofd.dao.model.Person;
@@ -248,13 +247,7 @@ public class AbstractBeforeSaveInterceptor {
 			entityListenerService.emitCreateEvent(person);
 		}
 		
-		ModificationHistory modificationHistory = new ModificationHistory();
-		modificationHistory.setEntity(EntityType.PERSON);
-		modificationHistory.setUuid(person.getUuid());
-		modificationHistory.setChanged(new Date());
-		modificationHistory.setChangeType(oldPerson != null ? ChangeType.UPDATE : ChangeType.CREATE);
-
-		modificationHistoryService.insert(modificationHistory);
+		modificationHistoryService.insert(EntityType.PERSON, person.getUuid(), oldPerson != null ? ChangeType.UPDATE : ChangeType.CREATE);
 	}
 
 	public void handleAccountOrders(Person person) {
@@ -347,13 +340,21 @@ public class AbstractBeforeSaveInterceptor {
 			entityListenerService.emitCreateEvent(orgUnit);
 		}
 		
-		ModificationHistory modificationHistory = new ModificationHistory();
-		modificationHistory.setEntity(EntityType.ORGUNIT);
-		modificationHistory.setUuid(orgUnit.getUuid());
-		modificationHistory.setChanged(new Date());
-		modificationHistory.setChangeType(oldOrgUnit != null ? ChangeType.UPDATE : ChangeType.CREATE);
+		modificationHistoryService.insert(EntityType.ORGUNIT, orgUnit.getUuid(), oldOrgUnit != null ? ChangeType.UPDATE : ChangeType.CREATE);
 
-		modificationHistoryService.insert(modificationHistory);
+		// if the effective fk org transfer setting changes (own flag, inherited through a new parent, or
+		// through deletion), every orgunit and every person below must be re-synced to FK Organisation.
+		// Not when operating in the future, as the save is then only recorded as a future change, and
+		// the re-sync happens when that change is applied
+		if (oldOrgUnit != null && !OrgUnitService.isOperatingInFuture()) {
+			boolean excludedBefore = OrgUnitService.isExcludedFromFkOrg(oldOrgUnit);
+			boolean excludedAfter = OrgUnitService.isExcludedFromFkOrg(orgUnit);
+
+			if (excludedBefore != excludedAfter) {
+				orgUnitService.forceUpdateChildren(orgUnit);
+				orgUnitService.forceUpdateAffiliatedPersons(orgUnit);
+			}
+		}
 	}
 
 	// we ensure a fresh copy is loaded by setting the propagation, but we also need
@@ -366,6 +367,8 @@ public class AbstractBeforeSaveInterceptor {
 		if (orgUnit != null) {
 			getValue(() -> orgUnit.getParent().getName());
 			getValue(() -> orgUnit.getManager().getManager().getCpr());
+			// walks and thereby initializes the full parent chain, needed to compute the effective fk org setting later
+			getValue(() -> OrgUnitService.isExcludedFromFkOrg(orgUnit));
 		}
 
 		return orgUnit;

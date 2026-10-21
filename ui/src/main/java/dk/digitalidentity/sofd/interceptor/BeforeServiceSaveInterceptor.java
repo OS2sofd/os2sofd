@@ -5,7 +5,6 @@ import dk.digitalidentity.sofd.dao.model.Person;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Before;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -44,8 +43,21 @@ public class BeforeServiceSaveInterceptor {
 		});
 	}
 
-	@Before("execution(* dk.digitalidentity.sofd.service.OrgUnitService.save(dk.digitalidentity.sofd.dao.model.OrgUnit)) && args(orgUnit)")
-	public void beforeSaveOrgUnit(OrgUnit orgUnit) {
-		interceptor.handleSaveOrgUnit(orgUnit);
+	// runs the interceptor and the save in one transaction, so modification history rows written by the
+	// interceptor (including the fan-out to children and persons) are committed together with the orgunit
+	@Around("execution(* dk.digitalidentity.sofd.service.OrgUnitService.save(dk.digitalidentity.sofd.dao.model.OrgUnit)) && args(orgUnit)")
+	public Object aroundSaveOrgUnit(ProceedingJoinPoint joinPoint, OrgUnit orgUnit) throws Throwable {
+		TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+
+		return transactionTemplate.execute(status -> {
+			try {
+				interceptor.handleSaveOrgUnit(orgUnit);
+
+				return joinPoint.proceed();
+			} catch (Throwable e) {
+				status.setRollbackOnly();
+				throw new RuntimeException(e);
+			}
+		});
 	}
 }

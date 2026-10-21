@@ -110,6 +110,10 @@ public class AffiliationService {
 		return affiliationDao.countByOrgUnitAndActiveRecursive(orgUnit.getUuid());
 	}
 
+	public Set<String> findNotStoppedPersonUuidsByOrgUnitRecursive(OrgUnit orgUnit) {
+		return affiliationDao.findNotStoppedPersonUuidsByOrgUnitRecursive(orgUnit.getUuid());
+	}
+
 	public List<Affiliation> findByCalculatedOrgUnitAndActive(OrgUnit orgUnit) {
 		return affiliationDao.findByCalculatedOrgUnitAndActive(orgUnit.getUuid());
 	}

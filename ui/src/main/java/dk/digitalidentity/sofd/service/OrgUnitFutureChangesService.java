@@ -34,6 +34,8 @@ import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.enums.AppliedStatus;
 import dk.digitalidentity.sofd.dao.model.enums.OrgUnitAttribute;
 import dk.digitalidentity.sofd.dao.model.enums.OrgUnitChangeType;
+import dk.digitalidentity.sofd.service.model.ChangeType;
+import dk.digitalidentity.sofd.dao.model.enums.EntityType;
 import dk.digitalidentity.sofd.service.model.OUTreeForm;
 import dk.digitalidentity.sofd.service.model.OUTreeFormWithTags;
 import jakarta.persistence.EntityManager;
@@ -47,6 +49,9 @@ public class OrgUnitFutureChangesService {
 
 	@Autowired
 	private OrgUnitService orgUnitService;
+
+	@Autowired
+	private ModificationHistoryService modificationHistoryService;
 
 	@Autowired
 	private PersonService personService;
@@ -242,14 +247,20 @@ public class OrgUnitFutureChangesService {
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public boolean mergeFutureChange(OrgUnitFutureChange change) {
 		var today = new Date();
+		OrgUnit mergedOU;
+		boolean existedBefore;
+		boolean excludedFromFkOrgBefore;
 		try {
+			OrgUnit currentOU = orgUnitService.getCurrentByUuid(change.getOrgunitUuid());
+			existedBefore = currentOU != null;
+			excludedFromFkOrgBefore = existedBefore && OrgUnitService.isExcludedFromFkOrg(currentOU);
+
 			var changedOU = getFutureOrgUnit(change.getOrgunitUuid(), today);
-			entityManager.merge(changedOU);
+			mergedOU = entityManager.merge(changedOU);
 			change.setAppliedStatus(AppliedStatus.APPLIED);
 			change.setAppliedDate(today);
 			save(change);
 			entityManager.flush();
-			return true;
 		}
 		catch (Exception ex) {
 			change.setAppliedStatus(AppliedStatus.ERROR);
@@ -258,6 +269,19 @@ public class OrgUnitFutureChangesService {
 			log.error("Failed to apply futureChange", ex);
 			return false;
 		}
+
+		// merge() bypasses the save interceptor, so the modification history row has to be written here.
+		// Kept outside the try/catch on purpose. A failure here rolls the whole change back instead of
+		// leaving the orgunit changed and the future change marked as ERROR
+		modificationHistoryService.insert(EntityType.ORGUNIT, mergedOU.getUuid(), existedBefore ? ChangeType.UPDATE : ChangeType.CREATE);
+
+		// a parent move can change the inherited fk org status of the whole subtree
+		if (excludedFromFkOrgBefore != OrgUnitService.isExcludedFromFkOrg(mergedOU)) {
+			orgUnitService.forceUpdateChildren(mergedOU);
+			orgUnitService.forceUpdateAffiliatedPersons(mergedOU);
+		}
+
+		return true;
 	}
 
 	private void save(OrgUnitFutureChange orgUnitFutureChange) {

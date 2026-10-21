@@ -54,7 +54,6 @@ import dk.digitalidentity.sofd.controller.rest.model.PhoneDTO;
 import dk.digitalidentity.sofd.dao.model.AccountOrder;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
 import dk.digitalidentity.sofd.dao.model.FunctionType;
-import dk.digitalidentity.sofd.dao.model.ModificationHistory;
 import dk.digitalidentity.sofd.dao.model.Person;
 import dk.digitalidentity.sofd.dao.model.PersonLeave;
 import dk.digitalidentity.sofd.dao.model.Phone;
@@ -970,13 +969,7 @@ public class PersonRestController {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 
-		ModificationHistory modificationHistory = new ModificationHistory();
-		modificationHistory.setEntity(EntityType.PERSON);
-		modificationHistory.setUuid(person.getUuid());
-		modificationHistory.setChanged(new Date());
-		modificationHistory.setChangeType(ChangeType.UPDATE);
-
-		modificationHistoryService.insert(modificationHistory);
+		modificationHistoryService.insert(EntityType.PERSON, person.getUuid(), ChangeType.UPDATE);
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
