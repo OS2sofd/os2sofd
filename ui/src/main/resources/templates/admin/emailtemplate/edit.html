@@ -324,6 +324,7 @@
 	/*[+
 		var addChildUrl = [[@{/ui/admin/mailtemplates/addchild/}]];
 		var restUrl = [[@{/rest/mailtemplates}]];
+		var eboksTemplate = [[${template.emailTemplateType.eboks}]];
 		var baseUrl = [[@{/}]];
 		var msgSuccess = [[#{html.page.email_template.success}]];
 		var msgFail = [[#{html.page.email_template.failure}]];
@@ -557,11 +558,11 @@
 		function uploadAttachment() {
 		    var formData = new FormData($('#uploadFileForm')[0]);
 
-			// Get the file input and validate filename
+			// Get the file input and validate filename (Digital Post rejects special characters in filenames)
 			let fileInput = $('#uploadFileForm input[type="file"]')[0];
 			let filename = fileInput.files[0].name;
 
-			if (/[^a-zA-ZæøåÆØÅ0-9_\-.]/.test(filename)) {
+			if (eboksTemplate && /[^a-zA-ZæøåÆØÅ0-9_\-.]/.test(filename)) {
 				$.notify({
 					message: 'Filnavnet indeholder ugyldige tegn. Brug kun bogstaver, tal, underscore, bindestreg og punktum.'
 				}, {

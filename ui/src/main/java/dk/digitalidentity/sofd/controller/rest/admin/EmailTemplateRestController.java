@@ -123,12 +123,6 @@ public class EmailTemplateRestController {
 	public ResponseEntity<Long> uploadAttachment(@ModelAttribute AttachmentDTO attachment) {
 		long id = 0;
 
-		String name = attachment.getFile().getOriginalFilename();
-		if (containsIllegalCharacters(name)) {
-			log.warn("Illegal characters in filename: " + name);
-			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-		}
-
 		try {
 			// TODO: Id not supplied when creating emailtemplate
 			EmailTemplateChild templateChild = emailTemplateChildService.findById(attachment.getTemplateId());
@@ -140,6 +134,12 @@ public class EmailTemplateRestController {
 			String filename = attachment.getFile().getOriginalFilename();
 			if (!StringUtils.hasLength(filename)) {
 				log.warn("No file supplied!");
+				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			}
+
+			// Digital Post rejects attachments with special characters in the filename, so only enforce the rule there
+			if (templateChild.getEmailTemplate().getTemplateType().isEboks() && containsIllegalCharacters(filename)) {
+				log.warn("Illegal characters in filename: " + filename);
 				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 			}
 			
