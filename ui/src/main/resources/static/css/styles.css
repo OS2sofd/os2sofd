@@ -73,6 +73,13 @@ li.bold {
 	color: black;
     font-size: 75%;
 }
+/* the 75% font-size makes bootstrap's vertical-align: middle sit below the text line */
+.badge-alert, .badge-success, .badge-warning {
+	vertical-align: 3px;
+}
+.badge-inline {
+	margin-left: 6px;
+}
 .modal {
   overflow-y:auto;
 }

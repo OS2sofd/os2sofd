@@ -260,6 +260,10 @@
 												<span th:text="${affiliation.getOrgUnit().name + ' (slettet enhed)'}"></span>
 											</th:block>
 										</th:block>
+										<th:block th:if="${affiliation.prime}">
+											<span th:if="${affiliation.selectedPrime}" class="badge badge-success badge-inline" th:text="#{html.entity.affiliation.prime.selected}"></span>
+											<span th:unless="${affiliation.selectedPrime}" class="badge badge-success badge-inline" th:text="#{html.entity.affiliation.prime.automatic}"></span>
+										</th:block>
 									</td>
 									<td>
 										<th:block th:if="${affiliation.getCalculatedOrgUnit() != null && affiliation.getCalculatedOrgUnit() != affiliation.getOrgUnit()}">
