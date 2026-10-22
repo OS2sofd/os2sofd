@@ -21,6 +21,10 @@ public class OpusAccountOrderHandler {
 	// through infotype 105, then enable this (otherwise the feature does not make sense, as the IdM process will ensure the email address is set)
 	private boolean updateEmailWithoutIdM = false;
 
+	// controls whether the primary "Skole Email" account can be used as the email address written to infotype 105,
+	// and if so whether it is preferred over or used as a fallback for the primary Exchange account
+	private OpusSchoolEmailUsage schoolEmailUsage = OpusSchoolEmailUsage.NONE;
+
 	private String defaultEmail = null;
 	private String defaultEmailDomain = null;
 	private String municipalityNumber;

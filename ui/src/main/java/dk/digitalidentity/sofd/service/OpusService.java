@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeMap;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 import dk.digitalidentity.sofd.config.SofdConfiguration;
+import dk.digitalidentity.sofd.config.properties.OpusSchoolEmailUsage;
 import dk.digitalidentity.sofd.dao.ReservedUsernameDao;
 import dk.digitalidentity.sofd.dao.model.AccountOrder;
 import dk.digitalidentity.sofd.dao.model.Affiliation;
@@ -146,16 +148,11 @@ public class OpusService {
 		
 		log.info("Loaded " + persons.size() + " persons");
 		
-		// remove any persons that does not have an OPUS account or does not have an Exchange account
+		// remove any persons that does not have an OPUS account
 		persons = persons.stream()
 			.filter(p -> p.getUsers().stream()
 				.anyMatch(u -> {
 					return SupportedUserTypeService.isOpus(u.getUser().getUserType());
-				})
-			)
-			.filter(p -> p.getUsers().stream()
-				.anyMatch(u -> {
-					return u.getUser().isPrime() && SupportedUserTypeService.isExchange(u.getUser().getUserType());
 				})
 			)
 			.collect(Collectors.toList());
@@ -166,14 +163,8 @@ public class OpusService {
 		for (Person person : persons) {
 			boolean added = false;
 			
-			String emailAddress = PersonService.getUsers(person)
-				.stream()
-				.filter(u -> u.isPrime() && SupportedUserTypeService.isExchange(u.getUserType()))
-				.map(u -> u.getUserId())
-				.findAny()
-				.orElse(null);
-			
-			// should not actually happen, but better safe than sorry
+			// skip persons without an email address (Exchange, or Skole Email if configured)
+			String emailAddress = getPersonEmail(person);
 			if (!StringUtils.hasText(emailAddress)) {
 				continue;
 			}
@@ -504,11 +495,9 @@ public class OpusService {
 	}
 	
 	private String getEmail(Person person, String employeeId) {
-		SupportedUserType exchangeUserType = supportedUserTypeService.findByKey(SupportedUserTypeService.getExchangeUserType());
-
 		String email = null;
 		if (person != null) {
-			email = PersonService.getEmail(person);
+			email = getPersonEmail(person);
 		}
 
 		if (email == null) {
@@ -522,7 +511,10 @@ public class OpusService {
 				}
 			}
 			else if (person != null) {
-				if (exchangeUserType.isSingleUserMode()) {
+				// note that only reserved Exchange usernames are considered, as the configured defaultEmailDomain
+				// (appended below) is the Exchange domain, and would not be correct for a reserved Skole Email username
+				SupportedUserType exchangeUserType = supportedUserTypeService.findByKey(SupportedUserTypeService.getExchangeUserType());
+				if (exchangeUserType != null && exchangeUserType.isSingleUserMode()) {
 					ReservedUsername reservedUsername = reservedUsernameDao.findByPersonUuidAndUserType(person.getUuid(), SupportedUserTypeService.getExchangeUserType());
 					if (reservedUsername != null) {
 						email = reservedUsername.getUserId();
@@ -557,6 +549,33 @@ public class OpusService {
 		}
 		
 		return email;
+	}
+	
+	// the email address to write to infotype 105, taken from the primary Exchange account by default. Depending on
+	// configuration the primary Skole Email account can be used as a fallback, or be preferred over Exchange
+	private String getPersonEmail(Person person) {
+		OpusSchoolEmailUsage schoolEmailUsage = configuration.getModules().getAccountCreation().getOpusHandler().getSchoolEmailUsage();
+
+		String exchangeEmail = getPrimeUserId(person, u -> SupportedUserTypeService.isExchange(u.getUserType()));
+		if (schoolEmailUsage == null || schoolEmailUsage == OpusSchoolEmailUsage.NONE) {
+			return exchangeEmail;
+		}
+
+		String schoolEmail = getPrimeUserId(person, u -> SupportedUserTypeService.isSchoolEmail(u.getUserType()));
+		if (schoolEmailUsage == OpusSchoolEmailUsage.PREFERRED) {
+			return (schoolEmail != null) ? schoolEmail : exchangeEmail;
+		}
+
+		return (exchangeEmail != null) ? exchangeEmail : schoolEmail;
+	}
+
+	private static String getPrimeUserId(Person person, Predicate<User> userTypeFilter) {
+		return PersonService.getUsers(person).stream()
+				.filter(u -> u.isPrime() && userTypeFilter.test(u))
+				.map(User::getUserId)
+				.filter(StringUtils::hasText)
+				.findFirst()
+				.orElse(null);
 	}
 	
 	class OpusStatusCodeWrapper {
