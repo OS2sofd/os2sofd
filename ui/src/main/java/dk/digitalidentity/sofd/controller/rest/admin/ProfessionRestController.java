@@ -61,9 +61,13 @@ public class ProfessionRestController {
         }
 
         for( var positionName : positionNames ) {
+            var name = positionName == null ? null : positionName.strip();
+            if( name == null || name.isEmpty() ) {
+                continue;
+            }
             var profession = new Profession();
             profession.setOrganisationId(organisationId);
-            profession.setName(positionName);
+            profession.setName(name);
             professionService.save(profession);
         }
         return ResponseEntity.ok(positionNames);
@@ -77,18 +81,23 @@ public class ProfessionRestController {
             return new ResponseEntity<String>(HttpStatus.NOT_FOUND);
         }
 
+        var name = professionDto.getName() == null ? null : professionDto.getName().strip();
+        if( name == null || name.isEmpty() ) {
+            return new ResponseEntity<String>("Stillingen skal have et navn", HttpStatus.BAD_REQUEST);
+        }
+
         var profession = professionService.findById(professionDto.getId());
         if( profession == null ) {
             profession = new Profession();
             profession.setOrganisationId(professionDto.getOrganisationId());
         }
         // verify that we don't create dubplicate professions (covers both the new and the edit scenario)
-        if( !professionDto.getName().equalsIgnoreCase(profession.getName())) {
-            if( professionService.professionNameExists(professionDto.getOrganisationId(),professionDto.getName()) ) {
-                return new ResponseEntity<String>("Stillingen '" + professionDto.getName() + "' findes allerede!", HttpStatus.BAD_REQUEST);
+        if( !name.equalsIgnoreCase(profession.getName())) {
+            if( professionService.professionNameExists(professionDto.getOrganisationId(), name) ) {
+                return new ResponseEntity<String>("Stillingen '" + name + "' findes allerede!", HttpStatus.BAD_REQUEST);
             }
         }
-        profession.setName(professionDto.getName());
+        profession.setName(name);
 
         // remove deleted mappings
         profession.getProfessionMappings().removeIf( existing -> professionDto.getMappings().stream().noneMatch(dto -> Objects.equals(existing.getId(), dto.getId())));
@@ -97,7 +106,7 @@ public class ProfessionRestController {
         for( var dtoMapping : professionDto.getMappings().stream().filter(m -> m.getId() == 0).toList() ) {
             var newMapping = new ProfessionMapping();
             newMapping.setProfession(profession);
-            newMapping.setMatchValue(dtoMapping.getMatchValue());
+            newMapping.setMatchValue(dtoMapping.getMatchValue() == null ? null : dtoMapping.getMatchValue().strip());
             newMapping.setMatchType(dtoMapping.getMatchType());
             profession.getProfessionMappings().add(newMapping);
         }
