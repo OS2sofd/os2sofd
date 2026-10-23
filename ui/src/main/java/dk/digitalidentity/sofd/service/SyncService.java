@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -250,6 +251,12 @@ public class SyncService {
 		}
 		query += " AND user_type in (" + String.join(",", includedUserTypes) + ") ";
 
+		// each row is one (account, affiliation) pair, as resolved by the view (employee_id match or fallback).
+		// we track which affiliations have an enabled account, so disabled accounts that are shadowed by an
+		// enabled account on the same affiliation (an old, replaced account) can be filtered out below
+		Map<ADGridPerson, String> rowAffiliationKeys = new IdentityHashMap<>();
+		Set<String> enabledAffiliationKeys = new HashSet<>();
+
 		@SuppressWarnings("deprecation")
 		List<ADGridPerson> persons = jdbcTemplate.query(query, new Object[0], (RowMapper<ADGridPerson>) (rs, _) -> {
 			ADGridPerson person = new ADGridPerson();
@@ -301,6 +308,12 @@ public class SyncService {
 			// returning null will just remove it from the dataset (by removing null entries ;))
 			if (startDate.isAfter(cutOff)) {
 				return null;
+			}
+
+			String affiliationKey = personUuid + "|" + userType + "|" + affiliationUuid;
+			rowAffiliationKeys.put(person, affiliationKey);
+			if (!disabled) {
+				enabledAffiliationKeys.add(affiliationKey);
 			}
 			
 			person.setSchoolUser(userType.equalsIgnoreCase("ACTIVE_DIRECTORY_SCHOOL"));
@@ -364,6 +377,14 @@ public class SyncService {
 			return person;
 		});
 		
+		// includeDisabledWithAffiliation is meant for pre-hire accounts (the person's only account on that affiliation
+		// is disabled while waiting for the start date). a disabled account that shares its affiliation with an
+		// enabled account of the same type is an old, replaced account and must not be exposed, as it would
+		// otherwise keep taking up a license in the role catalogue until it is deleted from AD
+		if (!configuration.getIntegrations().getRoleCatalogue().isIncludeDisabled() && configuration.getIntegrations().getRoleCatalogue().isIncludeDisabledWithAffiliation()) {
+			persons.removeIf(person -> person != null && person.isDisabled() && enabledAffiliationKeys.contains(rowAffiliationKeys.get(person)));
+		}
+
 		// remove null entries
 		persons.removeAll(Collections.singletonList(null));
 		
