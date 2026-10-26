@@ -10,9 +10,9 @@ Security fixes are provided only for the versions listed as supported below. If 
 
 | Version    | Supported                                        |
 | ---------- | ------------------------------------------------ |
-| 2026r5     | :white_check_mark: Yes                           |
-| 2026r4     | :white_check_mark: Yes                           |
-| [< 2026r4] | :x: No                                           |
+| 2026R3     | :white_check_mark: Yes                           |
+| 2026R2     | :white_check_mark: Yes                           |
+| < 2026R2   | :x: No                                           |
 
 ## Reporting a Vulnerability
 
@@ -20,7 +20,7 @@ Security fixes are provided only for the versions listed as supported below. If 
 
 Instead, please report them privately through this channel:
 
-1. **Email.** Send your report to **[kontakt@digital-identity.dk]**
+1. **Email.** Send your report to **kontakt@digital-identity.dk**
 
 ### What to include in your report
 
@@ -43,17 +43,17 @@ After you submit a report, we aim to follow this timeline:
 
 | Stage                                          | Target timeframe                    |
 | ---------------------------------------------- | ----------------------------------- |
-| Acknowledgement of your report                 | Within [3] business days            |
-| Initial assessment (validity and severity)     | Within [5] business days            |
-| Progress updates                               | At least every [7] days             |
-| Fix released for critical/high severity issues | Within [14] days of confirmation    |
+| Acknowledgement of your report                 | Within 3 business days              |
+| Initial assessment (validity and severity)     | Within 5 business days              |
+| Progress updates                               | At least every 7 days               |
+| Fix released for critical/high severity issues | Within 14 days of confirmation      |
 
-We will keep you informed if we expect a delay. If you have not received an acknowledgement within [3] business days, please follow up at [security@os2.eu]
+We will keep you informed if we expect a delay. If you have not received an acknowledgement within 3 business days, please follow up at security@os2.eu.
 
 Our handling process is:
 
 1. **Confirm** the issue and determine the affected versions.
-2. **Assess** the severity, using [CVSS v3.1] as a guide.
+2. **Assess** the severity, using CVSS v3.1 as a guide.
 3. **Develop** a fix.
 4. **Release** patched versions for all supported release lines.
 5. **Publish** a security advisory describing the issue, affected versions, the fix, and credit to the reporter.
@@ -63,7 +63,7 @@ Our handling process is:
 We follow a **coordinated vulnerability disclosure** process. We ask that you:
 
 - Give us a reasonable amount of time to investigate and release a fix before any public disclosure.
-- Keep details of the vulnerability confidential until a fix is released or until [30] days have passed since your report, whichever comes first. We may agree on a different timeline with you depending on the complexity of the issue.
+- Keep details of the vulnerability confidential until a fix is released or until 30 days have passed since your report, whichever comes first. We may agree on a different timeline with you depending on the complexity of the issue.
 
 If a vulnerability is being actively exploited, we may accelerate the release of a fix and advisory.
 
